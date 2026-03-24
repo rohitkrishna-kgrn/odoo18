@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_project_form_renew_button" model="ir.ui.view">
+        <field name="name">project.project.form.renew.button</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button
+                    name="action_renew_sale_order"
+                    type="object"
+                    string="Renew"
+                    class="btn-primary"
+                />
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_res_users_form_sales_team" model="ir.ui.view">
+        <field name="name">res.users.form.sales.team</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='preferences']" position="inside">
+                <field name="sales_team" string="Sales Team"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_sale_order_form_new_renewed" model="ir.ui.view">
+        <field name="name">sale.order.form.new.renewed</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Insert after order state -->
+            <xpath expr="//field[@name='order_status']" position="after">
+                <field name="new_renewed"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_sale_order_filter_renewal_status" model="ir.ui.view">
+        <field name="name">sale.order.search.renewal.status</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_view_search_inherit_sale"/>
+        <field name="arch" type="xml">
+
+            <!-- Add a new filter group -->
+            <xpath expr="//search" position="inside">
+                <group string="Renewal Status">
+                    <filter
+                        string="New"
+                        name="filter_new"
+                        domain="[('new_renewed', '=', 'new')]"
+                    />
+                    <filter
+                        string="Renewed"
+                        name="filter_renewed"
+                        domain="[('new_renewed', '=', 'renewed')]"
+                    />
+                    <filter
+                        string="Partially Renewed"
+                        name="filter_partially_renewed"
+                        domain="[('new_renewed', '=', 'partially_renewed')]"
+                    />
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_sale_order_filter_renewal_status_qt" model="ir.ui.view">
+        <field name="name">sale.order.search.renewal.status.qt</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_view_search_inherit_quotation"/>
+        <field name="arch" type="xml">
+
+            <!-- Add a new filter group -->
+            <xpath expr="//search" position="inside">
+                <group string="Renewal Status">
+                    <filter
+                        string="New"
+                        name="filter_new"
+                        domain="[('new_renewed', '=', 'new')]"
+                    />
+                    <filter
+                        string="Renewed"
+                        name="filter_renewed"
+                        domain="[('new_renewed', '=', 'renewed')]"
+                    />
+                    <filter
+                        string="Partially Renewed"
+                        name="filter_partially_renewed"
+                        domain="[('new_renewed', '=', 'partially_renewed')]"
+                    />
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_sale_order_tree_new_renewed" model="ir.ui.view">
+        <field name="name">sale.order.tree.new.renewed</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_list_upload"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='paid_amount']" position="before">
+                <field name="new_renewed"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

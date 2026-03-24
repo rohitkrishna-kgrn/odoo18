@@ -1,0 +1,252 @@
+<odoo>
+    <record id="view_task_form_inherit_templates" model="ir.ui.view">
+        <field name="name">project.task.form.templates</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <notebook position="inside">
+                <page string="ASM">
+                    <group>
+                        <field name="template_type"/>
+                    </group>
+
+                    <!-- Accounting ASM -->
+                    <div invisible="template_type != 'asm'">
+                        <field name="asm_summary_id">
+                            <form string="Accounting Summary Memorandum">
+                                <!-- Engagement Summary -->
+                                <group string="Engagement Summary">
+                                    <group>
+                                        <field name="client_id" options="{'no_create': True, 'no_open': True}"/>
+                                        <field name="period"/>
+                                        <field name="prepared_by_id" options="{'no_create': True, 'no_open': True}"/>
+                                    </group>
+                                    <group>
+                                        <field name="reviewed_by_id" options="{'no_create': True, 'no_open': True}"/>
+                                        <field name="se_code_id" options="{'no_create': True, 'no_open': True}"/>
+                                    </group>
+                                </group>
+
+                                <!-- Executive Snapshot -->
+                                <group string="Executive Snapshot">
+                                    <group>
+                                        <field name="revenue_month"/>
+                                        <field name="expenses_month"/>
+                                        <field name="net_profit_month"/>
+                                    </group>
+                                    <group>
+                                        <field name="revenue_ytd"/>
+                                        <field name="expenses_ytd"/>
+                                        <field name="net_profit_ytd"/>
+                                    </group>
+                                    <group>
+                                        <field name="receivables"/>
+                                        <field name="payables"/>
+                                        <field name="cash_bank"/>
+                                    </group>
+                                    <group>
+                                        <field name="vat_net"/>
+                                        <field name="ct_provision"/>
+                                        <field name="overall_risk"/>
+                                    </group>
+                                </group>
+
+                                <!-- Client Profile -->
+                                <group string="Client Profile">
+                                    <group>
+                                        <field name="business_activity"/>
+                                        <field name="employees"/>
+                                    </group>
+                                    <group>
+                                        <field name="key_trading_partners"/>
+                                        <field name="compliance"/>
+                                    </group>
+                                    <group>
+                                        <field name="entity_type"/>
+                                        <field name="risk_factors"/>
+                                    </group>
+                                    <group>
+                                        <field name="annual_turnover"/>
+                                        <field name="overall_client_risk"/>
+                                    </group>
+                                </group>
+
+                                <!-- Compliance -->
+                                <group string="Compliance">
+                                    <group>
+                                        <field name="aml_status"/>
+                                        <field name="upcoming_deadlines"/>
+                                    </group>
+                                    <group>
+                                        <field name="vat_status"/>
+                                        <field name="risk_linkage"/>
+                                    </group>
+                                    <group>
+                                        <field name="ct_status"/>
+                                        <field name="audit_required"/>
+                                    </group>
+                                </group>
+
+                                <!-- Risk Assessment -->
+                                <group string="Risk Assessment">
+                                    <group>
+                                        <field name="aml_kyc_risk"/>
+                                        <field name="financial_ar_ap_risk"/>
+                                        <field name="compliance_vat_ct_tp_risk"/>
+                                    </group>
+                                    <group>
+                                        <field name="engagement_risk"/>
+                                        <field name="collections_fees_risk"/>
+                                        <field name="free_zone_ct_risk"/>
+                                        <field name="outsourcing_cigas_risk"/>
+                                    </group>
+                                    <group>
+                                        <field name="total_score"/>
+                                        <field name="overall_risk_assessment"/>
+                                    </group>
+                                </group>
+                                <group>
+                                    <field name="aml_ids">
+                                        <list editable="bottom">
+                                            <field name="aml_item"/>
+                                            <field name="aml_item_status"/>
+                                            <field name="aml_risk"/>
+                                            <field name="aml_action_required"/>
+                                            <field name="aml_priority"/>
+                                            <field name="aml_owner"/>
+                                        </list>
+                                    </field>
+                                </group>
+                                <group>
+                                    <field name="apar_ids">
+                                        <list editable="bottom">
+                                            <field name="category"/>
+                                            <field name="days30"/>
+                                            <field name="days30_60"/>
+                                            <field name="days61_90"/>
+                                            <field name="days90"/>
+                                            <field name="daystotal"/>
+                                        </list>
+                                    </field>
+                                    <field name="apar_key_concern"/>
+                                </group>
+                                <group>
+                                    <field name="issue_ids">
+                                        <list editable="bottom">
+                                            <field name="issue"/>
+                                            <field name="impact"/>
+                                            <field name="likelihood"/>
+                                            <field name="risk_level"/>
+                                            <field name="owner"/>
+                                            <field name="priority"/>
+                                        </list>
+                                    </field>
+                                </group>
+                                <group>
+                                    <field name="file_review_ids">
+                                        <list editable="bottom">
+                                            <field name="area"/>
+                                            <field name="status"/>
+                                            <field name="reviewer_notes"/>
+                                            <field name="evidence_link"/>
+                                            <field name="date_checked"/>
+                                            <field name="owner"/>
+                                        </list>
+                                    </field>
+                                    <field name="fr_qc_score"/>
+                                    <field name="fr_qc_status"/>
+                                </group>
+                                <group>
+                                    <field name="engagement_fee_ids">
+                                        <list>
+                                            <field name="invoice_id"/>
+                                            <field name="invoice_state"/>
+                                            <field name="engagement_fee"/>
+                                            <field name="invoice_value"/>
+                                            <field name="collected"/>
+                                            <field name="outstanding"/>
+                                            <field name="percent_collected"/>
+                                            <field name="billing_terms"/>
+                                        </list>
+                                    </field>
+                                </group>
+                            </form>
+                        </field>
+                    </div>
+
+                    <!-- Audit ASM -->
+                    <div invisible="template_type != 'audit'">
+                        <field name="audit_summary_id">
+                            <form string="Audit Summary Memorandum">
+                                <!-- Client Information -->
+                                <group string="Client Information">
+                                    <group>
+                                        <field name="entity_name"/>
+                                        <field name="authority"/>
+                                    </group>
+                                    <group>
+                                        <field name="business_activity"/>
+                                        <field name="odoo_se"/>
+                                    </group>
+                                    <group>
+                                        <field name="fees"/>
+                                        <field name="auditor_code"/>
+                                    </group>
+                                    <group>
+                                        <field name="year_ended"/>
+                                        <field name="submitted_on"/>
+                                        <field name="deliverables"/>
+                                    </group>
+                                </group>
+
+                                <!-- Invoicing -->
+                                <group string="Invoicing">
+                                    <group>
+                                        <field name="advance_fee"/>
+                                        <field name="advance_invoice_no"/>
+                                        <field name="advance_invoice_date"/>
+                                    </group>
+                                    <group>
+                                        <field name="balance_fee"/>
+                                        <field name="balance_invoice_no"/>
+                                        <field name="balance_invoice_date"/>
+                                    </group>
+                                </group>
+
+                                <!-- Engagement Team -->
+                                <group string="Engagement Team Members">
+                                    <group>
+                                        <field name="partner"/>
+                                        <field name="manager"/>
+                                    </group>
+                                    <group>
+                                        <field name="senior_auditor"/>
+                                        <field name="auditor"/>
+                                    </group>
+                                    <group>
+                                        <field name="audit_trainee"/>
+                                        <field name="eqcr"/>
+                                        <field name="total_hours"/>
+                                    </group>
+                                </group>
+
+                                <!-- Audit Execution -->
+                                <group string="Audit Planning, Execution &amp; Completion">
+                                    <field name="audit_planning"/>
+                                    <field name="aml_kyc"/>
+                                    <field name="materiality"/>
+                                    <field name="significant_issues"/>
+                                    <field name="key_audit_matters"/>
+                                    <field name="going_concern"/>
+                                    <field name="post_reporting_events"/>
+                                    <field name="review_and_approval"/>
+                                </group>
+                            </form>
+                        </field>
+                    </div>
+
+                </page>
+            </notebook>
+        </field>
+    </record>
+</odoo>

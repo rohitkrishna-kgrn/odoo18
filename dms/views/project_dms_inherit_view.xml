@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Define the action FIRST -->
+    <record id="action_dms_access_groups_tree" model="ir.actions.act_window">
+        <field name="name">DMS Access Groups</field>
+        <field name="res_model">dms.access.group</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="dms.view_dms_access_groups_tree"/>
+    </record>
+
+    <record id="view_task_form_dms_access" model="ir.ui.view">
+        <field name="name">project.task.form.dms.access</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_ids']" position="after">
+                <field name="dms_access_group_ids" widget="many2many_tags"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Then reference it in the menu -->
+    <menuitem
+        id="menu_dms_access_groups_under_project"
+        name="DMS Access Groups"
+        parent="project.menu_main_pm"
+        sequence="50"
+        action="action_dms_access_groups_tree"
+    />
+</odoo>

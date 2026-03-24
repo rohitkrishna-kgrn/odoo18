@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <template id="report_invoice_template_rk">
+    <t t-name="template_rk.report_invoice_template_rk">
+      <t t-call="web.html_container">
+        <t t-foreach="docs" t-as="o">
+          <div class="page" style="width: full; min-height: 297px; padding: 25px 20px; box-sizing: border-box;">
+
+            <style>
+              * {
+                font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                color: #111;
+                font-size: 16px;
+                line-height: 1.6;
+              }
+
+              h1, h2, h3, h4 {
+                margin: 0;
+                padding: 0;
+              }
+
+              .company-name {
+                font-size: 20px;
+                font-weight: 700;
+                color: <t t-esc="o.company_id.invoice_color or '#000'" />;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+              }
+
+              .section-title {
+                font-weight: bold;
+                margin-top: 20px;
+                margin-bottom: 5px;
+                color: #444;
+                font-size: 18px;
+                border-bottom: 1px solid #ccc;
+                padding-bottom: 4px;
+              }
+
+              .invoice-title {
+                font-size: 30px;
+                font-weight: bold;
+                text-align: center;
+                padding-bottom: 10px;
+                margin-bottom: 25px;
+                color: #000;
+              }
+
+              .table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+                font-size: 16px;
+              }
+
+              .table th {
+                background-color: <t t-esc="o.company_id.invoice_color or '#000'" />;
+                color: #fff;
+                padding: 10px;
+                border: 1px solid #ccc;
+                text-align: left;
+              }
+
+              .table td {
+                padding: 10px;
+                border: 1px solid #ccc;
+              }
+
+              .table td:last-child,
+              .table th:last-child {
+                text-align: right;
+              }
+
+              .info-table {
+                width: 100%;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid <t t-esc="o.company_id.invoice_color or '#000'" />;
+              }
+
+              .info-table td {
+                vertical-align: top;
+                padding: 5px;
+                font-size: 16px;
+              }
+
+              .bottom-section {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 30px;
+                gap: 20px;
+              }
+
+              .amount-remarks {
+                flex: 1;
+                max-width: 60%;
+              }
+
+              .amount-words {
+                text-transform: uppercase;
+                color: #444;
+                font-size: 16px;
+                margin-bottom: 10px;
+              }
+
+              .bank-details {
+                background-color: #f9f9f9;
+                padding: 12px;
+                font-size: 15px;
+                border: 1px solid #ccc;
+                flex: 1;
+                max-width: 40%;
+              }
+
+              .signature {
+                text-align: right;
+                margin-top: 70px; /* Increased space for actual signature */
+                font-style: italic;
+                color: #222;
+                font-size: 16px;
+              }
+
+              .footer-note {
+                text-align: center;
+                margin-top: 40px;
+                font-size: 13px;
+                color: #999;
+              }
+
+              .logo {
+                max-height: 90px;
+                max-width: 200px;
+              }
+
+              .align-right {
+                text-align: right;
+              }
+
+            </style>
+
+            <!-- Header -->
+            <table class="info-table">
+              <tr>
+                <td>
+                  <div class="company-name" t-field="o.company_id.name"/>
+                  <div t-field="o.company_id.street"/>
+                  <div>
+                    <span t-field="o.company_id.city"/> - 
+                    <span t-field="o.company_id.zip"/>
+                  </div>
+                  <div t-field="o.company_id.country_id.name"/>
+                </td>
+                <td class="align-right">
+                  <img class="logo" t-if="o.company_id.logo"
+                      t-att-src="'data:image/png;base64,%s' % o.company_id.logo.decode('utf-8')"
+                      alt="Company Logo"/>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Title -->
+            <div class="invoice-title">TAX INVOICE</div>
+
+            <!-- Party and Invoice Info -->
+            <table class="info-table">
+              <tr>
+                <td>
+                  <div class="section-title">BILL TO:</div>
+                  <div><strong>Customer: </strong> <span t-field="o.partner_id.name"/></div>
+                  <div><strong>Address: </strong> <span t-field="o.partner_id.street"/></div>
+                  <div>
+                    <strong>Emirates: </strong>
+                    <span t-field="o.partner_id.city"/>, 
+                    <span t-field="o.partner_id.state_id.name"/>
+                  </div>
+                  <div><strong>Address: </strong> <span t-field="o.partner_id.country_id.name"/></div>
+                  <div><strong>VAT: </strong> <span t-field="o.partner_id.vat"/></div>
+                </td>
+                <td class="align-right">
+                  <div class="section-title">INVOICE DETAILS:</div>
+                  <div><strong>Invoice #:</strong> <span t-field="o.name"/></div>
+                  <div><strong>Date:</strong> <span t-field="o.invoice_date"/></div>
+                  <div><strong>Due Date:</strong> <span t-field="o.invoice_date_due"/></div>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Invoice Line Items -->
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Qty</th>
+                  <th>Unit Price</th>
+                  <th>Subtotal</th>
+                  <th>VAT</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr t-foreach="o.invoice_line_ids" t-as="l">
+                  <td><span t-field="l.name"/></td>
+                  <td><span t-field="l.quantity"/></td>
+                  <td><span t-field="l.price_unit"/></td>
+                  <td><span t-field="l.price_subtotal"/></td>
+                  <td><span t-esc="l.price_total - l.price_subtotal"/></td>
+                  <td><span t-field="l.price_total"/></td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="5"><strong>Total</strong></td>
+                  <td><span t-field="o.amount_total"/></td>
+                </tr>
+              </tfoot>
+            </table>
+
+            <!-- Bottom Section: Amount in Words + Remarks (Left) | Bank Details (Right) -->
+            <div class="bottom-section">
+              <div class="amount-remarks">
+                <div class="amount-words">
+                  <strong>Amount in Words:</strong>
+                  <span t-esc="o.amount_to_words(o.amount_total).upper()"/>
+                </div>
+                <div>
+                  <strong>Remarks:</strong> <span t-field="o.ref"/>
+                </div>
+              </div>
+              <div class="bank-details">
+                <strong>Company Bank Details:</strong><br/>
+                <t t-foreach="o.company_id.invoice_bank_ids" t-as="bank">
+                  Bank: <span t-esc="bank.bank_id.name or ''"/><br/>
+                  Account No: <span t-esc="bank.acc_number or ''"/><br/>
+                  IBAN: <span t-esc="bank.iban or ''"/><br/><br/>
+                </t>
+              </div>
+            </div>
+
+            <!-- Signature -->
+            <div class="signature">Authorized Signature</div>
+
+            <!-- Footer -->
+            <div class="footer-note">
+              This is a system-generated invoice. No signature is required.
+            </div>
+
+          </div>
+        </t>
+      </t>
+    </t>
+  </template>
+</odoo>

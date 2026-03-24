@@ -1,0 +1,22 @@
+{
+    'name': 'Helpdesk RK',
+    'version': '1.0',
+    'category': 'Services',
+    'summary': 'Custom Helpdesk module with email integration',
+    'author': 'YourName',
+    'depends': ['mail'],
+    'data': [
+        'security/helpdesk_security.xml',
+        'security/ir.model.access.csv',
+        'data/helpdesk_data.xml',
+        'data/ir_sequence.xml',
+        'data/helpdesk_cron.xml',
+        'views/helpdesk_menu.xml',
+        'views/helpdesk_views.xml',
+        'views/helpdesk_config_views.xml',
+    ],
+    'images': ['static/description/icon.png'],
+    'installable': True,
+    'application': True,
+    'auto_install': False,
+}

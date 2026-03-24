@@ -1,0 +1,29 @@
+<odoo>
+    <!-- Leave User group -->
+    <record id="group_leave_user" model="res.groups">
+        <field name="name">Leave User</field>
+        <field name="category_id" ref="base.module_category_human_resources"/>
+    </record>
+
+    <!-- HR Manager group -->
+    <record id="group_hr_manager" model="res.groups">
+        <field name="name">HR Manager</field>
+        <field name="category_id" ref="base.module_category_human_resources"/>
+    </record>
+
+    <!-- Record rule: HR Manager sees all leave requests -->
+    <record id="leave_request_rule_hr" model="ir.rule">
+        <field name="name">HR Manager can see all leave requests</field>
+        <field name="model_id" ref="model_leave_request"/>
+        <field name="groups" eval="[(4, ref('leave_management_rk.group_hr_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- Record rule: Leave User sees only their own leave requests -->
+    <record id="leave_request_rule_user" model="ir.rule">
+        <field name="name">Users see their own leave requests</field>
+        <field name="model_id" ref="model_leave_request"/>
+        <field name="groups" eval="[(4, ref('leave_management_rk.group_leave_user'))]"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+    </record>
+</odoo>

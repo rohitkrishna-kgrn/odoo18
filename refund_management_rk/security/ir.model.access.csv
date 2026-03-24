@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_reimbursement_user,access_reimbursement_user,model_reimbursement,base.group_user,1,1,1,1
+access_reimbursement_reviewer,access_reimbursement_reviewer,model_reimbursement,refund_management_rk.group_reimbursement_reviewer,1,1,1,1
+access_upload_excel_wizard,access_upload_excel_wizard,model_upload_excel_wizard,base.group_user,1,1,1,1
+access_reimbursement_line_user,access_reimbursement_line_user,model_reimbursement_line,base.group_user,1,1,1,1
+access_attach_bills_wizard,access_attach_bills_wizard,model_attach_bills_wizard,base.group_user,1,1,1,1
+access_attach_bills_line_wizard,access_attach_bills_line_wizard,model_attach_bills_line_wizard,base.group_user,1,1,1,1
+access_upselling_user,access_upselling_user,model_upselling,base.group_user,1,1,1,1
+access_upselling_reviewer,access_upselling_reviewer,model_upselling,refund_management_rk.group_reimbursement_reviewer,1,1,1,1
+

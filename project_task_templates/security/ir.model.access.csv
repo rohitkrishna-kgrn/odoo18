@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_task_asm_summary,access_task_asm_summary,model_task_asm_summary,,1,1,1,1
+access_task_audit_summary,access_task_audit_summary,model_task_audit_summary,,1,1,1,1
+access_task_asm_aml,access_task_asm_aml,model_task_asm_aml,,1,1,1,1
+access_task_asm_apar,access_task_asm_apar,model_task_asm_apar,,1,1,1,1
+access_task_asm_issue,access_task_asm_issue,model_task_asm_issue,,1,1,1,1
+access_task_asm_filereview,access_task_asm_filereview,model_task_asm_filereview,,1,1,1,1
+access_task_asm_engagement_fee,access_task_asm_engagement_fee,model_task_asm_engagement_fee,,1,1,1,1

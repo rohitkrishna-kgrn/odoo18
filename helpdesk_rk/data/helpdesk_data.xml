@@ -1,0 +1,19 @@
+<odoo>
+    <!-- Helpdesk stages -->
+    <record id="stage_new" model="helpdesk_rk.stage">
+        <field name="name">New</field>
+        <field name="sequence">10</field>
+    </record>
+    <record id="stage_in_progress" model="helpdesk_rk.stage">
+        <field name="name">In Progress</field>
+        <field name="sequence">20</field>
+    </record>
+    <record id="stage_done" model="helpdesk_rk.stage">
+        <field name="name">Done</field>
+        <field name="sequence">30</field>
+    </record>
+    <record id="stage_rejected" model="helpdesk_rk.stage">
+        <field name="name">Rejected</field>
+        <field name="sequence">40</field>
+    </record>
+</odoo>

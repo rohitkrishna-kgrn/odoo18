@@ -1,0 +1,51 @@
+<odoo>
+  <!-- Main Helpdesk Menu -->
+  <menuitem id="menu_helpdesk_root" name="Helpdesk" sequence="10" web_icon="helpdesk_rk,static/description/icon.png"/>
+
+  <!-- Support/Admins: All tickets -->
+  <record id="action_helpdesk_ticket_all" model="ir.actions.act_window">
+    <field name="name">All Tickets</field>
+    <field name="res_model">helpdesk_rk.ticket</field>
+    <field name="view_mode">kanban,list,form</field>
+    <field name="context">{'default_stage_id': 'new'}</field>
+    <field name="domain">[]</field>
+  </record>
+
+  <menuitem id="menu_helpdesk_tickets_all" name="All Tickets"
+            parent="menu_helpdesk_root"
+            action="action_helpdesk_ticket_all"
+            groups="helpdesk_rk.group_helpdesk_support,base.group_system"/>
+
+  <!-- Basic users: Only their own tickets -->
+  <record id="action_helpdesk_ticket_own" model="ir.actions.act_window">
+    <field name="name">My Tickets</field>
+    <field name="res_model">helpdesk_rk.ticket</field>
+    <field name="view_mode">kanban,list,form</field>
+    <field name="context">{'default_stage_id': 'new'}</field>
+    <field name="domain">[('user_id', '=', uid)]</field>
+  </record>
+
+  <menuitem id="menu_helpdesk_tickets_own" name="Tickets"
+            parent="menu_helpdesk_root"
+            action="action_helpdesk_ticket_own"
+            groups="helpdesk_rk.group_helpdesk_user"/>
+
+  <!-- Configuration menu only for admins -->
+  <menuitem id="menu_helpdesk_config" name="Configuration"
+            parent="menu_helpdesk_root"
+            sequence="20"
+            groups="base.group_system"/>
+
+  <!-- Support team configuration form -->
+  <record id="action_helpdesk_config" model="ir.actions.act_window">
+      <field name="name">Helpdesk Configuration</field>
+      <field name="res_model">helpdesk_rk.config</field>
+      <field name="view_mode">form</field>
+      <field name="target">new</field>
+  </record>
+
+  <menuitem id="menu_helpdesk_config_support_team" name="Support Team"
+            parent="menu_helpdesk_config"
+            action="action_helpdesk_config"
+            groups="base.group_system"/>
+</odoo>

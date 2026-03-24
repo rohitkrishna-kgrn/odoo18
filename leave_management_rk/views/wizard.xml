@@ -1,0 +1,35 @@
+<odoo>
+    <!-- Wizard Form View -->
+    <record id="view_add_comp_leave_wizard_form" model="ir.ui.view">
+        <field name="name">add.comp.leave.wizard.form</field>
+        <field name="model">add.comp.leave.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Add Compensation Leave">
+                <group>
+                    <field name="user_id"/>
+                    <field name="days"/>
+                </group>
+                <footer>
+                    <button string="Add Leave" type="object" name="action_add_comp_leave" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open the wizard -->
+    <record id="action_add_comp_leave_wizard" model="ir.actions.act_window">
+        <field name="name">Add Compensation Leave</field>
+        <field name="res_model">add.comp.leave.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_add_comp_leave_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Menu item to launch wizard -->
+    <menuitem id="menu_add_comp_leave_wizard"
+              name="Add Compensation Leave"
+              parent="leave_management_rk.menu_leave_root"
+              action="action_add_comp_leave_wizard"
+              sequence="10"/>
+</odoo>

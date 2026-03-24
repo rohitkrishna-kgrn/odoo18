@@ -1,0 +1,20 @@
+<odoo>
+    <data noupdate="1">
+        <record id="leave_type_casual" model="leave.type">
+            <field name="name">Casual Leave</field>
+        </record>
+        <record id="leave_type_sick" model="leave.type">
+            <field name="name">Sick Leave</field>
+        </record>
+        <record id="leave_type_lop" model="leave.type">
+            <field name="name">Loss of Pay</field>
+        </record>
+        <record id="leave_type_wfh" model="leave.type">
+            <field name="name">Work from Home</field>
+        </record>
+        <record id="leave_type_compensation" model="leave.type">
+            <field name="name">Compensation Leave</field>
+        </record>
+
+    </data>
+</odoo>

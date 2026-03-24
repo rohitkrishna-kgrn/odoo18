@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_project_transfer_wizard,access_project_transfer_wizard,model_project_transfer_wizard,project_transfer_rk.group_project_transfer_user,1,1,1,1

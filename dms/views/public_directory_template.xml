@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <template id="portal_my_dms_template" name="DMS Portal My DMS">
+    <!-- Use the same name the controller expects -->
+    <t t-name="dms.portal_my_dms">
+      <!-- your existing directory & file listing code here -->
+      <!-- Insert the upload form and upload button here -->
+      <t t-if="dms_directory">
+        <t t-if="access_token or not request.env.user._is_public()">
+          <button id="upload-btn" class="btn btn-primary">Upload Files/Folders</button>
+
+          <form id="upload-form" action="/my/dms/directory/upload" method="post" enctype="multipart/form-data" style="display:none;">
+            <input type="hidden" name="directory_id" t-att-value="dms_directory.id"/>
+            <input type="hidden" name="access_token" t-att-value="access_token or ''"/>
+            <input type="file" name="files" multiple webkitdirectory directory />
+            <button type="submit" class="btn btn-success mt-2">Upload</button>
+          </form>
+        </t>
+        <t t-else="">
+          <p>You do not have permission to upload files here.</p>
+        </t>
+      </t>
+
+      <!-- rest of your template - listing directories/files etc. -->
+    </t>
+  </template>
+</odoo>

@@ -1,0 +1,45 @@
+<odoo>
+    <record id="view_leave_request_form" model="ir.ui.view">
+        <field name="name">leave.request.form</field>
+        <field name="model">leave.request</field>
+        <field name="arch" type="xml">
+            <form string="Leave Request">
+                <header>
+                    <button name="action_request" type="object" string="Submit" invisible="state != 'draft'"/>
+                    <button name="action_open_approve_wizard" type="object" string="Approve" invisible="state != 'requested'" groups="leave_management_rk.group_hr_manager"/>
+                    <button name="action_reject" type="object" string="Reject" invisible="state != 'requested'" groups="leave_management_rk.group_hr_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,requested,approved,rejected"/>
+                </header>
+                <sheet>
+
+                    <group>
+                        <field name="user_id" readonly="1"/>
+                        <field name="leave_type_id"/>
+                        <field name="available_balance" readonly="1"/>
+                        <field name="start_date"/>
+                        <field name="end_date"/>
+                        <field name="days_requested"/>
+                        <field name="reason"/>
+                        <field name="attachment"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_leave_request_tree" model="ir.ui.view">
+        <field name="name">leave.request.tree</field>
+        <field name="model">leave.request</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="user_id"/>
+                <field name="leave_type_id"/>
+                <field name="available_balance" readonly="1"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="days_requested"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+</odoo>

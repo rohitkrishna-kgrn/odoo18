@@ -1,0 +1,85 @@
+<odoo>
+  <!-- Ticket kanban view -->
+  <record id="view_helpdesk_ticket_kanban" model="ir.ui.view">
+    <field name="name">helpdesk.ticket.kanban</field>
+    <field name="model">helpdesk_rk.ticket</field>
+    <field name="arch" type="xml">
+      <kanban default_group_by="stage_id" class="o_kanban_example">
+        <field name="name"/>
+        <field name="stage_id"/>
+
+        <!-- Force all stage groups to appear even if empty -->
+        <groups>
+          <group name="new" string="New" sequence="10"/>
+          <group name="in_progress" string="In Progress" sequence="20"/>
+          <group name="done" string="Done" sequence="30"/>
+          <group name="rejected" string="Rejected" sequence="40"/>
+        </groups>
+
+        <templates>
+          <t t-name="kanban-box">
+            <div t-attf-class="oe_kanban_card oe_kanban_card_#{record.stage_id.raw_value}">
+              <strong><field name="name"/> - <field name="ticket_number"/></strong><br/>
+              <span>Stage: <field name="stage_id"/></span><br/>
+              <span>Created By: <field name="user_id"/></span>
+            </div>
+          </t>
+        </templates>
+      </kanban>
+    </field>
+  </record>
+
+  <!-- Ticket form view -->
+  <record id="view_helpdesk_ticket_form" model="ir.ui.view">
+    <field name="name">helpdesk.ticket.form</field>
+    <field name="model">helpdesk_rk.ticket</field>
+    <field name="arch" type="xml">
+      <form string="Helpdesk Ticket">
+        <header>
+            <button name="action_set_in_progress" string="Set In Progress" invisible="stage_id != 'new'" type="object" class="btn-primary"/>
+            <button name="action_set_done" string="Set Done" type="object" invisible="stage_id != 'in_progress'" class="btn-success"/>
+            <button name="action_set_rejected" string="Set Rejected" invisible="stage_id != 'in_progress'" type="object" class="btn-danger"/>
+            <button string="Close" class="btn-secondary" special="cancel"/>
+            <field name="stage_id" widget="statusbar" readonly="1"/>
+          </header>
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="ticket_number"/>
+            <field name="description"/>
+            <!-- <field name="stage_id" invisible="1"/> -->
+            <field name="user_id" readonly="1"/>
+            <field name="attachment" filename="attachment_filename" widget="binary_file"/>
+            <!-- <field name="email_to" readonly="1"/> -->
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <!-- Stage tree and form views -->
+  <record id="view_helpdesk_stage_tree" model="ir.ui.view">
+    <field name="name">helpdesk.stage.list</field>
+    <field name="model">helpdesk_rk.stage</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="name"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_helpdesk_stage_form" model="ir.ui.view">
+    <field name="name">helpdesk.stage.form</field>
+    <field name="model">helpdesk_rk.stage</field>
+    <field name="arch" type="xml">
+      <form string="Stage">
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="sequence"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+</odoo>

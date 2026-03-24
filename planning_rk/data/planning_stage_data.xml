@@ -1,0 +1,50 @@
+<odoo>
+  <record id="stage_new" model="planning.stage">
+    <field name="name">New</field>
+    <field name="sequence">1</field>
+    <field name="fold">False</field>
+    <field name="selection_key">new</field>
+  </record>
+
+  <record id="stage_today" model="planning.stage">
+    <field name="name">Today</field>
+    <field name="sequence">2</field>
+    <field name="fold">False</field>
+    <field name="selection_key">today</field>
+  </record>
+
+  <record id="stage_this_week" model="planning.stage">
+    <field name="name">This Week</field>
+    <field name="sequence">3</field>
+    <field name="fold">False</field>
+    <field name="selection_key">this_week</field>
+  </record>
+
+  <record id="stage_this_month" model="planning.stage">
+    <field name="name">This Month</field>
+    <field name="sequence">4</field>
+    <field name="fold">False</field>
+    <field name="selection_key">this_month</field>
+  </record>
+
+  <record id="stage_later" model="planning.stage">
+    <field name="name">Later</field>
+    <field name="sequence">5</field>
+    <field name="fold">False</field>
+    <field name="selection_key">later</field>
+  </record>
+
+  <record id="stage_completed" model="planning.stage">
+    <field name="name">Completed</field>
+    <field name="sequence">6</field>
+    <field name="fold">False</field>
+    <field name="selection_key">completed</field>
+  </record>
+
+  <record id="stage_cancelled" model="planning.stage">
+    <field name="name">Cancelled</field>
+    <field name="sequence">7</field>
+    <field name="fold">True</field>
+    <field name="selection_key">cancelled</field>
+  </record>
+</odoo>

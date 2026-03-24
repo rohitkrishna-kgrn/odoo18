@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_assets_device_tree" model="ir.ui.view">
+    <field name="name">assets.device.rk.tree</field>
+    <field name="model">assets.device.rk</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="name"/>
+        <field name="asset_type"/>
+        <field name="serial_number"/>
+        <field name="location_id"/>
+        <field name="assigned_to"/>
+        <field name="active"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_assets_device_form" model="ir.ui.view">
+    <field name="name">assets.device.rk.form</field>
+    <field name="model">assets.device.rk</field>
+    <field name="arch" type="xml">
+      <form string="IT Asset">
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="asset_type"/>
+            <field name="serial_number"/>
+            <field name="location_id"/>
+            <field name="assigned_to"/>
+          </group>
+          <group>
+            <field name="purchase_date"/>
+            <field name="warranty_until"/>
+            <field name="active"/>
+          </group>
+          <notebook>
+            <page string="Notes">
+              <field name="notes"/>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_assets_device" model="ir.actions.act_window">
+    <field name="name">IT Devices</field>
+    <field name="res_model">assets.device.rk</field>
+    <field name="view_mode">list,form</field>
+    <field name="context">{}</field>
+  </record>
+
+  <menuitem id="menu_assets_device" name="Devices" parent="menu_assets_rk_root" sequence="2" action="action_assets_device"/>
+</odoo>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="project_creation_email_template" model="mail.template">
+            <field name="name">Project Creation Notification</field>
+            <field name="model_id" ref="project.model_project_project"/>
+            <field name="subject">New Project Created: ${object.name}</field>
+            <field name="email_to">${object.user_id.email}</field>
+            <field name="body_html" type="html">
+                    <p>Hello ${object.user_id.name},</p>
+                    <p>A new project <strong>${object.name}</strong> has been created and assigned to you.</p>
+                    <p>Customer: ${object.partner_id.name}</p>
+                    <p>Budgeted Amount: ${object.budgeted_amount}</p>
+            </field>
+        </record>
+    </data>
+</odoo>

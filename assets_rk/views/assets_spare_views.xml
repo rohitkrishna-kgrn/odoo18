@@ -1,0 +1,63 @@
+<odoo>
+
+  <!-- Spare Devices Tree View -->
+  <record id="view_spare_assets_device_tree" model="ir.ui.view">
+    <field name="name">assets.device.rk.spare.tree</field>
+    <field name="model">assets.device.rk</field>
+    <field name="arch" type="xml">
+      <list string="Spare Devices">
+        <field name="name"/>
+        <field name="asset_type"/>
+        <field name="serial_number"/>
+        <field name="location_id"/>
+        <field name="active"/>
+      </list>
+    </field>
+  </record>
+
+  <!-- Spare Devices Form View -->
+  <record id="view_spare_assets_device_form" model="ir.ui.view">
+    <field name="name">assets.device.rk.spare.form</field>
+    <field name="model">assets.device.rk</field>
+    <field name="arch" type="xml">
+      <form string="Spare Device">
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="asset_type"/>
+            <field name="serial_number"/>
+            <field name="location_id"/>
+          </group>
+          <group>
+            <field name="purchase_date"/>
+            <field name="warranty_until"/>
+            <field name="active"/>
+          </group>
+          <notebook>
+            <page string="Notes">
+              <field name="notes"/>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+  </record>
+
+  <!-- Spare Devices Action -->
+  <record id="action_spare_assets_device" model="ir.actions.act_window">
+    <field name="name">Spare Devices</field>
+    <field name="res_model">assets.device.rk</field>
+    <field name="view_mode">list,form</field>
+    <field name="view_ids" eval="[(5, 0, 0),
+      (0, 0, {'view_mode': 'list', 'view_id': ref('view_spare_assets_device_tree')}),
+      (0, 0, {'view_mode': 'form', 'view_id': ref('view_spare_assets_device_form')})
+    ]"/>
+    <field name="domain">[('assigned_to','=',False)]</field>
+    <field name="context">{}</field>
+  </record>
+
+  <!-- Spare Devices Menu -->
+  <menuitem id="menu_spare_assets_device" name="Spare Devices" parent="menu_assets_rk_root" sequence="3" action="action_spare_assets_device"/>
+
+</odoo>

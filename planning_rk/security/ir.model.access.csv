@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_planning_rk_user,access_planning_rk_user,model_planning_rk,,1,1,1,1
+access_planning_stage_user,access_planning_stage_user,model_planning_stage,,1,1,1,1

@@ -1,0 +1,22 @@
+<!-- views/project_project_mark_done.xml -->
+<odoo>
+    <record id="action_project_mark_done" model="ir.actions.server">
+        <field name="name">Mark Selected Projects as Done</field>
+        <field name="model_id" ref="project.model_project_project"/>
+        <field name="binding_model_id" ref="project.model_project_project"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = records.action_mark_as_done()
+        </field>
+    </record>
+
+    <record id="action_project_mark_in_progress" model="ir.actions.server">
+        <field name="name">Mark Selected Projects as In Progress</field>
+        <field name="model_id" ref="project.model_project_project"/>
+        <field name="binding_model_id" ref="project.model_project_project"/>
+        <field name="state">code</field>
+        <field name="code">
+            action = records.action_mark_as_in_progress()
+        </field>
+    </record>
+</odoo>

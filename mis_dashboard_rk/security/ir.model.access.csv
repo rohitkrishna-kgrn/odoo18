@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_task_timesheet_summary,access_task_timesheet_summary,model_task_timesheet_summary,group_task_timesheet_summary_access,1,1,1,1
+

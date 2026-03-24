@@ -1,0 +1,28 @@
+<odoo>
+    <record id="view_project_task_form_inherit_extra" model="ir.ui.view">
+        <field name="name">project.task.form.extra.hours</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Extra Hours Request">
+                    <div class="mt-2 mb-2">
+                        <button name="%(request_extra_hours_wizard_action)d"
+                                string="Request Extra Hours"
+                                type="action"
+                                class="btn-primary"
+                                context="{'default_task_id': id}"/>
+                    </div>
+
+                    <field name="extra_hours_request_ids" readonly="1" >
+                        <list readonly="1">
+                            <field name="extra_hours"/>
+                            <field name="status"/>
+                            <field name="reason"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,21 @@
+{
+    "name": "IT Assets Management (RK)",
+    "version": "1.0",
+    "summary": "Manage IT devices (laptops, desktops, etc.) across locations",
+    "description": "Enterprise module to track IT assets by location, visible only to authorized users.",
+    "category": "Assets",
+    "author": "Rohit",
+    "depends": ["base", "mail"], 
+    "data": [
+        "security/assets_rk_security.xml",
+        "security/ir.model.access.csv",
+        "views/assets_config_views.xml",
+        "views/assets_device_views.xml",
+        "views/assets_spare_views.xml",
+        "views/assets_network_views.xml",
+    ],
+    'images': ['static/description/icon.png'],
+    "application": True,
+    "installable": True,
+    "license": "LGPL-3",
+}

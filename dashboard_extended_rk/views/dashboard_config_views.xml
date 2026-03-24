@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <record id="view_dashboard_config_rk_form" model="ir.ui.view">
+    <field name="name">dashboard.config.rk.form</field>
+    <field name="model">dashboard.config.rk</field>
+    <field name="arch" type="xml">
+      <form string="Dashboard Config RK">
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="percentage"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="view_dashboard_config_rk_list" model="ir.ui.view">
+    <field name="name">dashboard.config.rk.list</field>
+    <field name="model">dashboard.config.rk</field>
+    <field name="arch" type="xml">
+      <list string="Dashboard Config RK">
+        <field name="name"/>
+        <field name="percentage"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="action_dashboard_config_rk" model="ir.actions.act_window">
+    <field name="name">Dashboard Config</field>
+    <field name="res_model">dashboard.config.rk</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+  <menuitem id="menu_dashboard_config_rk"
+            name="Dashboard Config"
+            parent="sale.menu_sale_config"
+            action="action_dashboard_config_rk"
+            sequence="100"/>
+</odoo>

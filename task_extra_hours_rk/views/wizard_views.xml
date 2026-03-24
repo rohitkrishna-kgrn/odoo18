@@ -1,0 +1,26 @@
+<odoo>
+    <record id="request_extra_hours_wizard_view" model="ir.ui.view">
+        <field name="name">request.extra.hours.wizard.form</field>
+        <field name="model">request.extra.hours.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Request Extra Hours">
+                <group>
+                    <field name="task_id" readonly="1"/>
+                    <field name="extra_hours"/>
+                    <field name="reason"/>
+                </group>
+                <footer>
+                    <button string="Submit" type="object" name="action_submit" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="request_extra_hours_wizard_action" model="ir.actions.act_window">
+        <field name="name">Request Extra Hours</field>
+        <field name="res_model">request.extra.hours.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

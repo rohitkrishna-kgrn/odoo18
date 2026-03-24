@@ -1,0 +1,30 @@
+<odoo>
+  <record id="view_company_form_inherit_invoice_color_and_banks" model="ir.ui.view">
+    <field name="name">res.company.form.invoice.color.and.banks</field>
+    <field name="model">res.company</field>
+    <field name="inherit_id" ref="base.view_company_form"/>
+    <field name="arch" type="xml">
+
+      <!-- Insert a new page inside the notebook -->
+      <xpath expr="//notebook" position="inside">
+        <page string="Invoice Settings">
+          <group>
+            <field name="invoice_color" widget="colorpicker"/>
+            <field name="invoice_bank_ids" widget="many2many_tags"/>
+          </group>
+        </page>
+      </xpath>
+
+    </field>
+  </record>
+  <record id="view_partner_bank_form_inherit_iban" model="ir.ui.view">
+        <field name="name">res.partner.bank.form.inherit.iban</field>
+        <field name="model">res.partner.bank</field>
+        <field name="inherit_id" ref="base.view_partner_bank_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='acc_number']" position="after">
+                <field name="iban"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,8 @@
+<odoo>
+    <data>
+        <!-- Reimbursement Reviewer group -->
+        <record id="group_reimbursement_reviewer" model="res.groups">
+            <field name="name">Reimbursement Reviewer</field>
+        </record>
+    </data>
+</odoo>

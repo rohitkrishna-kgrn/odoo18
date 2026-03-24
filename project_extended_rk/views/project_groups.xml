@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_project_kanban_group_stage_inherit" model="ir.ui.view">
+        <field name="name">project.project.kanban.group.stage.inherit.hide_create</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.project_kanban_view_group_stage"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban" position="attributes">
+                <attribute name="create">false</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_project_list_group_stage_inherit" model="ir.ui.view">
+        <field name="name">project.project.list.group.stage.inherit.hide_create</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.project_list_view_group_stage"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                <attribute name="create">false</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_project_form_group_stage_inherit" model="ir.ui.view">
+        <field name="name">project.project.form.group.stage.inherit.hide_create</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="attributes">
+                <attribute name="create">false</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_task_kanban_hide_create" model="ir.ui.view">
+        <field name="name">project.task.kanban.inherit.hide_create</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban" position="attributes">
+                <attribute name="create">false</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_task_tree_hide_create" model="ir.ui.view">
+        <field name="name">project.task.list.inherit.hide_create</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_tree2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                <attribute name="create">false</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_task_form_hide_create" model="ir.ui.view">
+        <field name="name">project.task.form.inherit.hide_create</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="attributes">
+                <attribute name="create">false</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Override project.task form view -->
+    <record id="view_task_form_inherited" model="ir.ui.view">
+        <field name="name">project.task.form.inherited</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='allocated_hours']" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

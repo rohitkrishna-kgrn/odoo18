@@ -1,0 +1,40 @@
+<odoo>
+    <!-- Inherit task form -->
+    <record id="view_task_form_inherit_timesheet_extended" model="ir.ui.view">
+        <field name="name">project.task.form.timesheet.extended</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <!-- Start Task button visible only if user has NO active timer -->
+                <button name="action_start_task" string="Start Task" type="object"
+                        class="oe_highlight"
+                        invisible="user_active_timer"/>
+                
+                <!-- End Task button visible only if user HAS active timer -->
+                <button name="action_end_task" string="End Task" type="object"
+                        class="oe_highlight"
+                        invisible="not user_active_timer"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Wizard form for End Task description -->
+    <record id="view_task_end_wizard_form" model="ir.ui.view">
+        <field name="name">task.end.wizard.form</field>
+        <field name="model">task.end.wizard</field>
+        <field name="arch" type="xml">
+            <form string="End Task">
+                <sheet>
+                    <group>
+                        <field name="description" placeholder="Enter work description..."/>
+                    </group>
+                    <footer>
+                        <button string="Submit" type="object" name="action_submit_timesheet" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

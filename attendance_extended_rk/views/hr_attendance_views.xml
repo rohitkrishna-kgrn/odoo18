@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Form View: fully read-only -->
+    <record id="view_hr_attendance_form_readonly" model="ir.ui.view">
+        <field name="name">hr.attendance.form.readonly</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.hr_attendance_view_form"/>
+        <field name="arch" type="xml">
+            <form position="attributes">
+                <attribute name="edit">false</attribute>
+                <attribute name="create">false</attribute>
+                <attribute name="delete">false</attribute>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree/List View: fully read-only -->
+    <record id="view_hr_attendance_tree_readonly" model="ir.ui.view">
+        <field name="name">hr.attendance.list.readonly</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.view_attendance_tree"/>
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="create">false</attribute>
+                <attribute name="delete">false</attribute>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_form_inherit_rk" model="ir.ui.view">
+        <field name="name">hr.attendance.form.inherit.rk</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.view_attendance_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_forgot_logout"
+                        string="Forgot to Logout"
+                        type="object"
+                        class="btn-primary"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,16 @@
+<odoo>
+  <record id="view_task_form_inherit_planning" model="ir.ui.view">
+    <field name="name">project.task.form.planning</field>
+    <field name="model">project.task</field>
+    <field name="inherit_id" ref="project.view_task_form2"/>
+    <field name="arch" type="xml">
+      <!-- Insert inside the sheet at the very end -->
+      <xpath expr="//sheet" position="inside">
+        <group>
+          <field name="planning_id" string="Planning Reference"/>
+          <field name="planning_stage" string="Planning Stage" widget="selection"/>
+        </group>
+      </xpath>
+    </field>
+  </record>
+</odoo>

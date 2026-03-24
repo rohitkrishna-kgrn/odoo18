@@ -1,0 +1,84 @@
+<odoo>
+    <record id="view_form_upselling" model="ir.ui.view">
+        <field name="name">Upselling Form</field>
+        <field name="model">upselling</field>
+        <field name="arch" type="xml">
+            <form string="Upselling">
+                <header>
+                    <button name="action_submit_review" string="Submit" type="object"
+                            invisible="state != 'draft'" class="btn-primary"/>
+                    <button name="action_submit_approval" string="Submit for Approval" type="object"
+                            invisible="state != 'review'" class="btn-primary" groups="refund_management_rk.group_reimbursement_reviewer"/>
+                    <button name="action_approve" string="Approve" type="object"
+                            invisible="state != 'approval'" class="btn-success" groups="refund_management_rk.group_reimbursement_reviewer"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,review,approval,approved"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="sequence" readonly="1"/>
+                        <field name="user_id"/>
+                        <field name="description"/>
+                        <field name="sale_order_id"/>
+                        <field name="customer_id"/>
+                        <field name="proposal_file" filename="proposal_filename"/>
+                        <field name="engagement_file" filename="engagement_filename"/>
+                    </group>
+                    <notebook>
+                        <page string="Invoice Details">
+                            <field name="invoice_ids">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="invoice_date"/>
+                                    <field name="amount_total"/>
+                                    <field name="payment_state"/>
+                                    <!-- <field name="invoice_status"/> -->
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_tree_upselling" model="ir.ui.view">
+        <field name="name">Upselling Tree</field>
+        <field name="model">upselling</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence"/>
+                <field name="user_id"/>
+                <field name="sale_order_id"/>
+                <field name="customer_id"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_upselling" model="ir.actions.act_window">
+        <field name="name">Upselling</field>
+        <field name="res_model">upselling</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('user_id','=',uid)]</field>
+    </record>
+
+    <record id="action_upselling_reviewer" model="ir.actions.act_window">
+        <field name="name">All Upselling</field>
+        <field name="res_model">upselling</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_upselling_user"
+              name="My Upselling"
+              parent="menu_reimbursement_root"
+              action="refund_management_rk.action_upselling"
+              sequence="40"/>
+
+    <menuitem id="menu_upselling_reviewer"
+              name="All Upselling"
+              parent="menu_reimbursement_root"
+              action="refund_management_rk.action_upselling_reviewer"
+              groups="refund_management_rk.group_reimbursement_reviewer"
+              sequence="50"/>
+</odoo>

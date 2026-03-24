@@ -1,0 +1,6 @@
+<odoo>
+  <record id="model_helpdesk_rk_ticket" model="ir.model">
+    <field name="name">helpdesk_rk.ticket</field>
+    <field name="model">helpdesk_rk.ticket</field>
+  </record>
+</odoo>

@@ -1,0 +1,113 @@
+<odoo>
+  <!-- Planning Kanban view -->
+    <record id="view_planning_kanban" model="ir.ui.view">
+        <field name="name">planning.rk.kanban</field>
+        <field name="model">planning.rk</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="stage_id" group_create="false" group_expand="stage_id">
+                <field name="name"/>
+                <field name="stage_id"/>
+                <field name="project_id"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_card oe_kanban_global_click">
+                            <div class="oe_kanban_content">
+                                <strong><field name="name"/></strong><br/>
+                                <small>Project: <field name="project_id"/></small><br/>
+                                <small>Stage: <field name="stage_id"/></small><br/>
+                                <small>Deadline: <field name="deadline"/></small>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+  <!-- Search View -->
+  <record id="view_planning_search" model="ir.ui.view">
+    <field name="name">planning.rk.search</field>
+    <field name="model">planning.rk</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name"/>
+        <field name="project_id"/>
+        <field name="task_id"/>
+        <field name="stage_id"/>
+        <field name="deadline"/>
+
+        <filter string="My Planning" name="my" domain="[('create_uid','=',uid)]"/>
+        <filter string="Overdue" name="overdue" domain="[('deadline','&lt;', (context_today()))]"/>
+
+        <group expand="1" string="Group By">
+          <filter string="Project" name="group_project" context="{'group_by':'project_id'}"/>
+          <filter string="Stage" name="group_stage" context="{'group_by':'stage_id'}"/>
+          <filter string="Deadline" name="group_deadline" context="{'group_by':'deadline'}"/>
+          <filter string="Task" name="group_task" context="{'group_by':'task_id'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+  <!-- Planning Tree view -->
+  <record id="view_planning_tree" model="ir.ui.view">
+    <field name="name">planning.rk.list</field>
+    <field name="model">planning.rk</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="name"/>
+        <field name="task_id"/>
+        <field name="project_id"/>
+        <field name="deadline" readonly="1"/>
+        <field name="stage_id"/>
+      </list>
+    </field>
+  </record>
+
+  <!-- Planning Form view -->
+  <record id="view_planning_form" model="ir.ui.view">
+    <field name="name">planning.rk.form</field>
+    <field name="model">planning.rk</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="project_id" options="{'no_create': True, 'no_create_edit': True}"/>
+            <field name="task_id" options="{'no_create': True, 'no_create_edit': True}" domain="[('project_id', '=', project_id)]"/>
+            <field name="stage_id" options="{'no_create': True, 'no_create_edit': True}"/>
+            <field name="deadline" readonly="1"/>
+            <field name="description" widget="html"/> 
+          </group>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+  </record>
+
+  <record id="planning_rk_rule_user_own_records" model="ir.rule">
+      <field name="name">Planning: own records only</field>
+      <field name="model_id" ref="model_planning_rk"/>
+      <field name="domain_force">['|',('create_uid','=',user.id),('create_uid','=',False)]</field>
+      <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+  </record>
+
+  <record id="planning_rk_rule_admin_all_records" model="ir.rule">
+      <field name="name">Planning: admin all records</field>
+      <field name="model_id" ref="model_planning_rk"/>
+      <field name="domain_force">[(1,'=',1)]</field> <!-- No filter -->
+      <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+  </record>
+
+  <!-- Planning action -->
+  <record id="action_planning" model="ir.actions.act_window">
+    <field name="name">Planning</field>
+    <field name="res_model">planning.rk</field>
+    <field name="view_mode">kanban,list,form</field>
+    <field name="search_view_id" ref="view_planning_search"/>
+  </record>
+
+  <!-- Menus -->
+  <menuitem id="menu_planning_root" name="Planning" sequence="20" web_icon="planning_rk,static/description/icon.png"/>
+  <menuitem id="menu_planning" name="Planning" parent="menu_planning_root" action="action_planning"/>
+</odoo>

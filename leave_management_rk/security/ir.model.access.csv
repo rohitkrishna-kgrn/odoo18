@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_leave_request_user,leave.request user,model_leave_request,leave_management_rk.group_leave_user,1,1,1,0
+access_leave_request_hr,leave.request hr,model_leave_request,leave_management_rk.group_hr_manager,1,1,1,1
+access_public_holiday_hr,public.holiday hr,model_public_holiday,leave_management_rk.group_hr_manager,1,1,1,1
+access_leave_approval_wizard_hr,leave.approval.wizard hr,model_leave_approval_wizard,leave_management_rk.group_hr_manager,1,1,1,0
+access_leave_type_hr,leave.type hr,model_leave_type,leave_management_rk.group_hr_manager,1,0,0,0
+access_leave_type_user,leave.type user,model_leave_type,leave_management_rk.group_leave_user,1,0,0,0
+access_leave_balance_user,leave.balance user,model_leave_balance,leave_management_rk.group_leave_user,1,0,0,0
+access_leave_balance_hr,leave.balance hr,model_leave_balance,leave_management_rk.group_hr_manager,1,1,1,1
+access_add_comp_leave_wizard,access_add_comp_leave_wizard,model_add_comp_leave_wizard,leave_management_rk.group_hr_manager,1,1,1,0

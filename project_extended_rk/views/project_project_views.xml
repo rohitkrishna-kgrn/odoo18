@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_project_form_inherit_sale" model="ir.ui.view">
+        <field name="name">project.project.form.inherit.sale</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="deadline"/>
+                <field name="partner_id" readonly="1"/>
+                <field name="dms_folder_id" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_project_list_inherit_sale" model="ir.ui.view">
+        <field name="name">project.project.list.inherit.sale</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.project_list_view_group_stage"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='partner_id']" position="replace">
+                <field name="partner_id"/>
+            </xpath>
+            <xpath expr="//list/field[@name='partner_id']" position="after">
+                <field name="deadline" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_project_list_inherit_task" model="ir.ui.view">
+        <field name="name">project.task.list.inherit.task</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_tree2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='user_ids']" position="replace">
+                <field name="team_member_ids" widget="many2many_tags" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_project_project_tree_inherit_invoice_amounts" model="ir.ui.view">
+        <field name="name">project.project.tree.invoice.amounts</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.project_list_view_group_stage"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="project_created_date"/>
+                <field name="total_project_value" sum="Total"/>
+                <field name="total_invoiced_amount" sum="Total"/>
+                <field name="paid_invoice_amount" sum="Total"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

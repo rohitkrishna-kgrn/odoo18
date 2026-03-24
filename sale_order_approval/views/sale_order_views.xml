@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_order_form_approval" model="ir.ui.view">
+        <field name="name">sale.order.form.approval</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Replace statusbar of state with approval_state -->
+            <xpath expr="//field[@name='state']" position="replace">
+                <field name="approval_state"
+                       widget="statusbar"
+                       statusbar_visible="draft,to_approve,approved"/>
+            </xpath>
+
+            <xpath expr="//button[@name='action_quotation_send']" position="after">
+                <button name="action_submit_for_approval"
+                        string="Submit for Approval"
+                        type="object"
+                        class="btn-primary"
+                        invisible="approval_state != 'draft'"/>
+                <button name="action_approve_order"
+                        string="Approve"
+                        type="object"
+                        class="btn-success"
+                        invisible="not is_user_approver or approval_state != 'to_approve'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- <record id="view_order_form_inherit_lock" model="ir.ui.view">
+        <field name="name">sale.order.form.lock.approval</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="order_line" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="advance_amount" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+        </field>
+    </record> -->
+
+</odoo>

@@ -1,0 +1,21 @@
+{
+    'name': 'Leave Management RK',
+    'version': '1.0',
+    'summary': 'Custom Leave Management Module',
+    'author': 'Rohit',
+    'depends': ['base', 'hr', 'web'],
+    'data': [
+        'security/security.xml',
+        'security/ir.model.access.csv',
+        'data/leave_types.xml',
+        'data/icron.xml',
+        'views/leave_request_views.xml',
+        'views/public_holiday_views.xml',
+        'views/approve_wizard_views.xml',
+        'views/hr_employee_inherit_views.xml',
+        'views/menu.xml',
+        'views/wizard.xml',
+    ],
+    'installable': True,
+    'application': True,
+}

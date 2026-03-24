@@ -1,0 +1,11 @@
+<odoo>
+    <record id="ir_cron_helpdesk_mail_fetch" model="ir.cron">
+        <field name="name">Helpdesk Email Fetch</field>
+        <field name="model_id" ref="model_helpdesk_rk_ticket"/>
+        <field name="state">code</field>
+        <field name="code">model.message_process()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">minutes</field>
+        <field name="active">True</field>
+    </record>
+</odoo>

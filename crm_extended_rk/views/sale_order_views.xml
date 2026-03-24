@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Inherit Sale Order form view -->
+    <record id="view_order_form_inherit_crm_extended_rk" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.crm.extended.rk</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Add reminder_date right after partner_id -->
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="reminder_date"/>
+            </xpath>
+
+            <!-- Extend sale order lines list view to add new fields -->
+            <xpath expr="//field[@name='order_line']/list/field[@name='name']" position="after">
+                <field name="engagement_start"/>
+                <field name="engagement_end"/>
+                <field name="manager_id"/>
+                <field name="estimated_hours"/>
+                <field name="deadline"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_form_inherit_status" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.order_status</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+        <!-- find the reminder_date field and insert after it -->
+            <xpath expr="//field[@name='reminder_date']" position="after">
+                <field name="order_status" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_form_inherit_advance_amount" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.advance.amount</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Insert advance_amount after payment_term_id -->
+            <field name="payment_term_id" position="after">
+                <field name="advance_amount"/>
+                <field name="auto_invoice"/>
+            </field>
+        </field>
+    </record>
+
+
+    <!-- Inherit Project form view to add estimated_hours -->
+    <record id="view_project_form_inherit_estimated_hours" model="ir.ui.view">
+        <field name="name">project.project.form.inherit.estimated.hours</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group" position="inside">
+                <field name="estimated_hours"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Inherit product form view to add estimated_hours -->
+    <record id="view_product_template_form_inherit_estimated_hours" model="ir.ui.view">
+        <field name="name">product.template.form.inherit.estimated.hours</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>  <!-- Correct reference -->
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='supplier_taxes_id']" position="after">
+                <field name="estimated_hours"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="sale_order_list_upload_inherit_paid_pending" model="ir.ui.view">
+        <field name="name">sale.order.list.upload.inherit.paid.pending</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_list_upload"/>
+        <field name="arch" type="xml">
+            <!-- Locate the activities field (usually field with widget 'activity') -->
+            <xpath expr="//field[@name='activity_ids']" position="after">
+            <field name="paid_amount"/>
+            <field name="pending_amount"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_form_inherit_invoice_button" model="ir.ui.view">
+        <field name="name">sale.order.form.invoice.button</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_open_invoice_wizard"
+                        string="Create Invoice"
+                        type="object"
+                        class="btn-primary"
+                        invisible="auto_invoice == True"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_sale_order_invoice_wizard_form" model="ir.ui.view">
+        <field name="name">sale.order.invoice.wizard.form</field>
+        <field name="model">sale.order.invoice.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Create Invoice">
+                <group>
+                    <field name="invoice_amount"/>
+                </group>
+                <footer>
+                    <button string="Create" type="object" name="create_partial_invoice" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

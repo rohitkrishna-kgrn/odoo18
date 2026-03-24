@@ -1,0 +1,81 @@
+<odoo>
+    <data>
+
+        <!-- Inherit project.task form view -->
+        <record id="view_task_form_inherit_custom_buttons" model="ir.ui.view">
+            <field name="name">project.task.form.inherit.custom.buttons</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.view_task_form2"/>
+            <field name="arch" type="xml">
+                <!-- Add buttons in the header section -->
+                <xpath expr="//header" position="inside">
+                    <button name="action_in_progress" 
+                            string="In Progress" 
+                            type="object" 
+                            class="oe_highlight"
+                            invisible="state_additional != 'new'"
+                            />
+                    
+                    <button name="action_send_for_approval" 
+                            string="Send for Approval" 
+                            type="object" 
+                            class="oe_highlight"
+                            invisible="state_additional != 'in_progress'"
+                            />
+
+                    <button name="action_approve" 
+                            string="Approve" 
+                            type="object" 
+                            class="oe_highlight"
+                            invisible="state_additional != 'waiting_for_approval'"
+                            />
+                    <button name="action_retrieve"
+                            string="Retrieve"
+                            type="object"
+                            class="btn-danger"
+                            invisible="state_additional != 'waiting_for_approval'"/>
+                </xpath>
+            </field>
+        </record>
+
+
+        <record id="view_task_form_inherit_custom" model="ir.ui.view">
+            <field name="name">project.task.form.inherit.completed_date</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.view_task_form2"/>
+            <field name="arch" type="xml">
+                <xpath expr="//sheet//group" position="before">
+                    <group>
+                        <field name="completed_date"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_project_form_inherit_custom" model="ir.ui.view">
+            <field name="name">project.project.form.inherit.completed_date</field>
+            <field name="model">project.project</field>
+            <field name="inherit_id" ref="project.edit_project"/>
+            <field name="arch" type="xml">
+                <xpath expr="//sheet//group" position="before">
+                    <group>
+                        <field name="completed_date"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_task_form_inherit_stage_readonly" model="ir.ui.view">
+            <field name="name">project.task.form.inherit.stage.readonly</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.view_task_form2"/>
+            <field name="arch" type="xml">
+                <!-- Make stage_id field readonly -->
+                <xpath expr="//field[@name='stage_id']" position="attributes">
+                    <attribute name="readonly">1</attribute>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,15 @@
+<odoo>
+    <record id="action_task_extra_hours" model="ir.actions.act_window">
+        <field name="name">Extra Hours Approval</field>
+        <field name="res_model">task.extra.hours</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[]</field>
+    </record>
+
+    <menuitem id="menu_task_extra_root" name="Task Extra Hours" sequence="60"/>
+
+    <menuitem id="menu_task_approval" name="Extra Hours Approval"
+              parent="project.menu_main_pm"
+              action="action_task_extra_hours"
+              />
+</odoo>

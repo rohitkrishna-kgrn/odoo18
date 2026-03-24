@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Wizard Form -->
+    <record id="view_import_statement_rk_form" model="ir.ui.view">
+        <field name="name">import.statement.rk.form</field>
+        <field name="model">import.statement.rk</field>
+        <field name="arch" type="xml">
+            <form string="Import Bank Statement ( Format: Date, Label, Partner, Amount )">
+                <div class="alert alert-info" role="alert">
+                    <strong>Important:</strong>
+                    Please upload only XLSX file with the following format:
+                    <br/>
+                    <ul>
+                        <li>Column 1: Date</li>
+                        <li>Column 2: Label</li>
+                        <li>Column 3: Partner</li>
+                        <li>Column 4: Amount</li>
+                    </ul>
+                    First row must be header.
+                </div>
+                <group>
+                    <field name="journal_id"/>
+                    <field name="file" filename="file_name"/>
+                    <field name="file_name" invisible="1"/>
+                </group>
+                <footer>
+                    <button name="action_import"
+                            string="Import"
+                            type="object"
+                            class="btn-primary"/>
+                    <button string="Cancel"
+                            class="btn-secondary"
+                            special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_import_statement_rk" model="ir.actions.act_window">
+        <field name="name">Import Statement</field>
+        <field name="res_model">import.statement.rk</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Menu under Accounting -->
+    <menuitem id="menu_import_statement_rk"
+              name="Import Statement"
+              parent="account.menu_finance"
+              action="action_import_statement_rk"
+              sequence="50"/>
+
+</odoo>

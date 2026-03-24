@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_hr_timesheet_line_tree_readonly" model="ir.ui.view">
+        <field name="name">hr.timesheet.line.list.readonly</field>
+        <field name="model">account.analytic.line</field>
+        <field name="inherit_id" ref="hr_timesheet.hr_timesheet_line_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                <attribute name="edit">false</attribute>
+                <attribute name="delete">false</attribute>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_hr_timesheet_line_form_mandatory" model="ir.ui.view">
+        <field name="name">hr.timesheet.line.form.mandatory</field>
+        <field name="model">account.analytic.line</field>
+        <field name="inherit_id" ref="hr_timesheet.hr_timesheet_line_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='project_id']" position="attributes">
+                <attribute name="required">True</attribute>
+                <attribute name="options">{'no_create': True, 'no_open': True}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='task_id']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+            <xpath expr="//field[@name='date']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+            <xpath expr="//field[@name='unit_amount']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+            <xpath expr="//field[@name='name']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+            <xpath expr="//field[@name='project_id']" position="after">
+                <field name="customer_id" readonly="1"/>
+            </xpath>
+            <xpath expr="//field[@name='unit_amount']" position="after">
+                <field name="attachment_file" filename="attachment_filename"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_account_analytic_line_tree_inherit" model="ir.ui.view">
+        <field name="name">account.analytic.line.list.inherit</field>
+        <field name="model">account.analytic.line</field>
+        <field name="inherit_id" ref="hr_timesheet.hr_timesheet_line_tree"/>
+        <field name="arch" type="xml">
+            <!-- Add employee_id after date -->
+            <xpath expr="//list/field[@name='date']" position="after">
+                <field name="employee_id" readonly="1"/>
+                <field name="company_id" readonly="1"/>
+                <field name="customer_id" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

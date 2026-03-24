@@ -1,0 +1,20 @@
+{
+    'name': 'Refund Management RK',
+    'version': '1.0',
+    'category': 'Accounting',
+    'summary': 'Reimbursement and Upselling',
+    'description': """Manage Reimbursement Requests with Excel Upload and Review.""",
+    'depends': ['base', 'mail', 'sale'],
+    'data': [
+        'security/refund_security.xml',
+        'security/ir.model.access.csv',
+        'data/reimbursement_sequence.xml',
+        'wizards/upload_excel_wizard_view.xml',
+        'wizards/attach_bills_wizard_view.xml',
+        'views/reimbursement_views.xml',
+        'views/menus.xml',
+        'views/upselling_view.xml',
+    ],
+    'installable': True,
+    'application': True,
+}

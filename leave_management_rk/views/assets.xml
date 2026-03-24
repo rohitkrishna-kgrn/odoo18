@@ -1,0 +1,7 @@
+<odoo>
+    <template id="assets_backend" name="Leave Band Assets" inherit_id="web.assets_backend">
+        <xpath expr="." position="inside">
+            <link rel="stylesheet" type="text/css" href="/leave_management_rk/static/src/css/leave_band.css"/>
+        </xpath>
+    </template>
+</odoo>

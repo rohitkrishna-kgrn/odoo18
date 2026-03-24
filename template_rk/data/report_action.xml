@@ -1,0 +1,11 @@
+<odoo>
+  <record id="account.account_invoices" model="ir.actions.report">
+      <field name="name">Invoice</field>
+      <field name="model">account.move</field>
+      <field name="report_type">qweb-pdf</field>
+      <field name="report_name">template_rk.report_invoice_template_rk</field>
+      <field name="binding_model_id" ref="account.model_account_move"/>
+      <field name="binding_type">report</field>
+  </record>
+
+</odoo>

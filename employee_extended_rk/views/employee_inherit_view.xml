@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_hr_employee_form_inherit_rk" model="ir.ui.view">
+        <field name="name">hr.employee.form.inherit.rk</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <!-- Place weightage_id, labour_number, and bank_route_number inside the hr_settings page -->
+            <xpath expr="//page[@name='hr_settings']" position="inside">
+                <group string="Payroll Info">
+                    <field name="weightage_id"/>
+                    <field name="labour_number"/>
+                    <field name="bank_iban_number"/>
+                    <field name="bank_route_number"/>
+                    <field name="direct_bank" widget="boolean_toggle" string="Direct Bank"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

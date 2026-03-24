@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Wizard Form View -->
+    <record id="view_project_transfer_wizard_form" model="ir.ui.view">
+        <field name="name">project.transfer.wizard.form</field>
+        <field name="model">project.transfer.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Transfer Projects">
+                <group>
+                    <field name="from_user_id"/>
+                    <field name="to_user_id"/>
+                </group>
+                <footer>
+                    <button name="action_transfer_project"
+                            type="object"
+                            string="Transfer"
+                            class="btn-primary"/>
+                    <button string="Cancel"
+                            class="btn-secondary"
+                            special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_project_transfer_wizard" model="ir.actions.act_window">
+        <field name="name">Transfer Project</field>
+        <field name="res_model">project.transfer.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="groups_id" eval="[(4, ref('project_transfer_rk.group_project_transfer_user'))]"/>
+    </record>
+
+    <!-- Menu under Project -->
+    <menuitem id="menu_project_transfer_wizard"
+              name="Transfer Project"
+              parent="project.menu_main_pm"
+              action="action_project_transfer_wizard"
+              sequence="100"
+              groups="project_transfer_rk.group_project_transfer_user"/>
+
+</odoo>

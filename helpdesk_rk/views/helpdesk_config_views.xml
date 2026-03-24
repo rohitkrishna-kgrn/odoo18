@@ -1,0 +1,19 @@
+<odoo>
+  <record id="view_helpdesk_config_form" model="ir.ui.view">
+      <field name="name">helpdesk.config.form</field>
+      <field name="model">helpdesk_rk.config</field>
+      <field name="arch" type="xml">
+          <form string="Helpdesk Configuration">
+              <sheet>
+                  <group>
+                      <field name="support_team_ids"/>
+                  </group>
+                  <footer>
+                      <button string="Save" type="object" name="execute" class="btn-primary"/>
+                      <button string="Cancel" class="btn-secondary" special="cancel"/>
+                  </footer>
+              </sheet>
+          </form>
+      </field>
+  </record>
+</odoo>

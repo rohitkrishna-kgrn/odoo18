@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_partner_form_inherit_rk" model="ir.ui.view">
+        <field name="name">res.partner.form.extended.rk</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <!-- Add new fields after VAT -->
+            <xpath expr="//sheet" position="inside">
+                <!-- Use a horizontal group to show labels -->
+                <group string="Identification Details" colspan="4">
+                    <field name="emirates_id" string="Emirates ID"/>
+                    <field name="passport_number" string="Passport Number"/>
+                    <field name="company_license_no" string="Company License Number"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

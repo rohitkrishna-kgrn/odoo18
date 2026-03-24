@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_assets_device_rk,access.assets.device.rk,model_assets_device_rk,group_assets_rk_manager,1,1,1,1
+access_assets_location_rk,access.assets.location.rk,model_assets_location_rk,group_assets_rk_manager,1,1,1,1
+access_network_device_rk,access.network.device.rk,model_network_device_rk,group_assets_rk_manager,1,1,1,1
+access_network_device_type_rk,access.network.device.type.rk,model_network_device_type_rk,group_assets_rk_manager,1,1,1,1

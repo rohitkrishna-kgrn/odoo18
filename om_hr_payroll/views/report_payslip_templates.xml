@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_payslip">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+
+                    <!-- Header: Company Info and Logo -->
+                    <div class="page">
+                        <div class="header-row">
+                            <!-- Company Info (Left Side) -->
+                            <div class="company-info">
+                                <h2 t-field="o.employee_id.contract_id.company_id.name"/>
+                                <p>
+                                    <t t-esc="o.employee_id.contract_id.company_id.partner_id.street"/>
+                                    <t t-if="o.employee_id.contract_id.company_id.partner_id.street2">
+                                        <t t-esc="o.employee_id.contract_id.company_id.partner_id.street2"/><br/>
+                                    </t>
+                                    <t t-if="o.employee_id.contract_id.company_id.partner_id.city">
+                                        <t t-esc="o.employee_id.contract_id.company_id.partner_id.city"/>,
+                                    </t>
+                                    <t t-if="o.employee_id.contract_id.company_id.partner_id.state_id">
+                                        <t t-esc="o.employee_id.contract_id.company_id.partner_id.state_id.name"/><br/>
+                                    </t>
+                                    <t t-if="o.employee_id.contract_id.company_id.partner_id.country_id">
+                                        <t t-esc="o.employee_id.contract_id.company_id.partner_id.country_id.name"/>
+                                    </t>
+                                    <br/>
+                                    <t t-if="o.employee_id.contract_id.company_id.phone">Phone: <t t-esc="o.company_id.phone"/></t>
+                                </p>
+                            </div>
+
+                            <!-- Logo (Right Side) -->
+                            <div class="logo-container">
+                                <img class="company-logo" t-if="o.employee_id.contract_id.company_id.logo"
+                                    t-att-src="'data:image/png;base64,%s' % o.employee_id.contract_id.company_id.logo.decode('utf-8')"
+                                    alt="Company Logo"/>
+                            </div>
+                        </div>
+
+                        <!-- Main Payslip Body -->
+                        <div class="payslip-container">
+
+                            <!-- Payslip Title -->
+                            <div class="payslip-title">
+                                <h3>Pay Slip</h3>
+                                <p t-field="o.name"/>
+                            </div>
+
+                            <!-- Employee Info Table -->
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Name</strong></td>
+                                    <td><span t-field="o.employee_id"/></td>
+                                    <td><strong>Designation</strong></td>
+                                    <td><span t-field="o.employee_id.job_id"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email</strong></td>
+                                    <td><span t-field="o.employee_id.work_email"/></td>
+                                    <td><strong>Identification No</strong></td>
+                                    <td><span t-field="o.employee_id.identification_id"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Reference</strong></td>
+                                    <td><span t-field="o.number"/></td>
+                                    <td><strong>Bank Account</strong></td>
+                                    <td><span t-field="o.employee_id.bank_iban_number"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Date From</strong></td>
+                                    <td><span t-field="o.date_from"/></td>
+                                    <td><strong>Date To</strong></td>
+                                    <td><span t-field="o.date_to"/></td>
+                                </tr>
+                            </table>
+
+                            <!-- Salary Details Table -->
+                            <table class="salary-table">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Name</th>
+                                        <th>Amount</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-set="total_amount" t-value="0"/>
+                                    <tr t-foreach="o.line_ids.filtered(lambda line: line.appears_on_payslip)" t-as="line">
+                                        <td><span t-field="line.code"/></td>
+                                        <td><span t-field="line.name"/></td>
+                                        <td>
+                                            <span t-esc="line.amount"
+                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/>
+                                        </td>
+                                        <td>
+                                            <span t-esc="line.total"
+                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/>
+                                        </td>
+                                        <t t-set="total_amount" t-value="total_amount + (line.total if line.total else 0)"/>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3" class="text-right"><strong>Total Amount</strong></td>
+                                        <td>
+                                            <span t-esc="total_amount"
+                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+
+                            <!-- Flex container for Worked Days and Signature -->
+                            <div class="flex-container">
+                                <!-- Worked Days Summary (Left Side) -->
+                                <div class="worked-days-summary">
+                                    <h4>Worked Days Summary</h4>
+                                    <table class="worked-days-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Days</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr t-foreach="o.worked_days_line_ids" t-as="line">
+                                                <td><span t-field="line.name"/></td>
+                                                <td><span t-field="line.number_of_days"/></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Signature Section (Right Side) -->
+                                <div class="signature-section">
+                                    <img class="signature-logo" t-if="o.employee_id.contract_id.company_id.secondary_logo"
+                                        t-att-src="'data:image/png;base64,%s' % o.employee_id.contract_id.company_id.secondary_logo.decode('utf-8')"
+                                        alt="Authorized Signature"/>
+                                    <p class="signature-label">Authorized Signature</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Styles -->
+                    <style>
+                        body, .payslip-container {
+                            font-family: "Helvetica", "Arial", sans-serif;
+                            font-size: 14px;
+                            color: #333;
+                            margin-top: -100px;
+                            margin: 0; 
+                            padding: 0;
+                        }
+
+                        .page {
+                            margin: 0;
+                            padding: 0;
+                            text-align: left;
+                            page-break-before: always;
+                            margin-top: -100px;
+                        }
+
+                        h3 {
+                            font-size: 22px;
+                            margin-bottom: 10px;
+                            color: #007bff;
+                        }
+
+                        h4 {
+                            font-size: 18px;
+                            margin-bottom: 8px;
+                            color: #333;
+                        }
+
+                        .header-row {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: flex-start;
+                            margin-bottom: 20px;
+                        }
+
+                        .company-info {
+                            width: 60%;
+                            font-size: 14px;
+                            line-height: 1.4;
+                        }
+
+                        .logo-container {
+                            width: 35%;
+                            text-align: right;
+                        }
+
+                        .company-logo {
+                            max-width: 150px;
+                            max-height: 80px;
+                            width: auto;
+                            height: auto;
+                        }
+
+                        .payslip-title {
+                            text-align: center;
+                            margin: 15px 0;
+                        }
+
+                        .info-table,
+                        .salary-table,
+                        .worked-days-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 20px;
+                            font-size: 14px;
+                        }
+
+                        .info-table td,
+                        .salary-table td,
+                        .salary-table th,
+                        .worked-days-table td,
+                        .worked-days-table th {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                        }
+
+                        .salary-table thead {
+                            background-color: #f8f9fa;
+                        }
+
+                        .worked-days-table thead {
+                            background-color: #f8f9fa;
+                        }
+
+                        .text-right {
+                            text-align: right;
+                        }
+
+                        .flex-container {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-top: 25px;
+                        }
+
+                        .worked-days-summary {
+                            width: 48%;
+                        }
+
+                        .signature-section {
+                            width: 48%;
+                            text-align: right;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: flex-end;
+                            align-items: flex-end;
+                        }
+
+                        .signature-logo {
+                            max-width: 150px;
+                            max-height: 80px;
+                            width: auto;
+                            height: auto;
+                            margin-bottom: 10px;
+                        }
+
+                        .signature-label {
+                            font-weight: bold;
+                            font-size: 14px;
+                            color: #333;
+                        }
+                    </style>
+
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>
