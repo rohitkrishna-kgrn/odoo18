@@ -108,6 +108,39 @@
                                 </th>
                             </t>
                         </tr>
+                        <t t-foreach="data['datas']" t-as="value" t-key="value_index">
+                            <t t-if="value_index == 0">
+                                <t t-foreach="value['income'][0]" t-as="acc" t-key="acc_index">
+                                    <t t-set="acc_name" t-value="acc['name']"/>
+                                    <t t-set="has_val" t-value="0"/>
+                                    <t t-foreach="data['datas']" t-as="vals" t-key="vals_index">
+                                        <t t-foreach="vals['income'][0]" t-as="a" t-key="a_index">
+                                            <t t-if="acc_name == a['name'] and a['amount'] != '0.00'">
+                                                <t t-set="has_val" t-value="1"/>
+                                            </t>
+                                        </t>
+                                    </t>
+                                    <t t-if="has_val == 1">
+                                        <tr class="border-bottom border-gainsboro">
+                                            <th colspan="6">
+                                                <span class="ms-5" style="font-size:10px;">
+                                                    <t t-esc="acc_name"/>
+                                                </span>
+                                            </th>
+                                            <t t-foreach="data['datas']" t-as="vals" t-key="vals_index">
+                                                <t t-foreach="vals['income'][0]" t-as="a" t-key="a_index">
+                                                    <t t-if="acc_name == a['name']">
+                                                        <th class="text-end" style="font-size:10px;">
+                                                            <t t-esc="a['amount']"/>
+                                                        </th>
+                                                    </t>
+                                                </t>
+                                            </t>
+                                        </tr>
+                                    </t>
+                                </t>
+                            </t>
+                        </t>
                         <tr class="border-bottom border-gainsboro">
                             <th colspan="6">
                                 <span class="ms-3">Cost of
@@ -123,6 +156,39 @@
                             </th>
                             </t>
                         </tr>
+                        <t t-foreach="data['datas']" t-as="value" t-key="value_index">
+                            <t t-if="value_index == 0">
+                                <t t-foreach="value['expense_direct_cost'][0]" t-as="acc" t-key="acc_index">
+                                    <t t-set="acc_name" t-value="acc['name']"/>
+                                    <t t-set="has_val" t-value="0"/>
+                                    <t t-foreach="data['datas']" t-as="vals" t-key="vals_index">
+                                        <t t-foreach="vals['expense_direct_cost'][0]" t-as="a" t-key="a_index">
+                                            <t t-if="acc_name == a['name'] and a['amount'] != '0.00'">
+                                                <t t-set="has_val" t-value="1"/>
+                                            </t>
+                                        </t>
+                                    </t>
+                                    <t t-if="has_val == 1">
+                                        <tr class="border-bottom border-gainsboro">
+                                            <th colspan="6">
+                                                <span class="ms-5" style="font-size:10px;">
+                                                    <t t-esc="acc_name"/>
+                                                </span>
+                                            </th>
+                                            <t t-foreach="data['datas']" t-as="vals" t-key="vals_index">
+                                                <t t-foreach="vals['expense_direct_cost'][0]" t-as="a" t-key="a_index">
+                                                    <t t-if="acc_name == a['name']">
+                                                        <th class="text-end" style="font-size:10px;">
+                                                            <t t-esc="a['amount']"/>
+                                                        </th>
+                                                    </t>
+                                                </t>
+                                            </t>
+                                        </tr>
+                                    </t>
+                                </t>
+                            </t>
+                        </t>
                         <tr class="border-bottom">
                             <th colspan="6">
                                 <span class="ms-3">Other Income
@@ -137,6 +203,39 @@
                             </th>
                             </t>
                         </tr>
+                        <t t-foreach="data['datas']" t-as="value" t-key="value_index">
+                            <t t-if="value_index == 0">
+                                <t t-foreach="value['income_other'][0]" t-as="acc" t-key="acc_index">
+                                    <t t-set="acc_name" t-value="acc['name']"/>
+                                    <t t-set="has_val" t-value="0"/>
+                                    <t t-foreach="data['datas']" t-as="vals" t-key="vals_index">
+                                        <t t-foreach="vals['income_other'][0]" t-as="a" t-key="a_index">
+                                            <t t-if="acc_name == a['name'] and a['amount'] != '0.00'">
+                                                <t t-set="has_val" t-value="1"/>
+                                            </t>
+                                        </t>
+                                    </t>
+                                    <t t-if="has_val == 1">
+                                        <tr class="border-bottom">
+                                            <th colspan="6">
+                                                <span class="ms-5" style="font-size:10px;">
+                                                    <t t-esc="acc_name"/>
+                                                </span>
+                                            </th>
+                                            <t t-foreach="data['datas']" t-as="vals" t-key="vals_index">
+                                                <t t-foreach="vals['income_other'][0]" t-as="a" t-key="a_index">
+                                                    <t t-if="acc_name == a['name']">
+                                                        <th class="text-end" style="font-size:10px;">
+                                                            <t t-esc="a['amount']"/>
+                                                        </th>
+                                                    </t>
+                                                </t>
+                                            </t>
+                                        </tr>
+                                    </t>
+                                </t>
+                            </t>
+                        </t>
                         <tr class="border-bottom">
                             <th colspan="6">
                                 <span class="fw-bolder ms-2">
@@ -172,6 +271,39 @@
                                 </th>
                                 </t>
                             </tr>
+                        <t t-foreach="data['datas']" t-as="value" t-key="value_index">
+                            <t t-if="value_index == 0">
+                                <t t-foreach="value['expense'][0]" t-as="acc" t-key="acc_index">
+                                    <t t-set="acc_name" t-value="acc['name']"/>
+                                    <t t-set="has_val" t-value="0"/>
+                                    <t t-foreach="data['datas']" t-as="vals" t-key="vals_index">
+                                        <t t-foreach="vals['expense'][0]" t-as="a" t-key="a_index">
+                                            <t t-if="acc_name == a['name'] and a['amount'] != '0.00'">
+                                                <t t-set="has_val" t-value="1"/>
+                                            </t>
+                                        </t>
+                                    </t>
+                                    <t t-if="has_val == 1">
+                                        <tr class="border-bottom">
+                                            <th colspan="6">
+                                                <span class="ms-5" style="font-size:10px;">
+                                                    <t t-esc="acc_name"/>
+                                                </span>
+                                            </th>
+                                            <t t-foreach="data['datas']" t-as="vals" t-key="vals_index">
+                                                <t t-foreach="vals['expense'][0]" t-as="a" t-key="a_index">
+                                                    <t t-if="acc_name == a['name']">
+                                                        <th class="text-end" style="font-size:10px;">
+                                                            <t t-esc="a['amount']"/>
+                                                        </th>
+                                                    </t>
+                                                </t>
+                                            </t>
+                                        </tr>
+                                    </t>
+                                </t>
+                            </t>
+                        </t>
                         <tr class="border-bottom border-gainsboro">
                                 <th colspan="6">
                                     <span class="ms-3">Depreciation
@@ -186,6 +318,39 @@
                                 </th>
                                 </t>
                             </tr>
+                        <t t-foreach="data['datas']" t-as="value" t-key="value_index">
+                            <t t-if="value_index == 0">
+                                <t t-foreach="value['expense_depreciation'][0]" t-as="acc" t-key="acc_index">
+                                    <t t-set="acc_name" t-value="acc['name']"/>
+                                    <t t-set="has_val" t-value="0"/>
+                                    <t t-foreach="data['datas']" t-as="vals" t-key="vals_index">
+                                        <t t-foreach="vals['expense_depreciation'][0]" t-as="a" t-key="a_index">
+                                            <t t-if="acc_name == a['name'] and a['amount'] != '0.00'">
+                                                <t t-set="has_val" t-value="1"/>
+                                            </t>
+                                        </t>
+                                    </t>
+                                    <t t-if="has_val == 1">
+                                        <tr class="border-bottom border-gainsboro">
+                                            <th colspan="6">
+                                                <span class="ms-5" style="font-size:10px;">
+                                                    <t t-esc="acc_name"/>
+                                                </span>
+                                            </th>
+                                            <t t-foreach="data['datas']" t-as="vals" t-key="vals_index">
+                                                <t t-foreach="vals['expense_depreciation'][0]" t-as="a" t-key="a_index">
+                                                    <t t-if="acc_name == a['name']">
+                                                        <th class="text-end" style="font-size:10px;">
+                                                            <t t-esc="a['amount']"/>
+                                                        </th>
+                                                    </t>
+                                                </t>
+                                            </t>
+                                        </tr>
+                                    </t>
+                                </t>
+                            </t>
+                        </t>
                         <tr class="border-bottom">
                                 <th colspan="6">
                                     <span class="fw-bolder ms-2">Total Expenses

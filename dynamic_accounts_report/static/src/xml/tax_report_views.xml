@@ -1,507 +1,931 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <templates>
     <t t-name="tax_r_template_new" owl="1">
-        <!-- Section contains a structure for the Trial Balance report,
-        including a filter view and a table view. It has div elements for the
-        filter view and table view,with respective classes for styling.-->
-        <div class="container">
-            <div class="fin_report">
-                <!--  Filter View  -->
-                <div class="filter_view pt-3 pb-5">
-                    <div class="">
-                        <h2 class="text-uppercase" style="padding:10px">
-                            <t t-esc="props.action.name"/>
-                        </h2>
+        <div class="">
+            <div class="">
+                <h1 style="padding:10px">
+                    <t t-esc="props.action.name"/>
+                </h1>
+            </div>
+
+            <!-- Filter Panel -->
+            <div>
+                <div class="row" style="margin-right:10px;margin-left:10px;">
+                    <!-- Left: Print/Export buttons -->
+                    <div class="sub_container_left" style="width:70%;">
+                        <div class="report_print">
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    t-on-click="printPdf"
+                                    style="position:relative;height:30px;color:white;background-color:#00A0AD;border-color:#00A0AD;padding:3px;margin-right:4px;">
+                                Print (PDF)
+                            </button>
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    t-on-click="print_xlsx"
+                                    style="position:relative;height:30px;color:white;background-color:#00A0AD;border-color:#00A0AD;padding:3px;">
+                                Export (XLSX)
+                            </button>
+                        </div>
                     </div>
-                    <div style="margin-right: 10px; margin-left: 10px;margin-bottom: 15px;display: flex;">
-                        <div class="sub_container_left" style="width:70%;">
-                            <div class="report_print">
-                                <!-- Print (PDF) Button -->
-                                <button type="button"
-                                        class="btn btn-primary btn-report-print"
-                                        t-on-click="printPdf"
-                                        style="margin-right: 8px;">
-                                    Print (PDF)
-                                </button>
-                                <!-- Export (XLSX) Button -->
-                                <button type="button"
-                                        class="btn btn-primary btn-report-print"
-                                        t-on-click="print_xlsx">
-                                    Export (XLSX)
-                                </button>
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-end">
-                            <!-- Time Range -->
-                            <div class="time_range" style="">
-                                <a type="button" class="dropdown-toggle"
-                                   data-bs-toggle="dropdown">
-                                    <!-- Date Range Dropdown -->
-                                    <span class="fa fa-calendar" title="Dates"
-                                          role="img"
-                                          aria-label="Dates"/>
-                                    Date Range
-                                </a>
-                                <div class="dropdown-menu" role="menu">
-                                    <!-- Date Range Options -->
-                                    <div class="list-group">
-                                        <!-- This Month Button -->
-                                        <button class="report-filter-button"
-                                                t-att-data-value="'month'"
-                                                type="button"
-                                                t-on-click="applyFilter">
-                                            This Month
-                                        </button>
-                                        <!-- This Quarter Button -->
-                                        <button class="report-filter-button"
-                                                t-att-data-value="'quarter'"
-                                                type="button"
-                                                t-on-click="applyFilter">
-                                            This Quarter
-                                        </button>
-                                        <!-- This Year Button -->
-                                        <button class="report-filter-button"
-                                                t-att-data-value="'year'"
-                                                type="button"
-                                                t-on-click="applyFilter">
-                                            This Year
-                                        </button>
-                                        <!-- Separator -->
-                                        <div role="separator"
-                                             class="dropdown-divider"/>
-                                        <!-- Last Month Button -->
-                                        <button class="report-filter-button"
-                                                t-att-data-value="'last-month'"
-                                                type="button"
-                                                t-on-click="applyFilter">
-                                            Last month
-                                        </button>
-                                        <!-- Last Quarter Button -->
-                                        <button class="report-filter-button"
-                                                t-att-data-value="'last-quarter'"
-                                                type="button"
-                                                t-on-click="applyFilter">
-                                            Last quarter
-                                        </button>
-                                        <!-- Last Year Button -->
-                                        <button class="report-filter-button"
-                                                t-att-data-value="'last-year'"
-                                                type="button"
-                                                t-on-click="applyFilter">
-                                            Last year
-                                        </button>
-                                        <!-- Separator -->
-                                        <div role="separator"
-                                             class="dropdown-divider"/>
-                                        <!-- Start Date -->
-                                        <label class="" for="date_from">Start
-                                            Date :
-                                        </label>
-                                        <div class="input-group date"
-                                             data-target-input="nearest">
+                    <!-- Right: Filter dropdowns -->
+                    <div class="sub_container_right row"
+                         style="width:30%;height:3%;top:0px;position:relative;">
 
-                                            <input type="date" id="start_date"
-                                                   t-on-change="applyFilter"
-                                                   t-ref="date_from"
-                                                   style="border:none;border-bottom: 1px solid #000;padding: 5px;outline: none;"
-                                                   name="start_date"/>
-                                        </div>
-                                        <!-- End Date -->
-                                        <label class="" for="date_to">End Date
-                                            :
-                                        </label>
-                                        <div class="input-group date"
-                                             data-target-input="nearest">
-                                            <input type="date" id="end_date"
-                                                   t-on-change="applyFilter"
-                                                   t-ref="date_to"
-                                                   style="border:none;border-bottom: 1px solid #000;padding: 5px;outline: none;"
-                                                   name="end_date"/>
-                                        </div>
+                        <!-- Date Range -->
+                        <div class="time_range" style="">
+                            <a type="button" class="dropdown-toggle"
+                               data-bs-toggle="dropdown">
+                                <span class="fa fa-calendar" title="Dates"
+                                      role="img" aria-label="Dates"/>
+                                Date Range
+                            </a>
+                            <div class="dropdown-menu" role="menu">
+                                <div class="form-group">
+                                    <button class="report-filter-button"
+                                            t-att-data-value="'month'"
+                                            type="button"
+                                            t-on-click="applyFilter">
+                                        This Month
+                                    </button>
+                                    <button class="report-filter-button"
+                                            t-att-data-value="'quarter'"
+                                            type="button"
+                                            t-on-click="applyFilter">
+                                        This Quarter
+                                    </button>
+                                    <button class="report-filter-button"
+                                            t-att-data-value="'year'"
+                                            type="button"
+                                            t-on-click="applyFilter">
+                                        This Year
+                                    </button>
+                                    <div role="separator" class="dropdown-divider"/>
+                                    <button class="report-filter-button"
+                                            t-att-data-value="'last-month'"
+                                            type="button"
+                                            t-on-click="applyFilter">
+                                        Last Month
+                                    </button>
+                                    <button class="report-filter-button"
+                                            t-att-data-value="'last-quarter'"
+                                            type="button"
+                                            t-on-click="applyFilter">
+                                        Last Quarter
+                                    </button>
+                                    <button class="report-filter-button"
+                                            t-att-data-value="'last-year'"
+                                            type="button"
+                                            t-on-click="applyFilter">
+                                        Last Year
+                                    </button>
+                                    <div role="separator" class="dropdown-divider"/>
+                                    <label for="date_from">Start Date :</label>
+                                    <div class="input-group date"
+                                         data-target-input="nearest">
+                                        <input type="date"
+                                               id="start_date"
+                                               t-ref="date_from"
+                                               name="start_date"
+                                               style="border:none;border-bottom:1px solid #000;padding:5px;outline:none;"/>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="comparison_range" style="">
-                                <a type="button" class="dropdown-toggle"
-                                   data-bs-toggle="dropdown">
-                                    <span class="fa fa-signal"
-                                          title="Comparison"
-                                          role="img"
-                                          aria-label="Comparison"/>
-                                    Comparison
-                                </a>
-                                <div class="dropdown-menu" role="menu">
-                                    <div class="list-group">
-                                        <button class="report-filter-button"
-                                                t-att-data-value="'no comparison'"
-                                                type="button"
-                                                t-on-click="applyComparison">
-                                            No Comparison
-                                        </button>
-                                        <div role="separator"
-                                             class="dropdown-divider"/>
-                                        <label class="" for="periods"
-                                               style="display: flex;padding: 4px 20px;color: #000;">
-                                            Previous Period
-                                            <br/>
-                                            Number of Periods:
-                                        </label>
-                                        <div class="input-group comparison"
-                                             data-target-input="nearest">
-
-                                            <input type="number"
-                                                   t-ref="periods"
-                                                   min="1"
-                                                   t-on-input="onPeriodChange"
-                                                   style="border:none;border-bottom: 1px solid #000;padding: 5px;outline: none;"
-                                                   name="previous_period"/>
-                                        </div>
-                                        <button class="btn btn-primary"
-                                                type="button"
-                                                style="margin-left: 19px;margin-top: 4px;"
-                                                t-on-click="applyComparisonPeriod">
-                                            Apply
-                                        </button>
-                                        <div role="separator"
-                                             class="dropdown-divider"/>
-                                        <label class="" for="period_year"
-                                               style="display: flex;padding: 4px 20px;color: #000;">
-                                            Same Period Last Year
-                                            <br/>
-                                            Number of Periods:
-                                        </label>
-                                        <div class="input-group comparison"
-                                             data-target-input="nearest">
-                                            <input type="number"
-                                                   t-ref="period_year"
-                                                   t-on-input="onPeriodYearChange"
-                                                   min="1"
-                                                   style="border:none;border-bottom: 1px solid #000;padding: 5px;outline: none;"
-                                                   name="period_year"/>
-                                        </div>
-                                        <button class="btn btn-primary"
-                                                type="button"
-                                                style="margin-left: 19px;margin-top: 4px;"
-                                                t-on-click="applyComparisonYear">
-                                            Apply
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Options Dropdown -->
-                            <div class="option" style="">
-                                <a type="button" class="dropdown-toggle"
-                                   data-bs-toggle="dropdown">
-                                    <span class="fa fa-glass" title="Accounts"
-                                          role="img"
-                                          aria-label="Dates"/>
-                                    Options : Posted Entries
-                                </a>
-                                <div class="dropdown-menu" role="menu">
-                                    <div class="list-group">
-                                        <!-- Include Draft Entries Button -->
-                                        <button class="report-filter-button"
-                                                t-att-data-value="'draft'"
-                                                type="button"
-                                                t-on-click="applyFilter">
-                                            Include Draft Entries
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Options Dropdown -->
-                            <div class="option" style="">
-                                <a type="button" class="dropdown-toggle"
-                                   data-bs-toggle="dropdown">
-                                    <span class="fa fa-glass" title="Accounts"
-                                          role="img"
-                                          aria-label="Dates"/>
-                                    Reports :
-                                </a>
-                                <div class="dropdown-menu" role="menu">
-                                    <div class="list-group">
-                                        <!-- Include Draft Entries Button -->
-                                        <button class="report-filter-button"
-                                                t-att-data-value="'global'"
-                                                type="button" t-ref="global"
-                                                t-on-click="applyFilter">
-                                            Generic Tax Report
-                                        </button>
-                                        <button class="report-filter-button"
-                                                t-att-data-value="'account tax'"
-                                                type="button" t-ref="account"
-                                                t-on-click="applyFilter">
-                                            Group by: Account > Tax
-                                        </button>
-                                        <button class="report-filter-button"
-                                                t-att-data-value="'tax account'"
-                                                type="button" t-ref="tax"
-                                                t-on-click="applyFilter">
-                                            Group by: Tax > Account
-                                        </button>
+                                    <label for="date_to">End Date :</label>
+                                    <div class="input-group date"
+                                         data-target-input="nearest">
+                                        <input type="date"
+                                               id="end_date"
+                                               t-ref="date_to"
+                                               name="end_date"
+                                               style="border:none;border-bottom:1px solid #000;padding:5px;outline:none;"/>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Comparison -->
+                        <div class="comparison_range" style="">
+                            <a type="button" class="dropdown-toggle"
+                               data-bs-toggle="dropdown">
+                                <span class="fa fa-signal" title="Comparison"
+                                      role="img" aria-label="Comparison"/>
+                                Comparison
+                            </a>
+                            <div class="dropdown-menu" role="menu">
+                                <div class="form-group">
+                                    <button class="report-filter-button"
+                                            t-att-data-value="'no comparison'"
+                                            type="button"
+                                            t-on-click="applyComparison">
+                                        No Comparison
+                                    </button>
+                                    <div role="separator" class="dropdown-divider"/>
+                                    <label style="display:flex;padding:4px 20px;color:#000;">
+                                        Previous Period
+                                        <br/>
+                                        Number of Periods:
+                                    </label>
+                                    <div class="input-group comparison"
+                                         data-target-input="nearest">
+                                        <input type="number" t-ref="periods"
+                                               min="1"
+                                               t-on-input="onPeriodChange"
+                                               style="border:none;border-bottom:1px solid #000;padding:5px;outline:none;"
+                                               name="previous_period"/>
+                                    </div>
+                                    <button class="btn btn-primary" type="button"
+                                            style="margin-left:19px;margin-top:4px;background-color:#00A0AD;border-color:#00A0AD;"
+                                            t-on-click="applyComparisonPeriod">
+                                        Apply
+                                    </button>
+                                    <div role="separator" class="dropdown-divider"/>
+                                    <label style="display:flex;padding:4px 20px;color:#000;">
+                                        Same Period Last Year
+                                        <br/>
+                                        Number of Periods:
+                                    </label>
+                                    <div class="input-group comparison"
+                                         data-target-input="nearest">
+                                        <input type="number" t-ref="period_year"
+                                               min="1"
+                                               t-on-input="onPeriodYearChange"
+                                               style="border:none;border-bottom:1px solid #000;padding:5px;outline:none;"
+                                               name="period_year"/>
+                                    </div>
+                                    <button class="btn btn-primary" type="button"
+                                            style="margin-left:19px;margin-top:4px;background-color:#00A0AD;border-color:#00A0AD;"
+                                            t-on-click="applyComparisonYear">
+                                        Apply
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Options -->
+                        <div class="option" style="">
+                            <a type="button" class="dropdown-toggle"
+                               data-bs-toggle="dropdown">
+                                <span class="fa fa-filter" title="Options"
+                                      role="img"/>
+                                Options
+                            </a>
+                            <div class="dropdown-menu" role="menu">
+                                <div class="form-group">
+                                    <button class="report-filter-button"
+                                            t-att-data-value="'draft'"
+                                            type="button"
+                                            t-on-click="applyFilter">
+                                        Include Draft Entries
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Report Type -->
+                        <div class="option" style="">
+                            <a type="button" class="dropdown-toggle"
+                               data-bs-toggle="dropdown">
+                                <span class="fa fa-list" title="Report Type"
+                                      role="img"/>
+                                Reports
+                            </a>
+                            <div class="dropdown-menu" role="menu">
+                                <div class="form-group">
+                                    <button class="report-filter-button"
+                                            t-att-data-value="'global'"
+                                            type="button" t-ref="global"
+                                            t-on-click="applyFilter">
+                                        Generic Tax Report
+                                    </button>
+                                    <button class="report-filter-button"
+                                            t-att-data-value="'account tax'"
+                                            type="button" t-ref="account"
+                                            t-on-click="applyFilter">
+                                        Group by: Account > Tax
+                                    </button>
+                                    <button class="report-filter-button"
+                                            t-att-data-value="'tax account'"
+                                            type="button" t-ref="tax"
+                                            t-on-click="applyFilter">
+                                        Group by: Tax > Account
+                                    </button>
+                                    <div role="separator" class="dropdown-divider"/>
+                                    <button class="report-filter-button"
+                                            type="button"
+                                            t-on-click="toggleUAEMode"
+                                            t-attf-style="font-weight:{{state.uae_vat_mode ? '700' : '400'}};">
+                                        UAE VAT Return
+                                        <t t-if="state.uae_vat_mode"> ✓</t>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Apply button -->
+                        <div style="">
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    t-on-click="applyManualFilter"
+                                    style="top:0px;height:30px;color:white;background-color:#00A0AD;border-color:#00A0AD;">
+                                Apply
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             </div>
+
+            <br/>
+
+            <!-- UAE VAT Return Table -->
+            <t t-if="state.uae_vat_mode">
+                <div style="margin:0 10px;max-height:calc(100vh - 280px);overflow-y:auto;overflow-x:auto;">
+                    <table cellspacing="0" width="100%"
+                           style="border-collapse:collapse;font-size:13px;">
+
+                        <!-- ===== SECTION 1: VAT on Sales (Base) ===== -->
+                        <tr style="background-color:#00A0AD;color:white;font-weight:700;">
+                            <td style="padding:8px 12px;">
+                                VAT on Sales and all other Outputs (Base)
+                            </td>
+                            <td class="mon_fld"
+                                style="color:white;padding:8px 12px;white-space:nowrap;min-width:160px;">
+                                <t t-if="state.uae_data"
+                                   t-esc="state.uae_data.sale_base_total"/>
+                                AED
+                            </td>
+                        </tr>
+                        <!-- Row 1 (collapsible) -->
+                        <tr style="border-bottom:1px solid #ddd;cursor:pointer;"
+                            data-bs-toggle="collapse"
+                            data-bs-target=".uae-base-emirates"
+                            aria-expanded="false">
+                            <td style="padding:6px 12px;">
+                                <i class="fa fa-caret-down" style="margin-right:5px;"/>
+                                1. Standard Rated supplies (Base)
+                            </td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s1_base"/> AED
+                            </td>
+                        </tr>
+                        <t t-if="state.uae_data">
+                            <t t-foreach="state.uae_data.emirates" t-as="em" t-key="em_index">
+                                <tr class="uae-base-emirates collapse"
+                                    style="background-color:#f9f9f9;border-bottom:1px solid #eee;">
+                                    <td style="padding:4px 12px 4px 40px;color:#555;">
+                                        <t t-esc="em.label"/>. <t t-esc="em.name"/>
+                                    </td>
+                                    <td class="mon_fld" style="padding:4px 12px;white-space:nowrap;">
+                                        <t t-esc="em.base"/> AED
+                                    </td>
+                                </tr>
+                            </t>
+                            <tr class="uae-base-emirates collapse"
+                                style="background-color:#f0f0f0;border-bottom:1px solid #ccc;font-weight:600;">
+                                <td style="padding:5px 12px 5px 40px;">Sub Total</td>
+                                <td class="mon_fld" style="padding:5px 12px;white-space:nowrap;">
+                                    <t t-esc="state.uae_data.s1_base"/> AED
+                                </td>
+                            </tr>
+                        </t>
+                        <!-- Rows 2-8 (Base) -->
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">2. Tax Refunds provided to Tourists under the Tax Refunds for Tourists Scheme</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s2_base"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">3. Supplies subject to reverse charge provisions</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s3_base"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">4. Zero rated supplies</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s4_base"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">5. Exempt supplies</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s5_base"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">6. Out of scope</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s6_base"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">7. Goods imported into the UAE</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s7_base"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">8. Adjustments to goods imported into the UAE</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s8_base"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border:1.5px solid #999;background-color:#dfdfdf;font-weight:700;">
+                            <td style="padding:8px 12px;">9. Total</td>
+                            <td class="mon_fld" style="padding:8px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s9_base"/> AED
+                            </td>
+                        </tr>
+
+                        <!-- ===== SECTION 2: VAT on Expenses (Base) ===== -->
+                        <tr style="height:0.6rem;"/>
+                        <tr style="background-color:#00A0AD;color:white;font-weight:700;">
+                            <td style="padding:8px 12px;">
+                                VAT on Expenses and all other Inputs (Base)
+                            </td>
+                            <td class="mon_fld"
+                                style="color:white;padding:8px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data"
+                                   t-esc="state.uae_data.purch_base_total"/>
+                                AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">10. Standard rated expenses</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s10_base"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">11. Supplies subject to the reverse charge provisions</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s11_base"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">12. Out of scope</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s12_base"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border:1.5px solid #999;background-color:#dfdfdf;font-weight:700;">
+                            <td style="padding:8px 12px;">13. Totals</td>
+                            <td class="mon_fld" style="padding:8px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s13_base"/> AED
+                            </td>
+                        </tr>
+
+                        <!-- ===== SECTION 3: VAT on Sales (Tax) ===== -->
+                        <tr style="height:0.6rem;"/>
+                        <tr style="background-color:#00A0AD;color:white;font-weight:700;">
+                            <td style="padding:8px 12px;">
+                                VAT on Sales and all other Outputs (Tax)
+                            </td>
+                            <td class="mon_fld"
+                                style="color:white;padding:8px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data"
+                                   t-esc="state.uae_data.sale_vat_total"/>
+                                AED
+                            </td>
+                        </tr>
+                        <!-- Row 1 Tax (collapsible) -->
+                        <tr style="border-bottom:1px solid #ddd;cursor:pointer;"
+                            data-bs-toggle="collapse"
+                            data-bs-target=".uae-vat-emirates"
+                            aria-expanded="false">
+                            <td style="padding:6px 12px;">
+                                <i class="fa fa-caret-down" style="margin-right:5px;"/>
+                                1. Standard Rated supplies (Tax)
+                            </td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s1_vat"/> AED
+                            </td>
+                        </tr>
+                        <t t-if="state.uae_data">
+                            <t t-foreach="state.uae_data.emirates" t-as="em" t-key="em_index">
+                                <tr class="uae-vat-emirates collapse"
+                                    style="background-color:#f9f9f9;border-bottom:1px solid #eee;">
+                                    <td style="padding:4px 12px 4px 40px;color:#555;">
+                                        <t t-esc="em.label"/>. <t t-esc="em.name"/>
+                                    </td>
+                                    <td class="mon_fld" style="padding:4px 12px;white-space:nowrap;">
+                                        <t t-esc="em.vat"/> AED
+                                    </td>
+                                </tr>
+                            </t>
+                            <tr class="uae-vat-emirates collapse"
+                                style="background-color:#f0f0f0;border-bottom:1px solid #ccc;font-weight:600;">
+                                <td style="padding:5px 12px 5px 40px;">Sub Total</td>
+                                <td class="mon_fld" style="padding:5px 12px;white-space:nowrap;">
+                                    <t t-esc="state.uae_data.s1_vat"/> AED
+                                </td>
+                            </tr>
+                        </t>
+                        <!-- Rows 2-8 (Tax) -->
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">2. Tax Refunds provided to Tourists under the Tax Refunds for Tourists Scheme</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s2_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">3. Supplies subject to reverse charge provisions</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s3_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">4. Zero rated supplies</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s4_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">5. Exempt supplies</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s5_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">6. Out of scope</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s6_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">7. Goods imported into the UAE</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s7_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">8. Adjustments to goods imported into the UAE</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s8_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border:1.5px solid #999;background-color:#dfdfdf;font-weight:700;">
+                            <td style="padding:8px 12px;">9. Total</td>
+                            <td class="mon_fld" style="padding:8px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s9_vat"/> AED
+                            </td>
+                        </tr>
+
+                        <!-- ===== SECTION 4: VAT on Expenses (Tax) ===== -->
+                        <tr style="height:0.6rem;"/>
+                        <tr style="background-color:#00A0AD;color:white;font-weight:700;">
+                            <td style="padding:8px 12px;">
+                                VAT on Expenses and all other Inputs (Tax)
+                            </td>
+                            <td class="mon_fld"
+                                style="color:white;padding:8px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data"
+                                   t-esc="state.uae_data.purch_vat_total"/>
+                                AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">10. Standard rated expenses</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s10_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">11. Supplies subject to the reverse charge provisions</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s11_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">12. Out of scope</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s12_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border:1.5px solid #999;background-color:#dfdfdf;font-weight:700;">
+                            <td style="padding:8px 12px;">13. Totals</td>
+                            <td class="mon_fld" style="padding:8px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s13_vat"/> AED
+                            </td>
+                        </tr>
+
+                        <!-- ===== SECTION 5: Net VAT Due ===== -->
+                        <tr style="height:0.6rem;"/>
+                        <tr style="background-color:#00A0AD;color:white;font-weight:700;">
+                            <td style="padding:8px 12px;">Net VAT Due</td>
+                            <td class="mon_fld"
+                                style="color:white;padding:8px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data"
+                                   t-esc="state.uae_data.net_vat_total"/>
+                                AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">14. Total value of due tax for the period</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s14_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border-bottom:1px solid #ddd;">
+                            <td style="padding:6px 12px;">15. Total value of recoverable tax for the period</td>
+                            <td class="mon_fld" style="padding:6px 12px;white-space:nowrap;">
+                                <t t-if="state.uae_data" t-esc="state.uae_data.s15_vat"/> AED
+                            </td>
+                        </tr>
+                        <tr style="border:1.5px solid #999;background-color:#dfdfdf;font-weight:700;">
+                            <td style="padding:8px 12px;">16. Net VAT due (or reclaimed) for the period</td>
+                            <td class="mon_fld" style="padding:8px 12px;white-space:nowrap;font-weight:700;">
+                                <t t-if="state.uae_data">
+                                    <t t-if="state.uae_data.s16_is_credit">
+                                        <span style="color:#c00;">
+                                            (<t t-esc="state.uae_data.s16_vat"/>) AED
+                                        </span>
+                                    </t>
+                                    <t t-else="">
+                                        <t t-esc="state.uae_data.s16_vat"/> AED
+                                    </t>
+                                </t>
+                            </td>
+                        </tr>
+
+                    </table>
+                </div>
+            </t>
+
+            <!-- Generic Tax Table (hidden when UAE mode is active) -->
+            <t t-if="!state.uae_vat_mode">
             <div>
-                <!-- Table View -->
-                <div class="table_view_gl" style="right:20px;height: 650px; overflow-y: scroll;"
-                     t-ref="table_view_gl">
-                    <div>
-                        <div class="table_main_view">
-                            <table cellspacing="0" width="100%">
-                                <thead>
-                                    <tr class="o_heading"
-                                        style="text-align:center;">
-                                        <th colspan="7"/>
-                                        <t t-if="state.date_viewed.length != 0">
-                                            <t t-foreach="state.date_viewed"
-                                               t-as="date_view"
-                                               t-key="date_view_index">
-                                                <th colspan="2">
-                                                    <t t-esc="date_view"/>
-                                                </th>
-                                            </t>
+                <div class="table_view_tax"
+                     style="right:20px;max-height:calc(100vh - 280px);overflow-y:auto;overflow-x:auto;">
+                    <div class="table_main_view">
+                        <table cellspacing="0" width="100%">
+                            <thead style="position:sticky;top:0;z-index:10;background-color:#fff;">
+                                <!-- Comparison period date headers -->
+                                <t t-if="state.date_viewed.length != 0">
+                                    <tr style="text-align:center;">
+                                        <th colspan="6"/>
+                                        <t t-foreach="state.date_viewed"
+                                           t-as="date_view"
+                                           t-key="date_view_index">
+                                            <th colspan="2"
+                                                class="mon_fld"
+                                                style="text-align:center;border-bottom:2px solid #00A0AD;color:#00A0AD;">
+                                                <t t-esc="date_view"/>
+                                            </th>
                                         </t>
                                     </tr>
-                                    <tr class="o_heading"
-                                        style="text-align:center;">
-                                        <th colspan="6"/>
-                                        <th/>
+                                </t>
+                                <!-- Column headers -->
+                                <tr style="background-color:#f5f5f5;">
+                                    <th colspan="6">Tax / Account</th>
+                                    <t t-if="state.apply_comparison == true">
+                                        <t t-set="number_of_periods"
+                                           t-value="comparison_number_range"/>
+                                        <t t-foreach="number_of_periods"
+                                           t-as="number" t-key="number">
+                                            <th class="mon_fld">NET</th>
+                                            <th class="mon_fld">TAX</th>
+                                        </t>
+                                    </t>
+                                    <th class="mon_fld">NET</th>
+                                    <th class="mon_fld">TAX</th>
+                                </tr>
+                            </thead>
+
+                            <tbody t-ref="tbody">
+                                <t t-if="state.data">
+
+                                    <!-- ===== SALES ===== -->
+                                    <tr style="border:1.5px solid #999;background-color:#dfdfdf;">
+                                        <td colspan="6"
+                                            style="padding:6px 8px;font-weight:700;">
+                                            Sales
+                                        </td>
                                         <t t-if="state.apply_comparison == true">
                                             <t t-set="number_of_periods"
                                                t-value="comparison_number_range"/>
                                             <t t-foreach="number_of_periods"
-                                               t-as="number" t-key="number">
-                                                <th>NET</th>
-                                                <th>TAX</th>
+                                               t-as="no" t-key="no">
+                                                <td class="mon_fld"/>
+                                                <td class="mon_fld"/>
                                             </t>
                                         </t>
-                                        <th>NET</th>
-                                        <th>TAX</th>
+                                        <td class="mon_fld"/>
+                                        <td class="mon_fld" style="font-weight:700;">
+                                            <t t-esc="state.sale_total.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})"/>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody t-ref="tbody">
-                                    <t t-if="state.data">
-                                        <t t-set="prev_account" t-value="None"/>
-                                        <t t-set="prev_tax" t-value="None"/>
-                                        <tr class="border-bottom"
-                                            style="border-spacing: 0 10px;background:#dfdfdf;">
-                                            <th colspan="6">
-                                                <span style="font-weight: 700;">
-                                                    Sales
-                                                </span>
-                                            </th>
-                                            <th/>
-                                            <th/>
-                                            <t t-if="state.apply_comparison == true">
-                                                <t t-set="number_of_periods"
-                                                   t-value="comparison_number_range"/>
-                                                <t t-foreach="number_of_periods"
-                                                   t-as="no" t-key="no">
-                                                    <th/>
-                                                    <th/>
-                                                </t>
-                                            </t>
-                                            <th style="text-align:center;font-weight: 700;">
-                                                <t t-esc="state.sale_total.toFixed(2)"/>
-                                            </th>
-                                        </tr>
-                                        <t t-set="i" t-value="0"/>
-                                        <t t-foreach="state.data.sale"
-                                           t-as="sale_tax_line"
-                                           t-key="sale_tax_line_index">
-                                            <t t-set="i" t-value="i + 1"/>
-                                            <t t-if="state.report_type">
-                                                <t t-if="Object.keys(state.report_type) == 'account'">
-                                                    <t t-if="prev_account !== sale_tax_line['account']">
-                                                        <t t-set="prev_account"
-                                                           t-value="sale_tax_line['account']"/>
-                                                        <tr class="border-bottom"
-                                                            style="border-spacing: 0 10px;">
-                                                            <th colspan="6">
-                                                                <span>
-                                                                    <t t-esc="sale_tax_line['account']"/>
-                                                                </span>
-                                                            </th>
-                                                        </tr>
-                                                    </t>
-                                                </t>
-                                                <t t-else="Object.keys(state.report_type) == 'tax'">
-                                                    <t t-if="prev_tax !== sale_tax_line.name">
-                                                        <t t-set="prev_tax"
-                                                           t-value="sale_tax_line.name"/>
-                                                        <tr class="border-bottom"
-                                                            style="border-spacing: 0 10px;">
-                                                            <th colspan="6">
-                                                                <span>
-                                                                    <t t-esc="sale_tax_line.name"/>
-                                                                    (
-                                                                    <t t-esc="sale_tax_line.amount"/>
-                                                                    %)
-                                                                </span>
-                                                            </th>
-                                                        </tr>
-                                                    </t>
-                                                </t>
-                                            </t>
-                                            <tr class="border-bottom"
-                                                style="border-spacing: 0 10px;font-weight: 400;">
-                                                <th colspan="6">
-                                                    <span style="font-weight: 400;">
-                                                        <t t-if="state.report_type and Object.keys(state.report_type) == 'tax'">
-                                                            <t t-esc="sale_tax_line['account']"/>
-                                                        </t>
-                                                        <t t-else="">
-                                                            <t t-esc="sale_tax_line.name"/>
-                                                            (
-                                                            <t t-esc="sale_tax_line.amount"/>
-                                                            %)
-                                                        </t>
-                                                    </span>
-                                                </th>
-                                                <th/>
+
+                                    <t t-set="si" t-value="0"/>
+                                    <t t-foreach="groupedSaleData"
+                                       t-as="group"
+                                       t-key="group_index">
+                                        <t t-set="si" t-value="si + 1"/>
+
+                                        <!-- Flat row (global / no grouping) -->
+                                        <t t-if="group.items.length === 0">
+                                            <tr style="border-bottom:1px solid #ddd;">
+                                                <td colspan="6"
+                                                    style="padding:5px 8px 5px 20px;">
+                                                    <t t-esc="group.key"/>
+                                                </td>
                                                 <t t-if="state.apply_comparison == true">
-                                                    <t t-if="sale_tax_line['dynamic net']">
+                                                    <t t-if="group.line and group.line['dynamic net']">
                                                         <t t-set="number_of_periods"
                                                            t-value="comparison_number_range"/>
                                                         <t t-foreach="number_of_periods"
-                                                           t-as="num"
-                                                           t-key="num">
-                                                            <th style="text-align:center;font-weight: 400;">
-                                                                <t t-if="sale_tax_line['dynamic net']['dynamic_total_net_sum' + num]"
-                                                                   t-esc="sale_tax_line['dynamic net']['dynamic_total_net_sum' + num]"/>
-                                                            </th>
-                                                            <th style="text-align:center;font-weight: 400;">
-                                                                <t t-if="sale_tax_line['dynamic tax']['dynamic_total_tax_sum' + num]"
-                                                                   t-esc="sale_tax_line['dynamic tax']['dynamic_total_tax_sum' + num]"/>
-                                                            </th>
+                                                           t-as="num" t-key="num">
+                                                            <td class="mon_fld">
+                                                                <t t-esc="formatNum(group.line['dynamic net']['dynamic_total_net_sum' + num])"/>
+                                                            </td>
+                                                            <td class="mon_fld">
+                                                                <t t-esc="formatNum(group.line['dynamic tax']['dynamic_total_tax_sum' + num])"/>
+                                                            </td>
+                                                        </t>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <t t-set="number_of_periods"
+                                                           t-value="comparison_number_range"/>
+                                                        <t t-foreach="number_of_periods"
+                                                           t-as="num" t-key="num">
+                                                            <td class="mon_fld"/>
+                                                            <td class="mon_fld"/>
                                                         </t>
                                                     </t>
                                                 </t>
-                                                <th style="text-align:center;">
-                                                    <span style="font-weight: 400;">
-                                                        <t t-esc="sale_tax_line.net"/>
-                                                    </span>
-                                                </th>
-                                                <th style="text-align:center;">
-                                                    <span style="font-weight: 400;">
-                                                        <t t-esc="sale_tax_line.tax"/>
-                                                    </span>
-                                                </th>
+                                                <td class="mon_fld">
+                                                    <t t-esc="group.total_net"/>
+                                                </td>
+                                                <td class="mon_fld">
+                                                    <t t-esc="group.total_tax"/>
+                                                </td>
                                             </tr>
                                         </t>
-                                        <tr style="height: 2rem;"/>
-                                        <tr class="border-bottom"
-                                            style="border-spacing: 0 10px;background:#dfdfdf;">
-                                            <th colspan="6">
-                                                <span style="font-weight: 700;">
-                                                    Purchase
-                                                </span>
-                                            </th>
-                                            <th/>
-                                            <th/>
-                                            <t t-if="state.apply_comparison == true">
-                                                <t t-set="number_of_periods"
-                                                   t-value="comparison_number_range"/>
-                                                <t t-foreach="number_of_periods"
-                                                   t-as="numb" t-key="numb">
-                                                    <th/>
-                                                    <th/>
-                                                </t>
-                                            </t>
-                                            <th style="text-align:center;font-weight: 700;">
-                                                <t t-esc="state.purchase_total.toFixed(2)"/>
-                                            </th>
-                                        </tr>
-                                        <t t-set="i" t-value="0"/>
-                                        <t t-foreach="state.data.purchase"
-                                           t-as="purchase_tax_line"
-                                           t-key="purchase_tax_line_index">
-                                            <t t-set="i" t-value="i + 1"/>
-                                            <t t-if="state.report_type">
-                                                <t t-if="Object.keys(state.report_type) == 'account'">
-                                                    <tr class="border-bottom"
-                                                        style="border-spacing: 0 10px;">
-                                                        <th colspan="6">
-                                                            <span>
-                                                                <t t-esc="purchase_tax_line['account']"/>
-                                                            </span>
-                                                        </th>
-                                                    </tr>
-                                                </t>
-                                                <t t-else="Object.keys(state.report_type) == 'tax'">
-                                                    <t t-set="prev_account"
-                                                       t-value="purchase_tax_line.name"/>
-                                                    <tr class="border-bottom"
-                                                        style="border-spacing: 0 10px;">
-                                                        <th colspan="6">
-                                                            <span>
-                                                                <t t-esc="purchase_tax_line.name"/>
-                                                                (
-                                                                <t t-esc="purchase_tax_line.amount"/>
-                                                                %)
-                                                            </span>
-                                                        </th>
-                                                    </tr>
-                                                </t>
-                                            </t>
-                                            <tr class="border-bottom"
-                                                style="border-spacing: 0 10px;">
-                                                <th colspan="6">
-                                                    <span style="font-weight: 400;">
-                                                        <t t-if="state.report_type and Object.keys(state.report_type) == 'tax'">
-                                                            <t t-esc="purchase_tax_line['account']"/>
-                                                        </t>
-                                                        <t t-else="">
-                                                            <t t-esc="purchase_tax_line.name"/>
-                                                            (
-                                                            <t t-esc="purchase_tax_line.amount"/>
-                                                            %)
-                                                        </t>
-                                                    </span>
-                                                </th>
-                                                <th/>
+
+                                        <!-- Grouped rows (collapsible header + children) -->
+                                        <t t-else="">
+                                            <tr style="border:1.5px solid black;cursor:pointer;"
+                                                data-bs-toggle="collapse"
+                                                t-attf-data-bs-target="#sale-group-{{si}}"
+                                                aria-expanded="false"
+                                                t-attf-aria-controls="sale-group-{{si}}">
+                                                <td colspan="6"
+                                                    style="padding:5px 8px;">
+                                                    <i class="fa fa-caret-down"
+                                                       style="margin-right:5px;"/>
+                                                    <strong>
+                                                        <t t-esc="group.key"/>
+                                                    </strong>
+                                                </td>
                                                 <t t-if="state.apply_comparison == true">
-                                                    <t t-if="purchase_tax_line['dynamic net']">
-                                                        <t t-set="number_of_periods"
-                                                           t-value="comparison_number_range"/>
-                                                        <t t-foreach="number_of_periods"
-                                                           t-as="period"
-                                                           t-key="period">
-                                                            <th style="text-align:center;font-weight: 400;">
-                                                                <t t-if="purchase_tax_line['dynamic net']['dynamic_total_net_sum' + period]"
-                                                                   t-esc="purchase_tax_line['dynamic net']['dynamic_total_net_sum' + period]"/>
-                                                            </th>
-                                                            <th style="text-align:center;font-weight: 400;">
-                                                                <t t-if="purchase_tax_line['dynamic tax']['dynamic_total_tax_sum' + period]"
-                                                                   t-esc="purchase_tax_line['dynamic tax']['dynamic_total_tax_sum' + period]"/>
-                                                            </th>
-                                                        </t>
+                                                    <t t-set="number_of_periods"
+                                                       t-value="comparison_number_range"/>
+                                                    <t t-foreach="number_of_periods"
+                                                       t-as="num" t-key="num">
+                                                        <td class="mon_fld">
+                                                            <strong>
+                                                                <t t-esc="formatNum(group.dynamic_net_sums['dynamic_total_net_sum' + num])"/>
+                                                            </strong>
+                                                        </td>
+                                                        <td class="mon_fld">
+                                                            <strong>
+                                                                <t t-esc="formatNum(group.dynamic_tax_sums['dynamic_total_tax_sum' + num])"/>
+                                                            </strong>
+                                                        </td>
                                                     </t>
                                                 </t>
-                                                <th style="text-align:center;">
-                                                    <span style="font-weight: 400;">
-                                                        <t t-esc="purchase_tax_line.net"/>
-                                                    </span>
-                                                </th>
-                                                <th style="text-align:center;">
-                                                    <span style="font-weight: 400;">
-                                                        <t t-esc="purchase_tax_line.tax"/>
-                                                    </span>
-                                                </th>
+                                                <td class="mon_fld">
+                                                    <strong>
+                                                        <t t-esc="group.total_net"/>
+                                                    </strong>
+                                                </td>
+                                                <td class="mon_fld">
+                                                    <strong>
+                                                        <t t-esc="group.total_tax"/>
+                                                    </strong>
+                                                </td>
                                             </tr>
+                                            <t t-foreach="group.items"
+                                               t-as="item"
+                                               t-key="item_index">
+                                                <tr class="collapse"
+                                                    t-attf-id="sale-group-{{si}}"
+                                                    style="border-bottom:1px solid #eee;">
+                                                    <td colspan="6"
+                                                        style="padding:4px 8px 4px 30px;">
+                                                        <t t-if="state.report_type and Object.keys(state.report_type)[0] === 'tax'">
+                                                            <t t-esc="item['account']"/>
+                                                        </t>
+                                                        <t t-else="">
+                                                            <t t-esc="item.name"/>
+                                                            (<t t-esc="item.amount"/>%)
+                                                        </t>
+                                                    </td>
+                                                    <t t-if="state.apply_comparison == true">
+                                                        <t t-if="item['dynamic net']">
+                                                            <t t-set="number_of_periods"
+                                                               t-value="comparison_number_range"/>
+                                                            <t t-foreach="number_of_periods"
+                                                               t-as="num" t-key="num">
+                                                                <td class="mon_fld">
+                                                                    <t t-esc="formatNum(item['dynamic net']['dynamic_total_net_sum' + num])"/>
+                                                                </td>
+                                                                <td class="mon_fld">
+                                                                    <t t-esc="formatNum(item['dynamic tax']['dynamic_total_tax_sum' + num])"/>
+                                                                </td>
+                                                            </t>
+                                                        </t>
+                                                        <t t-else="">
+                                                            <t t-set="number_of_periods"
+                                                               t-value="comparison_number_range"/>
+                                                            <t t-foreach="number_of_periods"
+                                                               t-as="num" t-key="num">
+                                                                <td class="mon_fld"/>
+                                                                <td class="mon_fld"/>
+                                                            </t>
+                                                        </t>
+                                                    </t>
+                                                    <td class="mon_fld">
+                                                        <t t-esc="formatNum(item.net)"/>
+                                                    </td>
+                                                    <td class="mon_fld">
+                                                        <t t-esc="formatNum(item.tax)"/>
+                                                    </td>
+                                                </tr>
+                                            </t>
                                         </t>
                                     </t>
-                                </tbody>
-                            </table>
-                        </div>
+
+                                    <tr style="height:1.2rem;"/>
+
+                                    <!-- ===== PURCHASE ===== -->
+                                    <tr style="border:1.5px solid #999;background-color:#dfdfdf;">
+                                        <td colspan="6"
+                                            style="padding:6px 8px;font-weight:700;">
+                                            Purchase
+                                        </td>
+                                        <t t-if="state.apply_comparison == true">
+                                            <t t-set="number_of_periods"
+                                               t-value="comparison_number_range"/>
+                                            <t t-foreach="number_of_periods"
+                                               t-as="numb" t-key="numb">
+                                                <td class="mon_fld"/>
+                                                <td class="mon_fld"/>
+                                            </t>
+                                        </t>
+                                        <td class="mon_fld"/>
+                                        <td class="mon_fld" style="font-weight:700;">
+                                            <t t-esc="state.purchase_total.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})"/>
+                                        </td>
+                                    </tr>
+
+                                    <t t-set="pi" t-value="0"/>
+                                    <t t-foreach="groupedPurchaseData"
+                                       t-as="pgroup"
+                                       t-key="pgroup_index">
+                                        <t t-set="pi" t-value="pi + 1"/>
+
+                                        <!-- Flat row -->
+                                        <t t-if="pgroup.items.length === 0">
+                                            <tr style="border-bottom:1px solid #ddd;">
+                                                <td colspan="6"
+                                                    style="padding:5px 8px 5px 20px;">
+                                                    <t t-esc="pgroup.key"/>
+                                                </td>
+                                                <t t-if="state.apply_comparison == true">
+                                                    <t t-if="pgroup.line and pgroup.line['dynamic net']">
+                                                        <t t-set="number_of_periods"
+                                                           t-value="comparison_number_range"/>
+                                                        <t t-foreach="number_of_periods"
+                                                           t-as="num" t-key="num">
+                                                            <td class="mon_fld">
+                                                                <t t-esc="formatNum(pgroup.line['dynamic net']['dynamic_total_net_sum' + num])"/>
+                                                            </td>
+                                                            <td class="mon_fld">
+                                                                <t t-esc="formatNum(pgroup.line['dynamic tax']['dynamic_total_tax_sum' + num])"/>
+                                                            </td>
+                                                        </t>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <t t-set="number_of_periods"
+                                                           t-value="comparison_number_range"/>
+                                                        <t t-foreach="number_of_periods"
+                                                           t-as="num" t-key="num">
+                                                            <td class="mon_fld"/>
+                                                            <td class="mon_fld"/>
+                                                        </t>
+                                                    </t>
+                                                </t>
+                                                <td class="mon_fld">
+                                                    <t t-esc="pgroup.total_net"/>
+                                                </td>
+                                                <td class="mon_fld">
+                                                    <t t-esc="pgroup.total_tax"/>
+                                                </td>
+                                            </tr>
+                                        </t>
+
+                                        <!-- Grouped rows -->
+                                        <t t-else="">
+                                            <tr style="border:1.5px solid black;cursor:pointer;"
+                                                data-bs-toggle="collapse"
+                                                t-attf-data-bs-target="#purchase-group-{{pi}}"
+                                                aria-expanded="false"
+                                                t-attf-aria-controls="purchase-group-{{pi}}">
+                                                <td colspan="6"
+                                                    style="padding:5px 8px;">
+                                                    <i class="fa fa-caret-down"
+                                                       style="margin-right:5px;"/>
+                                                    <strong>
+                                                        <t t-esc="pgroup.key"/>
+                                                    </strong>
+                                                </td>
+                                                <t t-if="state.apply_comparison == true">
+                                                    <t t-set="number_of_periods"
+                                                       t-value="comparison_number_range"/>
+                                                    <t t-foreach="number_of_periods"
+                                                       t-as="num" t-key="num">
+                                                        <td class="mon_fld">
+                                                            <strong>
+                                                                <t t-esc="formatNum(pgroup.dynamic_net_sums['dynamic_total_net_sum' + num])"/>
+                                                            </strong>
+                                                        </td>
+                                                        <td class="mon_fld">
+                                                            <strong>
+                                                                <t t-esc="formatNum(pgroup.dynamic_tax_sums['dynamic_total_tax_sum' + num])"/>
+                                                            </strong>
+                                                        </td>
+                                                    </t>
+                                                </t>
+                                                <td class="mon_fld">
+                                                    <strong>
+                                                        <t t-esc="pgroup.total_net"/>
+                                                    </strong>
+                                                </td>
+                                                <td class="mon_fld">
+                                                    <strong>
+                                                        <t t-esc="pgroup.total_tax"/>
+                                                    </strong>
+                                                </td>
+                                            </tr>
+                                            <t t-foreach="pgroup.items"
+                                               t-as="pitem"
+                                               t-key="pitem_index">
+                                                <tr class="collapse"
+                                                    t-attf-id="purchase-group-{{pi}}"
+                                                    style="border-bottom:1px solid #eee;">
+                                                    <td colspan="6"
+                                                        style="padding:4px 8px 4px 30px;">
+                                                        <t t-if="state.report_type and Object.keys(state.report_type)[0] === 'tax'">
+                                                            <t t-esc="pitem['account']"/>
+                                                        </t>
+                                                        <t t-else="">
+                                                            <t t-esc="pitem.name"/>
+                                                            (<t t-esc="pitem.amount"/>%)
+                                                        </t>
+                                                    </td>
+                                                    <t t-if="state.apply_comparison == true">
+                                                        <t t-if="pitem['dynamic net']">
+                                                            <t t-set="number_of_periods"
+                                                               t-value="comparison_number_range"/>
+                                                            <t t-foreach="number_of_periods"
+                                                               t-as="num" t-key="num">
+                                                                <td class="mon_fld">
+                                                                    <t t-esc="formatNum(pitem['dynamic net']['dynamic_total_net_sum' + num])"/>
+                                                                </td>
+                                                                <td class="mon_fld">
+                                                                    <t t-esc="formatNum(pitem['dynamic tax']['dynamic_total_tax_sum' + num])"/>
+                                                                </td>
+                                                            </t>
+                                                        </t>
+                                                        <t t-else="">
+                                                            <t t-set="number_of_periods"
+                                                               t-value="comparison_number_range"/>
+                                                            <t t-foreach="number_of_periods"
+                                                               t-as="num" t-key="num">
+                                                                <td class="mon_fld"/>
+                                                                <td class="mon_fld"/>
+                                                            </t>
+                                                        </t>
+                                                    </t>
+                                                    <td class="mon_fld">
+                                                        <t t-esc="formatNum(pitem.net)"/>
+                                                    </td>
+                                                    <td class="mon_fld">
+                                                        <t t-esc="formatNum(pitem.tax)"/>
+                                                    </td>
+                                                </tr>
+                                            </t>
+                                        </t>
+                                    </t>
+
+                                </t>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
+            </t>
         </div>
     </t>
 </templates>

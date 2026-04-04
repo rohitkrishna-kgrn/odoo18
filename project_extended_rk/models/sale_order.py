@@ -12,6 +12,8 @@ class SaleOrderLine(models.Model):
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
+    billable_type = fields.Selection([('billable', 'Billable'),('non_billable', 'Non-Billable')], string="Billing Type", default='billable')
+
     def action_confirm(self):
         """Override confirmation to create projects/tasks and optionally an advance invoice."""
         res = super(SaleOrder, self).action_confirm()
@@ -69,6 +71,7 @@ class SaleOrder(models.Model):
 
         invoice = self.env['account.move'].with_context(automated_invoice_creation=True).create(invoice_vals)
         return invoice
+    
 
     # @api.model
     # def _create_project_and_tasks(self, order_line, calculated_advance_amount):
@@ -173,6 +176,7 @@ class SaleOrder(models.Model):
             'auto_invoice': sale_order.auto_invoice,
             'budgeted_amount': advance_diff,
             'deadline': order_line.deadline,
+            'billable_type': sale_order.billable_type 
         }
 
         project = Project.create(project_vals)
@@ -225,6 +229,7 @@ class SaleOrder(models.Model):
                 'allocated_hours': estimated_hours / order_line.product_uom_qty if order_line.product_uom_qty > 0 else 0.0,
                 'task_budget': task_amount,
                 'date_deadline': order_line.deadline,
+                'billable_type':sale_order.billable_type
             }
             task = Task.create(task_vals)
 

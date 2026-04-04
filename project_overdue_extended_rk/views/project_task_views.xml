@@ -1,0 +1,155 @@
+<odoo>
+    <data>
+
+        <!-- ══════════════════════════════════════════════
+             1. LIST VIEW — row colour by overdue category
+             ══════════════════════════════════════════════ -->
+        <record id="view_task_tree_overdue_inherit" model="ir.ui.view">
+            <field name="name">project.task.list.overdue.inherit</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.view_task_tree2"/>
+            <field name="arch" type="xml">
+
+                <!-- Add decoration attributes to the list element -->
+                <xpath expr="//list" position="attributes">
+                    <!-- green  : overdue but less than 30 days -->
+                    <attribute name="decoration-success">overdue_category == 'lt30'</attribute>
+                    <!-- orange : 30–60 days overdue -->
+                    <attribute name="decoration-warning">overdue_category == '30_60'</attribute>
+                    <!-- amber  : 60–90 days overdue (muted-warning maps to info in bootstrap) -->
+                    <attribute name="decoration-info">overdue_category == '60_90'</attribute>
+                    <!-- red    : more than 90 days overdue -->
+                    <attribute name="decoration-danger">overdue_category == 'gt90'</attribute>
+                </xpath>
+
+                <!-- Hidden carrier fields required for decoration expressions -->
+                <xpath expr="//list" position="inside">
+                    <field name="overdue_category" column_invisible="1"/>
+                    <field name="overdue_days" column_invisible="1"/>
+                    <field name="state_additional" column_invisible="1"/>
+                </xpath>
+
+            </field>
+        </record>
+
+
+        <!-- ══════════════════════════════════════════════
+             2. FORM VIEW — coloured ribbon
+             ══════════════════════════════════════════════ -->
+        <record id="view_task_form_overdue_ribbon_inherit" model="ir.ui.view">
+            <field name="name">project.task.form.overdue.ribbon.inherit</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.view_task_form2"/>
+            <field name="arch" type="xml">
+
+                <!-- Ribbons must be INSIDE <sheet> so they anchor to the sheet's
+                     position:relative container (top-right of the white card).
+                     We insert them before oe_title so they are the first DOM
+                     children — position:absolute means DOM order doesn't
+                     affect where they visually appear. -->
+                <xpath expr="//sheet/div[hasclass('oe_title')]" position="before">
+                    <field name="overdue_category" invisible="1"/>
+                    <field name="state_additional" invisible="1"/>
+
+                    <!-- Green ribbon: overdue but < 30 days -->
+                    <widget name="web_ribbon"
+                            title="Overdue &lt; 30 days"
+                            bg_color="bg-success"
+                            invisible="overdue_category != 'lt30'"/>
+
+                    <!-- Orange ribbon: 30–60 days overdue -->
+                    <widget name="web_ribbon"
+                            title="Overdue 30–60 days"
+                            bg_color="bg-warning"
+                            invisible="overdue_category != '30_60'"/>
+
+                    <!-- Info/amber ribbon: 60–90 days overdue -->
+                    <widget name="web_ribbon"
+                            title="Overdue 60–90 days"
+                            bg_color="bg-info"
+                            invisible="overdue_category != '60_90'"/>
+
+                    <!-- Red ribbon: more than 90 days overdue -->
+                    <widget name="web_ribbon"
+                            title="Overdue &gt; 90 days"
+                            bg_color="bg-danger"
+                            invisible="overdue_category != 'gt90'"/>
+                </xpath>
+
+            </field>
+        </record>
+
+
+        <!-- ══════════════════════════════════════════════
+             3. SEARCH VIEW — overdue filters
+             Tasks with stage_id.fold = True (done stage) are
+             excluded via state_additional != 'completed'.
+             ══════════════════════════════════════════════ -->
+        <record id="view_task_search_overdue_inherit" model="ir.ui.view">
+            <field name="name">project.task.search.overdue.inherit</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.view_task_search_form"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//search" position="inside">
+
+                    <separator/>
+
+                    <!-- Overdue &lt; 30 days: deadline was 1–29 days ago, task not done -->
+                    <filter
+                        name="overdue_lt30"
+                        string="Overdue &lt; 30 days"
+                        domain="[
+                            ('date_deadline', '!=', False),
+                            ('date_deadline', '&lt;', context_today().strftime('%Y-%m-%d')),
+                            ('date_deadline', '&gt;=', (context_today() + relativedelta(days=-29)).strftime('%Y-%m-%d')),
+                            ('state_additional', '!=', 'completed'),
+                            ('stage_id.fold', '=', False)
+                        ]"
+                    />
+
+                    <!-- Overdue 30–60 days: deadline was 30–60 days ago, task not done -->
+                    <filter
+                        name="overdue_30_60"
+                        string="Overdue 30–60 days"
+                        domain="[
+                            ('date_deadline', '!=', False),
+                            ('date_deadline', '&lt;=', (context_today() + relativedelta(days=-30)).strftime('%Y-%m-%d')),
+                            ('date_deadline', '&gt;=', (context_today() + relativedelta(days=-60)).strftime('%Y-%m-%d')),
+                            ('state_additional', '!=', 'completed'),
+                            ('stage_id.fold', '=', False)
+                        ]"
+                    />
+
+                    <!-- Overdue 60–90 days: deadline was 61–90 days ago, task not done -->
+                    <filter
+                        name="overdue_60_90"
+                        string="Overdue 60–90 days"
+                        domain="[
+                            ('date_deadline', '!=', False),
+                            ('date_deadline', '&lt;=', (context_today() + relativedelta(days=-61)).strftime('%Y-%m-%d')),
+                            ('date_deadline', '&gt;=', (context_today() + relativedelta(days=-90)).strftime('%Y-%m-%d')),
+                            ('state_additional', '!=', 'completed'),
+                            ('stage_id.fold', '=', False)
+                        ]"
+                    />
+
+                    <!-- Overdue &gt; 90 days: deadline was more than 90 days ago, task not done -->
+                    <filter
+                        name="overdue_gt90"
+                        string="Overdue &gt; 90 days"
+                        domain="[
+                            ('date_deadline', '!=', False),
+                            ('date_deadline', '&lt;', (context_today() + relativedelta(days=-90)).strftime('%Y-%m-%d')),
+                            ('state_additional', '!=', 'completed'),
+                            ('stage_id.fold', '=', False)
+                        ]"
+                    />
+
+                </xpath>
+
+            </field>
+        </record>
+
+    </data>
+</odoo>

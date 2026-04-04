@@ -22,6 +22,7 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='partner_id']" position="after">
                 <field name="dms_folder_id" readonly="1"/>
+                <field name="billable_type" readonly="1"/>
             </xpath>
         </field>
     </record>
@@ -36,6 +37,14 @@
                 <filter name="state_additional_in_progress" string="In Progress" domain="[('state_additional','=','in_progress')]" />
                 <filter name="state_additional_waiting" string="Waiting for Approval" domain="[('state_additional','=','waiting_for_approval')]" />
                 <filter name="state_additional_completed" string="Completed" domain="[('state_additional','=','completed')]" />
+
+                <separator string="Billable Type"/>
+                <filter name="filter_billable"
+                        string="Billable"
+                        domain="[('billable_type','=','billable')]"/>
+                <filter name="filter_non_billable"
+                        string="Non-Billable"
+                        domain="[('billable_type','=','non_billable')]"/>
 
                 <group string="Completed Date" expand="0">
                     <filter name="completed_this_week" string="Completed This Week" domain="[('completed_this_week', '=', True)]"/>
@@ -54,8 +63,18 @@
         <field name="model">project.project</field>
         <field name="inherit_id" ref="project.view_project_project_filter"/>
         <field name="arch" type="xml">
-            <xpath expr="//filter[@name='my_projects']" position="after">
-                <filter string="Department" name="department" context="{'group_by':'department_id'}"/>
+            <xpath expr="//search" position="inside">
+                
+                <separator string="Billable Type"/>
+
+                <filter name="filter_project_billable"
+                        string="Billable"
+                        domain="[('billable_type','=','billable')]"/>
+
+                <filter name="filter_project_non_billable"
+                        string="Non-Billable"
+                        domain="[('billable_type','=','non_billable')]"/>
+
             </xpath>
         </field>
     </record>

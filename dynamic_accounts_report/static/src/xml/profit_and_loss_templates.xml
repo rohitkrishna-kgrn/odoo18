@@ -294,11 +294,11 @@
             </div>
             <br/>
             <div>
-                <div class="table_view_dfr" style="height: 650px; overflow-y: scroll;">
+                <div class="table_view_dfr" style="max-height: calc(100vh - 280px); overflow-y: auto; overflow-x: auto;">
                     <div>
                         <div class="table_main_view">
                             <table cellspacing="0" width="100%">
-                                <thead>
+                                <thead style="position: sticky; top: 0; z-index: 10; background-color: #fff;">
                                     <tr class="o_heading">
                                         <th colspan="6"/>
                                         <t t-if="state.year">
@@ -337,7 +337,7 @@
                                                 <th class="text-end">
                                                     <span class="fw-bolder">
                                                         <t t-if="total.total"
-                                                           t-esc="total.total.toFixed(2)"/>
+                                                           t-esc="total.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"/>
                                                     </span>
                                                 </th>
                                             </t>
@@ -369,7 +369,7 @@
                                                    t-key="value_index">
                                                     <th class="text-end">
                                                         <span>
-                                                            <t t-esc="sumGrossProfit(value.expense_direct_cost[1], value.income[1]).toFixed(2)"/>
+                                                            <t t-esc="sumGrossProfit(value.expense_direct_cost[1], value.income[1])"/>
                                                         </span>
                                                     </th>
                                                 </t>

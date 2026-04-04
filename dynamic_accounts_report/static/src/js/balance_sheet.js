@@ -22,7 +22,7 @@ class BalanceSheet extends owl.Component {
         this.state = useState({
             data: null,
             filter_data: null,
-            year : [now.getFullYear()],
+            year : ['As of 31/12/' + now.getFullYear()],
             comparison: false,
             comparison_type: null,
         });
@@ -219,32 +219,43 @@ class BalanceSheet extends owl.Component {
      * @returns {Promise<void>} - A promise that resolves when the data is loaded.
      */
         self = this
-        if (ev.target.name === 'start_date') {
-                this.filter = {
-                    ...this.filter,
-                    date_from: ev.target.value
-                };
-        } else if (ev.target.name === 'end_date') {
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const today = new Date();
+        if (ev.target.name === 'end_date') {
                 this.filter = {
                     ...this.filter,
                     date_to: ev.target.value
                 };
+                if (ev.target.value) {
+                    const d = new Date(ev.target.value);
+                    this.state.year = ['As of ' + d.getDate().toString().padStart(2,'0') + '/' + (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear()];
+                }
         } else if (ev.target.attributes["data-value"].value == 'month') {
-                this.filter = ev.target.attributes["data-value"].value
+                this.filter = ev.target.attributes["data-value"].value;
+                const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                this.state.year = ['As of ' + endOfMonth.getDate() + '/' + (endOfMonth.getMonth()+1).toString().padStart(2,'0') + '/' + endOfMonth.getFullYear()];
         } else if (ev.target.attributes["data-value"].value == 'year') {
-                this.filter = ev.target.attributes["data-value"].value
+                this.filter = ev.target.attributes["data-value"].value;
+                this.state.year = ['As of 31/12/' + today.getFullYear()];
         } else if (ev.target.attributes["data-value"].value == 'quarter') {
-            this.filter = ev.target.attributes["data-value"].value
+            this.filter = ev.target.attributes["data-value"].value;
+            const q = Math.ceil((today.getMonth() + 1) / 3);
+            const qEnd = new Date(today.getFullYear(), q * 3, 0);
+            this.state.year = ['As of ' + qEnd.getDate() + '/' + (qEnd.getMonth()+1).toString().padStart(2,'0') + '/' + qEnd.getFullYear()];
         } else if (ev.target.attributes["data-value"].value == 'last-month') {
-            this.filter = ev.target.attributes["data-value"].value
+            this.filter = ev.target.attributes["data-value"].value;
+            const lmEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+            this.state.year = ['As of ' + lmEnd.getDate() + '/' + (lmEnd.getMonth()+1).toString().padStart(2,'0') + '/' + lmEnd.getFullYear()];
         } else if (ev.target.attributes["data-value"].value == 'last-year') {
-            this.filter = ev.target.attributes["data-value"].value
+            this.filter = ev.target.attributes["data-value"].value;
+            this.state.year = ['As of 31/12/' + (today.getFullYear() - 1)];
         } else if (ev.target.attributes["data-value"].value == 'last-quarter') {
-            this.filter = ev.target.attributes["data-value"].value
+            this.filter = ev.target.attributes["data-value"].value;
+            const lqEnd = new Date(today.getFullYear(), today.getMonth() - (today.getMonth() % 3), 0);
+            this.state.year = ['As of ' + lqEnd.getDate() + '/' + (lqEnd.getMonth()+1).toString().padStart(2,'0') + '/' + lqEnd.getFullYear()];
         }
         let res = await self.orm.call("dynamic.balance.sheet.report", "filter", [this.wizard_id, this.filter]);
         self.initial_render = false;
-        self.load_data(self.initial_render);
         this.load_data(this.initial_render);
     }
     onPeriodChange(ev){

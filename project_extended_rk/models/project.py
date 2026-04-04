@@ -71,6 +71,9 @@ class ProjectProject(models.Model):
         store=True,
     )
 
+    billable_type = fields.Selection([('billable', 'Billable'),('non_billable', 'Non-Billable')], string="Billing Type", default='billable')
+
+
     @api.depends("create_date")
     def _compute_project_created_date(self):
         for project in self:
@@ -182,7 +185,8 @@ class ProjectTask(models.Model):
         store=True,
         readonly=True,
     )
-
+    billable_type = fields.Selection([('billable', 'Billable'),('non_billable', 'Non-Billable')], string="Billing Type", default='billable')
+    
     @api.depends('completed_date')
     def _compute_completed_periods(self):
         user_tz = self.env.user.tz or 'UTC'

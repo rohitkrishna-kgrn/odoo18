@@ -82,32 +82,15 @@
                                             </button>
                                             <div role="separator"
                                                  class="dropdown-divider"/>
-                                            <label class="" for="date_from">
-                                                Start
-                                                Date :
+                                            <label style="display:flex;padding:4px 20px;color:#000;">
+                                                As of Date :
                                             </label>
                                             <div class="input-group date"
-                                                 t-ref="date_from"
-                                                 data-target-input="nearest">
-
-                                                <input type="date"
-                                                       id="start_date"
-                                                       t-on-change="apply_date"
-                                                       style="border:none;border-bottom: 1px solid #000;padding: 5px;outline: none;"
-                                                       name="start_date"/>
-                                            </div>
-
-                                            <label class="" for="date_to">End
-                                                Date
-                                                :
-                                            </label>
-                                            <div class="input-group date"
-                                                 t-ref="date_to"
                                                  data-target-input="nearest">
                                                 <input type="date"
                                                        id="end_date"
                                                        t-on-change="apply_date"
-                                                       style="border:none;border-bottom: 1px solid #000;padding: 5px;outline: none;"
+                                                       style="border:none;border-bottom:1px solid #000;padding:5px;outline:none;"
                                                        name="end_date"/>
                                             </div>
                                         </div>
@@ -299,11 +282,11 @@
             <br/>
             <div>
                 <!-- Table View -->
-                <div class="table_view_dfr" style="height: 650px; overflow-y: scroll;">
+                <div class="table_view_dfr" style="max-height: calc(100vh - 280px); overflow-y: auto; overflow-x: auto;">
                     <div class="table_main_view px-5">
                         <table cellspacing="0" width="100%">
                             <t t-if="state.data">
-                                <thead>
+                                <thead style="position: sticky; top: 0; z-index: 10; background-color: #fff;">
                                     <tr class="o_heading">
                                         <th colspan="6"/>
                                         <t t-if="state.year">
@@ -1432,13 +1415,7 @@
                                             </th>
                                         </t>
                                     </tr>
-                                    <t t-foreach="state.datas" t-as="value"
-                                       t-key="value_index">
-                                        <t t-if="value.equity_unaffected[1] != '0.00'">
-                                            <t t-set="equity_unaffected"
-                                               t-value="1"/>
-                                        </t>
-                                    </t>
+                                    <t t-set="equity_unaffected" t-value="1"/>
                                     <t t-if="equity_unaffected == 1">
                                         <tr class="border-bottom border-gainsboro">
                                             <th colspan="6">
@@ -1475,60 +1452,42 @@
                                                    t-key="data_index">
                                                     <t t-set="account_name"
                                                        t-value="data.name"/>
-                                                    <t t-set="account_value"
-                                                       t-value="0"/>
-                                                    <t t-foreach="state.datas"
-                                                       t-as="values"
-                                                       t-key="values_index">
-                                                        <t t-foreach="values.equity_unaffected[0]"
-                                                           t-as="data"
-                                                           t-key="data_index">
-                                                            <t t-if="account_name == data.name">
-                                                                <t t-if="data.amount != '0.00'">
-                                                                    <t t-set="account_value"
-                                                                       t-value="1"/>
+                                                    <tr class="border-bottom border-gainsboro collapse"
+                                                        id="collapse_equity_unaffected">
+                                                        <th colspan="6">
+                                                            <span class="dropdown">
+                                                                <a class="dropdown-toggle"
+                                                                   data-bs-toggle="dropdown">
+                                                                    <span class="ms-5">
+                                                                        <t t-esc="data.name"/>
+                                                                    </span>
+                                                                </a>
+                                                                <span class="dropdown-menu">
+                                                                    <a role="menuitem"
+                                                                       t-on-click="show_gl"
+                                                                       class="show_gl">
+                                                                        General
+                                                                        Ledger
+                                                                    </a>
+                                                                </span>
+                                                            </span>
+                                                        </th>
+                                                        <t t-foreach="state.datas"
+                                                           t-as="values"
+                                                           t-key="values_index">
+                                                            <t t-foreach="values.equity_unaffected[0]"
+                                                               t-as="data"
+                                                               t-key="data_index">
+                                                                <t t-if="account_name == data.name">
+                                                                    <th class="text-end">
+                                                                        <span>
+                                                                            <t t-esc="data.amount"/>
+                                                                        </span>
+                                                                    </th>
                                                                 </t>
                                                             </t>
                                                         </t>
-                                                    </t>
-                                                    <t t-if="account_value == 1">
-                                                        <tr class="border-bottom border-gainsboro collapse"
-                                                            id="collapse_equity_unaffected">
-                                                            <th colspan="6">
-                                                                <span class="dropdown">
-                                                                    <a class="dropdown-toggle"
-                                                                       data-bs-toggle="dropdown">
-                                                                        <span class="ms-5">
-                                                                            <t t-esc="data.name"/>
-                                                                        </span>
-                                                                    </a>
-                                                                    <span class="dropdown-menu">
-                                                                        <a role="menuitem"
-                                                                           t-on-click="show_gl"
-                                                                           class="show_gl">
-                                                                            General
-                                                                            Ledger
-                                                                        </a>
-                                                                    </span>
-                                                                </span>
-                                                            </th>
-                                                            <t t-foreach="state.datas"
-                                                               t-as="values"
-                                                               t-key="values_index">
-                                                                <t t-foreach="values.equity_unaffected[0]"
-                                                                   t-as="data"
-                                                                   t-key="data_index">
-                                                                    <t t-if="account_name == data.name">
-                                                                        <th class="text-end">
-                                                                            <span>
-                                                                                <t t-esc="data.amount"/>
-                                                                            </span>
-                                                                        </th>
-                                                                    </t>
-                                                                </t>
-                                                            </t>
-                                                        </tr>
-                                                    </t>
+                                                    </tr>
                                                 </t>
                                             </t>
                                         </t>
@@ -1558,12 +1517,7 @@
                                             </th>
                                         </t>
                                     </tr>
-                                    <t t-foreach="state.datas" t-as="value"
-                                       t-key="value_index">
-                                        <t t-if="value.equity[1] != '0.00'">
-                                            <t t-set="equity" t-value="1"/>
-                                        </t>
-                                    </t>
+                                    <t t-set="equity" t-value="1"/>
                                     <t t-if="equity == 1">
                                         <tr class="border-bottom border-gainsboro">
                                             <th colspan="6">
@@ -1599,60 +1553,42 @@
                                                    t-key="data_index">
                                                     <t t-set="account_name"
                                                        t-value="data.name"/>
-                                                    <t t-set="account_value"
-                                                       t-value="0"/>
-                                                    <t t-foreach="state.datas"
-                                                       t-as="values"
-                                                       t-key="values_index">
-                                                        <t t-foreach="values.equity[0]"
-                                                           t-as="data"
-                                                           t-key="data_index">
-                                                            <t t-if="account_name == data.name">
-                                                                <t t-if="data.amount != '0.00'">
-                                                                    <t t-set="account_value"
-                                                                       t-value="1"/>
+                                                    <tr class="border-bottom border-gainsboro collapse"
+                                                        id="collapse_equity">
+                                                        <th colspan="6">
+                                                            <span class="dropdown">
+                                                                <a class="dropdown-toggle"
+                                                                   data-bs-toggle="dropdown">
+                                                                    <span class="ms-5">
+                                                                        <t t-esc="data.name"/>
+                                                                    </span>
+                                                                </a>
+                                                                <span class="dropdown-menu">
+                                                                    <a role="menuitem"
+                                                                       t-on-click="show_gl"
+                                                                       class="show_gl">
+                                                                        General
+                                                                        Ledger
+                                                                    </a>
+                                                                </span>
+                                                            </span>
+                                                        </th>
+                                                        <t t-foreach="state.datas"
+                                                           t-as="values"
+                                                           t-key="values_index">
+                                                            <t t-foreach="values.equity[0]"
+                                                               t-as="data"
+                                                               t-key="data_index">
+                                                                <t t-if="account_name == data.name">
+                                                                    <th class="text-end">
+                                                                        <span>
+                                                                            <t t-esc="data.amount"/>
+                                                                        </span>
+                                                                    </th>
                                                                 </t>
                                                             </t>
                                                         </t>
-                                                    </t>
-                                                    <t t-if="account_value == 1">
-                                                        <tr class="border-bottom border-gainsboro collapse"
-                                                            id="collapse_equity">
-                                                            <th colspan="6">
-                                                                <span class="dropdown">
-                                                                    <a class="dropdown-toggle"
-                                                                       data-bs-toggle="dropdown">
-                                                                        <span class="ms-5">
-                                                                            <t t-esc="data.name"/>
-                                                                        </span>
-                                                                    </a>
-                                                                    <span class="dropdown-menu">
-                                                                        <a role="menuitem"
-                                                                           t-on-click="show_gl"
-                                                                           class="show_gl">
-                                                                            General
-                                                                            Ledger
-                                                                        </a>
-                                                                    </span>
-                                                                </span>
-                                                            </th>
-                                                            <t t-foreach="state.datas"
-                                                               t-as="values"
-                                                               t-key="values_index">
-                                                                <t t-foreach="values.equity[0]"
-                                                                   t-as="data"
-                                                                   t-key="data_index">
-                                                                    <t t-if="account_name == data.name">
-                                                                        <th class="text-end">
-                                                                            <span>
-                                                                                <t t-esc="data.amount"/>
-                                                                            </span>
-                                                                        </th>
-                                                                    </t>
-                                                                </t>
-                                                            </t>
-                                                        </tr>
-                                                    </t>
+                                                    </tr>
                                                 </t>
                                             </t>
                                         </t>

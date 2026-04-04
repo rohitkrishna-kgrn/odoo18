@@ -65,23 +65,38 @@ class AccountTrialBalance(models.TransientModel):
                  ('parent_state', '=', 'posted')])
             total_debit = round(sum(move_line_ids.mapped('debit')), 2)
             total_credit = round(sum(move_line_ids.mapped('credit')), 2)
-            sum_debit = initial_total_debit + total_debit
-            sum_credit = initial_total_credit + total_credit
-            diff_credit_debit = sum_debit - sum_credit
-            if diff_credit_debit > 0:
-                end_total_debit = diff_credit_debit
-                end_total_credit = 0.0
+            # For payable/receivable: use amount_residual for closing balance
+            # so that fully reconciled (paid) entries show zero.
+            residual_types = ['liability_payable', 'asset_receivable']
+            if account_id.account_type in residual_types:
+                all_lines = self.env['account.move.line'].search(
+                    [('account_id', '=', account_id.id),
+                     ('parent_state', '=', 'posted')])
+                residual_sum = sum(all_lines.mapped('amount_residual'))
+                if account_id.account_type == 'liability_payable':
+                    net = -residual_sum
+                else:
+                    net = residual_sum
+                end_total_debit = round(net, 2) if net > 0 else 0.0
+                end_total_credit = round(abs(net), 2) if net < 0 else 0.0
             else:
-                end_total_debit = 0.0
-                end_total_credit = abs(diff_credit_debit)
+                sum_debit = initial_total_debit + total_debit
+                sum_credit = initial_total_credit + total_credit
+                diff_credit_debit = sum_debit - sum_credit
+                if diff_credit_debit > 0:
+                    end_total_debit = diff_credit_debit
+                    end_total_credit = 0.0
+                else:
+                    end_total_debit = 0.0
+                    end_total_credit = abs(diff_credit_debit)
             data = {
                 'account': account_id.display_name,
                 'account_id': account_id.id,
                 'journal_ids': self.env['account.journal'].search_read([], ['name']),
                 'initial_total_debit': "{:,.2f}".format(initial_total_debit),
                 'initial_total_credit': "{:,.2f}".format(initial_total_credit),
-                'total_debit': total_debit,
-                'total_credit': total_credit,
+                'total_debit': "{:,.2f}".format(total_debit),
+                'total_credit': "{:,.2f}".format(total_credit),
                 'end_total_debit': "{:,.2f}".format(end_total_debit),
                 'end_total_credit': "{:,.2f}".format(end_total_credit)
             }
@@ -278,40 +293,59 @@ class AccountTrialBalance(models.TransientModel):
             move_line_ids = self.env['account.move.line'].search(domain)
             total_debit = round(sum(move_line_ids.mapped('debit')), 2)
             total_credit = round(sum(move_line_ids.mapped('credit')), 2)
-            sum_debit = initial_total_debit + sum(
-                dynamic_total_debit.values()) + total_debit
-            sum_credit = initial_total_credit + sum(
-                dynamic_total_credit.values()) + total_credit
-            diff_credit_debit = sum_debit - sum_credit
-            if diff_credit_debit > 0:
-                end_total_debit = diff_credit_debit
-                end_total_credit = 0.0
+            # For payable/receivable: use amount_residual for closing balance
+            # so that fully reconciled (paid) entries show zero.
+            residual_types = ['liability_payable', 'asset_receivable']
+            if account_id.account_type in residual_types:
+                residual_domain = [('account_id', '=', account_id.id),
+                                   ('parent_state', 'in', option_domain)]
+                if journal_list:
+                    residual_domain.append(('journal_id', 'in', journal_list))
+                all_res_lines = self.env['account.move.line'].search(
+                    residual_domain)
+                residual_sum = sum(all_res_lines.mapped('amount_residual'))
+                if account_id.account_type == 'liability_payable':
+                    net = -residual_sum
+                else:
+                    net = residual_sum
+                end_total_debit = round(net, 2) if net > 0 else 0.0
+                end_total_credit = round(abs(net), 2) if net < 0 else 0.0
             else:
-                end_total_debit = 0.0
-                end_total_credit = abs(diff_credit_debit)
+                sum_debit = initial_total_debit + sum(
+                    dynamic_total_debit.values()) + total_debit
+                sum_credit = initial_total_credit + sum(
+                    dynamic_total_credit.values()) + total_credit
+                diff_credit_debit = sum_debit - sum_credit
+                if diff_credit_debit > 0:
+                    end_total_debit = diff_credit_debit
+                    end_total_credit = 0.0
+                else:
+                    end_total_debit = 0.0
+                    end_total_credit = abs(diff_credit_debit)
             data = {
                 'account': account_id.display_name,
                 'account_id': account_id.id,
                 'journal_ids': self.env['account.journal'].search_read([], [
                     'name']),
-                'initial_total_debit': initial_total_debit,
-                'initial_total_credit': initial_total_credit,
-                'total_debit': total_debit,
-                'total_credit': total_credit,
-                'end_total_debit': end_total_debit,
-                'end_total_credit': end_total_credit
+                'initial_total_debit': "{:,.2f}".format(initial_total_debit),
+                'initial_total_credit': "{:,.2f}".format(initial_total_credit),
+                'total_debit': "{:,.2f}".format(total_debit),
+                'total_credit': "{:,.2f}".format(total_credit),
+                'end_total_debit': "{:,.2f}".format(end_total_debit),
+                'end_total_credit': "{:,.2f}".format(end_total_credit)
             }
             if comparison_number:
                 if dynamic_date_num:
                     data['dynamic_date_num'] = dynamic_date_num
                 for i in range(1, eval(comparison_number) + 1):
-                    data[f'dynamic_total_debit_{i}'] = dynamic_total_debit.get(
-                        f"dynamic_total_debit_{eval(comparison_number) + 1 - i}",
-                        0.0)
-                    data[
-                        f'dynamic_total_credit_{i}'] = dynamic_total_credit.get(
-                        f"dynamic_total_credit_{eval(comparison_number) + 1 - i}",
-                        0.0)
+                    data[f'dynamic_total_debit_{i}'] = "{:,.2f}".format(
+                        dynamic_total_debit.get(
+                            f"dynamic_total_debit_{eval(comparison_number) + 1 - i}",
+                            0.0))
+                    data[f'dynamic_total_credit_{i}'] = "{:,.2f}".format(
+                        dynamic_total_credit.get(
+                            f"dynamic_total_credit_{eval(comparison_number) + 1 - i}",
+                            0.0))
             move_line_list.append(data)
         return move_line_list
 
@@ -421,7 +455,10 @@ class AccountTrialBalance(models.TransientModel):
         if data:
             if report_action == 'dynamic_accounts_report.action_trial_balance':
                 row = 11
-                for move_line in data['data'][0]:
+                raw_data = data['data']
+                # Normalize: view_report returns [list, journal_dict]; get_filter_values returns list
+                account_data = raw_data[0] if (raw_data and isinstance(raw_data[0], list)) else raw_data
+                for move_line in account_data:
                     sheet.write(row, col, move_line['account'],
                                 side_heading_sub)
                     sheet.write(row, col + 1, move_line['initial_total_debit'],

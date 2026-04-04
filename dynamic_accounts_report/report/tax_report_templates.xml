@@ -46,21 +46,21 @@
                                         </t>
                                     </th>
                                     <th>
-                                        <t t-foreach="filters['options']"
+                                        <t t-foreach="filters['options'] or []"
                                            t-as="selected_options"
                                            t-key="options_index">
                                             <t t-out="selected_options"/>,
                                         </t>
                                     </th>
                                     <th>
-                                        <t t-if="report_type and list(report_type.keys())[0] == 'account'">
+                                        <t t-if="report_type and report_type.get('account')">
                                             <span>Account</span>
                                         </t>
-                                        <t t-elif="report_type and list(report_type.keys())[0] == 'tax'">
+                                        <t t-elif="report_type and report_type.get('tax')">
                                             <span>Tax</span>
                                         </t>
                                         <t t-else="">
-                                            <t t-out="report_type"/>
+                                            <span>Global</span>
                                         </t>
                                     </th>
                                 </tr>
@@ -68,7 +68,116 @@
                         </table>
                     </div>
                     <br/>
-                    <br/>
+                    <!-- UAE VAT Return Table (PDF) -->
+                    <t t-if="uae_vat_mode and uae_data">
+                        <style>
+                            .uae-hdr { background-color:#00A0AD; color:white; font-weight:700; padding:6px 10px; }
+                            .uae-total { background-color:#dfdfdf; font-weight:700; border-top:1.5px solid #999; border-bottom:1.5px solid #999; }
+                            .uae-row td { padding:4px 10px; border-bottom:1px solid #ddd; }
+                            .uae-sub td { padding:3px 10px 3px 30px; border-bottom:1px solid #eee; background:#f9f9f9; }
+                            .uae-amt { text-align:right; white-space:nowrap; min-width:120px; }
+                        </style>
+                        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                            <!-- S1: VAT on Sales (Base) -->
+                            <tr><td class="uae-hdr">VAT on Sales and all other Outputs (Base)</td>
+                                <td class="uae-hdr uae-amt"><t t-esc="uae_data['sale_base_total']"/> AED</td></tr>
+                            <tr class="uae-row"><td>1. Standard Rated supplies (Base)</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s1_base']"/> AED</td></tr>
+                            <t t-foreach="uae_data['emirates']" t-as="em">
+                                <tr class="uae-sub"><td><t t-esc="em['label']"/>. <t t-esc="em['name']"/></td>
+                                    <td class="uae-amt"><t t-esc="em['base']"/> AED</td></tr>
+                            </t>
+                            <tr style="background:#f0f0f0;font-weight:600;">
+                                <td style="padding:3px 10px 3px 30px;border-bottom:1px solid #ccc;">Sub Total</td>
+                                <td class="uae-amt" style="padding:3px 10px;border-bottom:1px solid #ccc;"><t t-esc="uae_data['s1_base']"/> AED</td></tr>
+                            <tr class="uae-row"><td>2. Tax Refunds provided to Tourists under the Tax Refunds for Tourists Scheme</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s2_base']"/> AED</td></tr>
+                            <tr class="uae-row"><td>3. Supplies subject to reverse charge provisions</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s3_base']"/> AED</td></tr>
+                            <tr class="uae-row"><td>4. Zero rated supplies</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s4_base']"/> AED</td></tr>
+                            <tr class="uae-row"><td>5. Exempt supplies</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s5_base']"/> AED</td></tr>
+                            <tr class="uae-row"><td>6. Out of scope</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s6_base']"/> AED</td></tr>
+                            <tr class="uae-row"><td>7. Goods imported into the UAE</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s7_base']"/> AED</td></tr>
+                            <tr class="uae-row"><td>8. Adjustments to goods imported into the UAE</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s8_base']"/> AED</td></tr>
+                            <tr class="uae-total"><td style="padding:6px 10px;">9. Total</td>
+                                <td class="uae-amt" style="padding:6px 10px;"><t t-esc="uae_data['s9_base']"/> AED</td></tr>
+                            <!-- S2: VAT on Expenses (Base) -->
+                            <tr><td style="height:6px;"/></tr>
+                            <tr><td class="uae-hdr">VAT on Expenses and all other Inputs (Base)</td>
+                                <td class="uae-hdr uae-amt"><t t-esc="uae_data['purch_base_total']"/> AED</td></tr>
+                            <tr class="uae-row"><td>10. Standard rated expenses</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s10_base']"/> AED</td></tr>
+                            <tr class="uae-row"><td>11. Supplies subject to the reverse charge provisions</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s11_base']"/> AED</td></tr>
+                            <tr class="uae-row"><td>12. Out of scope</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s12_base']"/> AED</td></tr>
+                            <tr class="uae-total"><td style="padding:6px 10px;">13. Totals</td>
+                                <td class="uae-amt" style="padding:6px 10px;"><t t-esc="uae_data['s13_base']"/> AED</td></tr>
+                            <!-- S3: VAT on Sales (Tax) -->
+                            <tr><td style="height:6px;"/></tr>
+                            <tr><td class="uae-hdr">VAT on Sales and all other Outputs (Tax)</td>
+                                <td class="uae-hdr uae-amt"><t t-esc="uae_data['sale_vat_total']"/> AED</td></tr>
+                            <tr class="uae-row"><td>1. Standard Rated supplies (Tax)</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s1_vat']"/> AED</td></tr>
+                            <t t-foreach="uae_data['emirates']" t-as="em">
+                                <tr class="uae-sub"><td><t t-esc="em['label']"/>. <t t-esc="em['name']"/></td>
+                                    <td class="uae-amt"><t t-esc="em['vat']"/> AED</td></tr>
+                            </t>
+                            <tr style="background:#f0f0f0;font-weight:600;">
+                                <td style="padding:3px 10px 3px 30px;border-bottom:1px solid #ccc;">Sub Total</td>
+                                <td class="uae-amt" style="padding:3px 10px;border-bottom:1px solid #ccc;"><t t-esc="uae_data['s1_vat']"/> AED</td></tr>
+                            <tr class="uae-row"><td>2. Tax Refunds provided to Tourists under the Tax Refunds for Tourists Scheme</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s2_vat']"/> AED</td></tr>
+                            <tr class="uae-row"><td>3. Supplies subject to reverse charge provisions</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s3_vat']"/> AED</td></tr>
+                            <tr class="uae-row"><td>4. Zero rated supplies</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s4_vat']"/> AED</td></tr>
+                            <tr class="uae-row"><td>5. Exempt supplies</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s5_vat']"/> AED</td></tr>
+                            <tr class="uae-row"><td>6. Out of scope</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s6_vat']"/> AED</td></tr>
+                            <tr class="uae-row"><td>7. Goods imported into the UAE</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s7_vat']"/> AED</td></tr>
+                            <tr class="uae-row"><td>8. Adjustments to goods imported into the UAE</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s8_vat']"/> AED</td></tr>
+                            <tr class="uae-total"><td style="padding:6px 10px;">9. Total</td>
+                                <td class="uae-amt" style="padding:6px 10px;"><t t-esc="uae_data['s9_vat']"/> AED</td></tr>
+                            <!-- S4: VAT on Expenses (Tax) -->
+                            <tr><td style="height:6px;"/></tr>
+                            <tr><td class="uae-hdr">VAT on Expenses and all other Inputs (Tax)</td>
+                                <td class="uae-hdr uae-amt"><t t-esc="uae_data['purch_vat_total']"/> AED</td></tr>
+                            <tr class="uae-row"><td>10. Standard rated expenses</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s10_vat']"/> AED</td></tr>
+                            <tr class="uae-row"><td>11. Supplies subject to the reverse charge provisions</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s11_vat']"/> AED</td></tr>
+                            <tr class="uae-row"><td>12. Out of scope</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s12_vat']"/> AED</td></tr>
+                            <tr class="uae-total"><td style="padding:6px 10px;">13. Totals</td>
+                                <td class="uae-amt" style="padding:6px 10px;"><t t-esc="uae_data['s13_vat']"/> AED</td></tr>
+                            <!-- S5: Net VAT Due -->
+                            <tr><td style="height:6px;"/></tr>
+                            <tr><td class="uae-hdr">Net VAT Due</td>
+                                <td class="uae-hdr uae-amt"><t t-esc="uae_data['net_vat_total']"/> AED</td></tr>
+                            <tr class="uae-row"><td>14. Total value of due tax for the period</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s14_vat']"/> AED</td></tr>
+                            <tr class="uae-row"><td>15. Total value of recoverable tax for the period</td>
+                                <td class="uae-amt"><t t-esc="uae_data['s15_vat']"/> AED</td></tr>
+                            <tr class="uae-total"><td style="padding:6px 10px;">16. Net VAT due (or reclaimed) for the period</td>
+                                <td class="uae-amt" style="padding:6px 10px;">
+                                    <t t-if="uae_data['s16_is_credit']">(</t>
+                                    <t t-esc="uae_data['s16_vat']"/>
+                                    <t t-if="uae_data['s16_is_credit']">)</t>
+                                    AED
+                                </td></tr>
+                        </table>
+                    </t>
+
+                    <t t-if="not uae_vat_mode">
                     <br/>
                     <table class="table table-sm table-reports"
                            style="width: fit-content;">
@@ -301,6 +410,7 @@
                             </t>
                         </tbody>
                     </table>
+                    </t><!-- end t-if not uae_vat_mode -->
                 </div>
             </t>
         </t>

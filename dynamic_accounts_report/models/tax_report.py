@@ -57,21 +57,23 @@ class TaxReport(models.TransientModel):
                 ['debit', 'credit'])
             tax_debit_sums = sum(record['debit'] for record in tax_id)
             tax_credit_sums = sum(record['credit'] for record in tax_id)
+            net = round(tax_debit_sums + tax_credit_sums, 2)
+            tax_val = round(net * (tax.amount / 100), 2)
             if tax.type_tax_use == 'sale':
                 sale.append({
                     'name': tax.name,
-                    'amount': tax.amount,
-                    'net': round(tax_debit_sums + tax_credit_sums, 2),
-                    'tax': round((tax_debit_sums + tax_credit_sums) * (
-                            tax.amount / 100), 2)
+                    'amount': "{:,.2f}".format(tax.amount),
+                    'net': "{:,.2f}".format(net),
+                    'tax': "{:,.2f}".format(tax_val),
+                    'tax_raw': tax_val,
                 })
             elif tax.type_tax_use == 'purchase':
                 purchase.append({
                     'name': tax.name,
-                    'amount': tax.amount,
-                    'net': round(tax_debit_sums + tax_credit_sums, 2),
-                    'tax': round((tax_debit_sums + tax_credit_sums) * (
-                            tax.amount / 100), 2)
+                    'amount': "{:,.2f}".format(tax.amount),
+                    'net': "{:,.2f}".format(net),
+                    'tax': "{:,.2f}".format(tax_val),
+                    'tax_raw': tax_val,
                 })
         return {
             'sale': sale,
@@ -588,10 +590,199 @@ class TaxReport(models.TransientModel):
                             'tax': round((tax_debit_sums + tax_credit_sums) * (
                                     tax.amount / 100), 2),
                         })
+        for rec in sale + purchase:
+            for field in ('net', 'tax', 'amount'):
+                if field in rec and isinstance(rec[field], (int, float)):
+                    rec[field] = "{:,.2f}".format(rec[field])
+            if 'dynamic net' in rec:
+                rec['dynamic net'] = {
+                    k: "{:,.2f}".format(v) if isinstance(v, (int, float)) else v
+                    for k, v in rec['dynamic net'].items()
+                }
+            if 'dynamic tax' in rec:
+                rec['dynamic tax'] = {
+                    k: "{:,.2f}".format(v) if isinstance(v, (int, float)) else v
+                    for k, v in rec['dynamic tax'].items()
+                }
         return {
             'dynamic_date_num': dynamic_date_num,
             'sale': sale,
             'purchase': purchase
+        }
+
+    @api.model
+    def get_uae_vat_report(self, start_date, end_date, options):
+        """Compute UAE FTA VAT Return data for the given period."""
+        if options is None or options == {}:
+            move_states = ['posted']
+        elif 'draft' in options:
+            move_states = ['posted', 'draft']
+        else:
+            move_states = ['posted']
+
+        today = fields.Date.today()
+        if start_date:
+            date_from = datetime.strptime(start_date, "%Y-%m-%d").date()
+        else:
+            date_from = get_month(today)[0]
+        if end_date:
+            date_to = datetime.strptime(end_date, "%Y-%m-%d").date()
+        else:
+            date_to = get_month(today)[1]
+
+        # Ordered list: (label, display_name, [aliases for matching])
+        EMIRATE_LIST = [
+            ('a', 'Abu Dhabi', ['Abu Dhabi', 'Abu Dhabi Emirate']),
+            ('b', 'Dubai', ['Dubai']),
+            ('c', 'Sharjah', ['Sharjah']),
+            ('d', 'Ajman', ['Ajman']),
+            ('e', 'Umm Al Quwain', ['Umm Al Quwain', 'Umm al-Quwain']),
+            ('f', 'Ras Al-Khaima', ['Ras Al Khaimah', 'Ras Al-Khaima',
+                                    'Ras al-Khaimah', 'Ras Al-Khaimah']),
+            ('g', 'Fujairah', ['Fujairah']),
+        ]
+
+        def fmt(v):
+            return "{:,.2f}".format(round(abs(v or 0.0), 2))
+
+        # ---- Sales / Outputs ----
+        sale_moves = self.env['account.move'].search([
+            ('move_type', 'in', ['out_invoice', 'out_refund']),
+            ('state', 'in', move_states),
+            ('invoice_date', '>=', date_from),
+            ('invoice_date', '<=', date_to),
+        ])
+
+        std_by_emirate = {}
+        zero_base = 0.0
+        exempt_base = 0.0
+
+        for move in sale_moves:
+            sign = 1 if move.move_type == 'out_invoice' else -1
+            emirate = 'Other'
+            if move.partner_id and move.partner_id.state_id:
+                emirate = move.partner_id.state_id.name
+
+            move_has_std = False
+            move_has_zero = False
+
+            for line in move.line_ids:
+                sale_taxes = [t for t in line.tax_ids if t.type_tax_use == 'sale']
+                if sale_taxes and any(t.amount != 0 for t in sale_taxes):
+                    if emirate not in std_by_emirate:
+                        std_by_emirate[emirate] = {'base': 0.0, 'vat': 0.0}
+                    std_by_emirate[emirate]['base'] += sign * (line.credit - line.debit)
+                    move_has_std = True
+                elif (line.tax_line_id and
+                      line.tax_line_id.type_tax_use == 'sale' and
+                      line.tax_line_id.amount != 0):
+                    if emirate not in std_by_emirate:
+                        std_by_emirate[emirate] = {'base': 0.0, 'vat': 0.0}
+                    std_by_emirate[emirate]['vat'] += sign * (line.credit - line.debit)
+                elif sale_taxes and all(t.amount == 0 for t in sale_taxes):
+                    zero_base += sign * (line.credit - line.debit)
+                    move_has_zero = True
+
+            if not move_has_std and not move_has_zero:
+                for line in move.line_ids:
+                    if (not line.tax_ids and not line.tax_line_id and
+                            line.account_id.account_type in ['income', 'income_other']):
+                        exempt_base += sign * (line.credit - line.debit)
+
+        std_base = sum(v['base'] for v in std_by_emirate.values())
+        std_vat = sum(v['vat'] for v in std_by_emirate.values())
+        total_sale_base = std_base + zero_base + exempt_base
+        total_sale_vat = std_vat
+
+        # ---- Purchases / Inputs ----
+        purchase_moves = self.env['account.move'].search([
+            ('move_type', 'in', ['in_invoice', 'in_refund']),
+            ('state', 'in', move_states),
+            ('invoice_date', '>=', date_from),
+            ('invoice_date', '<=', date_to),
+        ])
+
+        std_purch_base = 0.0
+        std_purch_vat = 0.0
+
+        for move in purchase_moves:
+            sign = 1 if move.move_type == 'in_invoice' else -1
+            for line in move.line_ids:
+                purch_taxes = [t for t in line.tax_ids if t.type_tax_use == 'purchase']
+                if purch_taxes and any(t.amount != 0 for t in purch_taxes):
+                    std_purch_base += sign * (line.debit - line.credit)
+                elif (line.tax_line_id and
+                      line.tax_line_id.type_tax_use == 'purchase' and
+                      line.tax_line_id.amount != 0):
+                    std_purch_vat += sign * (line.debit - line.credit)
+
+        total_purch_base = std_purch_base
+        total_purch_vat = std_purch_vat
+
+        # ---- Net VAT ----
+        vat_due = std_vat
+        vat_recoverable = std_purch_vat
+        net_vat = vat_due - vat_recoverable
+
+        # Build always-7-emirate list with proper labels
+        def emirate_val(field, aliases):
+            for alias in aliases:
+                if alias in std_by_emirate:
+                    return std_by_emirate[alias][field]
+            return 0.0
+
+        emirates = []
+        for label, display, aliases in EMIRATE_LIST:
+            emirates.append({
+                'label': label,
+                'name': display,
+                'base': fmt(emirate_val('base', aliases)),
+                'vat': fmt(emirate_val('vat', aliases)),
+            })
+
+        return {
+            # --- VAT on Sales (Base) ---
+            'sale_base_total': fmt(total_sale_base),
+            's1_base': fmt(std_base),
+            's2_base': '0.00',
+            's3_base': '0.00',
+            's4_base': fmt(zero_base),
+            's5_base': fmt(exempt_base),
+            's6_base': '0.00',
+            's7_base': '0.00',
+            's8_base': '0.00',
+            's9_base': fmt(total_sale_base),
+            # --- VAT on Expenses (Base) ---
+            'purch_base_total': fmt(total_purch_base),
+            's10_base': fmt(std_purch_base),
+            's11_base': '0.00',
+            's12_base': '0.00',
+            's13_base': fmt(total_purch_base),
+            # --- VAT on Sales (Tax) ---
+            'sale_vat_total': fmt(total_sale_vat),
+            's1_vat': fmt(std_vat),
+            's2_vat': '0.00',
+            's3_vat': '0.00',
+            's4_vat': '0.00',
+            's5_vat': '0.00',
+            's6_vat': '0.00',
+            's7_vat': '0.00',
+            's8_vat': '0.00',
+            's9_vat': fmt(total_sale_vat),
+            # --- VAT on Expenses (Tax) ---
+            'purch_vat_total': fmt(total_purch_vat),
+            's10_vat': fmt(std_purch_vat),
+            's11_vat': '0.00',
+            's12_vat': '0.00',
+            's13_vat': fmt(total_purch_vat),
+            # --- Emirates (always 7) ---
+            'emirates': emirates,
+            # --- Net VAT Due ---
+            'net_vat_total': fmt(abs(net_vat)),
+            's14_vat': fmt(vat_due),
+            's15_vat': fmt(vat_recoverable),
+            's16_vat': fmt(abs(net_vat)),
+            's16_is_credit': net_vat < 0,
         }
 
     @api.model
@@ -624,6 +815,93 @@ class TaxReport(models.TransientModel):
         data = json.loads(data)
         output = io.BytesIO()
         workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+
+        # UAE VAT Return XLSX
+        if data.get('uae_vat_mode') and data.get('uae_data'):
+            uae = data['uae_data']
+            sheet = workbook.add_worksheet()
+            sheet.set_column(0, 0, 60)
+            sheet.set_column(1, 1, 20)
+            hdr_fmt = workbook.add_format({
+                'bold': True, 'font_color': 'white',
+                'bg_color': '#00A0AD', 'border': 1})
+            total_fmt = workbook.add_format({
+                'bold': True, 'bg_color': '#DFDFDF', 'border': 1})
+            row_fmt = workbook.add_format({'border': 1})
+            sub_fmt = workbook.add_format({'border': 1, 'indent': 2})
+            amt_fmt = workbook.add_format({'border': 1, 'align': 'right'})
+            amt_sub = workbook.add_format({'border': 1, 'align': 'right', 'indent': 1})
+
+            def w(r, label, amount, lf=row_fmt, af=amt_fmt):
+                sheet.write(r, 0, label, lf)
+                sheet.write(r, 1, amount + ' AED', af)
+                return r + 1
+
+            r = 0
+            sheet.write(r, 0, report_name, hdr_fmt)
+            sheet.write(r, 1, '', hdr_fmt)
+            r += 2
+            # S1: Sales Base
+            r = w(r, 'VAT on Sales and all other Outputs (Base)',
+                  uae['sale_base_total'], hdr_fmt, hdr_fmt)
+            r = w(r, '1. Standard Rated supplies (Base)', uae['s1_base'])
+            for em in uae['emirates']:
+                r = w(r, '   ' + em['label'] + '. ' + em['name'], em['base'], sub_fmt, amt_sub)
+            r = w(r, '   Sub Total', uae['s1_base'], sub_fmt, amt_sub)
+            r = w(r, '2. Tax Refunds provided to Tourists under the Tax Refunds for Tourists Scheme', uae['s2_base'])
+            r = w(r, '3. Supplies subject to reverse charge provisions', uae['s3_base'])
+            r = w(r, '4. Zero rated supplies', uae['s4_base'])
+            r = w(r, '5. Exempt supplies', uae['s5_base'])
+            r = w(r, '6. Out of scope', uae['s6_base'])
+            r = w(r, '7. Goods imported into the UAE', uae['s7_base'])
+            r = w(r, '8. Adjustments to goods imported into the UAE', uae['s8_base'])
+            r = w(r, '9. Total', uae['s9_base'], total_fmt, total_fmt)
+            r += 1
+            # S2: Expenses Base
+            r = w(r, 'VAT on Expenses and all other Inputs (Base)',
+                  uae['purch_base_total'], hdr_fmt, hdr_fmt)
+            r = w(r, '10. Standard rated expenses', uae['s10_base'])
+            r = w(r, '11. Supplies subject to the reverse charge provisions', uae['s11_base'])
+            r = w(r, '12. Out of scope', uae['s12_base'])
+            r = w(r, '13. Totals', uae['s13_base'], total_fmt, total_fmt)
+            r += 1
+            # S3: Sales Tax
+            r = w(r, 'VAT on Sales and all other Outputs (Tax)',
+                  uae['sale_vat_total'], hdr_fmt, hdr_fmt)
+            r = w(r, '1. Standard Rated supplies (Tax)', uae['s1_vat'])
+            for em in uae['emirates']:
+                r = w(r, '   ' + em['label'] + '. ' + em['name'], em['vat'], sub_fmt, amt_sub)
+            r = w(r, '   Sub Total', uae['s1_vat'], sub_fmt, amt_sub)
+            r = w(r, '2. Tax Refunds provided to Tourists under the Tax Refunds for Tourists Scheme', uae['s2_vat'])
+            r = w(r, '3. Supplies subject to reverse charge provisions', uae['s3_vat'])
+            r = w(r, '4. Zero rated supplies', uae['s4_vat'])
+            r = w(r, '5. Exempt supplies', uae['s5_vat'])
+            r = w(r, '6. Out of scope', uae['s6_vat'])
+            r = w(r, '7. Goods imported into the UAE', uae['s7_vat'])
+            r = w(r, '8. Adjustments to goods imported into the UAE', uae['s8_vat'])
+            r = w(r, '9. Total', uae['s9_vat'], total_fmt, total_fmt)
+            r += 1
+            # S4: Expenses Tax
+            r = w(r, 'VAT on Expenses and all other Inputs (Tax)',
+                  uae['purch_vat_total'], hdr_fmt, hdr_fmt)
+            r = w(r, '10. Standard rated expenses', uae['s10_vat'])
+            r = w(r, '11. Supplies subject to the reverse charge provisions', uae['s11_vat'])
+            r = w(r, '12. Out of scope', uae['s12_vat'])
+            r = w(r, '13. Totals', uae['s13_vat'], total_fmt, total_fmt)
+            r += 1
+            # S5: Net VAT
+            r = w(r, 'Net VAT Due', uae['net_vat_total'], hdr_fmt, hdr_fmt)
+            r = w(r, '14. Total value of due tax for the period', uae['s14_vat'])
+            r = w(r, '15. Total value of recoverable tax for the period', uae['s15_vat'])
+            net_display = ('(' + uae['s16_vat'] + ')') if uae.get('s16_is_credit') else uae['s16_vat']
+            r = w(r, '16. Net VAT due (or reclaimed) for the period',
+                  net_display, total_fmt, total_fmt)
+            workbook.close()
+            output.seek(0)
+            response.stream.write(output.read())
+            output.close()
+            return
+
         sheet = workbook.add_worksheet()
         sub_heading = workbook.add_format(
             {'align': 'center', 'bold': True, 'font_size': '10px',

@@ -174,7 +174,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="table_style" style="height: 650px; overflow-y: scroll;">
+                <div class="table_style" style="max-height: calc(100vh - 280px); overflow-y: auto; overflow-x: auto;">
                     <div class="table_view_gl" style="right:20px;width:100%;"
                          t-ref="table_view_gl">
                         <div>
@@ -254,7 +254,7 @@
                                                     <th>
                                                         <span class="fw-bolder">
                                                             <t t-esc="state.total[move_line]['currency_id']"/>
-                                                            <t t-esc="(state.total[move_line]['total_debit'] - state.total[move_line]['total_credit']).toFixed(2)"/>
+                                                            <t t-esc="(state.total[move_line]['total_debit'] - state.total[move_line]['total_credit']).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"/>
                                                         </span>
                                                     </th>
                                                 </tr>
@@ -354,7 +354,7 @@
                                             </th>
                                             <th class="o_heading">
                                                 <t t-esc="state.currency"/>
-                                                <t t-out="(state.total_debit - state.total_credit).toFixed(2)"/>
+                                                <t t-out="(state.total_debit - state.total_credit).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"/>
                                             </th>
                                             <th/>
                                         </tr>

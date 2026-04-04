@@ -198,34 +198,46 @@ class ProfitLossReport(models.TransientModel):
             current_year = fields.Date.today().year
             date_from = financial_report_id.date_from or f'{current_year}-01-01'
             date_to = financial_report_id.date_to or f'{current_year}-12-31'
-            account_move_lines = self.env['account.move.line'].search(
-                [('parent_state', 'in', target_move),
-                 ('date', '>=', date_from),
-                 ('date', '<=', date_to)])
-            lists = [{'id': rec.id,
-                      'value': [eval(i) for i in
-                                rec.analytic_distribution.keys()]}
-                     for rec in account_move_lines if
-                     rec.analytic_distribution]
+            # P&L lines: only within date range
+            pl_domain = [('parent_state', 'in', target_move),
+                         ('date', '>=', date_from), ('date', '<=', date_to)]
+            # Balance sheet lines: ALL history up to date_to (for correct equity/asset/liability)
+            bs_domain = [('parent_state', 'in', target_move),
+                         ('date', '<=', date_to)]
+            if financial_report_id.journal_ids:
+                journal_filter = [('journal_id', 'in', financial_report_id.journal_ids.ids)]
+                pl_domain += journal_filter
+                bs_domain += journal_filter
+            if financial_report_id.account_ids:
+                account_filter = [('account_id', 'in', financial_report_id.account_ids.ids)]
+                pl_domain += account_filter
+                bs_domain += account_filter
+            pl_lines = self.env['account.move.line'].search(pl_domain)
+            bs_lines = self.env['account.move.line'].search(bs_domain)
             if financial_report_id.analytic_ids:
-                account_move_lines = account_move_lines.filtered(
-                    lambda rec: rec.id in [lst['id'] for lst in lists if
-                                           lst['value'] and any(
-                                               i in financial_report_id.analytic_ids.mapped(
-                                                   'id') for i in
-                                               lst['value'])])
-            account_move_lines = account_move_lines.filtered(lambda
-                                                                 a: not financial_report_id.journal_ids or a.journal_id in financial_report_id.journal_ids)
-            account_move_lines = account_move_lines.filtered(lambda
-                                                                 a: not financial_report_id.account_ids or a.account_id in financial_report_id.account_ids)
-            account_move_lines = account_move_lines.filtered(lambda
-                                                                 a: not financial_report_id.date_from or a.date >= financial_report_id.date_from)
-            account_move_lines = account_move_lines.filtered(lambda
-                                                                 a: not financial_report_id.date_to or a.date <= financial_report_id.date_to)
+                analytic_ids = financial_report_id.analytic_ids.mapped('id')
+                def _analytic_filter(rec):
+                    if not rec.analytic_distribution:
+                        return False
+                    return any(int(k) in analytic_ids for k in rec.analytic_distribution.keys())
+                pl_lines = pl_lines.filtered(_analytic_filter)
+                bs_lines = bs_lines.filtered(_analytic_filter)
+            bs_account_types = [
+                'asset_receivable', 'asset_cash', 'asset_current',
+                'asset_non_current', 'asset_prepayments', 'asset_fixed',
+                'liability_payable', 'liability_credit_card',
+                'liability_current', 'liability_non_current',
+                'equity', 'equity_unaffected',
+            ]
+            pl_account_types = [
+                'income', 'income_other', 'expense',
+                'expense_depreciation', 'expense_direct_cost',
+            ]
             account_entries = {}
             for account_type in account_types.values():
+                lines = bs_lines if account_type in bs_account_types else pl_lines
                 account_entries[account_type] = self._get_entries(
-                    account_move_lines, self.env['account.account'].search(
+                    lines, self.env['account.account'].search(
                         [('account_type', '=', account_type)]), account_type)
             total_income = sum(
                 float(entry['amount'].replace(',', '')) for account_type in
@@ -292,14 +304,25 @@ class ProfitLossReport(models.TransientModel):
             """
         entries = []
         total = 0
+        # Payable and receivable accounts use amount_residual so that fully
+        # reconciled (paid) entries correctly show zero instead of gross amounts.
+        residual_types = ['liability_payable', 'asset_receivable']
         for account in account_ids:
             filtered_lines = account_move_lines.filtered(
-                lambda line: line.account_id == account)
+                lambda line, acc=account: line.account_id == acc)
             if filtered_lines:
-                if account_type in ['income', 'income_other',
-                                    'liability_payable', 'liability_current',
-                                    'liability_non_current', 'equity',
-                                    'equity_unaffected']:
+                if account_type in residual_types:
+                    # amount_residual: negative for credit lines (payable),
+                    # positive for debit lines (receivable).
+                    residual_sum = sum(filtered_lines.mapped('amount_residual'))
+                    if account_type == 'liability_payable':
+                        amount = -residual_sum
+                    else:
+                        amount = residual_sum
+                elif account_type in ['income', 'income_other',
+                                      'liability_current',
+                                      'liability_non_current', 'equity',
+                                      'equity_unaffected']:
                     amount = -(sum(filtered_lines.mapped('debit')) - sum(
                         filtered_lines.mapped('credit')))
                 else:

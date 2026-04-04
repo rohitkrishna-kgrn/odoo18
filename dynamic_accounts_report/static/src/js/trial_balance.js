@@ -243,6 +243,7 @@ class TrialBalance extends owl.Component {
             }
         }
         this.state.data = await this.orm.call("account.trial.balance", "get_filter_values", [this.start_date.el.value, this.end_date.el.value, this.state.comparison_number, this.state.comparison_type, this.state.selected_journal_list, this.state.selected_analytic, this.state.options,this.state.method,]);
+        this.state.accounts = this.state.data;
         var date_viewed = []
 //        this.state.data.forEach((value, index) => {
 //        console.log(index)
@@ -311,15 +312,16 @@ class TrialBalance extends owl.Component {
         this.applyFilter(null, ev)
     }
     sumByKey(data, key) {
-        if (!Array.isArray(data)) return 0;
-        return data.reduce((acc, item) => {
+        if (!Array.isArray(data)) return '0.00';
+        const total = data.reduce((acc, item) => {
             let raw = item[key];
             if (typeof raw === 'string') {
-                raw = raw.replace(/,/g, ''); // remove commas
+                raw = raw.replace(/,/g, '');
             }
             const val = parseFloat(raw);
             return acc + (isNaN(val) ? 0 : val);
         }, 0);
+        return total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
     get comparison_number_range() {
         /**
@@ -379,7 +381,7 @@ class TrialBalance extends owl.Component {
             'report_name': 'dynamic_accounts_report.trial_balance',
             'report_file': 'dynamic_accounts_report.trial_balance',
             'data': {
-                'data': self.state.data,
+                'data': self.state.accounts,
                 'date_viewed': data_viewed,
                 'filters': this.filter(),
                 'apply_comparison': self.state.apply_comparison,
@@ -462,7 +464,7 @@ class TrialBalance extends owl.Component {
         var self = this;
         var action_title = self.props.action.display_name;
         var datas = {
-            'data': self.state.data,
+            'data': self.state.accounts,
             'date_viewed': self.state.date_viewed,
             'filters': this.filter(),
             'apply_comparison': self.state.apply_comparison,

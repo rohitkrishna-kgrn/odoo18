@@ -43,6 +43,8 @@ class TaxReport extends owl.Component {
             comparison_number: null,
             options: null,
             report_type: null,
+            uae_vat_mode: false,
+            uae_data: null,
             method: {
                 'accural': true
             },
@@ -67,10 +69,12 @@ class TaxReport extends owl.Component {
             self.end_date.el.value = endOfMonth.getFullYear() + '-' + String(endOfMonth.getMonth() + 1).padStart(2, '0') + '-' + String(endOfMonth.getDate()).padStart(2, '0');
             self.state.date_viewed.push(monthNamesShort[today.getMonth()] + '  ' + today.getFullYear())
             self.state.data.sale.forEach((value) => {
-                  self.state.sale_total += value.tax;
+                const v = value.tax_raw !== undefined ? value.tax_raw : (parseFloat(String(value.tax).replace(/,/g, '')) || 0);
+                self.state.sale_total += v;
             });
             self.state.data.purchase.forEach((value) => {
-                  self.state.purchase_total += value.tax
+                const v = value.tax_raw !== undefined ? value.tax_raw : (parseFloat(String(value.tax).replace(/,/g, '')) || 0);
+                self.state.purchase_total += v;
             });
         }
         catch (el) {
@@ -248,29 +252,55 @@ class TaxReport extends owl.Component {
             }
         }
         this.state.data = await this.orm.call("tax.report", "get_filter_values", [this.start_date.el.value, this.end_date.el.value, this.state.comparison_number, this.state.comparison_type, this.state.options,this.state.report_type,]);
-        var date_viewed = []
         var sale_total = 0.0
         var purchase_total = 0.0
         this.state.data.sale.forEach((value) => {
-            sale_total += value.tax;
+            sale_total += typeof value.tax === 'number' ? value.tax : parseFloat(String(value.tax).replace(/,/g, '')) || 0;
         });
         this.state.data.purchase.forEach((value) => {
-            purchase_total += value.tax;
+            purchase_total += typeof value.tax === 'number' ? value.tax : parseFloat(String(value.tax).replace(/,/g, '')) || 0;
         });
         var date_viewed = []
-         let iterable = Array.isArray(this.state.data.dynamic_date_num)
-               ? this.state.data.dynamic_date_num
-               : Object.values(this.state.data.dynamic_date_num);
-         for (const date_num of iterable) {
-               if (!date_viewed.includes(date_num)) {
-                   date_viewed.push(date_num);
-               }
-         }
+        if (this.state.data.dynamic_date_num) {
+            let iterable = Array.isArray(this.state.data.dynamic_date_num)
+                ? this.state.data.dynamic_date_num
+                : Object.values(this.state.data.dynamic_date_num);
+            for (const date_num of iterable) {
+                if (!date_viewed.includes(date_num)) {
+                    date_viewed.push(date_num);
+                }
+            }
+        }
         if (date_viewed.length !== 0) {
             this.state.date_viewed = date_viewed.reverse()
         }
         this.state.sale_total = sale_total
         this.state.purchase_total = purchase_total
+        if (this.state.uae_vat_mode) {
+            await this.loadUAEData();
+        }
+    }
+    async loadUAEData() {
+        const start = this.start_date.el ? this.start_date.el.value : '';
+        const end = this.end_date.el ? this.end_date.el.value : '';
+        this.state.uae_data = await this.orm.call(
+            'tax.report', 'get_uae_vat_report',
+            [start, end, this.state.options]
+        );
+    }
+    async toggleUAEMode() {
+        this.state.uae_vat_mode = !this.state.uae_vat_mode;
+        if (this.state.uae_vat_mode) {
+            await this.loadUAEData();
+        }
+    }
+    formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
     }
     async printPdf(ev) {
         /**
@@ -306,7 +336,9 @@ class TaxReport extends owl.Component {
                 'report_type': self.state.report_type,
                 'filters': this.filter(),
                 'title': action_title,
-                'report_name': self.props.action.display_name
+                'report_name': self.props.action.display_name,
+                'uae_vat_mode': self.state.uae_vat_mode,
+                'uae_data': self.state.uae_data,
             },
             'display_name': self.props.action.display_name,
         });
@@ -331,7 +363,9 @@ class TaxReport extends owl.Component {
                 'report_type': self.state.report_type,
                 'filters': this.filter(),
                 'title': action_title,
-                'report_name': self.props.action.display_name
+                'report_name': self.props.action.display_name,
+                'uae_vat_mode': self.state.uae_vat_mode,
+                'uae_data': self.state.uae_data,
         }
         var action = {
             'data': {
@@ -466,6 +500,86 @@ class TaxReport extends owl.Component {
         const lastIndex = this.state.date_viewed.length - 1;
         this.state.date_viewed.splice(0, lastIndex);
         this.applyFilter(null, ev)
+    }
+    formatNum(val) {
+        if (val === undefined || val === null || val === '') return '';
+        const n = typeof val === 'string' ? parseFloat(val.replace(/,/g, '')) : val;
+        if (isNaN(n)) return '';
+        return n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+    async applyManualFilter() {
+        await this.applyFilter(null, null);
+    }
+    _groupData(lines) {
+        if (!lines || lines.length === 0) return [];
+        const reportType = this.state.report_type;
+        const fmt = (v) => {
+            const n = typeof v === 'string' ? parseFloat(v.replace(/,/g, '')) : (v || 0);
+            return isNaN(n) ? '0.00' : n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        };
+        const rawNum = (v) => {
+            const n = typeof v === 'string' ? parseFloat(v.replace(/,/g, '')) : v;
+            return isNaN(n) ? 0 : (n || 0);
+        };
+        // Global view: no grouping, flat rows
+        if (!reportType || Object.keys(reportType).length === 0) {
+            return lines.map(line => ({
+                key: line.name + ' (' + line.amount + '%)',
+                items: [],
+                line: line,
+                total_net: fmt(line.net),
+                total_tax: fmt(line.tax),
+                dynamic_net_sums: {},
+                dynamic_tax_sums: {},
+            }));
+        }
+        const groupType = Object.keys(reportType)[0]; // 'account' or 'tax'
+        const headerKey = groupType === 'account' ? 'account' : 'name';
+        const groupMap = new Map();
+        for (const line of lines) {
+            const key = line[headerKey] || 'Unknown';
+            if (!groupMap.has(key)) {
+                groupMap.set(key, {
+                    key,
+                    items: [],
+                    net_sum: 0,
+                    tax_sum: 0,
+                    dynamic_net_sums: {},
+                    dynamic_tax_sums: {},
+                });
+            }
+            const g = groupMap.get(key);
+            g.net_sum += rawNum(line.net);
+            g.tax_sum += rawNum(line.tax);
+            if (line['dynamic net']) {
+                for (const [k, v] of Object.entries(line['dynamic net'])) {
+                    g.dynamic_net_sums[k] = (g.dynamic_net_sums[k] || 0) + rawNum(v);
+                }
+            }
+            if (line['dynamic tax']) {
+                for (const [k, v] of Object.entries(line['dynamic tax'])) {
+                    g.dynamic_tax_sums[k] = (g.dynamic_tax_sums[k] || 0) + rawNum(v);
+                }
+            }
+            g.items.push(line);
+        }
+        return Array.from(groupMap.values()).map(g => ({
+            key: g.key,
+            items: g.items,
+            line: null,
+            total_net: fmt(g.net_sum),
+            total_tax: fmt(g.tax_sum),
+            dynamic_net_sums: g.dynamic_net_sums,
+            dynamic_tax_sums: g.dynamic_tax_sums,
+        }));
+    }
+    get groupedSaleData() {
+        if (!this.state.data || !this.state.data.sale) return [];
+        return this._groupData(this.state.data.sale);
+    }
+    get groupedPurchaseData() {
+        if (!this.state.data || !this.state.data.purchase) return [];
+        return this._groupData(this.state.data.purchase);
     }
     get comparison_number_range() {
         /**

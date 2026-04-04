@@ -239,28 +239,46 @@ class ProfitAndLoss extends owl.Component {
      * @returns {Promise<void>} - A promise that resolves when the data is loaded.
      */
         self = this
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const today = new Date();
         if (ev.target.name === 'start_date') {
                 this.filter = {
                     ...this.filter,
                     date_from: ev.target.value
                 };
+                if (ev.target.value) {
+                    this.state.year = [new Date(ev.target.value).getFullYear()];
+                }
         } else if (ev.target.name === 'end_date') {
                 this.filter = {
                     ...this.filter,
                     date_to: ev.target.value
                 };
+                if (ev.target.value) {
+                    this.state.year = [new Date(ev.target.value).getFullYear()];
+                }
         } else if (ev.target.attributes["data-value"].value == 'month') {
-                this.filter = ev.target.attributes["data-value"].value
+                this.filter = ev.target.attributes["data-value"].value;
+                this.state.year = [monthNames[today.getMonth()] + ' ' + today.getFullYear()];
         } else if (ev.target.attributes["data-value"].value == 'year') {
-                this.filter = ev.target.attributes["data-value"].value
+                this.filter = ev.target.attributes["data-value"].value;
+                this.state.year = [today.getFullYear()];
         } else if (ev.target.attributes["data-value"].value == 'quarter') {
-            this.filter = ev.target.attributes["data-value"].value
+            this.filter = ev.target.attributes["data-value"].value;
+            const q = Math.ceil((today.getMonth() + 1) / 3);
+            this.state.year = ['Q' + q + ' ' + today.getFullYear()];
         } else if (ev.target.attributes["data-value"].value == 'last-month') {
-            this.filter = ev.target.attributes["data-value"].value
+            this.filter = ev.target.attributes["data-value"].value;
+            const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            this.state.year = [monthNames[lastMonth.getMonth()] + ' ' + lastMonth.getFullYear()];
         } else if (ev.target.attributes["data-value"].value == 'last-year') {
-            this.filter = ev.target.attributes["data-value"].value
+            this.filter = ev.target.attributes["data-value"].value;
+            this.state.year = [today.getFullYear() - 1];
         } else if (ev.target.attributes["data-value"].value == 'last-quarter') {
-            this.filter = ev.target.attributes["data-value"].value
+            this.filter = ev.target.attributes["data-value"].value;
+            const lastQuarterDate = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+            const lq = Math.ceil((lastQuarterDate.getMonth() + 1) / 3);
+            this.state.year = ['Q' + lq + ' ' + lastQuarterDate.getFullYear()];
         }
         let res = await self.orm.call("dynamic.balance.sheet.report", "filter", [this.wizard_id, this.filter]);
         self.initial_render = false;
@@ -294,7 +312,8 @@ class ProfitAndLoss extends owl.Component {
          */
          const stringValue = cor;
          const floatValue = parseFloat(stringValue.replace(/,/g, ''));
-        return parseFloat(op_inc) + floatValue;
+        const result = parseFloat(op_inc) + floatValue;
+        return result.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
     async applyComparisonYear(){
         this.state.comparison = this.period_year.el.value
