@@ -1,67 +1,90 @@
 <odoo>
-        <record id="view_form_reimbursement" model="ir.ui.view">
-            <field name="name">reimbursement.form</field>
-            <field name="model">reimbursement</field>
-            <field name="arch" type="xml">
-                <form string="Reimbursement">
-                    <header>
-                        <button name="%(upload_excel_wizard_action)d" type="action" string="Submit Reimbursement" invisible="state != 'draft'"/>
-                        <button name="download_reference_excel" type="object" string="Download Reference Excel" class="oe_highlight" invisible="state != 'draft'"/>
-                        <button name="action_submit" type="object" string="Submit" 
-                                invisible="state != 'draft'" class="oe_highlight"/>
-                        <button name="action_review" type="object" string="Mark Reviewed" 
-                                invisible="state != 'submitted'" class="oe_highlight" groups="refund_management_rk.group_reimbursement_reviewer"/>
-                        <button name="action_approve" type="object" string="Mark Approve" 
-                                invisible="state != 'reviewed'" class="btn-success" groups="refund_management_rk.group_reimbursement_reviewer"/>
-                        <field name="state" widget="statusbar" statusbar_visible="draft,submitted,reviewed,approved"/>
-                    </header>
-                    <sheet>
+    <record id="view_form_reimbursement" model="ir.ui.view">
+        <field name="name">reimbursement.form</field>
+        <field name="model">reimbursement</field>
+        <field name="arch" type="xml">
+            <form string="Reimbursement">
+                <header>
+                    <button name="%(upload_excel_wizard_action)d" type="action" string="Upload Excel"
+                            invisible="state != 'draft'"/>
+                    <button name="download_reference_excel" type="object" string="Download Reference"
+                            invisible="state != 'draft'"/>
+                    <button name="action_submit" type="object" string="Submit"
+                            invisible="state != 'draft'" class="btn-primary"/>
+                    <button name="action_review" type="object" string="Mark Reviewed"
+                            invisible="state != 'submitted'" class="btn-primary"
+                            groups="refund_management_rk.group_reimbursement_reviewer"/>
+                    <button name="action_approve" type="object" string="Approve"
+                            invisible="state != 'reviewed'" class="btn-success"
+                            groups="refund_management_rk.group_reimbursement_approver"/>
+                    <button name="action_reset_draft" type="object" string="Reset to Draft"
+                            invisible="state not in ('submitted','reviewed')"
+                            groups="refund_management_rk.group_reimbursement_reviewer"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,reviewed,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
                         <group>
-                            <field name="name"/>
                             <field name="user_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
                         </group>
-                        <notebook>
-                            <page string="Lines">
-                                <field name="line_ids">
-                                    <list editable="bottom">
-                                        <field name="bill_date"/>
-                                        <field name="purpose"/>
-                                        <field name="bill_type"/>
-                                        <field name="bill_submitted"/>
-                                        <field name="bill_amount"/>
-                                        <field name="attachment"/>
-                                    </list>
-                                </field>
-                            </page>
-                        </notebook>
-                    </sheet>
-                </form>
-            </field>
-        </record>
+                        <group>
+                            <field name="total_amount" widget="monetary"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Expense Lines" name="lines">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="bill_date"/>
+                                    <field name="purpose"/>
+                                    <field name="bill_type"/>
+                                    <field name="bill_submitted"/>
+                                    <field name="bill_amount"/>
+                                    <field name="attachment" widget="binary" filename="attachment_filename"/>
+                                    <field name="attachment_filename" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
 
-        <record id="view_tree_reimbursement" model="ir.ui.view">
-            <field name="name">reimbursement.tree</field>
-            <field name="model">reimbursement</field>
-            <field name="arch" type="xml">
-                <list string="Reimbursements">
-                    <field name="name"/>
-                    <field name="user_id"/>
-                    <field name="state"/>
-                </list>
-            </field>
-        </record>
+    <record id="view_tree_reimbursement" model="ir.ui.view">
+        <field name="name">reimbursement.tree</field>
+        <field name="model">reimbursement</field>
+        <field name="arch" type="xml">
+            <list string="Reimbursements">
+                <field name="name"/>
+                <field name="user_id"/>
+                <field name="total_amount"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'submitted'"
+                       decoration-warning="state == 'reviewed'"
+                       decoration-success="state == 'approved'"/>
+            </list>
+        </field>
+    </record>
 
-        <!-- Actions -->
-        <record id="action_reimbursement_user" model="ir.actions.act_window">
-            <field name="name">My Reimbursements</field>
-            <field name="res_model">reimbursement</field>
-            <field name="view_mode">list,form</field>
-            <field name="domain">[('user_id', '=', uid)]</field>
-        </record>
+    <!-- Actions -->
+    <record id="action_reimbursement_user" model="ir.actions.act_window">
+        <field name="name">My Reimbursements</field>
+        <field name="res_model">reimbursement</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('user_id', '=', uid)]</field>
+    </record>
 
-        <record id="action_reimbursement_reviewer" model="ir.actions.act_window">
-            <field name="name">All Reimbursements</field>
-            <field name="res_model">reimbursement</field>
-            <field name="view_mode">list,form</field>
-        </record>
+    <record id="action_reimbursement_reviewer" model="ir.actions.act_window">
+        <field name="name">All Reimbursements</field>
+        <field name="res_model">reimbursement</field>
+        <field name="view_mode">list,form</field>
+    </record>
 </odoo>

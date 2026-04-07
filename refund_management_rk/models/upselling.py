@@ -18,12 +18,17 @@ class Upselling(models.Model):
     proposal_filename = fields.Char(string='Proposal Filename', tracking=True)
     engagement_file = fields.Binary(string='Signed Engagement File')
     engagement_filename = fields.Char(string='Engagement Filename', tracking=True)
+
+    # Payment details
+    payment_received_datetime = fields.Datetime(string='Payment Received Date/Time', tracking=True)
+    payment_reference = fields.Char(string='Payment Reference', tracking=True)
+
     invoice_ids = fields.One2many(
         'account.move', compute='_compute_invoice_ids',
         string='Invoices',
     )
-
     invoice_count = fields.Integer(string='Invoice Count', compute='_compute_invoice_ids')
+
     sequence = fields.Char(
         string='Sequence Number', required=True,
         copy=False, readonly=True, default='New',
@@ -44,19 +49,14 @@ class Upselling(models.Model):
 
     @api.model
     def create(self, vals):
-        # Generate sequence if needed
         if vals.get('sequence', 'New') == 'New':
             vals['sequence'] = self.env['ir.sequence'].next_by_code('upselling.sequence') or 'New'
-
-        # Set customer_id from sale_order_id if not provided
         if vals.get('sale_order_id') and not vals.get('customer_id'):
             sale_order = self.env['sale.order'].browse(vals['sale_order_id'])
             vals['customer_id'] = sale_order.partner_id.id if sale_order.partner_id else False
-
         return super(Upselling, self).create(vals)
 
     def write(self, vals):
-        # If sale_order_id is updated, update customer_id accordingly
         if 'sale_order_id' in vals:
             sale_order = self.env['sale.order'].browse(vals['sale_order_id'])
             vals['customer_id'] = sale_order.partner_id.id if sale_order.partner_id else False
@@ -75,15 +75,19 @@ class Upselling(models.Model):
             self.customer_id = self.sale_order_id.partner_id.id
         else:
             self.customer_id = False
-    
+
     @api.depends('sale_order_id')
     def _compute_invoice_ids(self):
         for rec in self:
             if rec.sale_order_id:
-                # Use sale order's linked invoices and filter for customer invoices
-                rec.invoice_ids = rec.sale_order_id.invoice_ids.filtered(lambda inv: inv.move_type == 'out_invoice')
+                invoices = rec.sale_order_id.invoice_ids.filtered(
+                    lambda inv: inv.move_type == 'out_invoice'
+                )
+                rec.invoice_ids = invoices
+                rec.invoice_count = len(invoices)
             else:
                 rec.invoice_ids = False
+                rec.invoice_count = 0
 
     # State transition buttons
     def action_submit_review(self):
@@ -92,9 +96,7 @@ class Upselling(models.Model):
 
     def action_submit_approval(self):
         for rec in self:
-            # List required fields to check
             missing_fields = []
-            
             if not rec.description:
                 missing_fields.append('Description')
             if not rec.sale_order_id:
@@ -106,17 +108,27 @@ class Upselling(models.Model):
             if not rec.engagement_file:
                 missing_fields.append('Signed Engagement File')
             if not rec.payment_received_datetime:
-                missing_fields.append('Payment Received DateTime')
+                missing_fields.append('Payment Received Date/Time')
             if not rec.payment_reference:
                 missing_fields.append('Payment Reference')
-
             if missing_fields:
-                raise UserError(f"Cannot submit for approval. Please fill in all required fields: {', '.join(missing_fields)}")
-
+                raise UserError(
+                    f"Cannot submit for approval. Please fill in all required fields: {', '.join(missing_fields)}"
+                )
             rec.state = 'approval'
 
     def action_approve(self):
         for rec in self:
             if not rec.is_approver:
-                raise UserError("You are not authorized to approve this reimbursement request.")
+                raise UserError("You are not authorized to approve this upselling request.")
             rec.state = 'approved'
+
+    def action_view_invoices(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Invoices',
+            'res_model': 'account.move',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', self.invoice_ids.ids)],
+        }

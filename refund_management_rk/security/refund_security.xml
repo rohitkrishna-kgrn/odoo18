@@ -4,5 +4,10 @@
         <record id="group_reimbursement_reviewer" model="res.groups">
             <field name="name">Reimbursement Reviewer</field>
         </record>
+
+        <!-- Reimbursement Approver group -->
+        <record id="group_reimbursement_approver" model="res.groups">
+            <field name="name">Reimbursement Approver</field>
+        </record>
     </data>
 </odoo>

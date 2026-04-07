@@ -1,8 +1,8 @@
 <odoo>
     <data>
-        <menuitem id="menu_reimbursement_root" name="Gainback" sequence="10" web_icon="refund_management_rk,static/description/icon.png"/>
+        <menuitem id="menu_reimbursement_root" name="Gainback" sequence="10"
+                  web_icon="refund_management_rk,static/description/icon.png"/>
 
-        <!-- 🔧 Now this will work because action is defined properly -->
         <menuitem id="menu_reimbursement_request"
                   name="My Reimbursements"
                   parent="menu_reimbursement_root"
@@ -13,7 +13,7 @@
                   name="All Reimbursements"
                   parent="menu_reimbursement_root"
                   action="refund_management_rk.action_reimbursement_reviewer"
-                  groups="refund_management_rk.group_reimbursement_reviewer"
+                  groups="refund_management_rk.group_reimbursement_reviewer,refund_management_rk.group_reimbursement_approver"
                   sequence="30"/>
     </data>
 </odoo>
