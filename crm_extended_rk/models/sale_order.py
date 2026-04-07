@@ -22,6 +22,21 @@ class SaleOrder(models.Model):
         required=True,
     )
 
+    posted_invoice_total = fields.Monetary(
+        string="Posted Invoice Total",
+        compute="_compute_posted_invoice_total",
+        currency_field='currency_id',
+    )
+
+    @api.depends('invoice_ids.amount_total', 'invoice_ids.state')
+    def _compute_posted_invoice_total(self):
+        for order in self:
+            total = 0.0
+            for inv in order.invoice_ids:
+                if inv.state == 'posted':
+                    total += inv.amount_total
+            order.posted_invoice_total = total
+
     def action_open_invoice_wizard(self):
         return {
             'name': 'Create Invoice',

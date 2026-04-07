@@ -109,6 +109,10 @@ class SaleOrder(models.Model):
                     'implementation': 'standard',
                 })
             self.name = seq.next_by_id()
+        
+        if self.advance_amount > 0.0:
+            self._create_advance_invoice()
+        
         self.approval_state = 'approved'
         activities = self.env['mail.activity'].search([
             ('res_model', '=', 'sale.order'),

@@ -79,6 +79,7 @@
         <field name="arch" type="xml">
             <!-- Locate the activities field (usually field with widget 'activity') -->
             <xpath expr="//field[@name='activity_ids']" position="after">
+            <field name="posted_invoice_total"/>
             <field name="paid_amount"/>
             <field name="pending_amount"/>
             </xpath>
