@@ -5,14 +5,14 @@
     'author': 'Rohit',
     'category': 'Project',
     'data': [
+        'security/ir.model.access.csv',
+        'security/res_users_view.xml',
         'views/project_groups.xml',
         'views/project_project_views.xml',
         'views/project_team_views.xml',
         'views/project_task_views.xml',
-        'security/res_users_view.xml',
-        'security/ir.model.access.csv',
-        'data/email_template.xml'
-
+        'wizards/sale_order_advance_wizard_view.xml',
+        'data/email_template.xml',
     ],
     'installable': True,
     'auto_install': False,

@@ -18,6 +18,36 @@ class TaskExtraHours(models.Model):
         ('rejected', 'Rejected'),
     ], string="Status", default='draft', tracking=True)
 
+    is_approver = fields.Boolean(string="Is Approver", compute='_compute_is_approver')
+
+    @api.depends_context('uid')
+    def _compute_is_approver(self):
+        is_admin = self.env.user.has_group('base.group_system')
+        for rec in self:
+            if is_admin:
+                rec.is_approver = True
+                continue
+            employee = self.env['hr.employee'].sudo().search(
+                [('user_id', '=', rec.user_id.id)], limit=1)
+            manager_user = employee.parent_id.user_id if employee and employee.parent_id else False
+            rec.is_approver = bool(manager_user and manager_user.id == self.env.uid)
+
+    def action_open_edit_approve_wizard(self):
+        self.ensure_one()
+        if not self.is_approver:
+            raise AccessError(_("You are not authorized to edit this request."))
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Edit & Approve Extra Hours'),
+            'res_model': 'approve.extra.hours.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_record_id': self.id,
+                'default_extra_hours': self.extra_hours,
+            },
+        }
+
     def _check_admin_access(self):
         if not self.env.user.has_group('base.group_system'):
             raise UserError("Only administrators can approve or reject records.")

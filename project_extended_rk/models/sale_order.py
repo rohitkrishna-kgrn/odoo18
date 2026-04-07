@@ -17,32 +17,37 @@ class SaleOrder(models.Model):
     def action_confirm(self):
         """Override confirmation to validate advance payment and create projects/tasks."""
 
-        for order in self:
+        if not self.env.context.get('skip_advance_check'):
+            for order in self:
+                if order.advance_amount > 0.0:
 
-            # ✅ Validate advance payment BEFORE confirmation
-            if order.advance_amount > 0.0:
+                    paid_invoices = order.invoice_ids.filtered(lambda inv:
+                        inv.state == 'posted' and
+                        inv.payment_state in ['paid', 'in_payment', 'partial'] and
+                        inv.advance_invoice
+                    )
 
-                paid_invoices = order.invoice_ids.filtered(lambda inv:
-                    inv.state == 'posted' and
-                    inv.payment_state in ['paid'] and
-                    inv.advance_invoice
-                )
+                    total_paid = sum(inv.amount_total - inv.amount_residual for inv in paid_invoices)
 
-                total_paid = sum(paid_invoices.mapped('amount_total'))
+                    if float_compare(
+                        total_paid,
+                        order.advance_amount,
+                        precision_rounding=order.currency_id.rounding
+                    ) < 0:
+                        wizard = self.env['sale.order.advance.confirm.wizard'].create({
+                            'order_id': order.id,
+                            'advance_amount': order.advance_amount,
+                            'paid_amount': total_paid,
+                        })
+                        return {
+                            'type': 'ir.actions.act_window',
+                            'name': _('Advance Payment Confirmation'),
+                            'res_model': 'sale.order.advance.confirm.wizard',
+                            'res_id': wizard.id,
+                            'view_mode': 'form',
+                            'target': 'new',
+                        }
 
-                if float_compare(
-                    total_paid,
-                    order.advance_amount,
-                    precision_rounding=order.currency_id.rounding
-                ) < 0:
-                    raise UserError(_(
-                        "You cannot confirm this order.\n\n"
-                        "Advance Amount: %.2f\n"
-                        "Paid Advance Invoices: %.2f\n\n"
-                        "Please ensure the advance invoice is fully paid before confirming."
-                    ) % (order.advance_amount, total_paid))
-
-        # ✅ Only confirm AFTER validation passes
         res = super(SaleOrder, self).action_confirm()
 
         # ✅ Then create projects/tasks

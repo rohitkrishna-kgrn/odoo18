@@ -23,4 +23,25 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>
+
+    <record id="approve_extra_hours_wizard_view" model="ir.ui.view">
+        <field name="name">approve.extra.hours.wizard.form</field>
+        <field name="model">approve.extra.hours.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Edit &amp; Approve Extra Hours">
+                <group>
+                    <field name="task_id"/>
+                    <field name="user_id"/>
+                    <field name="reason"/>
+                    <field name="extra_hours"/>
+                </group>
+                <footer>
+                    <button string="Approve" name="action_approve" type="object" class="btn-primary"/>
+                    <button string="Reject" name="action_reject" type="object" class="btn-danger"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
 </odoo>

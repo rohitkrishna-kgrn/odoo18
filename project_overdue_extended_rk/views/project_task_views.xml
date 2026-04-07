@@ -146,6 +146,70 @@
                         ]"
                     />
 
+                    <separator/>
+
+                    <!-- No deadline set -->
+                    <filter
+                        name="no_deadline"
+                        string="No Deadline"
+                        domain="[('date_deadline', '=', False)]"
+                    />
+
+                    <separator/>
+
+                    <!-- ── Upcoming Due filters (future deadlines, task not done) ── -->
+
+                    <!-- Due in &lt; 30 days: deadline is today → today+29 -->
+                    <filter
+                        name="due_lt30"
+                        string="Due &lt; 30 days"
+                        domain="[
+                            ('date_deadline', '!=', False),
+                            ('date_deadline', '&gt;=', context_today().strftime('%Y-%m-%d')),
+                            ('date_deadline', '&lt;=', (context_today() + relativedelta(days=29)).strftime('%Y-%m-%d')),
+                            ('state_additional', '!=', 'completed'),
+                            ('stage_id.fold', '=', False)
+                        ]"
+                    />
+
+                    <!-- Due in 30–60 days: deadline is today+30 → today+60 -->
+                    <filter
+                        name="due_30_60"
+                        string="Due in 30–60 days"
+                        domain="[
+                            ('date_deadline', '!=', False),
+                            ('date_deadline', '&gt;=', (context_today() + relativedelta(days=30)).strftime('%Y-%m-%d')),
+                            ('date_deadline', '&lt;=', (context_today() + relativedelta(days=60)).strftime('%Y-%m-%d')),
+                            ('state_additional', '!=', 'completed'),
+                            ('stage_id.fold', '=', False)
+                        ]"
+                    />
+
+                    <!-- Due in 60–90 days: deadline is today+61 → today+90 -->
+                    <filter
+                        name="due_60_90"
+                        string="Due in 60–90 days"
+                        domain="[
+                            ('date_deadline', '!=', False),
+                            ('date_deadline', '&gt;=', (context_today() + relativedelta(days=61)).strftime('%Y-%m-%d')),
+                            ('date_deadline', '&lt;=', (context_today() + relativedelta(days=90)).strftime('%Y-%m-%d')),
+                            ('state_additional', '!=', 'completed'),
+                            ('stage_id.fold', '=', False)
+                        ]"
+                    />
+
+                    <!-- Due in &gt; 90 days: deadline is beyond today+90 -->
+                    <filter
+                        name="due_gt90"
+                        string="Due &gt; 90 days"
+                        domain="[
+                            ('date_deadline', '!=', False),
+                            ('date_deadline', '&gt;', (context_today() + relativedelta(days=90)).strftime('%Y-%m-%d')),
+                            ('state_additional', '!=', 'completed'),
+                            ('stage_id.fold', '=', False)
+                        ]"
+                    />
+
                 </xpath>
 
             </field>

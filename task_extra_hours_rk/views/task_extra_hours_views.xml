@@ -10,10 +10,14 @@
                 <field name="extra_hours"/>
                 <field name="reason"/>
                 <field name="status"/>
+                <field name="is_approver" column_invisible="1"/>
+                <button name="action_open_edit_approve_wizard" string="Edit" type="object"
+                        icon="fa-pencil"
+                        invisible="status != 'draft' or not is_approver"/>
                 <button name="action_approve" string="Approve" type="object"
-                        invisible="status != 'draft'"/>
+                        invisible="status != 'draft' or not is_approver"/>
                 <button name="action_reject" string="Reject" type="object"
-                        invisible="status != 'draft'"/>
+                        invisible="status != 'draft' or not is_approver"/>
             </list>
         </field>
     </record>

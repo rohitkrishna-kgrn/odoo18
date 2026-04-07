@@ -1,0 +1,19 @@
+from odoo import models, fields, _
+
+
+class SaleOrderAdvanceConfirmWizard(models.TransientModel):
+    _name = 'sale.order.advance.confirm.wizard'
+    _description = 'Advance Payment Confirmation Wizard'
+
+    order_id = fields.Many2one('sale.order', string='Sale Order', required=True, readonly=True)
+    currency_id = fields.Many2one('res.currency', related='order_id.currency_id', readonly=True)
+    advance_amount = fields.Monetary(string='Advance Amount', readonly=True, currency_field='currency_id')
+    paid_amount = fields.Monetary(string='Paid Amount', readonly=True, currency_field='currency_id')
+
+    def action_confirm_order(self):
+        self.ensure_one()
+        self.order_id.with_context(skip_advance_check=True).action_confirm()
+        return {'type': 'ir.actions.act_window_close'}
+
+    def action_discard(self):
+        return {'type': 'ir.actions.act_window_close'}

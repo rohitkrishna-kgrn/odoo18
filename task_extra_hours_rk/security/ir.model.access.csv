@@ -2,5 +2,6 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_task_extra_hours_user,task.extra.hours.user,model_task_extra_hours,base.group_user,1,0,1,0
 access_task_extra_hours_manager,task.extra.hours.manager,model_task_extra_hours,base.group_system,1,1,1,1
 access_request_extra_hours_wizard_user,request.extra.hours.wizard.user,model_request_extra_hours_wizard,base.group_user,1,0,1,0
+access_approve_extra_hours_wizard_user,approve.extra.hours.wizard.user,model_approve_extra_hours_wizard,base.group_user,1,0,1,0
 access_project_task_type_all,project.task.type access for all,model_project_task_type,,1,1,0,0
 

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_sale_order_advance_confirm_wizard_form" model="ir.ui.view">
+        <field name="name">sale.order.advance.confirm.wizard.form</field>
+        <field name="model">sale.order.advance.confirm.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Advance Payment Confirmation">
+                <group>
+                    <field name="order_id" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="advance_amount" widget="monetary" string="Advance Amount"/>
+                    <field name="paid_amount" widget="monetary" string="Paid Amount"/>
+                </group>
+                <div class="alert alert-warning mt-2" role="alert">
+                    The advance invoice has not been fully paid. Do you want to confirm this order anyway?
+                </div>
+                <footer>
+                    <button name="action_confirm_order" string="Confirm" type="object" class="btn-primary"/>
+                    <button name="action_discard" string="Discard" type="object" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
