@@ -24,7 +24,20 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='acc_number']" position="after">
                 <field name="iban"/>
+                <field name="swift_code"/>
             </xpath>
         </field>
     </record>
+
+  <record id="view_account_journal_form_inherit_bank_details" model="ir.ui.view">
+    <field name="name">account.journal.form.inherit.bank.details</field>
+    <field name="model">account.journal</field>
+    <field name="inherit_id" ref="account.view_account_journal_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='bank_account_id']" position="after">
+        <field name="bank_iban" invisible="type != 'bank'"/>
+        <field name="bank_swift_code" invisible="type != 'bank'"/>
+      </xpath>
+    </field>
+  </record>
 </odoo>

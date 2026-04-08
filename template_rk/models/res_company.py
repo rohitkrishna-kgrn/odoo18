@@ -15,3 +15,4 @@ class ResPartnerBank(models.Model):
     _inherit = 'res.partner.bank'
 
     iban = fields.Char(string='IBAN')
+    swift_code = fields.Char(string='Swift Code')
