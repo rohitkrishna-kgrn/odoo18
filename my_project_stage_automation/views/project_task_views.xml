@@ -77,5 +77,19 @@
             </field>
         </record>
 
+        <!-- Inherit task search view to add Completed Date group by options -->
+        <record id="view_task_search_inherit_completed_date" model="ir.ui.view">
+            <field name="name">project.task.search.inherit.completed_date</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.view_task_search_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//search/group" position="inside">
+                    <filter string="Completed Date: Grouping"
+                            name="group_by_completed_date_day"
+                            context="{'group_by': 'completed_date:day'}"/>
+                </xpath>
+            </field>
+        </record>
+
     </data>
 </odoo>
