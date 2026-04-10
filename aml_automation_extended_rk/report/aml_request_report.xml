@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- =========================================================
+         Paper Format (A4 with generous footer margin)
+    ========================================================== -->
+    <record id="paperformat_aml_report" model="report.paperformat">
+        <field name="name">AML Report A4</field>
+        <field name="default">False</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">15</field>
+        <field name="margin_bottom">35</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line">False</field>
+        <field name="header_spacing">10</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <!-- =========================================================
+         Report Action
+    ========================================================== -->
+    <record id="action_report_aml_request" model="ir.actions.report">
+        <field name="name">AML KYC Report</field>
+        <field name="model">aml.request</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">aml_automation_extended_rk.report_aml_request_document</field>
+        <field name="report_file">aml_automation_extended_rk.report_aml_request_document</field>
+        <field name="print_report_name">'AML-KYC-%s' % (object.name)</field>
+        <field name="binding_model_id" ref="aml_automation_extended_rk.model_aml_request"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="aml_automation_extended_rk.paperformat_aml_report"/>
+    </record>
+
+    <!-- =========================================================
+         QWeb Template
+    ========================================================== -->
+    <template id="report_aml_request_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.basic_layout">
+                    <t t-set="company" t-value="o.company_id or env.company"/>
+
+                    <div class="page">
+
+                        <!-- ── PAGE HEADER ───────────────────────────────── -->
+                        <div style="width:100%; overflow:hidden; margin-bottom:20px; border-bottom:2px solid #f25d23; padding-bottom:12px;">
+                            <!-- Date – top left -->
+                            <div style="float:left;">
+                                <span style="font-size:11px; color:#555;">Date:</span><br/>
+                                <strong style="font-size:13px;">
+                                    <t t-esc="(o.signed_date or o.create_date).strftime('%d %B %Y') if (o.signed_date or o.create_date) else ''"/>
+                                </strong>
+                            </div>
+                            <!-- Company logo – top right -->
+                            <div style="float:right; text-align:right;">
+                                <t t-if="company.logo">
+                                    <img t-att-src="image_data_uri(company.logo)"
+                                         style="max-height:60px; max-width:180px;"/>
+                                </t>
+                            </div>
+                            <div style="clear:both;"/>
+                        </div>
+
+                        <!-- ── REPORT TITLE ──────────────────────────────── -->
+                        <h2 style="text-align:center; color:#f25d23; margin-bottom:4px;">
+                            KYC / AML Due Diligence Form
+                        </h2>
+                        <p style="text-align:center; font-size:11px; color:#666; margin-top:0;">
+                            AML Reference: <strong><t t-esc="o.name"/></strong>
+                            &#160;|&#160; Status: <strong><t t-esc="dict(o._fields['state'].selection).get(o.state, o.state)"/></strong>
+                            <t t-if="o.aml_user_id">
+                                &#160;|&#160; AML Officer: <strong><t t-esc="o.aml_user_id.name"/></strong>
+                            </t>
+                        </p>
+                        <hr style="border:none; border-top:1px solid #ccc; margin:12px 0;"/>
+
+                        <!-- ── GENERAL INFO ──────────────────────────────── -->
+                        <table style="width:100%; border-collapse:collapse; margin-bottom:16px; font-size:11px;">
+                            <tr style="background:#f25d23;">
+                                <td colspan="4" style="color:#fff; font-weight:bold; padding:6px 10px; font-size:12px;">
+                                    General Information
+                                </td>
+                            </tr>
+                            <tr style="background:#f5f5f5;">
+                                <td style="padding:5px 8px; width:25%; font-weight:bold; border:1px solid #ddd;">Client</td>
+                                <td style="padding:5px 8px; width:25%; border:1px solid #ddd;"><t t-esc="o.partner_id.name or ''"/></td>
+                                <td style="padding:5px 8px; width:25%; font-weight:bold; border:1px solid #ddd;">KYC Type</td>
+                                <td style="padding:5px 8px; width:25%; border:1px solid #ddd;"><t t-esc="dict(o._fields['kyc_type'].selection).get(o.kyc_type, '') if o.kyc_type else ''"/></td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Sale Order</td>
+                                <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.sale_order_id.name or ''"/></td>
+                                <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Deadline</td>
+                                <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.deadline.strftime('%d/%m/%Y %H:%M') if o.deadline else ''"/></td>
+                            </tr>
+                            <tr style="background:#f5f5f5;">
+                                <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Start Date</td>
+                                <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.start_datetime.strftime('%d/%m/%Y %H:%M') if o.start_datetime else ''"/></td>
+                                <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Signed On</td>
+                                <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.signed_date.strftime('%d/%m/%Y %H:%M') if o.signed_date else ''"/></td>
+                            </tr>
+                        </table>
+
+                        <!-- ── ENTITY KYC ────────────────────────────────── -->
+                        <t t-if="o.kyc_type == 'entity'">
+                            <table style="width:100%; border-collapse:collapse; margin-bottom:16px; font-size:11px;">
+                                <tr style="background:#f25d23;">
+                                    <td colspan="4" style="color:#fff; font-weight:bold; padding:6px 10px; font-size:12px;">
+                                        Entity / Corporate KYC
+                                    </td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; width:25%; font-weight:bold; border:1px solid #ddd;">Entity Name</td>
+                                    <td style="padding:5px 8px; width:25%; border:1px solid #ddd;"><t t-esc="o.ent_entity_name or ''"/></td>
+                                    <td style="padding:5px 8px; width:25%; font-weight:bold; border:1px solid #ddd;">Legal Type</td>
+                                    <td style="padding:5px 8px; width:25%; border:1px solid #ddd;"><t t-esc="o.ent_legal_type or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Trading Name</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_trading_name or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Date of Incorporation</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_date_of_incorporation.strftime('%d/%m/%Y') if o.ent_date_of_incorporation else ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Place of Incorporation</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_place_of_incorporation or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Registration Authority</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_registration_authority or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">License/Reg. Number</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_license_number or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">License Expiry</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_license_expiry.strftime('%d/%m/%Y') if o.ent_license_expiry else ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Registered Address</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_registered_address or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Business Address</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_business_address or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Industry Type</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_industry_type or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Nature of Business</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_nature_of_business or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Source of Wealth</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_source_of_wealth or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Ownership Complexity</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_ownership_complexity or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">High-Risk Jurisdiction</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_high_risk_jurisdiction or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Int'l Sanctions</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_international_sanctions or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Countries (Commercial)</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_countries_commercial or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Top 5 Suppliers Countries</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_top5_suppliers or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Top 5 Customers Countries</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_top5_customers or ''"/></td>
+                                </tr>
+                                <!-- Channel of Transaction -->
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Transaction Channels</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;">
+                                        <t t-if="o.ent_channel_cash">Cash  </t>
+                                        <t t-if="o.ent_channel_wire">Wire Transfers  </t>
+                                        <t t-if="o.ent_channel_cheque">Cheque  </t>
+                                        <t t-if="o.ent_channel_credit">Credit Cards  </t>
+                                        <t t-if="o.ent_channel_crypto">Cryptocurrencies  </t>
+                                        <t t-if="o.ent_channel_debit">Debit Cards</t>
+                                    </td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Cash Threshold</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;">
+                                        <t t-if="o.ent_cash_less_50k">Less than 50K AED  </t>
+                                        <t t-if="o.ent_cash_more_50k">More than 50K AED  </t>
+                                        <t t-if="o.ent_cash_na">N/A</t>
+                                    </td>
+                                </tr>
+                                <!-- Contact -->
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Contact Name</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_contact_name or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Contact Email</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_contact_email or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Contact Mobile</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_contact_mobile or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Manager Name</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_manager_name or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Parent Company</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_parent_company_name or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Parent Company Address</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_parent_company_address or ''"/></td>
+                                </tr>
+                                <!-- PEP -->
+                                <tr style="background:#fff3e0;">
+                                    <td colspan="4" style="padding:5px 8px; font-weight:bold; border:1px solid #ddd; color:#e65100;">
+                                        Politically Exposed Persons (PEP)
+                                    </td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">PEP – Shareholder</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_pep_shareholder or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">PEP – Director</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_pep_director or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">PEP – Owner</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_pep_owner or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">PEP – Local Sponsor</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_pep_local_sponsor or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">PEP – Key Management</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_pep_key_management or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">PEP – Officer</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_pep_officer or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">PEP – Agent</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_pep_agent or ''"/></td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;" colspan="2"/>
+                                </tr>
+                            </table>
+                        </t>
+
+                        <!-- ── INDIVIDUAL KYC ─────────────────────────────── -->
+                        <t t-if="o.kyc_type == 'individual'">
+                            <table style="width:100%; border-collapse:collapse; margin-bottom:16px; font-size:11px;">
+                                <tr style="background:#f25d23;">
+                                    <td colspan="4" style="color:#fff; font-weight:bold; padding:6px 10px; font-size:12px;">
+                                        Individual KYC
+                                    </td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; width:25%; font-weight:bold; border:1px solid #ddd;">Full Name</td>
+                                    <td style="padding:5px 8px; width:25%; border:1px solid #ddd;"><t t-esc="o.ind_full_name or ''"/></td>
+                                    <td style="padding:5px 8px; width:25%; font-weight:bold; border:1px solid #ddd;">Gender</td>
+                                    <td style="padding:5px 8px; width:25%; border:1px solid #ddd;"><t t-esc="dict(o._fields['ind_gender'].selection).get(o.ind_gender, '') if o.ind_gender else ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Nationality</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_nationality or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Date of Birth</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_date_of_birth.strftime('%d/%m/%Y') if o.ind_date_of_birth else ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Place of Birth</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_place_of_birth or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">ID Type</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="dict(o._fields['ind_id_type'].selection).get(o.ind_id_type, '') if o.ind_id_type else ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">ID Number</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_id_number or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Issuing Country</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_issuing_country or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Valid Until</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_valid_until.strftime('%d/%m/%Y') if o.ind_valid_until else ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">City</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_city or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Country</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_country or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Mobile</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_mobile or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Email</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_email or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Monthly Turnover</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_monthly_turnover or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Permanent Address</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_permanent_address or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">UAE Address</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_uae_address or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Purpose of Relationship</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_purpose_of_relationship or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Expected Transactions</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_expected_transactions or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Source of Funds</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_source_of_funds or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Anticipated Origin of Funds</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_anticipated_origin or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">High-Risk Jurisdiction</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_high_risk_jurisdiction or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Hold Shares on Behalf</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_hold_shares_behalf or ''"/></td>
+                                </tr>
+                                <!-- Attached documents (yes/no flags only – no files) -->
+                                <tr style="background:#e8eaf6;">
+                                    <td colspan="4" style="padding:5px 8px; font-weight:bold; border:1px solid #ddd; color:#f25d23;">
+                                        Document Verification
+                                    </td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Emirates ID Attached</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_emirates_id_attached or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Passport Attached</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_passport_attached or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Proof of Address Attached</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_proof_address_attached or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Verified via Portal</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_verified_portal or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Verified Physically</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_verified_physically or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Video KYC</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ind_video_kyc or ''"/></td>
+                                </tr>
+                            </table>
+                        </t>
+
+                        <!-- ── UBO ────────────────────────────────────────── -->
+                        <t t-if="o.ubo_full_name or o.ubo_email or o.ubo_mobile">
+                            <table style="width:100%; border-collapse:collapse; margin-bottom:16px; font-size:11px;">
+                                <tr style="background:#f25d23;">
+                                    <td colspan="4" style="color:#fff; font-weight:bold; padding:6px 10px; font-size:12px;">
+                                        Ultimate Beneficial Owner (UBO)
+                                    </td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; width:25%; font-weight:bold; border:1px solid #ddd;">Full Name</td>
+                                    <td style="padding:5px 8px; width:25%; border:1px solid #ddd;"><t t-esc="o.ubo_full_name or ''"/></td>
+                                    <td style="padding:5px 8px; width:25%; font-weight:bold; border:1px solid #ddd;">Gender</td>
+                                    <td style="padding:5px 8px; width:25%; border:1px solid #ddd;"><t t-esc="dict(o._fields['ubo_gender'].selection).get(o.ubo_gender, '') if o.ubo_gender else ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Nationality</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_nationality or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Date of Birth</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_date_of_birth.strftime('%d/%m/%Y') if o.ubo_date_of_birth else ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Place of Birth</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_place_of_birth or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Dual Citizenship</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_dual_citizenship or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Dual Citizenship Detail</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_dual_citizenship_detail or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Source of Income</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_source_of_income or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Home Country Address</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_home_country_address or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">UAE Address</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_uae_address or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Mobile</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_mobile or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Email</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_email or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">High Net Worth (≥USD 15m)</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_high_net_worth or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Hold Shares on Behalf</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_hold_shares_behalf or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">High-Risk Jurisdiction</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_high_risk_jurisdiction or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Bank Name</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_bank_name or ''"/></td>
+                                </tr>
+                                <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Bank Branch Address</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_bank_branch_address or ''"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">IBAN / Account Number</td>
+                                    <td colspan="3" style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ubo_iban or ''"/></td>
+                                </tr>
+                            </table>
+                        </t>
+
+                        <!-- ── DIRECTORS ──────────────────────────────────── -->
+                        <t t-if="o.director_line_ids">
+                            <table style="width:100%; border-collapse:collapse; margin-bottom:16px; font-size:11px;">
+                                <tr style="background:#f25d23;">
+                                    <td colspan="5" style="color:#fff; font-weight:bold; padding:6px 10px; font-size:12px;">
+                                        Directors / Managers
+                                        <t t-if="o.director_declaration_date">
+                                            (As of: <t t-esc="o.director_declaration_date.strftime('%d/%m/%Y')"/>)
+                                        </t>
+                                    </td>
+                                </tr>
+                                <tr style="background:#e8eaf6;">
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">#</th>
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Full Name</th>
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Position</th>
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Nationality</th>
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">ID / Passport No.</th>
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Status</th>
+                                </tr>
+                                <t t-foreach="o.director_line_ids" t-as="d">
+                                    <tr t-attf-style="background:#{d_index % 2 == 0 and '#f5f5f5' or '#fff'}">
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="d_index + 1"/></td>
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="d.full_name or ''"/></td>
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="d.position or ''"/></td>
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="d.nationality or ''"/></td>
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="d.id_passport_no or ''"/></td>
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="dict(d._fields['status'].selection).get(d.status, '') if d.status else ''"/></td>
+                                    </tr>
+                                </t>
+                            </table>
+                        </t>
+
+                        <!-- ── SHAREHOLDERS ───────────────────────────────── -->
+                        <t t-if="o.shareholder_line_ids">
+                            <table style="width:100%; border-collapse:collapse; margin-bottom:16px; font-size:11px;">
+                                <tr style="background:#f25d23;">
+                                    <td colspan="5" style="color:#fff; font-weight:bold; padding:6px 10px; font-size:12px;">
+                                        Shareholders
+                                        <t t-if="o.shareholder_declaration_date">
+                                            (As of: <t t-esc="o.shareholder_declaration_date.strftime('%d/%m/%Y')"/>)
+                                        </t>
+                                    </td>
+                                </tr>
+                                <tr style="background:#e8eaf6;">
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">#</th>
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Shareholder Name</th>
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Type</th>
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Nationality</th>
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Passport No.</th>
+                                    <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">% Holding</th>
+                                </tr>
+                                <t t-foreach="o.shareholder_line_ids" t-as="s">
+                                    <tr t-attf-style="background:#{s_index % 2 == 0 and '#f5f5f5' or '#fff'}">
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="s_index + 1"/></td>
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="s.shareholder_name or ''"/></td>
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="dict(s._fields['shareholder_type'].selection).get(s.shareholder_type, '') if s.shareholder_type else ''"/></td>
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="s.nationality or ''"/></td>
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="s.passport_no or ''"/></td>
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="('%.2f' % s.percentage_holding + '%') if s.percentage_holding else ''"/></td>
+                                    </tr>
+                                </t>
+                            </table>
+                        </t>
+
+                        <!-- ── ADDITIONAL INFO ────────────────────────────── -->
+                        <t t-if="o.additional_info_text">
+                            <table style="width:100%; border-collapse:collapse; margin-bottom:16px; font-size:11px;">
+                                <tr style="background:#f25d23;">
+                                    <td colspan="2" style="color:#fff; font-weight:bold; padding:6px 10px; font-size:12px;">
+                                        Additional Information
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd; width:30%;">Notes</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.additional_info_text"/></td>
+                                </tr>
+                                <t t-if="o.additional_submitted_date">
+                                    <tr style="background:#f5f5f5;">
+                                        <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Submitted On</td>
+                                        <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.additional_submitted_date.strftime('%d/%m/%Y %H:%M')"/></td>
+                                    </tr>
+                                </t>
+                            </table>
+                        </t>
+
+                        <!-- ── DECLARATION ────────────────────────────────── -->
+                        <table style="width:100%; border-collapse:collapse; margin-bottom:24px; font-size:11px;">
+                            <tr style="background:#f25d23;">
+                                <td colspan="2" style="color:#fff; font-weight:bold; padding:6px 10px; font-size:12px;">
+                                    Declaration
+                                </td>
+                            </tr>
+                            <tr style="background:#f5f5f5;">
+                                <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd; width:35%;">Declaration Accepted</td>
+                                <td style="padding:5px 8px; border:1px solid #ddd;">
+                                    <t t-if="o.accept_declaration">Yes</t>
+                                    <t t-else="">No</t>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Signatory Name</td>
+                                <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.signatory_name or ''"/></td>
+                            </tr>
+                            <tr style="background:#f5f5f5;">
+                                <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Signed On</td>
+                                <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.signed_date.strftime('%d/%m/%Y %H:%M') if o.signed_date else ''"/></td>
+                            </tr>
+                        </table>
+
+                        <!-- ── SIGNATURE ──────────────────────────────────── -->
+                        <t t-if="o.signature_data">
+                            <div style="width:100%; overflow:hidden; margin-top:30px; padding-top:20px; border-top:1px solid #ddd;">
+                                <div style="float:right; text-align:center; width:260px;">
+                                    <img t-att-src="image_data_uri(o.signature_data)"
+                                         style="max-width:240px; max-height:100px; border:1px solid #ccc; padding:4px; background:#fff;"/>
+                                    <div style="border-top:1px solid #333; margin-top:8px; padding-top:4px; font-size:11px; color:#333;">
+                                        <strong><t t-esc="o.signatory_name or 'Client Signature'"/></strong>
+                                    </div>
+                                    <div style="font-size:10px; color:#777;">
+                                        <t t-esc="o.signed_date.strftime('%d/%m/%Y') if o.signed_date else ''"/>
+                                    </div>
+                                </div>
+                                <div style="clear:both;"/>
+                            </div>
+                        </t>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

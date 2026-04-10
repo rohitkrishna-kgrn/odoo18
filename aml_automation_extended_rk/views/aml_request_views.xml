@@ -57,6 +57,14 @@
                         confirm="Reject this AML request? The pipeline record will be closed."
                         groups="aml_automation_extended_rk.group_aml_user"/>
 
+                    <!-- Download PDF -->
+                    <button name="%(aml_automation_extended_rk.action_report_aml_request)d"
+                        type="action"
+                        string="Download PDF"
+                        class="btn-secondary"
+                        invisible="state == 'draft'"
+                        groups="aml_automation_extended_rk.group_aml_user"/>
+
                     <field name="state" widget="statusbar"
                         statusbar_visible="draft,new,accepted,in_progress,no_hit,hit_detected,additional_info,approved"/>
                 </header>

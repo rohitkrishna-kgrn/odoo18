@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Custom Company Login Page
+        Replaces Odoo's default web.login template.
+        Rendered via CustomLoginController.web_login() which sets
+        response.template = 'website_extended_rk.login'.
+    -->
+    <template id="login" name="KGRN Custom Login">
+        <html t-att-lang="request.lang.code if request.lang else 'en'">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <title>Sign In — KGRN Chartered Accountants LLC</title>
+                <link rel="stylesheet" href="/web/static/lib/bootstrap/css/bootstrap.css"/>
+                <link rel="stylesheet" href="/website_extended_rk/static/src/css/login.css"/>
+            </head>
+            <body class="kgrn-login-body">
+
+                <div class="kgrn-login-wrapper">
+
+                    <!-- ── LEFT PANEL: Branding ── -->
+                    <div class="kgrn-brand-panel">
+                        <div class="kgrn-brand-inner">
+                            <div class="kgrn-logo-block">
+                                <img src="/web/image/res.company/1/logo"
+                                     alt="KGRN Logo"
+                                     class="kgrn-company-logo"/>
+                                <h1 class="kgrn-company-name">KGRN Chartered Accountants LLC</h1>
+                                <p class="kgrn-company-tagline">
+                                    Audit · Advisory · Compliance
+                                </p>
+                            </div>
+                            <div class="kgrn-brand-footer">
+                                <p>© KGRN Chartered Accountants LLC. All rights reserved.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── RIGHT PANEL: Login Form ── -->
+                    <div class="kgrn-form-panel">
+                        <div class="kgrn-form-card">
+
+                            <div class="kgrn-form-header">
+                                <h2>Welcome Back</h2>
+                                <p>Sign in to your account</p>
+                            </div>
+
+                            <!-- Error / Info messages -->
+                            <t t-if="error">
+                                <div class="alert alert-danger kgrn-alert" role="alert">
+                                    <t t-if="error == 'wrong_login'">
+                                        Wrong login/password. Please try again.
+                                    </t>
+                                    <t t-elif="error == 'inactive'">
+                                        Your account is not activated.
+                                    </t>
+                                    <t t-else="">
+                                        <t t-esc="error"/>
+                                    </t>
+                                </div>
+                            </t>
+                            <t t-if="message">
+                                <div class="alert alert-info kgrn-alert" role="alert">
+                                    <t t-esc="message"/>
+                                </div>
+                            </t>
+
+                            <form class="kgrn-login-form"
+                                  action="/web/login"
+                                  method="post"
+                                  onsubmit="this.action='/web/login'">
+
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                                <!-- Preserve redirect -->
+                                <t t-if="redirect">
+                                    <input type="hidden" name="redirect" t-att-value="redirect"/>
+                                </t>
+
+                                <div class="kgrn-field-group">
+                                    <label for="login">Email / Username</label>
+                                    <input type="text"
+                                           id="login"
+                                           name="login"
+                                           class="kgrn-input"
+                                           t-att-value="login if login else ''"
+                                           placeholder="you@company.com"
+                                           autofocus="autofocus"
+                                           required="required"/>
+                                </div>
+
+                                <div class="kgrn-field-group">
+                                    <label for="password">Password</label>
+                                    <input type="password"
+                                           id="password"
+                                           name="password"
+                                           class="kgrn-input"
+                                           placeholder="••••••••"
+                                           required="required"
+                                           autocomplete="current-password"/>
+                                </div>
+
+                                <button type="submit" class="kgrn-btn-login">
+                                    Sign In
+                                </button>
+
+                            </form>
+
+                            <!-- Superuser link (only shown in dev/debug context) -->
+                            <t t-if="debug">
+                                <div class="kgrn-superuser-link">
+                                    <a href="/web/login?login=admin">Log in as superuser</a>
+                                </div>
+                            </t>
+
+                        </div>
+                    </div>
+
+                </div>
+
+            </body>
+        </html>
+    </template>
+
+</odoo>

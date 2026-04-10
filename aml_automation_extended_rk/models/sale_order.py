@@ -7,7 +7,7 @@ class SaleOrder(models.Model):
     kyc_type = fields.Selection([
         ('entity', 'Entity'),
         ('individual', 'Individual'),
-    ], string='KYC Type', tracking=True)
+    ], string='KYC Type', tracking=True, required=True)
 
     aml_request_ids = fields.One2many('aml.request', 'sale_order_id', string='AML Requests')
     aml_request_count = fields.Integer(compute='_compute_aml_request_count', string='AML Requests')

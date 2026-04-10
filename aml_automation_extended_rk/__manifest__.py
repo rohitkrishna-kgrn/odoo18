@@ -25,6 +25,7 @@
         'data/aml_sequences.xml',
         'data/aml_mail_templates.xml',
         'data/aml_cron.xml',
+        'report/aml_request_report.xml',
         'views/aml_request_views.xml',
         'views/wizard_views.xml',
         'views/sale_order_views.xml',

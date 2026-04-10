@@ -1,6 +1,6 @@
 <odoo>
   <!-- Main Helpdesk Menu -->
-  <menuitem id="menu_helpdesk_root" name="Helpdesk" sequence="10" web_icon="helpdesk_rk,static/description/icon.png"/>
+  <menuitem id="menu_helpdesk_root" name="Helpdesk" sequence="10" web_icon="helpdesk_rk,static/description/icon.png"/>web_icon="helpdesk_rk,static/description/icon.png"/>
 
   <!-- Support/Admins: All tickets -->
   <record id="action_helpdesk_ticket_all" model="ir.actions.act_window">

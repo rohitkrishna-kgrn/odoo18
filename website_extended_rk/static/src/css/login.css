@@ -1,0 +1,270 @@
+/* ============================================================
+   KGRN Custom Login Page
+   ============================================================ */
+
+/* Reset */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* ── Page shell ─────────────────────────────────────────── */
+.kgrn-login-body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    display: flex;
+    align-items: stretch;
+}
+
+.kgrn-login-wrapper {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+}
+
+/* ── Left brand panel ───────────────────────────────────── */
+.kgrn-brand-panel {
+    flex: 0 0 42%;
+    background: linear-gradient(160deg, #0d2b45 0%, #1a4f72 60%, #1e6fa5 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+/* subtle decorative circles */
+.kgrn-brand-panel::before,
+.kgrn-brand-panel::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.08;
+    background: #ffffff;
+}
+.kgrn-brand-panel::before {
+    width: 420px;
+    height: 420px;
+    top: -120px;
+    right: -120px;
+}
+.kgrn-brand-panel::after {
+    width: 280px;
+    height: 280px;
+    bottom: -80px;
+    left: -80px;
+}
+
+.kgrn-brand-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    height: 100%;
+    justify-content: space-between;
+    padding: 2rem 0;
+}
+
+.kgrn-logo-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.kgrn-company-logo {
+    width: 140px;
+    height: auto;
+    object-fit: contain;
+    drop-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.kgrn-company-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.kgrn-company-tagline {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.65);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.kgrn-brand-footer p {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Right form panel ───────────────────────────────────── */
+.kgrn-form-panel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+    background: #f0f2f5;
+}
+
+.kgrn-form-card {
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.10);
+    padding: 2.75rem 2.5rem;
+}
+
+/* ── Form header ────────────────────────────────────────── */
+.kgrn-form-header {
+    margin-bottom: 2rem;
+}
+
+.kgrn-form-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #0d2b45;
+    margin-bottom: 0.35rem;
+}
+
+.kgrn-form-header p {
+    font-size: 0.95rem;
+    color: #6b7280;
+}
+
+/* ── Alerts ─────────────────────────────────────────────── */
+.kgrn-alert {
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 1.25rem;
+}
+
+/* ── Form fields ────────────────────────────────────────── */
+.kgrn-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.kgrn-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.kgrn-field-group label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.kgrn-input {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border: 1.5px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #111827;
+    background: #fafafa;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+}
+
+.kgrn-input:focus {
+    border-color: #1a4f72;
+    box-shadow: 0 0 0 3px rgba(26, 79, 114, 0.12);
+    background: #ffffff;
+}
+
+.kgrn-input::placeholder {
+    color: #9ca3af;
+}
+
+/* ── Submit button ──────────────────────────────────────── */
+.kgrn-btn-login {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background: linear-gradient(135deg, #0d2b45, #1a4f72);
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s, transform 0.15s;
+    margin-top: 0.5rem;
+}
+
+.kgrn-btn-login:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+}
+
+.kgrn-btn-login:active {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* ── Superuser link ─────────────────────────────────────── */
+.kgrn-superuser-link {
+    text-align: center;
+    margin-top: 1.25rem;
+}
+
+.kgrn-superuser-link a {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    text-decoration: none;
+}
+
+.kgrn-superuser-link a:hover {
+    color: #1a4f72;
+    text-decoration: underline;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .kgrn-login-wrapper {
+        flex-direction: column;
+    }
+
+    .kgrn-brand-panel {
+        flex: 0 0 auto;
+        padding: 2.5rem 1.5rem;
+        min-height: 220px;
+    }
+
+    .kgrn-brand-inner {
+        padding: 0;
+        gap: 1rem;
+    }
+
+    .kgrn-brand-footer {
+        display: none;
+    }
+
+    .kgrn-company-logo {
+        width: 100px;
+    }
+
+    .kgrn-company-name {
+        font-size: 1.5rem;
+    }
+
+    .kgrn-form-panel {
+        padding: 2rem 1rem;
+    }
+
+    .kgrn-form-card {
+        padding: 2rem 1.5rem;
+    }
+}
