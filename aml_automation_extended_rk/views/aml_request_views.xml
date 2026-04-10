@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- =====================================================================
+         AML Request Form View
+    ====================================================================== -->
+    <record id="view_aml_request_form" model="ir.ui.view">
+        <field name="name">aml.request.form</field>
+        <field name="model">aml.request</field>
+        <field name="arch" type="xml">
+            <form string="AML Request">
+                <header>
+                    <!-- Resend KYC Email -->
+                    <button name="action_resend_kyc_email" type="object"
+                        string="Resend KYC Form Email"
+                        class="btn-secondary"
+                        invisible="state not in ('draft', 'new')"
+                        groups="aml_automation_extended_rk.group_aml_manager"/>
+
+                    <!-- Manager Actions -->
+                    <button name="action_accept" type="object" string="Accept"
+                        class="btn-primary"
+                        invisible="state != 'new'"
+                        groups="aml_automation_extended_rk.group_aml_manager"/>
+                    <button name="action_bypass" type="object" string="Bypass (No AML Required)"
+                        class="btn-warning"
+                        invisible="state != 'new'"
+                        confirm="Mark this request as Bypassed? Salesperson and management will be notified."
+                        groups="aml_automation_extended_rk.group_aml_manager"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                        class="btn-danger"
+                        invisible="state != 'new'"
+                        confirm="Cancel this AML request? Salesperson and management will be notified."
+                        groups="aml_automation_extended_rk.group_aml_manager"/>
+
+                    <!-- AML User Actions -->
+                    <button name="action_start_progress" type="object" string="Start Investigation"
+                        class="btn-primary"
+                        invisible="state != 'accepted'"
+                        groups="aml_automation_extended_rk.group_aml_user"/>
+                    <button name="action_no_hit" type="object" string="No HIT"
+                        class="btn-success"
+                        invisible="state != 'in_progress'"
+                        confirm="Confirm no HIT detected? This will mark the record as completed."
+                        groups="aml_automation_extended_rk.group_aml_user"/>
+                    <button name="action_hit_detected" type="object" string="HIT Detected"
+                        class="btn-danger"
+                        invisible="state != 'in_progress'"
+                        groups="aml_automation_extended_rk.group_aml_user"/>
+                    <button name="action_approve" type="object" string="Approve"
+                        class="btn-success"
+                        invisible="state != 'additional_info'"
+                        groups="aml_automation_extended_rk.group_aml_user"/>
+                    <button name="action_reject" type="object" string="Reject"
+                        class="btn-danger"
+                        invisible="state != 'additional_info'"
+                        confirm="Reject this AML request? The pipeline record will be closed."
+                        groups="aml_automation_extended_rk.group_aml_user"/>
+
+                    <field name="state" widget="statusbar"
+                        statusbar_visible="draft,new,accepted,in_progress,no_hit,hit_detected,additional_info,approved"/>
+                </header>
+
+                <sheet>
+                    <!-- Ribbons (top-right corner) -->
+                    <widget name="web_ribbon" title="No HIT Detected" bg_color="bg-success"
+                        invisible="state != 'no_hit'"/>
+                    <widget name="web_ribbon" title="HIT Detected" bg_color="bg-danger"
+                        invisible="state not in ('hit_detected', 'additional_info')"/>
+                    <widget name="web_ribbon" title="Approved" bg_color="bg-success"
+                        invisible="state != 'approved'"/>
+                    <widget name="web_ribbon" title="Rejected" bg_color="bg-danger"
+                        invisible="state != 'rejected'"/>
+                    <widget name="web_ribbon" title="Bypassed" bg_color="bg-warning"
+                        invisible="state != 'bypassed'"/>
+                    <widget name="web_ribbon" title="Cancelled" bg_color="bg-secondary"
+                        invisible="state != 'cancelled'"/>
+
+                    <!-- Smart Buttons -->
+                    <div class="oe_button_box" name="button_box">
+                        <button type="object" name="action_open_sale_order"
+                            class="oe_stat_button" icon="fa-shopping-cart"
+                            invisible="not sale_order_id">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">Sale Order</span>
+                                <field name="sale_order_id" widget="char"/>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Request Details">
+                            <field name="partner_id" readonly="1"/>
+                            <field name="kyc_type" readonly="1"/>
+                            <field name="sale_order_id" readonly="1"/>
+                            <field name="aml_user_id"
+                                groups="aml_automation_extended_rk.group_aml_manager"/>
+                        </group>
+                        <group string="Timeline">
+                            <field name="deadline"/>
+                            <field name="start_datetime" readonly="1"/>
+                            <field name="signed_date" readonly="1"
+                                invisible="not signed_date"/>
+                            <field name="additional_submitted_date" readonly="1"
+                                invisible="not additional_submitted_date"/>
+                        </group>
+                    </group>
+
+                    <!-- Signatory info (show when available) -->
+                    <group string="Client Signature" invisible="not signatory_name">
+                        <field name="signatory_name" readonly="1"/>
+                        <field name="signature_data" widget="image" readonly="1"
+                            invisible="not signature_data"
+                            options="{'size': [300, 100]}"/>
+                    </group>
+
+                    <notebook>
+
+                        <!-- ====================== KYC Entity Tab ====================== -->
+                        <page string="KYC – Entity" name="kyc_entity"
+                            invisible="kyc_type != 'entity'">
+                            <group string="Client Information">
+                                <field name="ent_entity_name"/>
+                                <field name="ent_legal_type"/>
+                                <field name="ent_trading_name"/>
+                                <field name="ent_date_of_incorporation"/>
+                                <field name="ent_place_of_incorporation"/>
+                                <field name="ent_registration_authority"/>
+                                <field name="ent_license_number"/>
+                                <field name="ent_license_expiry"/>
+                                <field name="ent_registered_address"/>
+                                <field name="ent_business_address"/>
+                            </group>
+                            <group string="Industry and Nature of Business">
+                                <field name="ent_industry_type"/>
+                                <field name="ent_nature_of_business"/>
+                                <field name="ent_source_of_wealth"/>
+                                <field name="ent_ownership_complexity"/>
+                                <field name="ent_countries_commercial"/>
+                                <field name="ent_high_risk_jurisdiction"/>
+                            </group>
+                            <group string="Channel of Transaction">
+                                <field name="ent_channel_cash"/>
+                                <field name="ent_channel_wire"/>
+                                <field name="ent_channel_cheque"/>
+                                <field name="ent_channel_credit"/>
+                                <field name="ent_channel_crypto"/>
+                                <field name="ent_channel_debit"/>
+                            </group>
+                            <group string="Cash Payment Transactions">
+                                <field name="ent_cash_less_50k"/>
+                                <field name="ent_cash_more_50k"/>
+                                <field name="ent_cash_na"/>
+                            </group>
+                            <group string="Trade Partners">
+                                <field name="ent_top5_suppliers"/>
+                                <field name="ent_top5_customers"/>
+                            </group>
+                            <group string="Contact Person">
+                                <field name="ent_contact_name"/>
+                                <field name="ent_contact_email"/>
+                                <field name="ent_contact_mobile"/>
+                                <field name="ent_manager_name"/>
+                            </group>
+                            <group string="Other Information">
+                                <field name="ent_parent_company_name"/>
+                                <field name="ent_parent_company_address"/>
+                                <field name="ent_international_sanctions"/>
+                            </group>
+                            <group string="PEP Declarations">
+                                <field name="ent_pep_shareholder"/>
+                                <field name="ent_pep_director"/>
+                                <field name="ent_pep_owner"/>
+                                <field name="ent_pep_local_sponsor"/>
+                                <field name="ent_pep_key_management"/>
+                                <field name="ent_pep_officer"/>
+                                <field name="ent_pep_agent"/>
+                            </group>
+                        </page>
+
+                        <!-- ====================== KYC Individual Tab ====================== -->
+                        <page string="KYC – Individual" name="kyc_individual"
+                            invisible="kyc_type != 'individual'">
+                            <group string="Personal Information">
+                                <field name="ind_full_name"/>
+                                <field name="ind_gender"/>
+                                <field name="ind_nationality"/>
+                                <field name="ind_date_of_birth"/>
+                                <field name="ind_place_of_birth"/>
+                                <field name="ind_id_type"/>
+                                <field name="ind_id_type_other"
+                                    invisible="ind_id_type != 'other'"/>
+                                <field name="ind_id_number"/>
+                                <field name="ind_issuing_country"/>
+                                <field name="ind_valid_until"/>
+                            </group>
+                            <group string="Contact and Residential Details">
+                                <field name="ind_permanent_address"/>
+                                <field name="ind_uae_address"/>
+                                <field name="ind_city"/>
+                                <field name="ind_country"/>
+                                <field name="ind_mobile"/>
+                                <field name="ind_email"/>
+                                <field name="ind_proof_address_type"/>
+                                <field name="ind_proof_address_other"
+                                    invisible="ind_proof_address_type != 'other'"/>
+                                <field name="ind_document_date"/>
+                            </group>
+                            <group string="Identification and Verification">
+                                <field name="ind_emirates_id_attached"/>
+                                <field name="ind_passport_attached"/>
+                                <field name="ind_proof_address_attached"/>
+                                <field name="ind_other_id_attached"/>
+                                <field name="ind_verified_portal"/>
+                                <field name="ind_verified_physically"/>
+                                <field name="ind_video_kyc"/>
+                            </group>
+                            <group string="Nature of Relationship">
+                                <field name="ind_purpose_of_relationship"/>
+                                <field name="ind_expected_transactions"/>
+                                <field name="ind_monthly_turnover"/>
+                                <field name="ind_source_of_funds"/>
+                                <field name="ind_hold_shares_behalf"/>
+                                <field name="ind_high_risk_jurisdiction"/>
+                                <field name="ind_anticipated_origin"/>
+                            </group>
+                        </page>
+
+                        <!-- ====================== UBO Tab ====================== -->
+                        <page string="UBO" name="ubo">
+                            <group string="Personal Information">
+                                <field name="ubo_full_name"/>
+                                <field name="ubo_gender"/>
+                                <field name="ubo_nationality"/>
+                                <field name="ubo_date_of_birth"/>
+                                <field name="ubo_place_of_birth"/>
+                                <field name="ubo_dual_citizenship"/>
+                                <field name="ubo_dual_citizenship_detail"
+                                    invisible="ubo_dual_citizenship != 'yes'"/>
+                                <field name="ubo_source_of_income"/>
+                                <field name="ubo_hold_shares_behalf"/>
+                                <field name="ubo_high_risk_jurisdiction"/>
+                            </group>
+                            <group string="Residential Details">
+                                <field name="ubo_home_country_address"/>
+                                <field name="ubo_uae_address"/>
+                                <field name="ubo_mobile"/>
+                                <field name="ubo_email"/>
+                                <field name="ubo_high_net_worth"/>
+                            </group>
+                            <group string="Bank Details">
+                                <field name="ubo_bank_name"/>
+                                <field name="ubo_bank_branch_address"/>
+                                <field name="ubo_iban"/>
+                            </group>
+                        </page>
+
+                        <!-- ====================== Directors Tab ====================== -->
+                        <page string="Directors / Managers" name="directors">
+                            <field name="director_line_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="full_name" required="1"/>
+                                    <field name="position"/>
+                                    <field name="nationality"/>
+                                    <field name="id_passport_no"/>
+                                    <field name="appointment_date"/>
+                                    <field name="resignation_date"/>
+                                    <field name="status"/>
+                                </list>
+                            </field>
+                            <group>
+                                <field name="director_declaration_date"
+                                    string="Register accurate as of"/>
+                            </group>
+                        </page>
+
+                        <!-- ====================== Shareholders Tab ====================== -->
+                        <page string="Shareholders" name="shareholders">
+                            <field name="shareholder_line_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="shareholder_name" required="1"/>
+                                    <field name="nationality"/>
+                                    <field name="shareholder_type"/>
+                                    <field name="passport_no"/>
+                                    <field name="share_class"/>
+                                    <field name="num_shares"/>
+                                    <field name="percentage_holding"/>
+                                    <field name="date_of_entry"/>
+                                </list>
+                            </field>
+                            <group>
+                                <field name="shareholder_declaration_date"
+                                    string="Register accurate as of"/>
+                            </group>
+                        </page>
+
+                        <!-- ====================== PI Documents Tab ====================== -->
+                        <page string="Preliminary Information" name="pi_documents">
+                            <field name="document_line_ids">
+                                <list>
+                                    <field name="sequence" optional="hide"/>
+                                    <field name="doc_name" string="Document"/>
+                                    <field name="is_mandatory" string="Mandatory"/>
+                                    <field name="tooltip" string="Guidance" optional="show"/>
+                                    <field name="attachment_ids" widget="many2many_tags"
+                                        string="Files"/>
+                                    <field name="is_submitted"/>
+                                </list>
+                                <form>
+                                    <group>
+                                        <field name="doc_name" readonly="1"/>
+                                        <field name="is_mandatory" readonly="1"/>
+                                        <field name="tooltip" readonly="1"/>
+                                    </group>
+                                    <field name="attachment_ids" widget="many2many_binary"/>
+                                </form>
+                            </field>
+                        </page>
+
+                        <!-- ====================== HIT Documents Tab ====================== -->
+                        <page string="HIT Document Requests" name="hit_docs"
+                            invisible="state not in ('hit_detected','additional_info','approved','rejected')">
+                            <field name="hit_document_ids">
+                                <list>
+                                    <field name="sequence" optional="hide"/>
+                                    <field name="document_name"/>
+                                    <field name="submitted"/>
+                                    <field name="attachment_ids" widget="many2many_tags"
+                                        string="Uploaded Files"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- ====================== Additional Information Tab ====================== -->
+                        <page string="Additional Information" name="additional_info"
+                            invisible="not additional_info_enabled">
+                            <group>
+                                <field name="additional_submitted_date" readonly="1"/>
+                                <field name="additional_info_text" readonly="1" string="Client Notes"/>
+                            </group>
+                        </page>
+
+                    </notebook>
+                </sheet>
+
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- =====================================================================
+         AML Request List View
+    ====================================================================== -->
+    <record id="view_aml_request_list" model="ir.ui.view">
+        <field name="name">aml.request.list</field>
+        <field name="model">aml.request</field>
+        <field name="arch" type="xml">
+            <list string="AML Requests" decoration-danger="state in ('hit_detected','rejected','cancelled')"
+                  decoration-success="state in ('no_hit','approved','bypassed')"
+                  decoration-warning="state == 'additional_info'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="kyc_type"/>
+                <field name="sale_order_id"/>
+                <field name="aml_user_id"/>
+                <field name="deadline"/>
+                <field name="start_datetime" optional="hide"/>
+                <field name="state" widget="badge"
+                    decoration-success="state in ('no_hit','approved','bypassed')"
+                    decoration-danger="state in ('hit_detected','rejected','cancelled')"
+                    decoration-warning="state in ('new','additional_info')"
+                    decoration-info="state in ('accepted','in_progress')"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- =====================================================================
+         AML Request Kanban View (Pipeline for AML Users)
+    ====================================================================== -->
+    <record id="view_aml_request_kanban" model="ir.ui.view">
+        <field name="name">aml.request.kanban</field>
+        <field name="model">aml.request</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state"
+                    group_create="false"
+                    group_delete="false"
+                    group_edit="false"
+                    quick_create="false">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="kyc_type"/>
+                <field name="state"/>
+                <field name="deadline"/>
+                <field name="aml_user_id"/>
+                <field name="create_date"/>
+                <templates>
+                    <t t-name="card">
+                        <!-- State colour bar -->
+                        <div t-attf-class="aml-kanban-bar
+                            #{ record.state.raw_value === 'no_hit' ? 'bar-success' :
+                               record.state.raw_value === 'approved' ? 'bar-success' :
+                               record.state.raw_value === 'hit_detected' ? 'bar-danger' :
+                               record.state.raw_value === 'rejected' ? 'bar-danger' :
+                               record.state.raw_value === 'in_progress' ? 'bar-primary' :
+                               record.state.raw_value === 'additional_info' ? 'bar-warning' :
+                               record.state.raw_value === 'bypassed' ? 'bar-muted' :
+                               record.state.raw_value === 'cancelled' ? 'bar-muted' : 'bar-info' }"/>
+
+                        <!-- Header: client name + avatar -->
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div class="fw-bold text-truncate flex-grow-1 me-2"
+                                 style="font-size:14px;color:#1c2340;">
+                                <field name="partner_id"/>
+                            </div>
+                            <field name="aml_user_id" widget="many2one_avatar_user" readonly="1"/>
+                        </div>
+
+                        <!-- AML Reference -->
+                        <div class="text-muted mb-2" style="font-size:12px;">
+                            <i class="fa fa-hashtag me-1"/>
+                            <field name="name"/>
+                        </div>
+
+                        <!-- KYC Type badge -->
+                        <div class="mb-2">
+                            <span t-if="record.kyc_type.raw_value === 'entity'"
+                                  class="badge rounded-pill"
+                                  style="background:#1a237e;color:#fff;font-size:11px;">
+                                Entity
+                            </span>
+                            <span t-if="record.kyc_type.raw_value === 'individual'"
+                                  class="badge rounded-pill"
+                                  style="background:#0277bd;color:#fff;font-size:11px;">
+                                Individual
+                            </span>
+                        </div>
+
+                        <!-- Deadline -->
+                        <div t-if="record.deadline.raw_value"
+                             class="d-flex align-items-center gap-1"
+                             style="font-size:12px;color:#6b7a99;">
+                            <i class="fa fa-clock-o"/>
+                            <field name="deadline" widget="date"/>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- =====================================================================
+         AML Request Search View
+    ====================================================================== -->
+    <record id="view_aml_request_search" model="ir.ui.view">
+        <field name="name">aml.request.search</field>
+        <field name="model">aml.request</field>
+        <field name="arch" type="xml">
+            <search string="Search AML Requests">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="sale_order_id"/>
+                <field name="aml_user_id"/>
+                <separator/>
+                <filter string="New Requests" name="filter_new" domain="[('state','=','new')]"/>
+                <filter string="In Progress" name="filter_progress" domain="[('state','=','in_progress')]"/>
+                <filter string="HIT Detected" name="filter_hit" domain="[('state','=','hit_detected')]"/>
+                <filter string="Additional Info" name="filter_additional" domain="[('state','=','additional_info')]"/>
+                <filter string="No HIT" name="filter_no_hit" domain="[('state','=','no_hit')]"/>
+                <filter string="Approved" name="filter_approved" domain="[('state','=','approved')]"/>
+                <filter string="Bypassed" name="filter_bypassed" domain="[('state','=','bypassed')]"/>
+                <filter string="Cancelled" name="filter_cancelled" domain="[('state','=','cancelled')]"/>
+                <separator/>
+                <filter string="Entity" name="filter_entity" domain="[('kyc_type','=','entity')]"/>
+                <filter string="Individual" name="filter_individual" domain="[('kyc_type','=','individual')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="group_state" context="{'group_by':'state'}"/>
+                    <filter string="KYC Type" name="group_kyc" context="{'group_by':'kyc_type'}"/>
+                    <filter string="AML Officer" name="group_user" context="{'group_by':'aml_user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_aml_new_requests" model="ir.actions.act_window">
+        <field name="name">New AML Requests</field>
+        <field name="res_model">aml.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state','=','new')]</field>
+        <field name="context">{'search_default_filter_new': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No new AML requests</p>
+            <p>New AML requests appear here once clients submit their KYC form.</p>
+        </field>
+    </record>
+
+    <record id="action_aml_pipeline" model="ir.actions.act_window">
+        <field name="name">AML Pipeline</field>
+        <field name="res_model">aml.request</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('state','not in',('draft',))]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No AML requests in pipeline</p>
+        </field>
+    </record>
+
+    <record id="action_aml_all" model="ir.actions.act_window">
+        <field name="name">All AML Records</field>
+        <field name="res_model">aml.request</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No AML records found</p>
+        </field>
+    </record>
+
+</odoo>

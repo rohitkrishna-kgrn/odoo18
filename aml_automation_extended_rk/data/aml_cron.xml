@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Every 2 days: pending AML records to AML managers -->
+        <record id="cron_aml_pending_to_manager" model="ir.cron">
+            <field name="name">AML – Send Pending Records to AML Manager (Every 2 Days)</field>
+            <field name="model_id" ref="aml_automation_extended_rk.model_aml_request"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_pending_to_aml_manager()</field>
+            <field name="interval_number">2</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Weekly: pending AML records to management -->
+        <record id="cron_aml_pending_to_management" model="ir.cron">
+            <field name="name">AML – Send Pending Records to Management (Weekly)</field>
+            <field name="model_id" ref="aml_automation_extended_rk.model_aml_request"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_pending_to_management()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">weeks</field>
+            <field name="active" eval="True"/>
+        </record>
+
+    </data>
+</odoo>

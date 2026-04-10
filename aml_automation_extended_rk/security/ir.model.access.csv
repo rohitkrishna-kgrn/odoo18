@@ -1,0 +1,14 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_aml_request_manager,aml.request.manager,model_aml_request,aml_automation_extended_rk.group_aml_manager,1,1,1,1
+access_aml_request_user,aml.request.user,model_aml_request,aml_automation_extended_rk.group_aml_user,1,1,0,0
+access_aml_request_director_manager,aml.request.director.manager,model_aml_request_director,aml_automation_extended_rk.group_aml_manager,1,1,1,1
+access_aml_request_director_user,aml.request.director.user,model_aml_request_director,aml_automation_extended_rk.group_aml_user,1,1,1,0
+access_aml_request_shareholder_manager,aml.request.shareholder.manager,model_aml_request_shareholder,aml_automation_extended_rk.group_aml_manager,1,1,1,1
+access_aml_request_shareholder_user,aml.request.shareholder.user,model_aml_request_shareholder,aml_automation_extended_rk.group_aml_user,1,1,1,0
+access_aml_request_document_manager,aml.request.document.manager,model_aml_request_document,aml_automation_extended_rk.group_aml_manager,1,1,1,1
+access_aml_request_document_user,aml.request.document.user,model_aml_request_document,aml_automation_extended_rk.group_aml_user,1,1,1,0
+access_aml_hit_document_manager,aml.hit.document.manager,model_aml_hit_document,aml_automation_extended_rk.group_aml_manager,1,1,1,1
+access_aml_hit_document_user,aml.hit.document.user,model_aml_hit_document,aml_automation_extended_rk.group_aml_user,1,1,1,0
+access_aml_hit_wizard_user,aml.hit.wizard.user,model_aml_hit_wizard,aml_automation_extended_rk.group_aml_user,1,1,1,1
+access_aml_hit_wizard_line_user,aml.hit.wizard.line.user,model_aml_hit_wizard_line,aml_automation_extended_rk.group_aml_user,1,1,1,1
+access_aml_user_manual_wizard_user,aml.user.manual.wizard.user,model_aml_user_manual_wizard,aml_automation_extended_rk.group_aml_user,1,1,1,1

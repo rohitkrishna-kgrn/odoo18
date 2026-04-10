@@ -1,0 +1,605 @@
+/* ============================================================
+   AML Portal – Premium KYC Form Styles
+   ============================================================ */
+
+/* ---- Reset / Base ---- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+    --primary:     #1a237e;
+    --primary-lt:  #283593;
+    --accent:      #1565c0;
+    --danger:      #c62828;
+    --success:     #2e7d32;
+    --warn:        #f57f17;
+    --bg:          #f4f6fb;
+    --card:        #ffffff;
+    --border:      #dde3f0;
+    --text:        #1c2340;
+    --muted:       #6b7a99;
+    --radius:      10px;
+    --shadow:      0 4px 24px rgba(26,35,126,.08);
+    --transition:  0.32s cubic-bezier(.4,0,.2,1);
+}
+
+.aml-portal-body {
+    font-family: 'Inter', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* ============================================================
+   Layout
+   ============================================================ */
+#aml-form-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ---- Sidebar ---- */
+#aml-sidebar {
+    width: 240px;
+    min-height: 100vh;
+    background: linear-gradient(160deg, var(--primary) 0%, #0d47a1 100%);
+    padding: 32px 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 4px 0 24px rgba(26,35,126,.18);
+}
+
+.aml-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 36px;
+    padding: 12px;
+    background: rgba(255,255,255,0.95);
+    border-radius: 8px;
+}
+.aml-brand-logo {
+    max-height: 52px;
+    max-width: 160px;
+    object-fit: contain;
+    display: block;
+}
+
+#aml-steps-nav { display: flex; flex-direction: column; gap: 4px; }
+
+.aml-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: default;
+    transition: background var(--transition);
+    color: rgba(255,255,255,.65);
+}
+.aml-step.active   { background: rgba(255,255,255,.18); color: #fff; font-weight: 600; }
+.aml-step.done     { color: rgba(255,255,255,.9); }
+.aml-step.done .step-num { background: var(--success); border-color: var(--success); }
+
+.step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    flex-shrink: 0;
+    transition: background var(--transition), border-color var(--transition);
+}
+.aml-step.active .step-num { background: #fff; color: var(--primary); border-color: #fff; }
+.step-label { font-size: 13px; }
+
+/* ---- Main Content ---- */
+#aml-main {
+    margin-left: 240px;
+    flex: 1;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* ---- Progress Bar ---- */
+#aml-progress-bar-wrap {
+    height: 4px;
+    background: var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+#aml-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #42a5f5);
+    width: 0%;
+    transition: width var(--transition);
+}
+
+/* ============================================================
+   Pages (Animated slide)
+   ============================================================ */
+.aml-page {
+    display: none;
+    padding: 40px 48px;
+    animation: slideIn var(--transition) both;
+    flex: 1;
+    width: 100%;
+}
+.aml-page.active { display: block; }
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Page Header ---- */
+.aml-page-header {
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border);
+}
+.aml-page-header h2 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 6px;
+}
+.aml-page-subtitle { color: var(--muted); font-size: 14px; }
+
+/* ============================================================
+   Form Sections and Fields
+   ============================================================ */
+.aml-form-section {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+}
+.aml-form-section h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+.aml-hint { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+.aml-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 24px;
+}
+.aml-field-full { grid-column: 1 / -1; }
+
+.aml-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.aml-field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+.aml-field input[type="text"],
+.aml-field input[type="email"],
+.aml-field input[type="tel"],
+.aml-field input[type="date"],
+.aml-field input[type="number"],
+.aml-field textarea,
+.aml-field select {
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    background: #fafbff;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    width: 100%;
+}
+.aml-field input:focus,
+.aml-field textarea:focus,
+.aml-field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(21,101,192,.12);
+    background: #fff;
+}
+.aml-field input.invalid,
+.aml-field textarea.invalid,
+.aml-field select.invalid {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(198,40,40,.10);
+}
+.aml-field textarea { resize: vertical; min-height: 72px; }
+
+/* ---- Radio Groups ---- */
+.aml-radio-group {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    padding: 8px 0;
+}
+.aml-radio-group label {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 400; cursor: pointer; font-size: 14px;
+}
+.aml-radio-group input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; }
+
+/* ---- Checkbox Grid ---- */
+.aml-checkbox-grid {
+    display: flex; flex-wrap: wrap; gap: 12px 24px;
+}
+.aml-checkbox {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 400; cursor: pointer; font-size: 14px;
+    padding: 8px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    transition: border-color var(--transition), background var(--transition);
+}
+.aml-checkbox:hover { border-color: var(--accent); background: #f0f4ff; }
+.aml-checkbox input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+
+/* ---- PEP / Verify Grids ---- */
+.aml-pep-grid, .aml-verify-grid {
+    display: flex; flex-direction: column; gap: 0;
+    border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+.aml-pep-row, .aml-verify-row {
+    display: flex; align-items: center;
+    padding: 12px 18px; gap: 20px;
+    border-bottom: 1px solid var(--border);
+}
+.aml-pep-row:last-child, .aml-verify-row:last-child { border-bottom: none; }
+.aml-pep-row span, .aml-verify-row span {
+    flex: 1; font-size: 14px; color: var(--text);
+}
+.aml-pep-row label, .aml-verify-row label {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 400; cursor: pointer; font-size: 14px;
+}
+.aml-pep-row:nth-child(odd), .aml-verify-row:nth-child(odd) { background: #fafbff; }
+
+/* ============================================================
+   Required Star
+   ============================================================ */
+.req-star { color: var(--danger); margin-left: 2px; }
+
+/* ============================================================
+   Instructions Page
+   ============================================================ */
+.aml-instructions-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.aml-instruction-item {
+    display: flex;
+    gap: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(26,35,126,.04);
+}
+.aml-instruction-item .inst-num {
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px;
+}
+.aml-instruction-item strong { font-weight: 700; color: var(--primary); display: block; margin-bottom: 6px; }
+.aml-instruction-item p { color: var(--muted); font-size: 13px; margin: 0; }
+
+/* ============================================================
+   Tables (Directors / Shareholders)
+   ============================================================ */
+.aml-table-wrap { overflow-x: auto; border-radius: 8px; border: 1.5px solid var(--border); }
+.aml-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px;
+}
+.aml-table thead { background: var(--primary); color: #fff; }
+.aml-table thead th { padding: 12px 10px; text-align: left; font-weight: 600; white-space: nowrap; }
+.aml-table tbody tr { border-bottom: 1px solid var(--border); transition: background var(--transition); }
+.aml-table tbody tr:nth-child(even) { background: #f8faff; }
+.aml-table tbody tr:hover { background: #eef2ff; }
+.aml-table td { padding: 8px 8px; }
+.aml-table td input, .aml-table td select {
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: 6px 8px; font-size: 12px; width: 100%;
+    background: #fff; color: var(--text);
+}
+.aml-table td input:focus, .aml-table td select:focus {
+    outline: none; border-color: var(--accent);
+}
+.aml-table .del-row-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--danger); font-size: 16px; padding: 4px 8px;
+}
+.aml-table .del-row-btn:hover { background: #fff0f0; border-radius: 4px; }
+
+/* ============================================================
+   Document Upload (PI List)
+   ============================================================ */
+.aml-doc-item {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.aml-doc-item:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(21,101,192,.08); }
+.aml-doc-item.uploaded { border-color: var(--success); }
+.aml-doc-num {
+    width: 28px; height: 28px; flex-shrink: 0;
+    background: var(--primary); color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    margin-top: 2px;
+}
+.aml-doc-info { flex: 1; }
+.aml-doc-name {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    cursor: help;
+    text-decoration: underline dotted var(--muted);
+    text-underline-offset: 3px;
+}
+.aml-doc-badge {
+    display: inline-block; margin-left: 8px;
+    font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 100px;
+}
+.aml-doc-badge.mandatory { background: #fce4e4; color: var(--danger); }
+.aml-doc-badge.optional  { background: #e8f5e9; color: var(--success); }
+.aml-doc-badge.any-one   { background: #fff3e0; color: var(--warn); }
+.aml-doc-uploaded-names  { font-size: 12px; color: var(--success); margin-top: 4px; }
+.aml-doc-upload-btn {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 4px; flex-shrink: 0;
+}
+.aml-doc-upload-btn label {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--primary); color: #fff;
+    padding: 7px 16px; border-radius: 6px;
+    cursor: pointer; font-size: 13px; font-weight: 600;
+    transition: background var(--transition);
+}
+.aml-doc-upload-btn label:hover { background: var(--primary-lt); }
+.aml-doc-upload-btn input[type="file"] { display: none; }
+.aml-upload-status { font-size: 12px; color: var(--success); font-weight: 600; }
+
+/* ============================================================
+   Review Page
+   ============================================================ */
+.aml-review-section { margin-bottom: 24px; }
+.aml-review-section h4 {
+    font-size: 14px; font-weight: 700; color: var(--primary);
+    text-transform: uppercase; letter-spacing: .5px;
+    margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.aml-review-table { width: 100%; border-collapse: collapse; }
+.aml-review-table td {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-size: 13px; vertical-align: top;
+}
+.aml-review-table td:first-child {
+    width: 40%; font-weight: 600; color: var(--muted);
+}
+.aml-review-table td:last-child { color: var(--text); }
+
+/* ---- Declaration ---- */
+.aml-declaration-box {
+    background: #fffde7;
+    border: 1.5px solid #f9a825;
+    border-radius: 8px;
+    padding: 20px 24px;
+}
+.aml-accept-label {
+    display: flex; gap: 14px; align-items: flex-start;
+    cursor: pointer; font-size: 14px; line-height: 1.6;
+}
+.aml-accept-label input[type="checkbox"] {
+    width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;
+    accent-color: var(--accent);
+}
+
+/* ---- Signature ---- */
+.aml-signature-wrap { margin-top: 20px; }
+.aml-signature-wrap > label { font-size: 13px; font-weight: 600; margin-bottom: 10px; display: block; }
+
+.aml-sig-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    width: fit-content;
+}
+.aml-sig-tab {
+    padding: 9px 22px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    background: #f4f6fb;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition);
+}
+.aml-sig-tab.active {
+    background: var(--primary);
+    color: #fff;
+}
+.aml-sig-tab:not(:last-child) { border-right: 1.5px solid var(--border); }
+
+.aml-signature-canvas-wrap {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    background: #fafbff;
+    display: inline-block;
+}
+#aml-signature-canvas {
+    border-radius: 6px;
+    cursor: crosshair;
+    background: #fff;
+    display: block;
+    width: 600px;
+    height: 150px;
+    max-width: 100%;
+}
+.aml-sig-actions { margin-top: 10px; text-align: right; }
+
+.aml-sig-upload-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background var(--transition);
+}
+.aml-sig-upload-label:hover { background: var(--primary); }
+#sig-upload-preview img {
+    max-width: 100%;
+    max-height: 150px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    background: #fff;
+}
+
+/* ============================================================
+   Navigation Buttons
+   ============================================================ */
+.aml-nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+}
+.aml-btn-next, .aml-btn-back, .aml-btn-submit, .aml-btn-add, .aml-btn-clear {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 26px;
+    border-radius: 8px;
+    font-size: 14px; font-weight: 600;
+    border: none; cursor: pointer;
+    transition: background var(--transition), transform .15s, box-shadow var(--transition);
+}
+.aml-btn-next {
+    background: var(--primary); color: #fff;
+    box-shadow: 0 4px 12px rgba(26,35,126,.25);
+}
+.aml-btn-next:hover { background: var(--accent); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(26,35,126,.30); }
+.aml-btn-back { background: #e8eaf6; color: var(--primary); }
+.aml-btn-back:hover { background: #c5cae9; }
+.aml-btn-submit {
+    background: linear-gradient(135deg, var(--success), #43a047);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(46,125,50,.3);
+    padding: 13px 36px; font-size: 15px;
+}
+.aml-btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(46,125,50,.35); }
+.aml-btn-add {
+    background: var(--accent); color: #fff;
+    padding: 8px 18px; font-size: 13px;
+    box-shadow: 0 2px 8px rgba(21,101,192,.2);
+}
+.aml-btn-add:hover { background: var(--primary); }
+.aml-btn-clear { background: #ffebee; color: var(--danger); padding: 7px 16px; font-size: 12px; }
+.aml-btn-clear:hover { background: #ffcdd2; }
+
+/* ============================================================
+   Loading Overlay
+   ============================================================ */
+#aml-loading-overlay {
+    position: fixed; inset: 0;
+    background: rgba(255,255,255,.85);
+    backdrop-filter: blur(4px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px; z-index: 999;
+}
+#aml-loading-overlay p { font-size: 16px; color: var(--primary); font-weight: 600; }
+.aml-spinner {
+    width: 48px; height: 48px;
+    border: 4px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   Error / Confirm Pages
+   ============================================================ */
+.aml-error-page, .aml-confirm-page {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+}
+.aml-error-card, .aml-confirm-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 60px 48px;
+    text-align: center;
+    max-width: 480px;
+    box-shadow: var(--shadow);
+}
+.aml-error-icon { font-size: 56px; color: var(--warn); margin-bottom: 16px; }
+.aml-confirm-icon { font-size: 56px; color: var(--success); margin-bottom: 16px; }
+.aml-error-card h2, .aml-confirm-card h2 {
+    font-size: 22px; font-weight: 700;
+    color: var(--primary); margin-bottom: 16px;
+}
+.aml-error-card p, .aml-confirm-card p { color: var(--muted); line-height: 1.7; }
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 900px) {
+    #aml-sidebar { width: 60px; padding: 20px 10px; }
+    .aml-brand span:last-child, .step-label { display: none; }
+    #aml-main { margin-left: 60px; }
+    .aml-page { padding: 24px 20px; }
+    .aml-grid-2 { grid-template-columns: 1fr; }
+    .aml-field-full { grid-column: 1; }
+}
+@media (max-width: 600px) {
+    #aml-sidebar { display: none; }
+    #aml-main { margin-left: 0; }
+    .aml-page { padding: 16px; }
+    .aml-form-section { padding: 16px; }
+    .aml-nav-buttons { flex-direction: column-reverse; gap: 12px; }
+    .aml-btn-next, .aml-btn-back, .aml-btn-submit { width: 100%; justify-content: center; }
+}

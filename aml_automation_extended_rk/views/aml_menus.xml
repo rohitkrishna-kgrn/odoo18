@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Root AML Menu (top-level app) -->
+    <menuitem id="menu_aml_root"
+        name="AML"
+        sequence="85"
+        groups="aml_automation_extended_rk.group_aml_user"
+        web_icon="aml_automation_extended_rk,static/description/icon.png"/>
+
+    <!-- New AML Requests – Manager only -->
+    <menuitem id="menu_aml_new_requests"
+        name="New AML Requests"
+        parent="menu_aml_root"
+        action="action_aml_new_requests"
+        sequence="10"
+        groups="aml_automation_extended_rk.group_aml_manager"/>
+
+    <!-- Pipeline – AML Users and Managers -->
+    <menuitem id="menu_aml_pipeline"
+        name="AML Pipeline"
+        parent="menu_aml_root"
+        action="action_aml_pipeline"
+        sequence="20"
+        groups="aml_automation_extended_rk.group_aml_user"/>
+
+    <!-- All Records – Manager only -->
+    <menuitem id="menu_aml_all"
+        name="All Records"
+        parent="menu_aml_root"
+        action="action_aml_all"
+        sequence="30"
+        groups="aml_automation_extended_rk.group_aml_manager"/>
+
+    <!-- User Manual – All AML users -->
+    <menuitem id="menu_aml_user_manual"
+        name="User Manual"
+        parent="menu_aml_root"
+        action="aml_automation_extended_rk.action_aml_user_manual"
+        sequence="99"
+        groups="aml_automation_extended_rk.group_aml_user"/>
+
+</odoo>

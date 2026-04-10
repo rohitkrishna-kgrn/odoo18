@@ -1,0 +1,1064 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- =====================================================================
+         Base Layout for AML Portal (standalone – no website nav/footer)
+    ====================================================================== -->
+    <template id="portal_aml_layout" name="AML Portal Base Layout">
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <title>KYC / AML Form – KGRN</title>
+                <link rel="stylesheet"
+                      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"/>
+                <t t-call-assets="web.assets_frontend" t-css="true" t-js="false"/>
+                <t t-call-assets="web.assets_frontend" t-css="false" t-js="true"/>
+            </head>
+            <body class="aml-portal-body">
+                <t t-out="0"/>
+            </body>
+        </html>
+    </template>
+
+    <!-- =====================================================================
+         Expired / Invalid Token Page
+    ====================================================================== -->
+    <template id="portal_form_expired" name="AML Form – Expired">
+        <t t-call="aml_automation_extended_rk.portal_aml_layout">
+            <div class="aml-error-page">
+                <div class="aml-error-card">
+                    <div class="aml-error-icon">&#x26A0;</div>
+                    <h2>Link Expired or Invalid</h2>
+                    <p>This KYC form link is no longer valid. It may have already been submitted
+                       or the link is incorrect.</p>
+                    <p>Please contact the KGRN AML team if you need assistance.</p>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- =====================================================================
+         Confirmation Page after Submission
+    ====================================================================== -->
+    <template id="portal_form_confirmed" name="AML Form – Confirmed">
+        <t t-call="aml_automation_extended_rk.portal_aml_layout">
+            <div class="aml-confirm-page">
+                <div class="aml-confirm-card">
+                    <div class="aml-confirm-icon">&#x2714;</div>
+                    <h2>KYC Form Submitted Successfully</h2>
+                    <p>Your AML Reference Number is: <strong t-out="aml_name"/></p>
+                    <p>Thank you for submitting your KYC information. Our AML team will review
+                       your submission and contact you if additional information is required="required".</p>
+                    <p style="font-size:13px;color:#888;margin-top:24px;">
+                        Please retain your reference number for correspondence.
+                    </p>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- =====================================================================
+         Main KYC Multi-Page Form
+    ====================================================================== -->
+    <template id="portal_kyc_form" name="AML KYC Portal Form">
+        <t t-call="aml_automation_extended_rk.portal_aml_layout">
+
+        <div id="aml-form-wrapper">
+
+            <!-- Sidebar Progress -->
+            <aside id="aml-sidebar">
+                <div class="aml-brand">
+                    <img t-att-src="logo_url" class="aml-brand-logo" alt="Company Logo"
+                         onerror="this.style.display='none'"/>
+                </div>
+                <nav id="aml-steps-nav">
+                    <div class="aml-step" data-step="0">
+                        <span class="step-num">1</span>
+                        <span class="step-label">Instructions</span>
+                    </div>
+                    <div class="aml-step" data-step="1">
+                        <span class="step-num">2</span>
+                        <span class="step-label">KYC Information</span>
+                    </div>
+                    <div class="aml-step" data-step="2">
+                        <span class="step-num">3</span>
+                        <span class="step-label">UBO Details</span>
+                    </div>
+                    <div class="aml-step" data-step="3">
+                        <span class="step-num">4</span>
+                        <span class="step-label">Directors &amp; Managers</span>
+                    </div>
+                    <div class="aml-step" data-step="4">
+                        <span class="step-num">5</span>
+                        <span class="step-label">Shareholders</span>
+                    </div>
+                    <div class="aml-step" data-step="5">
+                        <span class="step-num">6</span>
+                        <span class="step-label">Documents</span>
+                    </div>
+                    <div class="aml-step" data-step="6">
+                        <span class="step-num">7</span>
+                        <span class="step-label">Review &amp; Sign</span>
+                    </div>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main id="aml-main">
+
+                <!-- Progress bar -->
+                <div id="aml-progress-bar-wrap">
+                    <div id="aml-progress-bar"></div>
+                </div>
+
+                <!-- Hidden data passed from server -->
+                <input type="hidden" id="aml-access-token" t-att-value="access_token"/>
+                <input type="hidden" id="aml-kyc-type" t-att-value="aml.kyc_type"/>
+                <script type="application/json" id="aml-directors-data">
+                    <t t-out="directors_json"/>
+                </script>
+                <script type="application/json" id="aml-shareholders-data">
+                    <t t-out="shareholders_json"/>
+                </script>
+                <script type="application/json" id="aml-doc-lines-data">
+                    <t t-out="doc_lines_json"/>
+                </script>
+
+                <!-- ===================================================
+                     Page 0: General Instructions
+                =================================================== -->
+                <section class="aml-page active" id="page-0">
+                    <div class="aml-page-header">
+                        <h2>General Instructions</h2>
+                        <p class="aml-page-subtitle">Please read carefully before proceeding</p>
+                    </div>
+                    <div class="aml-instructions-content">
+                        <div class="aml-instruction-item">
+                            <span class="inst-num">1</span>
+                            <div>
+                                <strong>Purpose of the Request</strong>
+                                <p>As part of our regulatory obligations under UAE AML/CFT requirements
+                                applicable to DNFBPs, we are required="required" to obtain and verify customer due
+                                diligence (KYC) information before commencement of the engagement.
+                                This process helps us verify the legal existence of the entity/individual,
+                                identify shareholders, directors, managers, and UBOs, understand the nature
+                                of business activities, and comply with sanctions screening and AML regulations.</p>
+                            </div>
+                        </div>
+                        <div class="aml-instruction-item">
+                            <span class="inst-num">2</span>
+                            <div>
+                                <strong>Complete All Applicable Sections</strong>
+                                <p>Please fill in all relevant sections of the KYC form carefully.</p>
+                            </div>
+                        </div>
+                        <div class="aml-instruction-item">
+                            <span class="inst-num">3</span>
+                            <div>
+                                <strong>Submit Supporting Documents</strong>
+                                <p>Please provide clear and valid supporting documents along with the completed form.</p>
+                            </div>
+                        </div>
+                        <div class="aml-instruction-item">
+                            <span class="inst-num">4</span>
+                            <div>
+                                <strong>Accuracy of Information</strong>
+                                <p>Please ensure all information provided is complete, accurate, and consistent
+                                with supporting documents. Any mismatch may result in additional queries
+                                and delays.</p>
+                            </div>
+                        </div>
+                        <div class="aml-instruction-item">
+                            <span class="inst-num">5</span>
+                            <div>
+                                <strong>Mandatory Fields</strong>
+                                <p>Fields marked with <span class="req-star">*</span> are mandatory.
+                                Where a field is not applicable, please mention "N/A".</p>
+                            </div>
+                        </div>
+                        <div class="aml-instruction-item">
+                            <span class="inst-num">6</span>
+                            <div>
+                                <strong>Review Before Submission</strong>
+                                <p>Verify that all sections are completed, all required="required" documents are attached,
+                                ownership percentages total 100%, names match legal documents, and the
+                                authorised signatory has reviewed the form.</p>
+                            </div>
+                        </div>
+                        <div class="aml-instruction-item">
+                            <span class="inst-num">7</span>
+                            <div>
+                                <strong>Sign and Return</strong>
+                                <p>The KYC form must be signed by an authorised signatory / director /
+                                shareholder / manager, as applicable.</p>
+                            </div>
+                        </div>
+                        <div class="aml-instruction-item">
+                            <span class="inst-num">8</span>
+                            <div>
+                                <strong>Additional Clarification</strong>
+                                <p>Our AML/KYC team may request further information after initial review
+                                depending on the risk assessment and regulatory requirements.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="aml-nav-buttons">
+                        <div/>
+                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                            Next Page <span>&#8250;</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ===================================================
+                     Page 1: KYC – Entity
+                =================================================== -->
+                <section class="aml-page" id="page-1-entity">
+                    <div class="aml-page-header">
+                        <h2>KYC Information – Entity</h2>
+                        <p class="aml-page-subtitle">Client entity details and compliance information</p>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Client Information</h3>
+                        <div class="aml-grid-2">
+                            <div class="aml-field">
+                                <label>Name of the Entity <span class="req-star">*</span></label>
+                                <input type="text" name="ent_entity_name" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Legal Type <span class="req-star">*</span></label>
+                                <input type="text" name="ent_legal_type" required="required"
+                                    placeholder="e.g. LLC, Free Zone, PJSC"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Trading Name (if different)</label>
+                                <input type="text" name="ent_trading_name"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Date of Incorporation <span class="req-star">*</span></label>
+                                <input type="date" name="ent_date_of_incorporation" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Place of Incorporation <span class="req-star">*</span></label>
+                                <input type="text" name="ent_place_of_incorporation" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Registration Authority <span class="req-star">*</span></label>
+                                <input type="text" name="ent_registration_authority" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>License / Registration Number <span class="req-star">*</span></label>
+                                <input type="text" name="ent_license_number" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>License Expiry <span class="req-star">*</span></label>
+                                <input type="date" name="ent_license_expiry" required="required"/>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Registered Address <span class="req-star">*</span></label>
+                                <textarea name="ent_registered_address" rows="2" required="required"></textarea>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Place of Business Address <span class="req-star">*</span></label>
+                                <textarea name="ent_business_address" rows="2" required="required"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Industry and Nature of Business</h3>
+                        <div class="aml-grid-2">
+                            <div class="aml-field">
+                                <label>Industry Type <span class="req-star">*</span></label>
+                                <input type="text" name="ent_industry_type" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Nature of Business <span class="req-star">*</span></label>
+                                <input type="text" name="ent_nature_of_business" required="required"/>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Source of Wealth <span class="req-star">*</span></label>
+                                <textarea name="ent_source_of_wealth" rows="2" required="required"></textarea>
+                            </div>
+                            <div class="aml-field">
+                                <label>Ownership Structure Complexity <span class="req-star">*</span></label>
+                                <div class="aml-radio-group">
+                                    <label><input type="radio" name="ent_ownership_complexity" value="yes" required="required"/> Yes</label>
+                                    <label><input type="radio" name="ent_ownership_complexity" value="no"/> No</label>
+                                </div>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Countries of Commercial Activities <span class="req-star">*</span></label>
+                                <textarea name="ent_countries_commercial" rows="2" required="required"
+                                    placeholder="List countries where entity conducts activities or has connections"></textarea>
+                            </div>
+                            <div class="aml-field">
+                                <label>High-Risk Jurisdiction Association <span class="req-star">*</span></label>
+                                <div class="aml-radio-group">
+                                    <label><input type="radio" name="ent_high_risk_jurisdiction" value="yes" required="required"/> Yes</label>
+                                    <label><input type="radio" name="ent_high_risk_jurisdiction" value="no"/> No</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Channel of Transaction <span class="req-star">*</span></h3>
+                        <p class="aml-hint">Select all that apply:</p>
+                        <div class="aml-checkbox-grid">
+                            <label class="aml-checkbox"><input type="checkbox" name="ent_channel_cash" value="true"/> Cash</label>
+                            <label class="aml-checkbox"><input type="checkbox" name="ent_channel_wire" value="true"/> Wire Transfers</label>
+                            <label class="aml-checkbox"><input type="checkbox" name="ent_channel_cheque" value="true"/> Cheque</label>
+                            <label class="aml-checkbox"><input type="checkbox" name="ent_channel_credit" value="true"/> Credit Cards</label>
+                            <label class="aml-checkbox"><input type="checkbox" name="ent_channel_crypto" value="true"/> Bitcoins / Cryptocurrencies</label>
+                            <label class="aml-checkbox"><input type="checkbox" name="ent_channel_debit" value="true"/> Debit Cards</label>
+                        </div>
+                        <h3 style="margin-top:20px;">Cash Payment Transactions</h3>
+                        <div class="aml-checkbox-grid">
+                            <label class="aml-checkbox"><input type="checkbox" name="ent_cash_less_50k" value="true"/> Less than 50 Thousand AED</label>
+                            <label class="aml-checkbox"><input type="checkbox" name="ent_cash_more_50k" value="true"/> More than 50 Thousand AED</label>
+                            <label class="aml-checkbox"><input type="checkbox" name="ent_cash_na" value="true"/> N/A</label>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Trade Partners</h3>
+                        <div class="aml-grid-2">
+                            <div class="aml-field aml-field-full">
+                                <label>Top 5 Supplier Countries <span class="req-star">*</span></label>
+                                <textarea name="ent_top5_suppliers" rows="2" required="required"></textarea>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Top 5 Customer Countries <span class="req-star">*</span></label>
+                                <textarea name="ent_top5_customers" rows="2" required="required"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Contact Person Details</h3>
+                        <div class="aml-grid-2">
+                            <div class="aml-field">
+                                <label>Contact Person Name <span class="req-star">*</span></label>
+                                <input type="text" name="ent_contact_name" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Contact Person Email <span class="req-star">*</span></label>
+                                <input type="email" name="ent_contact_email" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Contact Person Mobile <span class="req-star">*</span></label>
+                                <input type="tel" name="ent_contact_mobile" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Manager Name as per License <span class="req-star">*</span></label>
+                                <input type="text" name="ent_manager_name" required="required"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Other Information</h3>
+                        <div class="aml-grid-2">
+                            <div class="aml-field">
+                                <label>Parent Company / Head Office / Group Name</label>
+                                <input type="text" name="ent_parent_company_name"/>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Parent Company / Head Office Address</label>
+                                <textarea name="ent_parent_company_address" rows="2"></textarea>
+                            </div>
+                            <div class="aml-field">
+                                <label>Subject to International Sanctions? <span class="req-star">*</span></label>
+                                <div class="aml-radio-group">
+                                    <label><input type="radio" name="ent_international_sanctions" value="yes" required="required"/> Yes</label>
+                                    <label><input type="radio" name="ent_international_sanctions" value="no"/> No</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>PEP Declarations <span class="req-star">*</span></h3>
+                        <p class="aml-hint">Is any Shareholder / Owner / Director / Sponsor / Key Management Person a Politically Exposed Person (PEP), family member of a PEP, or close associate?</p>
+                        <div class="aml-pep-grid">
+                            <div class="aml-pep-row">
+                                <span>Shareholder</span>
+                                <label><input type="radio" name="ent_pep_shareholder" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ent_pep_shareholder" value="no"/> No</label>
+                            </div>
+                            <div class="aml-pep-row">
+                                <span>Director</span>
+                                <label><input type="radio" name="ent_pep_director" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ent_pep_director" value="no"/> No</label>
+                            </div>
+                            <div class="aml-pep-row">
+                                <span>Owner</span>
+                                <label><input type="radio" name="ent_pep_owner" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ent_pep_owner" value="no"/> No</label>
+                            </div>
+                            <div class="aml-pep-row">
+                                <span>Local Sponsor</span>
+                                <label><input type="radio" name="ent_pep_local_sponsor" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ent_pep_local_sponsor" value="no"/> No</label>
+                            </div>
+                            <div class="aml-pep-row">
+                                <span>Key Management Personnel</span>
+                                <label><input type="radio" name="ent_pep_key_management" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ent_pep_key_management" value="no"/> No</label>
+                            </div>
+                            <div class="aml-pep-row">
+                                <span>Officer</span>
+                                <label><input type="radio" name="ent_pep_officer" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ent_pep_officer" value="no"/> No</label>
+                            </div>
+                            <div class="aml-pep-row">
+                                <span>Agent</span>
+                                <label><input type="radio" name="ent_pep_agent" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ent_pep_agent" value="no"/> No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-nav-buttons">
+                        <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
+                            <span>&#8249;</span> Back
+                        </button>
+                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                            Next Page <span>&#8250;</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ===================================================
+                     Page 1: KYC – Individual
+                =================================================== -->
+                <section class="aml-page" id="page-1-individual">
+                    <div class="aml-page-header">
+                        <h2>KYC Information – Individual</h2>
+                        <p class="aml-page-subtitle">Personal information and identification details</p>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Personal Information</h3>
+                        <div class="aml-grid-2">
+                            <div class="aml-field aml-field-full">
+                                <label>Full Name <span class="req-star">*</span></label>
+                                <input type="text" name="ind_full_name" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Gender <span class="req-star">*</span></label>
+                                <div class="aml-radio-group">
+                                    <label><input type="radio" name="ind_gender" value="male" required="required"/> Male</label>
+                                    <label><input type="radio" name="ind_gender" value="female"/> Female</label>
+                                    <label><input type="radio" name="ind_gender" value="other"/> Other</label>
+                                </div>
+                            </div>
+                            <div class="aml-field">
+                                <label>Nationality <span class="req-star">*</span></label>
+                                <input type="text" name="ind_nationality" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Date of Birth <span class="req-star">*</span></label>
+                                <input type="date" name="ind_date_of_birth" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Place of Birth <span class="req-star">*</span></label>
+                                <input type="text" name="ind_place_of_birth" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Type of ID Presented <span class="req-star">*</span></label>
+                                <select name="ind_id_type" required="required" onchange="amlForm.toggleIdOther(this.value)">
+                                    <option value="">– Select –</option>
+                                    <option value="emirates_id">Emirates ID</option>
+                                    <option value="passport">Passport</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="aml-field" id="ind-id-other-wrap" style="display:none;">
+                                <label>Specify Other ID Type <span class="req-star">*</span></label>
+                                <input type="text" name="ind_id_type_other" id="ind_id_type_other"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Emirates ID / Passport Number <span class="req-star">*</span></label>
+                                <input type="text" name="ind_id_number" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Issuing Country <span class="req-star">*</span></label>
+                                <input type="text" name="ind_issuing_country" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Valid Until <span class="req-star">*</span></label>
+                                <input type="date" name="ind_valid_until" required="required"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Contact and Residential Details</h3>
+                        <div class="aml-grid-2">
+                            <div class="aml-field aml-field-full">
+                                <label>Permanent Residential Address <span class="req-star">*</span></label>
+                                <textarea name="ind_permanent_address" rows="2" required="required"></textarea>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Current UAE Address (if different)</label>
+                                <textarea name="ind_uae_address" rows="2"></textarea>
+                            </div>
+                            <div class="aml-field">
+                                <label>City <span class="req-star">*</span></label>
+                                <input type="text" name="ind_city" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Country <span class="req-star">*</span></label>
+                                <input type="text" name="ind_country" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Mobile / Telephone No. <span class="req-star">*</span></label>
+                                <input type="tel" name="ind_mobile" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Email Address <span class="req-star">*</span></label>
+                                <input type="email" name="ind_email" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Proof of Address Type <span class="req-star">*</span></label>
+                                <select name="ind_proof_address_type" required="required"
+                                    onchange="amlForm.toggleProofOther(this.value)">
+                                    <option value="">– Select –</option>
+                                    <option value="utility_bill">Utility Bill</option>
+                                    <option value="bank_statement">Bank Statement</option>
+                                    <option value="lease">Lease / Title</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="aml-field" id="ind-proof-other-wrap" style="display:none;">
+                                <label>Specify <span class="req-star">*</span></label>
+                                <input type="text" name="ind_proof_address_other" id="ind_proof_address_other"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Document Date <span class="req-star">*</span></label>
+                                <input type="date" name="ind_document_date" required="required"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Identification and Verification</h3>
+                        <div class="aml-verify-grid">
+                            <div class="aml-verify-row">
+                                <span>Emirates ID (Front &amp; Back)</span>
+                                <label><input type="radio" name="ind_emirates_id_attached" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ind_emirates_id_attached" value="no"/> No</label>
+                            </div>
+                            <div class="aml-verify-row">
+                                <span>Passport (Photo page + Visa Page)</span>
+                                <label><input type="radio" name="ind_passport_attached" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ind_passport_attached" value="no"/> No</label>
+                            </div>
+                            <div class="aml-verify-row">
+                                <span>Proof of Address</span>
+                                <label><input type="radio" name="ind_proof_address_attached" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ind_proof_address_attached" value="no"/> No</label>
+                            </div>
+                            <div class="aml-verify-row">
+                                <span>Other Government-Issued ID</span>
+                                <label><input type="radio" name="ind_other_id_attached" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ind_other_id_attached" value="no"/> No</label>
+                            </div>
+                            <div class="aml-verify-row">
+                                <span>Verified via Portal / Smart Pass / UAE Pass</span>
+                                <label><input type="radio" name="ind_verified_portal" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ind_verified_portal" value="no"/> No</label>
+                            </div>
+                            <div class="aml-verify-row">
+                                <span>Verified Physically by Staff</span>
+                                <label><input type="radio" name="ind_verified_physically" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ind_verified_physically" value="no"/> No</label>
+                            </div>
+                            <div class="aml-verify-row">
+                                <span>Video KYC Completed</span>
+                                <label><input type="radio" name="ind_video_kyc" value="yes" required="required"/> Yes</label>
+                                <label><input type="radio" name="ind_video_kyc" value="no"/> No</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Nature of Relationship</h3>
+                        <div class="aml-grid-2">
+                            <div class="aml-field aml-field-full">
+                                <label>Purpose of Account / Relationship <span class="req-star">*</span></label>
+                                <textarea name="ind_purpose_of_relationship" rows="2" required="required"></textarea>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Expected Nature of Transactions <span class="req-star">*</span></label>
+                                <textarea name="ind_expected_transactions" rows="2" required="required"></textarea>
+                            </div>
+                            <div class="aml-field">
+                                <label>Expected Monthly Turnover / Transaction Value <span class="req-star">*</span></label>
+                                <input type="text" name="ind_monthly_turnover" required="required"/>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Source of Funds / Income <span class="req-star">*</span></label>
+                                <textarea name="ind_source_of_funds" rows="2" required="required"></textarea>
+                            </div>
+                            <div class="aml-field">
+                                <label>Hold Shares on Behalf of Another? <span class="req-star">*</span></label>
+                                <div class="aml-radio-group">
+                                    <label><input type="radio" name="ind_hold_shares_behalf" value="yes" required="required"/> Yes</label>
+                                    <label><input type="radio" name="ind_hold_shares_behalf" value="no"/> No</label>
+                                </div>
+                            </div>
+                            <div class="aml-field">
+                                <label>High-Risk Jurisdiction Association? <span class="req-star">*</span></label>
+                                <div class="aml-radio-group">
+                                    <label><input type="radio" name="ind_high_risk_jurisdiction" value="yes" required="required"/> Yes</label>
+                                    <label><input type="radio" name="ind_high_risk_jurisdiction" value="no"/> No</label>
+                                </div>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Anticipated Origin of Funds (Country / Entity) <span class="req-star">*</span></label>
+                                <textarea name="ind_anticipated_origin" rows="2" required="required"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-nav-buttons">
+                        <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
+                            <span>&#8249;</span> Back
+                        </button>
+                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                            Next Page <span>&#8250;</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ===================================================
+                     Page 2: UBO
+                =================================================== -->
+                <section class="aml-page" id="page-2">
+                    <div class="aml-page-header">
+                        <h2>Ultimate Beneficial Owner (UBO)</h2>
+                        <p class="aml-page-subtitle">Information about the ultimate beneficiary of the entity</p>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Personal Information</h3>
+                        <div class="aml-grid-2">
+                            <div class="aml-field aml-field-full">
+                                <label>Full Name <span class="req-star">*</span></label>
+                                <input type="text" name="ubo_full_name" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Gender <span class="req-star">*</span></label>
+                                <div class="aml-radio-group">
+                                    <label><input type="radio" name="ubo_gender" value="male" required="required"/> Male</label>
+                                    <label><input type="radio" name="ubo_gender" value="female"/> Female</label>
+                                    <label><input type="radio" name="ubo_gender" value="other"/> Other</label>
+                                </div>
+                            </div>
+                            <div class="aml-field">
+                                <label>Nationality <span class="req-star">*</span></label>
+                                <input type="text" name="ubo_nationality" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Date of Birth <span class="req-star">*</span></label>
+                                <input type="date" name="ubo_date_of_birth" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Place of Birth <span class="req-star">*</span></label>
+                                <input type="text" name="ubo_place_of_birth" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Citizen of More Than One Country? <span class="req-star">*</span></label>
+                                <div class="aml-radio-group">
+                                    <label><input type="radio" name="ubo_dual_citizenship" value="yes" required="required"
+                                        onchange="amlForm.toggleEl('ubo-dual-detail', this.value==='yes')"/> Yes</label>
+                                    <label><input type="radio" name="ubo_dual_citizenship" value="no"
+                                        onchange="amlForm.toggleEl('ubo-dual-detail', false)"/> No</label>
+                                </div>
+                            </div>
+                            <div class="aml-field aml-field-full" id="ubo-dual-detail" style="display:none;">
+                                <label>Dual Citizenship Details <span class="req-star">*</span></label>
+                                <textarea name="ubo_dual_citizenship_detail" rows="2"></textarea>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Source of Income <span class="req-star">*</span></label>
+                                <textarea name="ubo_source_of_income" rows="2" required="required"></textarea>
+                            </div>
+                            <div class="aml-field">
+                                <label>Hold Shares on Behalf of Another? <span class="req-star">*</span></label>
+                                <div class="aml-radio-group">
+                                    <label><input type="radio" name="ubo_hold_shares_behalf" value="yes" required="required"/> Yes</label>
+                                    <label><input type="radio" name="ubo_hold_shares_behalf" value="no"/> No</label>
+                                </div>
+                            </div>
+                            <div class="aml-field">
+                                <label>High-Risk Jurisdiction Association? <span class="req-star">*</span></label>
+                                <div class="aml-radio-group">
+                                    <label><input type="radio" name="ubo_high_risk_jurisdiction" value="yes" required="required"/> Yes</label>
+                                    <label><input type="radio" name="ubo_high_risk_jurisdiction" value="no"/> No</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Residential Details</h3>
+                        <div class="aml-grid-2">
+                            <div class="aml-field aml-field-full">
+                                <label>Home Country Address <span class="req-star">*</span></label>
+                                <textarea name="ubo_home_country_address" rows="2" required="required"></textarea>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>United Arab Emirates Address <span class="req-star">*</span></label>
+                                <textarea name="ubo_uae_address" rows="2" required="required"></textarea>
+                            </div>
+                            <div class="aml-field">
+                                <label>Mobile Number <span class="req-star">*</span></label>
+                                <input type="tel" name="ubo_mobile" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Email ID <span class="req-star">*</span></label>
+                                <input type="email" name="ubo_email" required="required"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>High Net Worth Individual (assets ≥ USD 15m)? <span class="req-star">*</span></label>
+                                <div class="aml-radio-group">
+                                    <label><input type="radio" name="ubo_high_net_worth" value="yes" required="required"/> Yes</label>
+                                    <label><input type="radio" name="ubo_high_net_worth" value="no"/> No</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Bank Details</h3>
+                        <div class="aml-grid-2">
+                            <div class="aml-field">
+                                <label>Bank Name <span class="req-star">*</span></label>
+                                <input type="text" name="ubo_bank_name" required="required"/>
+                            </div>
+                            <div class="aml-field aml-field-full">
+                                <label>Bank Branch Address <span class="req-star">*</span></label>
+                                <textarea name="ubo_bank_branch_address" rows="2" required="required"></textarea>
+                            </div>
+                            <div class="aml-field">
+                                <label>IBAN / Account Number <span class="req-star">*</span></label>
+                                <input type="text" name="ubo_iban" required="required"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-nav-buttons">
+                        <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
+                            <span>&#8249;</span> Back
+                        </button>
+                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                            Next Page <span>&#8250;</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ===================================================
+                     Page 3: Directors and Managers
+                =================================================== -->
+                <section class="aml-page" id="page-3">
+                    <div class="aml-page-header">
+                        <h2>Register of Directors / Managers</h2>
+                        <p class="aml-page-subtitle">List all directors, managers, and secretaries</p>
+                    </div>
+                    <div class="aml-form-section">
+                        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+                            <button type="button" class="aml-btn-add" onclick="amlForm.addDirectorRow()">
+                                + Add Director / Manager
+                            </button>
+                        </div>
+                        <div class="aml-table-wrap">
+                            <table class="aml-table" id="directors-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Full Name <span class="req-star">*</span></th>
+                                        <th>Position</th>
+                                        <th>Nationality</th>
+                                        <th>ID / Passport No.</th>
+                                        <th>Appointment Date</th>
+                                        <th>Resignation Date</th>
+                                        <th>Status</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="directors-tbody">
+                                    <!-- Rows added by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="aml-field" style="margin-top:20px;max-width:300px;">
+                            <label>Register accurate as of date</label>
+                            <input type="date" id="director_declaration_date" name="director_declaration_date"/>
+                        </div>
+                    </div>
+
+                    <div class="aml-nav-buttons">
+                        <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
+                            <span>&#8249;</span> Back
+                        </button>
+                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                            Next Page <span>&#8250;</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ===================================================
+                     Page 4: Shareholders
+                =================================================== -->
+                <section class="aml-page" id="page-4">
+                    <div class="aml-page-header">
+                        <h2>Shareholder Register</h2>
+                        <p class="aml-page-subtitle">List all shareholders with ownership details</p>
+                    </div>
+                    <div class="aml-form-section">
+                        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+                            <button type="button" class="aml-btn-add" onclick="amlForm.addShareholderRow()">
+                                + Add Shareholder
+                            </button>
+                        </div>
+                        <div class="aml-table-wrap">
+                            <table class="aml-table" id="shareholders-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Shareholder Name <span class="req-star">*</span></th>
+                                        <th>Nationality</th>
+                                        <th>Type</th>
+                                        <th>Passport No.</th>
+                                        <th>Share Class</th>
+                                        <th>No. of Shares</th>
+                                        <th>% Holding</th>
+                                        <th>Date of Entry</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shareholders-tbody">
+                                    <!-- Rows added by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="aml-field" style="margin-top:20px;max-width:300px;">
+                            <label>Register accurate as of date</label>
+                            <input type="date" id="shareholder_declaration_date" name="shareholder_declaration_date"/>
+                        </div>
+                    </div>
+                    <div class="aml-nav-buttons">
+                        <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
+                            <span>&#8249;</span> Back
+                        </button>
+                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                            Next Page <span>&#8250;</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ===================================================
+                     Page 5: Preliminary Information / Document Upload
+                =================================================== -->
+                <section class="aml-page" id="page-5">
+                    <div class="aml-page-header">
+                        <h2>Preliminary Information List</h2>
+                        <p class="aml-page-subtitle">Upload required="required" documents (hover on document name for guidance)</p>
+                    </div>
+                    <div class="aml-form-section">
+                        <div id="aml-doc-upload-list">
+                            <!-- Built by JavaScript from doc_lines_json -->
+                        </div>
+                    </div>
+                    <div class="aml-nav-buttons">
+                        <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
+                            <span>&#8249;</span> Back
+                        </button>
+                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                            Next Page <span>&#8250;</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ===================================================
+                     Page 6: Review and Sign
+                =================================================== -->
+                <section class="aml-page" id="page-6">
+                    <div class="aml-page-header">
+                        <h2>Review and Sign</h2>
+                        <p class="aml-page-subtitle">Please review all information before signing and submitting</p>
+                    </div>
+                    <div id="aml-review-content" class="aml-form-section">
+                        <!-- Built dynamically by JS -->
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Declaration</h3>
+                        <div class="aml-declaration-box">
+                            <label class="aml-accept-label">
+                                <input type="checkbox" id="accept_declaration" required="required"/>
+                                <span>I hereby confirm that all information provided in this KYC form is
+                                accurate, complete, and consistent with the supporting documents submitted.
+                                I understand that any false or misleading information may have legal consequences
+                                and may result in the termination of the business relationship.</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>E-Signature</h3>
+                        <div class="aml-field">
+                            <label>Full Name (Signatory) <span class="req-star">*</span></label>
+                            <input type="text" id="signatory_name" required="required"
+                                placeholder="Type your full name as it appears on official documents"/>
+                        </div>
+                        <div class="aml-signature-wrap">
+                            <label>Signature <span class="req-star">*</span></label>
+                            <div class="aml-sig-tabs">
+                                <button type="button" class="aml-sig-tab active" id="sig-tab-draw"
+                                    onclick="amlForm.switchSigTab('draw')">Draw Signature</button>
+                                <button type="button" class="aml-sig-tab" id="sig-tab-upload"
+                                    onclick="amlForm.switchSigTab('upload')">Upload Signature</button>
+                            </div>
+                            <div id="sig-draw-panel">
+                                <p class="aml-hint">Draw your signature in the box below using mouse or touch.</p>
+                                <div class="aml-signature-canvas-wrap">
+                                    <canvas id="aml-signature-canvas" width="600" height="150"></canvas>
+                                </div>
+                                <div class="aml-sig-actions">
+                                    <button type="button" onclick="amlForm.clearSignature()" class="aml-btn-clear">
+                                        Clear
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="sig-upload-panel" style="display:none;">
+                                <p class="aml-hint">Upload an image of your existing signature (PNG, JPG).</p>
+                                <label class="aml-sig-upload-label">
+                                    Choose Signature File
+                                    <input type="file" id="sig-upload-input" accept="image/png,image/jpeg,image/gif"
+                                        onchange="amlForm.uploadSignatureImage(this)" style="display:none;"/>
+                                </label>
+                                <div id="sig-upload-preview" style="margin-top:12px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aml-nav-buttons">
+                        <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
+                            <span>&#8249;</span> Back
+                        </button>
+                        <button type="button" class="aml-btn-submit" id="aml-submit-btn"
+                            onclick="amlForm.submitForm()">
+                            Submit KYC Form
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ===================================================
+                     Loading / Success Overlays
+                =================================================== -->
+                <div id="aml-loading-overlay" style="display:none;">
+                    <div class="aml-spinner"></div>
+                    <p>Submitting your form, please wait...</p>
+                </div>
+
+            </main>
+        </div>
+
+        </t>
+    </template>
+
+    <!-- =====================================================================
+         Additional Info Portal Form (HIT Detected)
+    ====================================================================== -->
+    <template id="portal_additional_form" name="AML Additional Document Upload">
+        <t t-call="aml_automation_extended_rk.portal_aml_layout">
+        <div id="aml-form-wrapper">
+
+            <!-- Sidebar (same design as main form) -->
+            <aside id="aml-sidebar">
+                <div class="aml-brand">
+                    <img t-att-src="logo_url" class="aml-brand-logo" alt="Company Logo"
+                         onerror="this.style.display='none'"/>
+                </div>
+                <nav id="aml-steps-nav">
+                    <div class="aml-step active" data-step="0">
+                        <span class="step-num">1</span>
+                        <span class="step-label">Additional Documents</span>
+                    </div>
+                </nav>
+                <div style="margin-top:32px;padding:16px;background:rgba(255,255,255,.08);border-radius:8px;">
+                    <p style="color:rgba(255,255,255,.8);font-size:12px;line-height:1.6;margin:0;">
+                        <strong style="color:#fff;display:block;margin-bottom:6px;">AML Reference</strong>
+                        <t t-out="aml.name"/>
+                    </p>
+                    <p style="color:rgba(255,255,255,.8);font-size:12px;line-height:1.6;margin:10px 0 0;">
+                        <strong style="color:#fff;display:block;margin-bottom:6px;">Client</strong>
+                        <t t-out="aml.partner_id.name"/>
+                    </p>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main id="aml-main">
+                <div id="aml-progress-bar-wrap">
+                    <div id="aml-progress-bar" style="width:100%;"></div>
+                </div>
+
+                <input type="hidden" id="additional-token" t-att-value="additional_token"/>
+                <script type="application/json" id="aml-hit-docs-data">
+                    <t t-out="hit_docs_json"/>
+                </script>
+
+                <section class="aml-page active" id="page-additional">
+
+                    <div class="aml-page-header">
+                        <h2 style="color:#c62828;">Additional Document Upload Required</h2>
+                        <p class="aml-page-subtitle">
+                            Our AML team requires additional documents to complete the review.
+                            Please upload each document in the corresponding section below.
+                        </p>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Required Documents</h3>
+                        <div id="additional-doc-upload-list">
+                            <!-- Built by JS from hit_docs_json -->
+                        </div>
+                    </div>
+
+                    <div class="aml-form-section">
+                        <h3>Additional Notes</h3>
+                        <div class="aml-field">
+                            <label>Notes / Comments (optional)</label>
+                            <textarea id="additional-notes" rows="4"
+                                placeholder="Any notes or comments for the AML team"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="aml-nav-buttons">
+                        <div/>
+                        <button type="button" class="aml-btn-submit" onclick="amlAdditional.submit()">
+                            Submit Additional Documents
+                        </button>
+                    </div>
+
+                </section>
+
+                <div id="aml-loading-overlay" style="display:none;">
+                    <div class="aml-spinner"></div>
+                    <p>Submitting, please wait...</p>
+                </div>
+
+            </main>
+        </div>
+        </t>
+    </template>
+
+</odoo>

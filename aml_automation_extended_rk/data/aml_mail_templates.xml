@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        NOTE: The KYC form email is generated directly in Python via
+        aml.request._send_kyc_form_email() to avoid Odoo 18 template
+        rendering limitations. This file is kept for reference only.
+    -->
+</odoo>

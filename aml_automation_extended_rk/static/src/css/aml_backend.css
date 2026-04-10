@@ -1,0 +1,16 @@
+/* ============================================================
+   AML – Backend Kanban Styles
+   ============================================================ */
+
+/* Colour bar at the top of each kanban card */
+.aml-kanban-bar {
+    height: 4px;
+    border-radius: 4px 4px 0 0;
+    margin: -12px -12px 10px -12px;   /* bleed to card edges */
+}
+.aml-kanban-bar.bar-success  { background: #2e7d32; }
+.aml-kanban-bar.bar-danger   { background: #c62828; }
+.aml-kanban-bar.bar-primary  { background: #1a237e; }
+.aml-kanban-bar.bar-warning  { background: #f57f17; }
+.aml-kanban-bar.bar-info     { background: #0277bd; }
+.aml-kanban-bar.bar-muted    { background: #9e9e9e; }

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <record id="module_aml_automation" model="ir.module.category">
+            <field name="name">AML Automation</field>
+            <field name="sequence">100</field>
+        </record>
+
+        <record id="group_aml_user" model="res.groups">
+            <field name="name">AML User</field>
+            <field name="category_id" ref="module_aml_automation"/>
+            <field name="comment">AML officers who manage the KYC pipeline and investigation.</field>
+        </record>
+
+        <record id="group_aml_manager" model="res.groups">
+            <field name="name">AML Manager</field>
+            <field name="category_id" ref="module_aml_automation"/>
+            <field name="implied_ids" eval="[(4, ref('group_aml_user'))]"/>
+            <field name="comment">AML managers who review, accept, bypass or cancel AML requests.</field>
+        </record>
+
+    </data>
+</odoo>
