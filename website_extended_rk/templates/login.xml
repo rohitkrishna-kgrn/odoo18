@@ -12,7 +12,8 @@
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <title>Sign In — KGRN Chartered Accountants LLC</title>
+                <title>Sign In - KGRN Chartered Accountants LLC</title>
+                <link rel="icon" type="image/png" href="/web/image/res.company/1/logo"/>
                 <link rel="stylesheet" href="/web/static/lib/bootstrap/css/bootstrap.css"/>
                 <link rel="stylesheet" href="/website_extended_rk/static/src/css/login.css"/>
             </head>
