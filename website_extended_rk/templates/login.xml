@@ -25,9 +25,11 @@
                     <div class="kgrn-brand-panel">
                         <div class="kgrn-brand-inner">
                             <div class="kgrn-logo-block">
-                                <img src="/web/image/res.company/1/logo"
-                                     alt="KGRN Logo"
-                                     class="kgrn-company-logo"/>
+                                <div class="kgrn-logo-wrapper">
+                                    <img src="/web/image/res.company/1/logo"
+                                         alt="KGRN Logo"
+                                         class="kgrn-company-logo"/>
+                                </div>
                                 <h1 class="kgrn-company-name">KGRN Chartered Accountants LLC</h1>
                                 <p class="kgrn-company-tagline">
                                     Audit · Advisory · Compliance

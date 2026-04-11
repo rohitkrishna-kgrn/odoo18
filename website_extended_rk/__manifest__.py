@@ -13,11 +13,6 @@
     'data': [
         'templates/login.xml',
     ],
-    'assets': {
-        'web.assets_frontend': [
-            'website_extended_rk/static/src/css/login.css',
-        ],
-    },
     'installable': True,
     'application': False,
     'license': 'LGPL-3',

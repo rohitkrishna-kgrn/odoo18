@@ -77,11 +77,20 @@
     gap: 1.25rem;
 }
 
+.kgrn-logo-wrapper {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
 .kgrn-company-logo {
     width: 140px;
     height: auto;
     object-fit: contain;
-    drop-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .kgrn-company-name {
