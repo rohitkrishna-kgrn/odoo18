@@ -14,9 +14,9 @@ class CustomLoginController(Home):
             response.template = 'website_extended_rk.login'
         return response
 
-    @http.route('/', type='http', auth='none', sitemap=False)
+    @http.route('/', type='http', auth='public', website=True, sitemap=False)
     def home(self, **kw):
-        """Redirect root URL to custom login page."""
-        if request.session.uid:
-            return request.redirect('/odoo')
-        return request.redirect('/web/login')
+        """Redirect unauthenticated users from root URL to login page."""
+        if not request.session.uid:
+            return request.redirect('/web/login')
+        return super().index(**kw)
