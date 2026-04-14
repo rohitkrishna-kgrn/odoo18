@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_kgrn_stripe_config_form" model="ir.ui.view">
+        <field name="name">kgrn.stripe.config.form</field>
+        <field name="model">kgrn.stripe.config</field>
+        <field name="arch" type="xml">
+            <form string="Stripe Configuration">
+                <sheet>
+
+                    <!-- ── Header banner ── -->
+                    <div style="background:linear-gradient(135deg,#0d2b45,#1a4f72);
+                                border-radius:10px;padding:20px 24px;margin-bottom:20px;
+                                display:flex;align-items:center;justify-content:space-between;">
+                        <div>
+                            <h2 style="color:#fff;margin:0 0 4px;font-size:1.15rem;font-weight:700;">
+                                Stripe Payment Configuration
+                            </h2>
+                            <p style="color:rgba(255,255,255,0.65);margin:0;font-size:0.83rem;">
+                                Switch between Test and Live mode, or manage API keys.
+                            </p>
+                        </div>
+                        <button name="action_open_stripe_dashboard"
+                                type="object"
+                                style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);
+                                       color:#fff;border-radius:6px;padding:6px 14px;font-size:0.82rem;cursor:pointer;">
+                            Open Stripe Dashboard ↗
+                        </button>
+                    </div>
+
+                    <!-- ── Provider + Mode ── -->
+                    <group string="Provider &amp; Mode">
+                        <group>
+                            <field name="stripe_provider_id"/>
+                        </group>
+                        <group>
+                            <field name="stripe_mode" widget="radio"/>
+                        </group>
+                    </group>
+
+                    <!-- ── Mode status badge ── -->
+                    <div class="alert alert-warning mb-3"
+                         invisible="stripe_mode != 'test'" role="alert">
+                        <strong>&#9888; Test Mode Active</strong> — Stripe test cards are accepted.
+                        No real money is charged. Use test card  <code>4242 4242 4242 4242</code>
+                        with any future expiry and any CVC.
+                    </div>
+                    <div class="alert alert-success mb-3"
+                         invisible="stripe_mode != 'enabled'" role="alert">
+                        <strong>&#9989; Live Mode Active</strong> — Real cards will be charged.
+                        Ensure you have completed Stripe's account verification before going live.
+                    </div>
+                    <div class="alert alert-secondary mb-3"
+                         invisible="stripe_mode != 'disabled'" role="alert">
+                        <strong>Stripe Disabled</strong> — No payments will be processed.
+                        Activate Test or Live mode to enable billing.
+                    </div>
+
+                    <!-- ── Test Keys ── -->
+                    <group string="Test Mode Credentials"
+                           invisible="stripe_mode != 'test'">
+                        <field name="stripe_test_publishable_key"
+                               placeholder="pk_test_…"/>
+                        <field name="stripe_test_secret_key"
+                               password="True"
+                               placeholder="sk_test_…"/>
+                    </group>
+
+                    <!-- ── Live Keys ── -->
+                    <group string="Live Mode Credentials"
+                           invisible="stripe_mode != 'enabled'">
+                        <div class="alert alert-danger col-12"
+                             style="margin:0 0 12px;" role="alert">
+                            <strong>&#128274; Sensitive Data</strong> — Live secret keys grant full
+                            access to your Stripe account. Never share them or expose them publicly.
+                        </div>
+                        <field name="stripe_live_publishable_key"
+                               placeholder="pk_live_…"/>
+                        <field name="stripe_live_secret_key"
+                               password="True"
+                               placeholder="sk_live_…"/>
+                    </group>
+
+                    <!-- ── Webhook ── -->
+                    <group string="Webhook Configuration"
+                           invisible="stripe_mode == 'disabled'">
+                        <field name="stripe_webhook_secret"
+                               password="True"
+                               placeholder="whsec_…"/>
+                        <div class="col-12 text-muted" style="font-size:0.82rem;margin-top:4px;">
+                            Register this endpoint in your Stripe Dashboard under
+                            <em>Developers → Webhooks</em>:
+                            <code id="webhookUrl" style="background:#f3f4f6;padding:2px 6px;border-radius:4px;">
+                                [your-domain]/kgrn/recurring/webhook/stripe
+                            </code>
+                            — Enable events:
+                            <code>payment_intent.succeeded</code>,
+                            <code>payment_intent.payment_failed</code>
+                        </div>
+                    </group>
+
+                    <!-- ── Currently active keys (read-only info) ── -->
+                    <group string="Currently Active Keys (read-only)"
+                           invisible="stripe_mode == 'disabled'">
+                        <field name="active_publishable_key" readonly="1"/>
+                        <field name="active_secret_key" readonly="1" password="True"/>
+                    </group>
+
+                </sheet>
+                <footer>
+                    <button name="action_save"
+                            string="Save Configuration"
+                            type="object"
+                            class="btn-primary"/>
+                    <button string="Discard" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_kgrn_stripe_config" model="ir.actions.act_window">
+        <field name="name">Stripe Configuration</field>
+        <field name="res_model">kgrn.stripe.config</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

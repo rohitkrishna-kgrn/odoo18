@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="seq_kgrn_recurring_contract" model="ir.sequence">
+            <field name="name">KGRN Recurring Payment Contract</field>
+            <field name="code">kgrn.recurring.contract</field>
+            <field name="prefix">KGRN/REC/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="number_increment">1</field>
+            <field name="use_date_range">False</field>
+        </record>
+    </data>
+</odoo>

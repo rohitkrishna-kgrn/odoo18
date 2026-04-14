@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_kgrn_card_removal_action_wizard_form" model="ir.ui.view">
+        <field name="name">kgrn.card.removal.action.wizard.form</field>
+        <field name="model">kgrn.card.removal.action.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Remove Payment Card">
+                <sheet>
+                    <div class="alert alert-warning mb-3" role="alert">
+                        <strong>&#9888; This action is irreversible.</strong>
+                        Removing the card from Stripe will prevent any further automatic charges.
+                        The customer will need to re-register their card if billing is to resume.
+                    </div>
+                    <group>
+                        <field name="contract_id" readonly="1"/>
+                        <field name="customer_name" readonly="1"/>
+                        <field name="card_info" readonly="1" string="Card to Remove"/>
+                    </group>
+                    <group>
+                        <field name="action" widget="radio"/>
+                        <field name="reason" placeholder="Optional internal note…"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm"
+                            string="Confirm Removal"
+                            type="object"
+                            class="btn-danger"
+                            confirm="Are you sure you want to remove this payment card? This cannot be undone."/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

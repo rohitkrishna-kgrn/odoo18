@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Category -->
+        <record id="module_category_kgrn_recurring" model="ir.module.category">
+            <field name="name">KGRN Recurring Payment</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <!-- Groups -->
+        <record id="group_kgrn_recurring_user" model="res.groups">
+            <field name="name">User</field>
+            <field name="category_id" ref="module_category_kgrn_recurring"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <record id="group_kgrn_recurring_manager" model="res.groups">
+            <field name="name">Manager</field>
+            <field name="category_id" ref="module_category_kgrn_recurring"/>
+            <field name="implied_ids" eval="[(4, ref('group_kgrn_recurring_user'))]"/>
+            <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+        </record>
+    </data>
+</odoo>

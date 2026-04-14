@@ -10,6 +10,8 @@ _PUBLIC_PREFIXES = (
     '/web/content/',
     '/web/font/',
     '/website_extended_rk/static/',
+    '/kgrn_recurring_payment/static/',
+    '/kgrn/recurring/',          # KGRN Recurring Payment customer portal
     '/favicon.ico',
     '/web/database/',
     '/web/health',

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_kgrn_send_portal_link_wizard_form" model="ir.ui.view">
+        <field name="name">kgrn.send.portal.link.wizard.form</field>
+        <field name="model">kgrn.send.portal.link.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Send Payment Portal Link">
+                <sheet>
+                    <div class="alert alert-info mb-3" role="alert">
+                        <i class="fa fa-info-circle"/> This will send a branded email to the customer with a
+                        secure link to register their payment card. Review and customise the message below.
+                    </div>
+                    <group>
+                        <field name="contract_id" readonly="1"/>
+                        <field name="recipient_email"/>
+                        <field name="subject"/>
+                    </group>
+                    <group>
+                        <field name="body_html" widget="html" nolabel="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_send" string="Send Email" type="object" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

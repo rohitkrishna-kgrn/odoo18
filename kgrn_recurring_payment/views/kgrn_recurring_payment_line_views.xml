@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_kgrn_recurring_payment_line_list" model="ir.ui.view">
+        <field name="name">kgrn.recurring.payment.line.list</field>
+        <field name="model">kgrn.recurring.payment.line</field>
+        <field name="arch" type="xml">
+            <list string="Payment Lines"
+                  decoration-success="state == 'success'"
+                  decoration-danger="state == 'failed'"
+                  decoration-warning="state == 'pending'">
+                <field name="name"/>
+                <field name="customer_id"/>
+                <field name="contract_id"/>
+                <field name="period_start"/>
+                <field name="period_end"/>
+                <field name="payment_date"/>
+                <field name="amount"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'success'"
+                       decoration-danger="state == 'failed'"
+                       decoration-warning="state == 'pending'"
+                       decoration-info="state == 'refunded'"/>
+                <field name="stripe_payment_intent_id" optional="hide"/>
+                <field name="account_payment_id" optional="show"/>
+                <field name="failure_reason" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_kgrn_recurring_payment_line_form" model="ir.ui.view">
+        <field name="name">kgrn.recurring.payment.line.form</field>
+        <field name="model">kgrn.recurring.payment.line</field>
+        <field name="arch" type="xml">
+            <form string="Payment Line">
+                <header>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,success,failed,refunded"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Payment Details">
+                            <field name="name" readonly="1"/>
+                            <field name="contract_id" readonly="1"/>
+                            <field name="customer_id" readonly="1"/>
+                            <field name="amount" readonly="1"/>
+                            <field name="currency_id" readonly="1"/>
+                            <field name="payment_date" readonly="1"/>
+                        </group>
+                        <group string="Billing Period">
+                            <field name="period_start" readonly="1"/>
+                            <field name="period_end" readonly="1"/>
+                            <field name="processed_by" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Stripe &amp; Accounting">
+                        <field name="stripe_payment_intent_id" readonly="1"/>
+                        <field name="account_payment_id" readonly="1"/>
+                        <field name="failure_reason" readonly="1"
+                               invisible="state != 'failed'"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_kgrn_recurring_payment_line_search" model="ir.ui.view">
+        <field name="name">kgrn.recurring.payment.line.search</field>
+        <field name="model">kgrn.recurring.payment.line</field>
+        <field name="arch" type="xml">
+            <search string="Search Payment Lines">
+                <field name="name"/>
+                <field name="customer_id"/>
+                <field name="contract_id"/>
+                <separator/>
+                <filter string="Succeeded" name="success" domain="[('state','=','success')]"/>
+                <filter string="Failed" name="failed" domain="[('state','=','failed')]"/>
+                <filter string="Pending" name="pending" domain="[('state','=','pending')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Contract" name="group_contract" context="{'group_by': 'contract_id'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Month" name="group_month" context="{'group_by': 'payment_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_kgrn_recurring_payment_lines" model="ir.actions.act_window">
+        <field name="name">Payment History</field>
+        <field name="res_model">kgrn.recurring.payment.line</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

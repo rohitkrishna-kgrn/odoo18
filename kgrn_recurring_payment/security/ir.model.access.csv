@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_kgrn_recurring_contract_user,kgrn.recurring.contract user,model_kgrn_recurring_contract,group_kgrn_recurring_user,1,1,1,0
+access_kgrn_recurring_contract_manager,kgrn.recurring.contract manager,model_kgrn_recurring_contract,group_kgrn_recurring_manager,1,1,1,1
+access_kgrn_recurring_payment_line_user,kgrn.recurring.payment.line user,model_kgrn_recurring_payment_line,group_kgrn_recurring_user,1,1,1,0
+access_kgrn_recurring_payment_line_manager,kgrn.recurring.payment.line manager,model_kgrn_recurring_payment_line,group_kgrn_recurring_manager,1,1,1,1
+access_kgrn_user_manual_wizard,kgrn.user.manual.wizard,model_kgrn_user_manual_wizard,group_kgrn_recurring_user,1,1,1,1
+access_kgrn_send_portal_link_wizard,kgrn.send.portal.link.wizard,model_kgrn_send_portal_link_wizard,group_kgrn_recurring_user,1,1,1,1
+access_kgrn_card_removal_action_wizard,kgrn.card.removal.action.wizard,model_kgrn_card_removal_action_wizard,group_kgrn_recurring_manager,1,1,1,1
+access_kgrn_stripe_config,kgrn.stripe.config,model_kgrn_stripe_config,group_kgrn_recurring_manager,1,1,1,1

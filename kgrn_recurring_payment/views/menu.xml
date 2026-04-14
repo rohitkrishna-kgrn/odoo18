@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Root menu under Accounting -->
+    <menuitem id="menu_kgrn_recurring_root"
+              name="Recurring Payments"
+              parent="account.menu_finance"
+              sequence="90"
+              groups="kgrn_recurring_payment.group_kgrn_recurring_user"/>
+
+    <!-- Contracts -->
+    <menuitem id="menu_kgrn_recurring_contracts"
+              name="Recurring Contracts"
+              parent="menu_kgrn_recurring_root"
+              action="action_kgrn_recurring_contract"
+              sequence="10"/>
+
+    <!-- Payment History -->
+    <menuitem id="menu_kgrn_recurring_payment_lines"
+              name="Payment History"
+              parent="menu_kgrn_recurring_root"
+              action="action_kgrn_recurring_payment_lines"
+              sequence="20"/>
+
+    <!-- Removal Requests -->
+    <menuitem id="menu_kgrn_removal_requests"
+              name="Card Removal Requests"
+              parent="menu_kgrn_recurring_root"
+              action="action_kgrn_recurring_removal_requests"
+              sequence="30"
+              groups="kgrn_recurring_payment.group_kgrn_recurring_manager"/>
+
+    <!-- Configuration submenu -->
+    <menuitem id="menu_kgrn_recurring_config"
+              name="Configuration"
+              parent="menu_kgrn_recurring_root"
+              sequence="80"
+              groups="kgrn_recurring_payment.group_kgrn_recurring_manager"/>
+
+    <menuitem id="menu_kgrn_stripe_config"
+              name="Stripe Settings"
+              parent="menu_kgrn_recurring_config"
+              action="action_kgrn_stripe_config"
+              sequence="10"
+              groups="kgrn_recurring_payment.group_kgrn_recurring_manager"/>
+
+    <!-- User Manual -->
+    <menuitem id="menu_kgrn_user_manual"
+              name="User Manual"
+              parent="menu_kgrn_recurring_root"
+              action="action_kgrn_user_manual"
+              sequence="99"
+              groups="kgrn_recurring_payment.group_kgrn_recurring_user"/>
+
+</odoo>

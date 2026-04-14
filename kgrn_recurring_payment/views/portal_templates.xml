@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         MAIN CARD PORTAL PAGE
+    ================================================================ -->
+    <template id="portal_card_page" name="KGRN Recurring – Card Setup Portal">
+        <html t-att-lang="'en'">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <title>Secure Payment Setup – KGRN</title>
+                <link rel="icon" type="image/png" href="/web/image/res.company/1/logo"/>
+                <link rel="stylesheet" href="/web/static/lib/bootstrap/css/bootstrap.css"/>
+                <link rel="stylesheet" href="/kgrn_recurring_payment/static/src/css/portal.css"/>
+                <!-- Stripe.js – must load from Stripe CDN -->
+                <script src="https://js.stripe.com/v3/"></script>
+            </head>
+            <body class="kgrn-portal-body">
+
+                <div class="kgrn-portal-wrapper">
+
+                    <!-- ── LEFT: Branding Panel ── -->
+                    <div class="kgrn-brand-panel">
+                        <div class="kgrn-brand-inner">
+                            <div class="kgrn-logo-block">
+                                <div class="kgrn-logo-wrapper">
+                                    <img src="/web/image/res.company/1/logo"
+                                         alt="KGRN Logo"
+                                         class="kgrn-company-logo"/>
+                                </div>
+                                <h1 class="kgrn-company-name">KGRN Chartered Accountants LLC</h1>
+                                <p class="kgrn-company-tagline">Audit · Advisory · Compliance</p>
+                            </div>
+
+                            <!-- Subscription summary -->
+                            <div class="kgrn-subscription-card">
+                                <div class="kgrn-subscription-header">Recurring Payment Details</div>
+                                <div class="kgrn-subscription-row">
+                                    <span>Contract</span>
+                                    <strong><t t-esc="contract.name"/></strong>
+                                </div>
+                                <div class="kgrn-subscription-row">
+                                    <span>Amount</span>
+                                    <strong>
+                                        <t t-esc="contract.currency_id.symbol or contract.currency_id.name"/>&#160;<t t-esc="'%.2f' % contract.amount"/>
+                                    </strong>
+                                </div>
+                                <div class="kgrn-subscription-row">
+                                    <span>Frequency</span>
+                                    <strong><t t-esc="frequency_label"/></strong>
+                                </div>
+                                <div class="kgrn-subscription-row">
+                                    <span>Start Date</span>
+                                    <strong><t t-esc="contract.start_date.strftime('%d %b %Y')"/></strong>
+                                </div>
+                                <div class="kgrn-subscription-row">
+                                    <span>End Date</span>
+                                    <strong><t t-esc="contract.end_date.strftime('%d %b %Y')"/></strong>
+                                </div>
+                            </div>
+
+                            <!-- Payment schedule preview -->
+                            <t t-if="schedule">
+                                <div class="kgrn-schedule-block">
+                                    <div class="kgrn-schedule-title">Upcoming Payments</div>
+                                    <t t-foreach="schedule[:6]" t-as="pdate">
+                                        <div class="kgrn-schedule-row">
+                                            <span><t t-esc="pdate.strftime('%d %b %Y')"/></span>
+                                            <span>
+                                                <t t-esc="contract.currency_id.symbol or contract.currency_id.name"/>&#160;<t t-esc="'%.2f' % contract.amount"/>
+                                            </span>
+                                        </div>
+                                    </t>
+                                    <t t-if="len(schedule) > 6">
+                                        <div class="kgrn-schedule-more">+ <t t-esc="len(schedule) - 6"/> more payments</div>
+                                    </t>
+                                </div>
+                            </t>
+
+                            <div class="kgrn-brand-footer">
+                                <p>© KGRN Chartered Accountants LLC. All rights reserved.</p>
+                                <p style="font-size:0.7rem;opacity:0.5;">
+                                    Payments secured by Stripe. Your card details are never stored on our servers.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── RIGHT: Action Panel ── -->
+                    <div class="kgrn-form-panel">
+                        <div class="kgrn-form-card">
+
+                            <!-- ── State: Expired ── -->
+                            <t t-if="state == 'expired'">
+                                <div class="kgrn-state-icon kgrn-icon-expired">&#128466;</div>
+                                <div class="kgrn-form-header">
+                                    <h2>Contract Expired</h2>
+                                    <p>This recurring payment arrangement has concluded. Thank you for your business.</p>
+                                </div>
+                                <div class="kgrn-info-box kgrn-info-muted">
+                                    All payments under contract <strong><t t-esc="contract.name"/></strong>
+                                    have been completed. If you have any questions please contact your account manager.
+                                </div>
+                            </t>
+
+                            <!-- ── State: Cancelled ── -->
+                            <t t-elif="state == 'cancelled'">
+                                <div class="kgrn-state-icon kgrn-icon-cancelled">&#10060;</div>
+                                <div class="kgrn-form-header">
+                                    <h2>Contract Cancelled</h2>
+                                    <p>This recurring payment contract has been cancelled.</p>
+                                </div>
+                                <div class="kgrn-info-box kgrn-info-muted">
+                                    No further payments will be collected. Please contact KGRN if you believe this is an error.
+                                </div>
+                            </t>
+
+                            <!-- ── State: Card Already Registered ── -->
+                            <t t-elif="card_added">
+
+                                <!-- Card removal already requested -->
+                                <t t-if="contract.card_removal_requested">
+                                    <div class="kgrn-state-icon kgrn-icon-pending">&#9203;</div>
+                                    <div class="kgrn-form-header">
+                                        <h2>Removal Request Submitted</h2>
+                                        <p>Your request to remove your card and stop the service has been received.</p>
+                                    </div>
+                                    <div class="kgrn-info-box kgrn-info-warning">
+                                        Our team has been notified and will process your request within 1–2 business days.
+                                        You will receive a confirmation once your card has been removed.
+                                    </div>
+                                </t>
+
+                                <!-- Card active and running -->
+                                <t t-else="">
+                                    <div class="kgrn-state-icon kgrn-icon-success">&#10003;</div>
+                                    <div class="kgrn-form-header">
+                                        <h2>Card Successfully Registered</h2>
+                                        <p>Your payment card is active for this recurring arrangement.</p>
+                                    </div>
+
+                                    <div class="kgrn-card-display">
+                                        <div class="kgrn-card-chip">
+                                            <div class="kgrn-chip-icon">&#9646;&#9646;</div>
+                                        </div>
+                                        <div class="kgrn-card-number">
+                                            •••• •••• ••••
+                                            <span><t t-esc="contract.card_last4 or '????'"/></span>
+                                        </div>
+                                        <div class="kgrn-card-details-row">
+                                            <div>
+                                                <div class="kgrn-card-label">Card Brand</div>
+                                                <div class="kgrn-card-value">
+                                                    <t t-esc="contract.card_brand or '—'"/>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="kgrn-card-label">Expires</div>
+                                                <div class="kgrn-card-value">
+                                                    <t t-esc="'%02d/%d' % (contract.card_exp_month, contract.card_exp_year) if contract.card_exp_month else '—'"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="kgrn-info-box kgrn-info-success">
+                                        Payments will be automatically deducted on the schedule shown on the left.
+                                        You will receive a receipt email after each successful payment.
+                                    </div>
+
+                                    <!-- Request removal section -->
+                                    <div class="kgrn-removal-section">
+                                        <button class="kgrn-btn-removal-toggle" id="toggleRemovalForm" type="button">
+                                            Request Service Cancellation
+                                        </button>
+                                        <div class="kgrn-removal-form" id="removalForm" style="display:none;">
+                                            <p class="kgrn-removal-note">
+                                                Submitting this request will notify your account manager.
+                                                Your card will continue to be charged until the request is reviewed and approved.
+                                            </p>
+                                            <textarea id="removalReason"
+                                                      class="kgrn-textarea"
+                                                      placeholder="Please tell us why you would like to cancel…"
+                                                      rows="3"></textarea>
+                                            <div id="removalError" class="kgrn-error-msg" style="display:none;"></div>
+                                            <div id="removalSuccess" class="kgrn-success-msg" style="display:none;"></div>
+                                            <button class="kgrn-btn-removal-submit" id="submitRemoval" type="button">
+                                                Submit Cancellation Request
+                                            </button>
+                                        </div>
+                                    </div>
+                                </t>
+                            </t>
+
+                            <!-- ── State: Card Not Added (Main Setup Flow) ── -->
+                            <t t-else="">
+                                <div class="kgrn-form-header">
+                                    <h2>Secure Card Registration</h2>
+                                    <p>Add your payment card to activate your recurring payment.</p>
+                                </div>
+
+                                <div class="kgrn-security-badges">
+                                    <span class="kgrn-badge">&#128274; SSL Encrypted</span>
+                                    <span class="kgrn-badge">&#9989; Powered by Stripe</span>
+                                    <span class="kgrn-badge">&#128179; PCI Compliant</span>
+                                </div>
+
+                                <form id="paymentForm" class="kgrn-payment-form">
+                                    <div class="kgrn-field-group">
+                                        <label for="cardholderName">Cardholder Name</label>
+                                        <input type="text"
+                                               id="cardholderName"
+                                               class="kgrn-input"
+                                               placeholder="As printed on your card"
+                                               required="required"/>
+                                    </div>
+
+                                    <div class="kgrn-field-group">
+                                        <label>Card Details</label>
+                                        <div id="cardElement" class="kgrn-card-element">
+                                            <!-- Stripe Elements mounts here -->
+                                        </div>
+                                        <div id="cardErrors" class="kgrn-card-errors" role="alert"></div>
+                                    </div>
+
+                                    <div id="formError" class="kgrn-error-msg" style="display:none;"></div>
+                                    <div id="formSuccess" class="kgrn-success-msg" style="display:none;"></div>
+
+                                    <button type="submit" id="submitBtn" class="kgrn-btn-submit">
+                                        <span id="submitBtnText">Authorise &amp; Save Card</span>
+                                        <span id="submitSpinner" class="kgrn-spinner" style="display:none;"></span>
+                                    </button>
+
+                                    <p class="kgrn-disclaimer">
+                                        By saving your card, you authorise KGRN Chartered Accountants LLC
+                                        to charge <strong>
+                                            <t t-esc="contract.currency_id.symbol or contract.currency_id.name"/>&#160;<t t-esc="'%.2f' % contract.amount"/>
+                                        </strong> <t t-esc="frequency_label.lower()"/> to this card
+                                        until <strong><t t-esc="contract.end_date.strftime('%d %b %Y')"/></strong>
+                                        or until you request cancellation.
+                                    </p>
+                                </form>
+                            </t>
+
+                        </div>
+                    </div>
+                    <!-- end right panel -->
+
+                </div>
+                <!-- end wrapper -->
+
+                <!-- Pass config to JS -->
+                <script t-if="state not in ('expired', 'cancelled') and not card_added">
+                    window.KGRN_STRIPE_KEY = '<t t-esc="publishable_key"/>';
+                    window.KGRN_TOKEN = '<t t-esc="token"/>';
+                    window.KGRN_CUSTOMER = '<t t-esc="contract.customer_id.name"/>';
+                </script>
+                <script t-if="state not in ('expired', 'cancelled') and card_added and not contract.card_removal_requested"
+                        src="/kgrn_recurring_payment/static/src/js/removal_portal.js"/>
+                <script t-if="state not in ('expired', 'cancelled') and not card_added"
+                        src="/kgrn_recurring_payment/static/src/js/stripe_portal.js"/>
+
+            </body>
+        </html>
+    </template>
+
+    <!-- ================================================================
+         ERROR PAGE
+    ================================================================ -->
+    <template id="portal_error" name="KGRN Recurring – Error Page">
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <title>Error – KGRN</title>
+                <link rel="stylesheet" href="/web/static/lib/bootstrap/css/bootstrap.css"/>
+                <link rel="stylesheet" href="/kgrn_recurring_payment/static/src/css/portal.css"/>
+            </head>
+            <body class="kgrn-portal-body">
+                <div class="kgrn-portal-wrapper">
+                    <div class="kgrn-brand-panel">
+                        <div class="kgrn-brand-inner">
+                            <div class="kgrn-logo-block">
+                                <div class="kgrn-logo-wrapper">
+                                    <img src="/web/image/res.company/1/logo" alt="KGRN Logo"
+                                         class="kgrn-company-logo"/>
+                                </div>
+                                <h1 class="kgrn-company-name">KGRN Chartered Accountants LLC</h1>
+                                <p class="kgrn-company-tagline">Audit · Advisory · Compliance</p>
+                            </div>
+                            <div class="kgrn-brand-footer">
+                                <p>© KGRN Chartered Accountants LLC. All rights reserved.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="kgrn-form-panel">
+                        <div class="kgrn-form-card" style="text-align:center;">
+                            <div class="kgrn-state-icon" style="color:#dc2626;">&#9888;</div>
+                            <div class="kgrn-form-header">
+                                <h2><t t-esc="error_title or 'Something Went Wrong'"/></h2>
+                                <p><t t-esc="error_message or 'An unexpected error occurred.'"/></p>
+                            </div>
+                            <div class="kgrn-info-box kgrn-info-muted">
+                                If you received this link via email, please contact
+                                <strong>KGRN Chartered Accountants LLC</strong> for a new link.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </body>
+        </html>
+    </template>
+
+</odoo>

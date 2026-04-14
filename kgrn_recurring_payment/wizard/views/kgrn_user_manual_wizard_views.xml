@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_kgrn_user_manual_wizard_form" model="ir.ui.view">
+        <field name="name">kgrn.user.manual.wizard.form</field>
+        <field name="model">kgrn.user.manual.wizard</field>
+        <field name="arch" type="xml">
+            <form string="KGRN Recurring Payment – User Manual">
+                <sheet>
+                    <div class="o_field_html">
+                        <!-- ============================================================
+                             USER MANUAL CONTENT
+                        ============================================================ -->
+                        <div style="max-width:780px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;color:#1f2937;line-height:1.65;">
+
+                            <!-- Header -->
+                            <div style="background:linear-gradient(135deg,#0d2b45,#1a4f72);border-radius:10px;padding:28px 32px;margin-bottom:28px;">
+                                <h1 style="color:#fff;font-size:1.4rem;font-weight:700;margin:0 0 4px;">
+                                    KGRN Recurring Payment – User Manual
+                                </h1>
+                                <p style="color:rgba(255,255,255,0.65);margin:0;font-size:0.85rem;letter-spacing:0.5px;">
+                                    Complete guide for the internal finance team
+                                </p>
+                            </div>
+
+                            <!-- TOC -->
+                            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
+                                <strong style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.5px;color:#64748b;">Contents</strong>
+                                <ol style="margin:8px 0 0 16px;font-size:0.9rem;color:#1a4f72;">
+                                    <li>Overview</li>
+                                    <li>Creating a Recurring Contract</li>
+                                    <li>Sending the Portal Link to the Customer</li>
+                                    <li>Customer Portal – Card Registration</li>
+                                    <li>Activating a Contract</li>
+                                    <li>Automated Payment Processing</li>
+                                    <li>Managing Payment History</li>
+                                    <li>Card Removal Workflow</li>
+                                    <li>Contract Lifecycle &amp; States</li>
+                                    <li>Stripe Configuration</li>
+                                    <li>Troubleshooting &amp; FAQs</li>
+                                </ol>
+                            </div>
+
+                            <!-- 1. Overview -->
+                            <div style="margin-bottom:24px;">
+                                <h2 style="font-size:1.1rem;font-weight:700;color:#0d2b45;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+                                    1. Overview
+                                </h2>
+                                <p>
+                                    The <strong>KGRN Recurring Payment</strong> module allows the finance team to manage
+                                    subscription-based billing arrangements with customers. Payments are automatically
+                                    collected via <strong>Stripe</strong> on a configurable schedule
+                                    (weekly / monthly / quarterly / half-yearly / yearly) and posted directly to
+                                    <strong>Odoo Accounting</strong>.
+                                </p>
+                                <div style="background:#f0f9ff;border-left:4px solid #0369a1;padding:10px 14px;border-radius:0 6px 6px 0;margin-top:12px;font-size:0.9rem;">
+                                    <strong>Key Benefit:</strong> Customers add their card once via a secure branded portal link.
+                                    All subsequent charges are fully automated — no manual intervention required.
+                                </div>
+                            </div>
+
+                            <!-- 2. Creating -->
+                            <div style="margin-bottom:24px;">
+                                <h2 style="font-size:1.1rem;font-weight:700;color:#0d2b45;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+                                    2. Creating a Recurring Contract
+                                </h2>
+                                <p>Navigate to <strong>Accounting → Recurring Payments → Recurring Contracts</strong> and click <strong>New</strong>.</p>
+                                <table style="width:100%;border-collapse:collapse;font-size:0.88rem;margin:10px 0;">
+                                    <thead>
+                                        <tr style="background:#f1f5f9;">
+                                            <th style="padding:8px 12px;text-align:left;font-weight:600;color:#374151;border:1px solid #e2e8f0;">Field</th>
+                                            <th style="padding:8px 12px;text-align:left;font-weight:600;color:#374151;border:1px solid #e2e8f0;">Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td style="padding:7px 12px;border:1px solid #e2e8f0;"><strong>Customer</strong></td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Select the customer (res.partner)</td></tr>
+                                        <tr style="background:#f8fafc;"><td style="padding:7px 12px;border:1px solid #e2e8f0;"><strong>Stripe Provider</strong></td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Select the Stripe payment provider (must have keys configured)</td></tr>
+                                        <tr><td style="padding:7px 12px;border:1px solid #e2e8f0;"><strong>Amount</strong></td><td style="padding:7px 12px;border:1px solid #e2e8f0;">The amount to charge per billing period</td></tr>
+                                        <tr style="background:#f8fafc;"><td style="padding:7px 12px;border:1px solid #e2e8f0;"><strong>Frequency</strong></td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Weekly / Monthly / Quarterly / Half-Yearly / Yearly</td></tr>
+                                        <tr><td style="padding:7px 12px;border:1px solid #e2e8f0;"><strong>Start Date</strong></td><td style="padding:7px 12px;border:1px solid #e2e8f0;">When billing should begin (first payment date)</td></tr>
+                                        <tr style="background:#f8fafc;"><td style="padding:7px 12px;border:1px solid #e2e8f0;"><strong>End Date</strong></td><td style="padding:7px 12px;border:1px solid #e2e8f0;">When billing ends (contract expiry)</td></tr>
+                                        <tr><td style="padding:7px 12px;border:1px solid #e2e8f0;"><strong>Payment Journal</strong></td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Accounting journal for posting payments (bank or cash)</td></tr>
+                                    </tbody>
+                                </table>
+                                <p style="font-size:0.87rem;color:#6b7280;">
+                                    On save, the system generates a unique contract reference (e.g., <code>KGRN/REC/2025/0001</code>)
+                                    and a secure access token for the customer portal.
+                                </p>
+                            </div>
+
+                            <!-- 3. Sending portal link -->
+                            <div style="margin-bottom:24px;">
+                                <h2 style="font-size:1.1rem;font-weight:700;color:#0d2b45;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+                                    3. Sending the Portal Link to the Customer
+                                </h2>
+                                <p>Once the contract is saved, click <strong>Send Portal Link</strong> in the header.</p>
+                                <p>A wizard opens with a pre-formatted email showing:</p>
+                                <ul style="margin:8px 0 12px 20px;font-size:0.9rem;">
+                                    <li>Contract reference and billing details</li>
+                                    <li>Upcoming payment schedule (first 6 dates)</li>
+                                    <li>A secure, branded link for card registration</li>
+                                </ul>
+                                <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:10px 14px;border-radius:0 6px 6px 0;font-size:0.88rem;">
+                                    <strong>Security note:</strong> The portal link contains a unique UUID token.
+                                    It remains valid until the contract is expired or cancelled.
+                                    Never share the link publicly — it is intended for the named customer only.
+                                </div>
+                            </div>
+
+                            <!-- 4. Customer portal -->
+                            <div style="margin-bottom:24px;">
+                                <h2 style="font-size:1.1rem;font-weight:700;color:#0d2b45;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+                                    4. Customer Portal – Card Registration
+                                </h2>
+                                <p>When the customer opens the portal link they see:</p>
+                                <ul style="margin:8px 0 12px 20px;font-size:0.9rem;">
+                                    <li><strong>Left panel:</strong> KGRN branding, subscription summary, upcoming payment schedule</li>
+                                    <li><strong>Right panel:</strong> A Stripe-powered card entry form (hosted by Stripe, PCI compliant)</li>
+                                </ul>
+                                <p>The customer enters their card and clicks <strong>Authorise &amp; Save Card</strong>.
+                                Stripe saves the card and the system stores only a tokenised reference — no raw card numbers ever touch our servers.</p>
+                                <p>Once the card is registered:</p>
+                                <ul style="margin:8px 0 0 20px;font-size:0.9rem;">
+                                    <li>The responsible user receives an in-app notification</li>
+                                    <li>The contract auto-activates if the start date has arrived</li>
+                                    <li>The portal updates to show the card and payment schedule</li>
+                                </ul>
+                            </div>
+
+                            <!-- 5. Activating -->
+                            <div style="margin-bottom:24px;">
+                                <h2 style="font-size:1.1rem;font-weight:700;color:#0d2b45;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+                                    5. Activating a Contract
+                                </h2>
+                                <p>
+                                    If the <strong>Start Date</strong> is today or in the past when the customer adds their card,
+                                    the contract automatically moves to <strong>Running</strong>.
+                                </p>
+                                <p>
+                                    If the Start Date is in the future, a daily cron activates it on the correct date.
+                                    You can also click <strong>Activate Contract</strong> manually on the form
+                                    (only available once the customer has added a card).
+                                </p>
+                            </div>
+
+                            <!-- 6. Automated Payments -->
+                            <div style="margin-bottom:24px;">
+                                <h2 style="font-size:1.1rem;font-weight:700;color:#0d2b45;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+                                    6. Automated Payment Processing
+                                </h2>
+                                <p>Three cron jobs run daily:</p>
+                                <table style="width:100%;border-collapse:collapse;font-size:0.86rem;margin:10px 0;">
+                                    <thead>
+                                        <tr style="background:#f1f5f9;">
+                                            <th style="padding:7px 12px;border:1px solid #e2e8f0;">Cron Job</th>
+                                            <th style="padding:7px 12px;border:1px solid #e2e8f0;">Time</th>
+                                            <th style="padding:7px 12px;border:1px solid #e2e8f0;">Purpose</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td style="padding:7px 12px;border:1px solid #e2e8f0;">Expire Contracts</td><td style="padding:7px 12px;border:1px solid #e2e8f0;">07:00</td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Mark contracts past their end date as Expired</td></tr>
+                                        <tr style="background:#f8fafc;"><td style="padding:7px 12px;border:1px solid #e2e8f0;">Auto-Activate</td><td style="padding:7px 12px;border:1px solid #e2e8f0;">07:30</td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Activate draft contracts whose start date has arrived</td></tr>
+                                        <tr><td style="padding:7px 12px;border:1px solid #e2e8f0;">Process Payments</td><td style="padding:7px 12px;border:1px solid #e2e8f0;">08:00</td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Charge running contracts whose next_payment_date ≤ today</td></tr>
+                                    </tbody>
+                                </table>
+                                <p>On each successful charge, the system:</p>
+                                <ol style="margin:8px 0 0 20px;font-size:0.9rem;">
+                                    <li>Creates a Stripe PaymentIntent (off-session)</li>
+                                    <li>Creates an <strong>Account Payment</strong> in Odoo Accounting (posted)</li>
+                                    <li>Creates a <strong>Payment Line</strong> in the contract with full details</li>
+                                    <li>Sends a payment receipt email to the customer</li>
+                                    <li>Advances the next_payment_date by the configured frequency</li>
+                                </ol>
+                            </div>
+
+                            <!-- 7. Payment History -->
+                            <div style="margin-bottom:24px;">
+                                <h2 style="font-size:1.1rem;font-weight:700;color:#0d2b45;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+                                    7. Managing Payment History
+                                </h2>
+                                <p>
+                                    View all payment lines under the <strong>Payment History</strong> tab on the contract form,
+                                    or navigate to <strong>Accounting → Recurring Payments → Payment History</strong>.
+                                </p>
+                                <p>Each line shows: period, amount, status (Succeeded / Failed / Pending),
+                                    Stripe PaymentIntent ID, and a link to the posted Odoo accounting payment.</p>
+                                <div style="background:#fef2f2;border-left:4px solid #dc2626;padding:10px 14px;border-radius:0 6px 6px 0;font-size:0.88rem;margin-top:10px;">
+                                    <strong>Failed payments:</strong> The system logs the Stripe error message.
+                                    The responsible user receives an email alert. No payment is posted to accounting.
+                                    Investigate the failure in Stripe Dashboard using the PaymentIntent ID.
+                                    If 3D Secure (SCA) is required, the customer must authenticate via a direct charge link.
+                                </div>
+                            </div>
+
+                            <!-- 8. Card Removal -->
+                            <div style="margin-bottom:24px;">
+                                <h2 style="font-size:1.1rem;font-weight:700;color:#0d2b45;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+                                    8. Card Removal Workflow
+                                </h2>
+                                <p><strong>Customer-initiated request:</strong></p>
+                                <ol style="margin:6px 0 12px 20px;font-size:0.9rem;">
+                                    <li>Customer clicks <em>Request Service Cancellation</em> on the portal</li>
+                                    <li>System sets <code>card_removal_requested = True</code> and notifies the responsible user</li>
+                                    <li>A warning banner appears on the contract form</li>
+                                    <li>Internal user reviews the request</li>
+                                    <li>Click <strong>Remove Card</strong> → choose whether to remove card only or cancel the contract</li>
+                                    <li>The system detaches the payment method from Stripe (no further charges)</li>
+                                </ol>
+                                <p><strong>Admin-initiated removal</strong> (no customer request needed):</p>
+                                <p style="margin-left:20px;font-size:0.9rem;">
+                                    Managers can use the <strong>Remove Card</strong> button at any time.
+                                    This requires the <em>KGRN Recurring Payment / Manager</em> group.
+                                </p>
+                                <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:10px 14px;border-radius:0 6px 6px 0;font-size:0.88rem;margin-top:8px;">
+                                    <strong>Important:</strong> After card removal, the next cron run will skip this contract.
+                                    If the contract remains in <em>Running</em> state without a card, it will simply accumulate
+                                    failed payment lines. Always cancel the contract after removing a card if billing should stop.
+                                </div>
+                            </div>
+
+                            <!-- 9. States -->
+                            <div style="margin-bottom:24px;">
+                                <h2 style="font-size:1.1rem;font-weight:700;color:#0d2b45;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+                                    9. Contract Lifecycle &amp; States
+                                </h2>
+                                <table style="width:100%;border-collapse:collapse;font-size:0.88rem;margin:10px 0;">
+                                    <thead>
+                                        <tr style="background:#f1f5f9;">
+                                            <th style="padding:8px 12px;border:1px solid #e2e8f0;">State</th>
+                                            <th style="padding:8px 12px;border:1px solid #e2e8f0;">Meaning</th>
+                                            <th style="padding:8px 12px;border:1px solid #e2e8f0;">Next Step</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td style="padding:7px 12px;border:1px solid #e2e8f0;"><strong>Draft</strong></td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Contract created, awaiting card registration</td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Send portal link → customer adds card → Running</td></tr>
+                                        <tr style="background:#f8fafc;"><td style="padding:7px 12px;border:1px solid #e2e8f0;"><strong>Running</strong></td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Active — cron is processing payments</td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Payments auto-collected until Expired or Cancelled</td></tr>
+                                        <tr><td style="padding:7px 12px;border:1px solid #e2e8f0;"><strong>Expired</strong></td><td style="padding:7px 12px;border:1px solid #e2e8f0;">End date reached, all periods completed</td><td style="padding:7px 12px;border:1px solid #e2e8f0;">No further action. Archived for records.</td></tr>
+                                        <tr style="background:#f8fafc;"><td style="padding:7px 12px;border:1px solid #e2e8f0;"><strong>Cancelled</strong></td><td style="padding:7px 12px;border:1px solid #e2e8f0;">Manually cancelled by internal user</td><td style="padding:7px 12px;border:1px solid #e2e8f0;">No further action. Archived for records.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- 10. Stripe Configuration -->
+                            <div style="margin-bottom:24px;">
+                                <h2 style="font-size:1.1rem;font-weight:700;color:#0d2b45;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+                                    10. Stripe Configuration
+                                </h2>
+                                <p>Go to <strong>Accounting → Configuration → Payment Providers</strong>.</p>
+                                <ol style="margin:8px 0 0 20px;font-size:0.9rem;">
+                                    <li>Create or edit a provider with <strong>Provider = Stripe</strong></li>
+                                    <li>Set <strong>Publishable Key</strong> (pk_live_… or pk_test_…)</li>
+                                    <li>Set <strong>Secret Key</strong> (sk_live_… or sk_test_…) — Admin only</li>
+                                    <li>Set <strong>Webhook Secret</strong> (whsec_…) for webhook verification</li>
+                                    <li>Webhook URL to register in Stripe Dashboard:
+                                        <code>https://yourdomain.com/kgrn/recurring/webhook/stripe</code>
+                                        — Events: <code>payment_intent.succeeded</code>, <code>payment_intent.payment_failed</code>
+                                    </li>
+                                </ol>
+                                <div style="background:#f0f9ff;border-left:4px solid #0369a1;padding:10px 14px;border-radius:0 6px 6px 0;font-size:0.88rem;margin-top:10px;">
+                                    Use <strong>test mode keys</strong> (pk_test_ / sk_test_) during setup.
+                                    Switch to live keys only in production after thorough testing.
+                                </div>
+                            </div>
+
+                            <!-- 11. Troubleshooting -->
+                            <div style="margin-bottom:24px;">
+                                <h2 style="font-size:1.1rem;font-weight:700;color:#0d2b45;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;">
+                                    11. Troubleshooting &amp; FAQs
+                                </h2>
+                                <div style="display:flex;flex-direction:column;gap:10px;font-size:0.89rem;">
+                                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;">
+                                        <strong>Q: The portal page shows a login redirect instead of the card form.</strong><br/>
+                                        A: Ensure <code>kgrn_recurring_payment</code> is installed and the server has been restarted.
+                                        The module patches the HTTP dispatch to allow public access to <code>/kgrn/recurring/</code> URLs.
+                                    </div>
+                                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;">
+                                        <strong>Q: Payment failed with "requires_action" (3D Secure).</strong><br/>
+                                        A: Some cards require SCA authentication for off-session charges.
+                                        Contact the customer to update their card to one that allows off-session charges,
+                                        or use the Stripe Dashboard to send a payment link for manual authentication.
+                                    </div>
+                                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;">
+                                        <strong>Q: Account payment is not created after Stripe charge succeeds.</strong><br/>
+                                        A: Check that a <strong>Payment Journal</strong> is configured on the contract.
+                                        If not, the system attempts to find a bank/cash journal automatically.
+                                        If no journal is found, the payment line is created but no Odoo payment is posted.
+                                    </div>
+                                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;">
+                                        <strong>Q: Can I change the billing amount after activation?</strong><br/>
+                                        A: Amount and frequency fields are locked in Running/Expired/Cancelled states.
+                                        To change the amount, cancel the existing contract and create a new one.
+                                    </div>
+                                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;">
+                                        <strong>Q: The Activate button is not visible.</strong><br/>
+                                        A: The Activate button only appears when the contract is in Draft AND the customer
+                                        has registered a card (stripe_payment_method_id is set).
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Footer -->
+                            <div style="background:#f1f5f9;border-radius:8px;padding:14px 18px;font-size:0.8rem;color:#64748b;text-align:center;">
+                                KGRN Recurring Payment v18.0.1.0.0 · KGRN Chartered Accountants LLC ·
+                                For technical support contact your system administrator.
+                            </div>
+
+                        </div>
+                    </div>
+                </sheet>
+                <footer>
+                    <button string="Close" class="btn-primary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

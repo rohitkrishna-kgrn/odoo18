@@ -117,7 +117,10 @@ class SaleOrder(models.Model):
         vals.setdefault('new_renewed', 'new')
 
         # Permission check: only Sales Team can create 'new' sale orders
-        if vals.get('new_renewed') == 'new' and not self.env.user.sales_team:
+        # Skip check when created automatically (e.g. recurring orders, renewals)
+        if (vals.get('new_renewed') == 'new'
+                and not self.env.context.get('skip_sales_team_check')
+                and not self.env.user.sales_team):
             raise UserError("Only Sales Team members can create Sale Orders in 'New' stage.")
 
         return super().create(vals)
