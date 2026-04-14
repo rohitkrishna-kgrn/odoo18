@@ -408,6 +408,16 @@ class KgrnRecurringContract(models.Model):
             if rec.end_date and rec.start_date and rec.end_date <= rec.start_date:
                 raise ValidationError(_('End Date must be after Start Date.'))
 
+    @api.constrains('start_date')
+    def _check_start_date_not_past(self):
+        today = fields.Date.today()
+        for rec in self:
+            if rec.state == 'draft' and rec.start_date and rec.start_date < today:
+                raise ValidationError(_(
+                    'Start Date cannot be in the past. '
+                    'Please select today or a future date.'
+                ))
+
     @api.constrains('amount')
     def _check_amount(self):
         for rec in self:
@@ -746,42 +756,61 @@ class KgrnRecurringContract(models.Model):
             raise
 
     def _create_account_payment(self, period_label, payment_date):
-        """Create and post an account.payment record for the collected amount."""
+        """Create and post an account.payment record for the collected amount.
+
+        Uses sudo() so the cron (which may run as public user) can write to
+        accounting models.  payment_method_line_id is resolved from the
+        journal's inbound lines (required in Odoo 18).
+        """
         self.ensure_one()
         journal = self.journal_id
         if not journal:
-            journal = self.env['account.journal'].search(
-                [('type', 'in', ['bank', 'cash']), ('company_id', '=', self.company_id.id)],
+            journal = self.env['account.journal'].sudo().search(
+                [('type', 'in', ['bank', 'cash']),
+                 ('company_id', '=', self.company_id.id)],
                 limit=1,
             )
         if not journal:
-            _logger.warning('No payment journal found for contract %s', self.name)
+            _logger.warning(
+                'KGRN Recurring: no bank/cash journal found for contract %s – '
+                'payment entry skipped.', self.name
+            )
             return False
 
-        try:
-            narration = (
-                f'KGRN Recurring Payment\n'
-                f'Contract: {self.name}\n'
-                f'Customer: {self.customer_id.name}\n'
-                f'Frequency: {FREQUENCY_LABEL[self.frequency]}\n'
-                f'Period: {period_label}'
+        # Resolve inbound payment method line (mandatory in Odoo 18)
+        inbound_lines = journal.inbound_payment_method_line_ids
+        method_line = (
+            inbound_lines.filtered(lambda l: l.code == 'manual')[:1]
+            or inbound_lines[:1]
+        )
+
+        if not method_line:
+            _logger.warning(
+                'KGRN Recurring: journal %s has no inbound payment method lines configured. '
+                'Please enable "Manual" inbound payment method on the journal.',
+                journal.name,
             )
-            payment = self.env['account.payment'].create({
-                'partner_id': self.customer_id.id,
-                'amount': self.amount,
-                'currency_id': self.currency_id.id,
-                'payment_type': 'inbound',
-                'partner_type': 'customer',
-                'journal_id': journal.id,
-                'date': payment_date,
-                'ref': f'KGRN/REC – {self.name} – {period_label}',
-                'narration': narration,
-            })
-            payment.action_post()
-            return payment
-        except Exception as e:
-            _logger.error('Failed to create account payment for %s: %s', self.name, e)
-            return False
+
+        vals = {
+            'partner_id': self.customer_id.id,
+            'amount': self.amount,
+            'currency_id': self.currency_id.id,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'journal_id': journal.id,
+            'date': payment_date,
+            'memo': f'KGRN Recurring | {self.name} | {period_label}',
+        }
+        if method_line:
+            vals['payment_method_line_id'] = method_line.id
+
+        payment = self.env['account.payment'].sudo().create(vals)
+        payment.action_post()
+        _logger.info(
+            'KGRN Recurring: account.payment %s created and posted for contract %s',
+            payment.name, self.name,
+        )
+        return payment
 
     # -----------------------------------------------------------------------
     # Notifications
