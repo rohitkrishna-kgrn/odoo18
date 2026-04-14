@@ -33,6 +33,14 @@
                             groups="kgrn_recurring_payment.group_kgrn_recurring_manager"
                             help="Detach the customer's payment card from Stripe."/>
 
+                    <button name="action_manual_deduct"
+                            string="Manual Deduction"
+                            type="object"
+                            class="btn-warning"
+                            invisible="state != 'running'"
+                            confirm="This will immediately charge the customer's card for the current period. Continue?"
+                            help="Manually trigger payment deduction for the current billing period."/>
+
                     <button name="action_mark_expired"
                             string="Mark as Expired"
                             type="object"

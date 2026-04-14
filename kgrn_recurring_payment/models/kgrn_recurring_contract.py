@@ -467,6 +467,28 @@ class KgrnRecurringContract(models.Model):
             rec.write({'state': 'expired'})
             rec.message_post(body=_('Contract marked as expired.'))
 
+    def action_manual_deduct(self):
+        """Manually trigger payment deduction for the current period (Running contracts only)."""
+        self.ensure_one()
+        if self.state != 'running':
+            raise UserError(_('Manual deduction is only available for Running contracts.'))
+        if not self.stripe_payment_method_id:
+            raise UserError(_('No payment card is registered on this contract.'))
+        self._process_single_payment()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Payment Processed'),
+                'message': _(
+                    'Manual deduction for %s completed. '
+                    'Check the Payment History tab for the result.'
+                ) % self.name,
+                'type': 'success',
+                'sticky': False,
+            },
+        }
+
     # -----------------------------------------------------------------------
     # Portal link
     # -----------------------------------------------------------------------
