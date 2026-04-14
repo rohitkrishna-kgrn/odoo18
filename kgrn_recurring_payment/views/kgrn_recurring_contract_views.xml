@@ -70,9 +70,10 @@
                     — Please review and use <strong>Remove Card</strong> button above to action.
                 </div>
 
-                <!-- Portal link sent info bar -->
+                <!-- Portal link sent info bar — hidden once card is registered -->
                 <div class="alert alert-info o_form_no_constraints mb-0"
-                     invisible="not portal_link_sent or card_removal_requested" role="alert">
+                     invisible="not portal_link_sent or card_removal_requested or stripe_payment_method_id"
+                     role="alert">
                     &#10003; Portal link was sent on
                     <field name="portal_link_sent_date" readonly="1" nolabel="1" class="d-inline" widget="datetime"/>.
                     Waiting for customer to register their card.

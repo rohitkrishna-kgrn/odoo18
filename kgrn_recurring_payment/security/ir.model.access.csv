@@ -6,4 +6,5 @@ access_kgrn_recurring_payment_line_manager,kgrn.recurring.payment.line manager,m
 access_kgrn_user_manual_wizard,kgrn.user.manual.wizard,model_kgrn_user_manual_wizard,group_kgrn_recurring_user,1,1,1,1
 access_kgrn_send_portal_link_wizard,kgrn.send.portal.link.wizard,model_kgrn_send_portal_link_wizard,group_kgrn_recurring_user,1,1,1,1
 access_kgrn_card_removal_action_wizard,kgrn.card.removal.action.wizard,model_kgrn_card_removal_action_wizard,group_kgrn_recurring_manager,1,1,1,1
-access_kgrn_stripe_config,kgrn.stripe.config,model_kgrn_stripe_config,group_kgrn_recurring_manager,1,1,1,1
+access_kgrn_stripe_config,kgrn.stripe.config,model_kgrn_stripe_config,base.group_system,1,1,1,1
+access_kgrn_manual_deduction_wizard,kgrn.manual.deduction.wizard,model_kgrn_manual_deduction_wizard,group_kgrn_recurring_user,1,1,1,1

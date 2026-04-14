@@ -2,7 +2,9 @@
 <odoo>
     <data noupdate="1">
 
-        <!-- Payment receipt email to customer -->
+        <!-- ================================================================
+             PAYMENT RECEIPT  (to customer)
+        ================================================================ -->
         <record id="email_template_payment_receipt" model="mail.template">
             <field name="name">KGRN Recurring: Payment Receipt</field>
             <field name="model_id" ref="model_kgrn_recurring_payment_line"/>
@@ -10,89 +12,307 @@
             <field name="email_to">{{ object.contract_id.customer_email }}</field>
             <field name="email_from">{{ (object.contract_id.company_id.email or user.email) }}</field>
             <field name="body_html"><![CDATA[
-<div style="font-family:Segoe UI,Arial,sans-serif;max-width:580px;margin:0 auto;color:#1f2937;">
-  <div style="background:linear-gradient(135deg,#0d2b45,#1a4f72);padding:28px 36px;border-radius:12px 12px 0 0;">
-    <h1 style="color:#fff;margin:0;font-size:20px;font-weight:700;">KGRN Chartered Accountants LLC</h1>
-    <p style="color:rgba(255,255,255,0.7);margin:4px 0 0;font-size:12px;letter-spacing:1px;text-transform:uppercase;">
-      Payment Receipt
-    </p>
-  </div>
-  <div style="background:#fff;padding:32px 36px;border:1px solid #e5e7eb;border-top:none;">
-    <p style="margin:0 0 20px;font-size:15px;">Dear <strong>{{ object.contract_id.customer_id.name }}</strong>,</p>
-    <p style="color:#4b5563;line-height:1.6;margin:0 0 24px;">
-      A payment of <strong>{{ object.currency_id.symbol or object.currency_id.name }}{{ '%.2f'|format(object.amount) }}</strong>
-      has been successfully processed for your recurring payment contract.
-    </p>
-    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 24px;">
-      <tr style="background:#f3f4f6;">
-        <td style="padding:10px 14px;font-weight:600;color:#374151;">Contract Reference</td>
-        <td style="padding:10px 14px;color:#1f2937;">{{ object.contract_id.name }}</td>
-      </tr>
-      <tr>
-        <td style="padding:10px 14px;font-weight:600;color:#374151;">Billing Period</td>
-        <td style="padding:10px 14px;color:#1f2937;">{{ object.name }}</td>
-      </tr>
-      <tr style="background:#f3f4f6;">
-        <td style="padding:10px 14px;font-weight:600;color:#374151;">Payment Date</td>
-        <td style="padding:10px 14px;color:#1f2937;">{{ object.payment_date.strftime('%d %b %Y') }}</td>
-      </tr>
-      <tr>
-        <td style="padding:10px 14px;font-weight:600;color:#374151;">Amount Charged</td>
-        <td style="padding:10px 14px;color:#1f2937;font-weight:700;">
-          {{ object.currency_id.symbol or object.currency_id.name }}{{ '%.2f'|format(object.amount) }}
-        </td>
-      </tr>
-      {% if object.stripe_payment_intent_id %}
-      <tr style="background:#f3f4f6;">
-        <td style="padding:10px 14px;font-weight:600;color:#374151;">Transaction ID</td>
-        <td style="padding:10px 14px;color:#6b7280;font-size:12px;">{{ object.stripe_payment_intent_id }}</td>
-      </tr>
-      {% endif %}
-    </table>
-    <p style="font-size:13px;color:#6b7280;">
-      If you have any questions regarding this payment, please contact your KGRN account manager.
-    </p>
-  </div>
-  <div style="background:#f9fafb;padding:16px 36px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;text-align:center;">
-    <p style="font-size:11px;color:#9ca3af;margin:0;">
-      © KGRN Chartered Accountants LLC. This is an automated receipt.
-    </p>
-  </div>
-</div>
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="x-apple-disable-message-reformatting"/>
+  <title>Payment Receipt</title>
+  <!--[if mso]>
+  <xml>
+    <o:OfficeDocumentSettings>
+      <o:AllowPNG/>
+      <o:PixelsPerInch>96</o:PixelsPerInch>
+    </o:OfficeDocumentSettings>
+  </xml>
+  <![endif]-->
+  <style>
+    body, table, td { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+    img { -ms-interpolation-mode:bicubic; border:0; }
+    body { margin:0; padding:0; background-color:#f0f2f5; }
+    @media only screen and (max-width:600px) {
+      .email-container { width:100% !important; }
+      .fluid { max-width:100% !important; }
+      .mobile-padding { padding:24px 16px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#f0f2f5;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f0f2f5;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+
+        <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" width="580"><tr><td><![endif]-->
+        <table class="email-container" role="presentation" border="0" cellpadding="0" cellspacing="0" width="580" style="max-width:580px;">
+
+          <!-- HEADER -->
+          <tr>
+            <td bgcolor="#0d2b45" style="background-color:#0d2b45;padding:28px 36px;border-radius:12px 12px 0 0;mso-border-radius-topright:12px;mso-border-radius-topleft:12px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td>
+                    <h1 style="color:#ffffff;margin:0 0 4px 0;font-size:20px;font-weight:700;font-family:'Segoe UI',Arial,Helvetica,sans-serif;line-height:1.3;">
+                      KGRN Chartered Accountants LLC
+                    </h1>
+                    <p style="color:#a8c4d8;margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                      Payment Receipt
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- BODY -->
+          <tr>
+            <td bgcolor="#ffffff" style="background-color:#ffffff;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;padding:32px 36px;">
+
+              <p style="margin:0 0 16px 0;font-size:15px;color:#1f2937;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                Dear <strong>{{ object.contract_id.customer_id.name }}</strong>,
+              </p>
+              <p style="color:#4b5563;line-height:1.6;margin:0 0 24px 0;font-size:14px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                A payment of
+                <strong>{{ object.currency_id.symbol or object.currency_id.name }}&#160;{{ '%.2f'|format(object.amount) }}</strong>
+                has been successfully processed for your recurring payment contract.
+              </p>
+
+              <!-- Details table -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px 0;border-collapse:collapse;">
+                <tr>
+                  <td width="200" bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;">
+                    Contract Reference
+                  </td>
+                  <td bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-left:none;">
+                    {{ object.contract_id.name }}
+                  </td>
+                </tr>
+                <tr>
+                  <td width="200" style="padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;">
+                    Billing Period
+                  </td>
+                  <td style="padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;border-left:none;">
+                    {{ object.name }}
+                  </td>
+                </tr>
+                <tr>
+                  <td width="200" bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;">
+                    Payment Date
+                  </td>
+                  <td bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;border-left:none;">
+                    {{ object.payment_date.strftime('%d %b %Y') }}
+                  </td>
+                </tr>
+                <tr>
+                  <td width="200" style="padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;">
+                    Amount Charged
+                  </td>
+                  <td style="padding:10px 14px;color:#1f2937;font-size:14px;font-weight:700;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;border-left:none;">
+                    {{ object.currency_id.symbol or object.currency_id.name }}&#160;{{ '%.2f'|format(object.amount) }}
+                  </td>
+                </tr>
+                {% if object.stripe_payment_intent_id %}
+                <tr>
+                  <td width="200" bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;">
+                    Transaction ID
+                  </td>
+                  <td bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;color:#6b7280;font-size:11px;font-family:'Courier New',Courier,monospace;border:1px solid #e5e7eb;border-top:none;border-left:none;">
+                    {{ object.stripe_payment_intent_id }}
+                  </td>
+                </tr>
+                {% endif %}
+              </table>
+
+              <p style="font-size:13px;color:#6b7280;margin:0;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                If you have any questions regarding this payment, please contact your KGRN account manager.
+              </p>
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td bgcolor="#f9fafb" align="center" style="background-color:#f9fafb;padding:16px 36px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;mso-border-radius-bottomleft:12px;mso-border-radius-bottomright:12px;">
+              <p style="font-size:11px;color:#9ca3af;margin:0;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                &#169; KGRN Chartered Accountants LLC. This is an automated receipt. Please do not reply to this email.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
 ]]></field>
         </record>
 
-        <!-- Payment failure notification to internal responsible user -->
+        <!-- ================================================================
+             PAYMENT FAILED  (internal – to responsible user)
+        ================================================================ -->
         <record id="email_template_payment_failed" model="mail.template">
             <field name="name">KGRN Recurring: Payment Failed (Internal)</field>
             <field name="model_id" ref="model_kgrn_recurring_contract"/>
-            <field name="subject">URGENT: Recurring Payment Failed – {{ object.name }}</field>
+            <field name="subject">&#9888; URGENT: Recurring Payment Failed – {{ object.name }}</field>
             <field name="email_to">{{ object.user_id.email }}</field>
             <field name="email_from">{{ (object.company_id.email or user.email) }}</field>
             <field name="body_html"><![CDATA[
-<div style="font-family:Segoe UI,Arial,sans-serif;max-width:580px;margin:0 auto;color:#1f2937;">
-  <div style="background:#dc2626;padding:24px 36px;border-radius:12px 12px 0 0;">
-    <h1 style="color:#fff;margin:0;font-size:18px;font-weight:700;">Payment Failed – Immediate Attention Required</h1>
-  </div>
-  <div style="background:#fff;padding:28px 36px;border:1px solid #e5e7eb;border-top:none;">
-    <p style="margin:0 0 16px;">A recurring payment has failed for the following contract:</p>
-    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 20px;">
-      <tr style="background:#fef2f2;">
-        <td style="padding:8px 12px;font-weight:600;">Contract</td>
-        <td style="padding:8px 12px;">{{ object.name }}</td>
-      </tr>
-      <tr>
-        <td style="padding:8px 12px;font-weight:600;">Customer</td>
-        <td style="padding:8px 12px;">{{ object.customer_id.name }}</td>
-      </tr>
-      <tr style="background:#fef2f2;">
-        <td style="padding:8px 12px;font-weight:600;">Amount</td>
-        <td style="padding:8px 12px;">{{ object.currency_id.symbol }}{{ '%.2f'|format(object.amount) }}</td>
-      </tr>
-    </table>
-    <p style="color:#dc2626;font-weight:600;">Please review the contract and take appropriate action.</p>
-  </div>
-</div>
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="x-apple-disable-message-reformatting"/>
+  <title>Payment Failed</title>
+  <!--[if mso]>
+  <xml>
+    <o:OfficeDocumentSettings>
+      <o:AllowPNG/>
+      <o:PixelsPerInch>96</o:PixelsPerInch>
+    </o:OfficeDocumentSettings>
+  </xml>
+  <![endif]-->
+  <style>
+    body, table, td { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+    body { margin:0; padding:0; background-color:#fef2f2; }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#fef2f2;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#fef2f2;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+
+        <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" width="560"><tr><td><![endif]-->
+        <table class="email-container" role="presentation" border="0" cellpadding="0" cellspacing="0" width="560" style="max-width:560px;">
+
+          <!-- RED HEADER -->
+          <tr>
+            <td bgcolor="#dc2626" style="background-color:#dc2626;padding:22px 32px;border-radius:12px 12px 0 0;mso-border-radius-topright:12px;mso-border-radius-topleft:12px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td>
+                    <p style="color:#ffffff;margin:0 0 4px 0;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                      KGRN RECURRING PAYMENTS
+                    </p>
+                    <h1 style="color:#ffffff;margin:0;font-size:18px;font-weight:700;font-family:'Segoe UI',Arial,Helvetica,sans-serif;line-height:1.3;">
+                      &#9888;&#160;Payment Failed – Immediate Attention Required
+                    </h1>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- BODY -->
+          <tr>
+            <td bgcolor="#ffffff" style="background-color:#ffffff;border-left:1px solid #fecaca;border-right:1px solid #fecaca;padding:28px 32px;">
+
+              <p style="margin:0 0 16px 0;font-size:14px;color:#1f2937;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                Hello <strong>{{ object.user_id.name }}</strong>,
+              </p>
+              <p style="color:#374151;line-height:1.6;margin:0 0 20px 0;font-size:14px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                A recurring payment could not be processed. Please review the contract and take appropriate action.
+              </p>
+
+              <!-- Alert box -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 20px 0;">
+                <tr>
+                  <td bgcolor="#fef2f2" style="background-color:#fef2f2;border:2px solid #fecaca;border-radius:8px;padding:14px 16px;">
+                    <p style="margin:0;font-size:13px;font-weight:700;color:#dc2626;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                      PAYMENT DECLINED
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Contract details -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin:0 0 20px 0;">
+                <tr>
+                  <td width="160" bgcolor="#f9fafb" style="background-color:#f9fafb;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;">
+                    Contract
+                  </td>
+                  <td style="padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-left:none;">
+                    {{ object.name }}
+                  </td>
+                </tr>
+                <tr>
+                  <td width="160" style="padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;">
+                    Customer
+                  </td>
+                  <td style="padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;border-left:none;">
+                    {{ object.customer_id.name }}
+                  </td>
+                </tr>
+                <tr>
+                  <td width="160" bgcolor="#f9fafb" style="background-color:#f9fafb;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;">
+                    Amount
+                  </td>
+                  <td bgcolor="#f9fafb" style="background-color:#f9fafb;padding:10px 14px;color:#1f2937;font-size:13px;font-weight:700;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;border-left:none;">
+                    {{ object.currency_id.symbol or object.currency_id.name }}&#160;{{ '%.2f'|format(object.amount) }}
+                  </td>
+                </tr>
+                <tr>
+                  <td width="160" style="padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;">
+                    Frequency
+                  </td>
+                  <td style="padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;border-top:none;border-left:none;">
+                    {{ object.frequency }}
+                  </td>
+                </tr>
+              </table>
+
+              <p style="font-size:13px;color:#dc2626;font-weight:700;margin:0 0 8px 0;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                Recommended Actions:
+              </p>
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td style="padding:4px 0;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                    &#8226;&#160; Check the Payment History tab in the contract for the Stripe error message
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:4px 0;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                    &#8226;&#160; Verify the customer's card has sufficient funds
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:4px 0;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                    &#8226;&#160; Use Manual Deduction once the issue is resolved
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:4px 0;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                    &#8226;&#160; Contact the customer if the card needs to be updated
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td bgcolor="#f9fafb" align="center" style="background-color:#f9fafb;padding:14px 32px;border:1px solid #fecaca;border-top:none;border-radius:0 0 12px 12px;mso-border-radius-bottomleft:12px;mso-border-radius-bottomright:12px;">
+              <p style="font-size:11px;color:#9ca3af;margin:0;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                This is an automated internal alert from KGRN Recurring Payments. Do not forward this email.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
 ]]></field>
         </record>
 

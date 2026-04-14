@@ -136,6 +136,7 @@ class _StripeAPI:
 # ---------------------------------------------------------------------------
 
 FREQUENCY_DELTA = {
+    'daily': relativedelta(days=1),
     'weekly': relativedelta(weeks=1),
     'monthly': relativedelta(months=1),
     'quarterly': relativedelta(months=3),
@@ -144,6 +145,7 @@ FREQUENCY_DELTA = {
 }
 
 FREQUENCY_LABEL = {
+    'daily': 'Daily',
     'weekly': 'Weekly',
     'monthly': 'Monthly',
     'quarterly': 'Quarterly',
@@ -223,6 +225,7 @@ class KgrnRecurringContract(models.Model):
     )
     frequency = fields.Selection(
         selection=[
+            ('daily', 'Daily'),
             ('weekly', 'Weekly'),
             ('monthly', 'Monthly'),
             ('quarterly', 'Quarterly'),
@@ -468,25 +471,19 @@ class KgrnRecurringContract(models.Model):
             rec.message_post(body=_('Contract marked as expired.'))
 
     def action_manual_deduct(self):
-        """Manually trigger payment deduction for the current period (Running contracts only)."""
+        """Open the manual deduction wizard for period confirmation."""
         self.ensure_one()
         if self.state != 'running':
             raise UserError(_('Manual deduction is only available for Running contracts.'))
         if not self.stripe_payment_method_id:
             raise UserError(_('No payment card is registered on this contract.'))
-        self._process_single_payment()
         return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _('Payment Processed'),
-                'message': _(
-                    'Manual deduction for %s completed. '
-                    'Check the Payment History tab for the result.'
-                ) % self.name,
-                'type': 'success',
-                'sticky': False,
-            },
+            'type': 'ir.actions.act_window',
+            'name': _('Manual Payment Deduction'),
+            'res_model': 'kgrn.manual.deduction.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_contract_id': self.id},
         }
 
     # -----------------------------------------------------------------------
@@ -762,6 +759,13 @@ class KgrnRecurringContract(models.Model):
             return False
 
         try:
+            narration = (
+                f'KGRN Recurring Payment\n'
+                f'Contract: {self.name}\n'
+                f'Customer: {self.customer_id.name}\n'
+                f'Frequency: {FREQUENCY_LABEL[self.frequency]}\n'
+                f'Period: {period_label}'
+            )
             payment = self.env['account.payment'].create({
                 'partner_id': self.customer_id.id,
                 'amount': self.amount,
@@ -770,11 +774,8 @@ class KgrnRecurringContract(models.Model):
                 'partner_type': 'customer',
                 'journal_id': journal.id,
                 'date': payment_date,
-                'ref': f'{self.name} / {period_label}',
-                'memo': (
-                    f'KGRN Recurring Payment – {self.name} – '
-                    f'{FREQUENCY_LABEL[self.frequency]} – {period_label}'
-                ),
+                'ref': f'KGRN/REC – {self.name} – {period_label}',
+                'narration': narration,
             })
             payment.action_post()
             return payment

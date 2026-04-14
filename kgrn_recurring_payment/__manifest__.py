@@ -36,6 +36,7 @@ with Stripe integration. Features include:
         'wizard/views/kgrn_user_manual_wizard_views.xml',
         'wizard/views/kgrn_send_portal_link_wizard_views.xml',
         'wizard/views/kgrn_card_removal_action_views.xml',
+        'wizard/views/kgrn_manual_deduction_wizard_views.xml',
         # Portal
         'views/portal_templates.xml',
         # Backend views
