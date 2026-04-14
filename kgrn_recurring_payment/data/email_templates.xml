@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
+    <data noupdate="0">
 
         <!-- ================================================================
              PAYMENT RECEIPT  (to customer)
@@ -12,111 +12,10 @@
             <field name="email_to">{{ object.contract_id.customer_email }}</field>
             <field name="email_from">{{ (object.contract_id.company_id.email or user.email) }}</field>
             <field name="body_html"><![CDATA[
-<table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#f0f2f5;margin:0;padding:0;">
-  <tr>
-    <td align="center" style="padding:24px 12px;">
-
-      <!--[if mso]><table border="0" cellpadding="0" cellspacing="0" width="580"><tr><td><![endif]-->
-      <table border="0" cellpadding="0" cellspacing="0" width="580" style="max-width:580px;width:100%;">
-
-        <!-- HEADER -->
-        <tr>
-          <td bgcolor="#0d2b45" align="left" style="background-color:#0d2b45;padding:28px 36px;">
-            <table border="0" cellpadding="0" cellspacing="0" width="100%">
-              <tr>
-                <td>
-                  <h1 style="color:#ffffff;margin:0 0 4px 0;font-size:20px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;line-height:130%;">
-                    KGRN Chartered Accountants LLC
-                  </h1>
-                  <p style="color:#a8c4d8;margin:0;font-size:12px;font-family:Arial,Helvetica,sans-serif;">
-                    PAYMENT RECEIPT
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- BODY -->
-        <tr>
-          <td bgcolor="#ffffff" align="left" style="background-color:#ffffff;padding:32px 36px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-
-            <p style="margin:0 0 16px 0;font-size:15px;color:#1f2937;font-family:Arial,Helvetica,sans-serif;">
-              Dear <strong>{{ object.contract_id.customer_id.name }}</strong>,
-            </p>
-            <p style="color:#4b5563;line-height:160%;margin:0 0 24px 0;font-size:14px;font-family:Arial,Helvetica,sans-serif;">
-              A payment of
-              <strong>{{ object.currency_id.symbol or object.currency_id.name }} {{ '%.2f'|format(object.amount) }}</strong>
-              has been successfully processed for your recurring payment contract.
-            </p>
-
-            <!-- Details table -->
-            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin:0 0 24px 0;">
-              <tr>
-                <td width="200" bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;font-weight:bold;color:#374151;font-size:13px;font-family:Arial,Helvetica,sans-serif;border:1px solid #e5e7eb;">
-                  Contract Reference
-                </td>
-                <td bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;color:#1f2937;font-size:13px;font-family:Arial,Helvetica,sans-serif;border-top:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
-                  {{ object.contract_id.name }}
-                </td>
-              </tr>
-              <tr>
-                <td width="200" bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;font-weight:bold;color:#374151;font-size:13px;font-family:Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
-                  Billing Period
-                </td>
-                <td bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;color:#1f2937;font-size:13px;font-family:Arial,Helvetica,sans-serif;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
-                  {{ object.name }}
-                </td>
-              </tr>
-              <tr>
-                <td width="200" bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;font-weight:bold;color:#374151;font-size:13px;font-family:Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
-                  Payment Date
-                </td>
-                <td bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;color:#1f2937;font-size:13px;font-family:Arial,Helvetica,sans-serif;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
-                  {{ object.payment_date.strftime('%d %b %Y') }}
-                </td>
-              </tr>
-              <tr>
-                <td width="200" bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;font-weight:bold;color:#374151;font-size:13px;font-family:Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
-                  Amount Charged
-                </td>
-                <td bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;color:#1f2937;font-size:14px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
-                  {{ object.currency_id.symbol or object.currency_id.name }} {{ '%.2f'|format(object.amount) }}
-                </td>
-              </tr>
-              {% if object.stripe_payment_intent_id %}
-              <tr>
-                <td width="200" bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;font-weight:bold;color:#374151;font-size:13px;font-family:Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
-                  Transaction ID
-                </td>
-                <td bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;color:#6b7280;font-size:11px;font-family:'Courier New',Courier,monospace;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
-                  {{ object.stripe_payment_intent_id }}
-                </td>
-              </tr>
-              {% endif %}
-            </table>
-
-            <p style="font-size:13px;color:#6b7280;margin:0;font-family:Arial,Helvetica,sans-serif;">
-              If you have any questions regarding this payment, please contact your KGRN account manager.
-            </p>
-          </td>
-        </tr>
-
-        <!-- FOOTER -->
-        <tr>
-          <td bgcolor="#f9fafb" align="center" style="background-color:#f9fafb;padding:16px 36px;border:1px solid #e5e7eb;border-top:none;">
-            <p style="font-size:11px;color:#9ca3af;margin:0;font-family:Arial,Helvetica,sans-serif;">
-              &#169; KGRN Chartered Accountants LLC. This is an automated receipt. Please do not reply to this email.
-            </p>
-          </td>
-        </tr>
-
-      </table>
-      <!--[if mso]></td></tr></table><![endif]-->
-
-    </td>
-  </tr>
-</table>
+<p>Dear {{ object.contract_id.customer_id.name }},</p>
+<p>Your payment of {{ object.currency_id.symbol or object.currency_id.name }} {{ '%.2f'|format(object.amount) }} for contract {{ object.contract_id.name }} ({{ object.name }}) has been processed on {{ object.payment_date.strftime('%d %b %Y') }}.</p>
+<p>Thank you.</p>
+<p>KGRN Chartered Accountants LLC</p>
 ]]></field>
         </record>
 

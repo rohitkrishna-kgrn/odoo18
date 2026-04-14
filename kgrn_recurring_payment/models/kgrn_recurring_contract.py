@@ -827,11 +827,189 @@ class KgrnRecurringContract(models.Model):
             ).send_mail(self.id, force_send=True, raise_exception=False)
 
     def _send_payment_receipt_email(self, line):
-        template = self.env.ref(
-            'kgrn_recurring_payment.email_template_payment_receipt', raise_if_not_found=False
-        )
-        if template:
-            template.send_mail(line.id, force_send=True, raise_exception=False)
+        """Build and send the payment receipt email directly (no mail.template Jinja2)."""
+        self.ensure_one()
+        if not self.customer_email:
+            return
+
+        sym = self.currency_id.symbol or self.currency_id.name
+        contract_name  = self.name
+        customer_name  = self.customer_id.name
+        period_label   = line.name
+        payment_date   = line.payment_date.strftime('%d %b %Y') if line.payment_date else '—'
+        amount_str     = f'{line.amount:,.2f}'
+        pi_id          = line.stripe_payment_intent_id or ''
+
+        txn_row = ''
+        if pi_id:
+            txn_row = (
+                f'<tr>'
+                f'<td width="200" bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;'
+                f'font-weight:bold;color:#374151;font-size:13px;font-family:\'Segoe UI\',Arial,Helvetica,sans-serif;'
+                f'border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">'
+                f'Transaction ID'
+                f'</td>'
+                f'<td bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;color:#6b7280;'
+                f'font-size:11px;font-family:\'Courier New\',Courier,monospace;'
+                f'border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">'
+                f'{pi_id}'
+                f'</td>'
+                f'</tr>'
+            )
+
+        body = f'''<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="x-apple-disable-message-reformatting"/>
+  <title>Payment Receipt</title>
+  <!--[if mso]>
+  <xml>
+    <o:OfficeDocumentSettings>
+      <o:AllowPNG/>
+      <o:PixelsPerInch>96</o:PixelsPerInch>
+    </o:OfficeDocumentSettings>
+  </xml>
+  <![endif]-->
+  <style>
+    body, table, td {{ -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }}
+    table, td {{ mso-table-lspace:0pt; mso-table-rspace:0pt; }}
+    body {{ margin:0; padding:0; background-color:#f0f2f5; }}
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#f0f2f5;">
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f0f2f5;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+
+      <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" width="600"><tr><td><![endif]-->
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;">
+
+        <!-- HEADER -->
+        <tr>
+          <td bgcolor="#0d2b45" style="background-color:#0d2b45;padding:28px 36px;border-radius:12px 12px 0 0;mso-border-radius-topright:12px;mso-border-radius-topleft:12px;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td>
+                  <h1 style="color:#ffffff;margin:0 0 4px 0;font-size:20px;font-weight:700;font-family:'Segoe UI',Arial,Helvetica,sans-serif;line-height:1.3;">
+                    KGRN Chartered Accountants LLC
+                  </h1>
+                  <p style="color:#a8c4d8;margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                    Payment Receipt
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- GREEN CONFIRMED BADGE -->
+        <tr>
+          <td bgcolor="#f0fdf4" style="background-color:#f0fdf4;padding:14px 36px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #dcfce7;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td style="font-size:13px;font-weight:700;color:#15803d;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                  &#10004;&#160; Payment Confirmed – {sym}&#160;{amount_str}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- BODY -->
+        <tr>
+          <td bgcolor="#ffffff" style="background-color:#ffffff;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;padding:32px 36px;">
+
+            <p style="margin:0 0 16px 0;font-size:15px;color:#1f2937;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+              Dear <strong>{customer_name}</strong>,
+            </p>
+            <p style="color:#4b5563;line-height:1.65;margin:0 0 24px 0;font-size:14px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+              A payment of <strong>{sym}&#160;{amount_str}</strong> has been successfully processed
+              for your recurring payment contract. Please find the details below.
+            </p>
+
+            <!-- Details table -->
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin:0 0 24px 0;">
+              <tr>
+                <td width="200" bgcolor="#0d2b45" style="background-color:#0d2b45;padding:9px 14px;font-size:12px;font-weight:700;color:#ffffff;font-family:'Segoe UI',Arial,Helvetica,sans-serif;letter-spacing:0.4px;text-transform:uppercase;">
+                  Detail
+                </td>
+                <td bgcolor="#0d2b45" style="background-color:#0d2b45;padding:9px 14px;font-size:12px;font-weight:700;color:#ffffff;font-family:'Segoe UI',Arial,Helvetica,sans-serif;letter-spacing:0.4px;text-transform:uppercase;">
+                  Value
+                </td>
+              </tr>
+              <tr>
+                <td width="200" bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  Contract Reference
+                </td>
+                <td bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  {contract_name}
+                </td>
+              </tr>
+              <tr>
+                <td width="200" bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  Billing Period
+                </td>
+                <td bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  {period_label}
+                </td>
+              </tr>
+              <tr>
+                <td width="200" bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  Payment Date
+                </td>
+                <td bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  {payment_date}
+                </td>
+              </tr>
+              <tr>
+                <td width="200" bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  Amount Charged
+                </td>
+                <td bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;color:#1f2937;font-size:15px;font-weight:700;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  {sym}&#160;{amount_str}
+                </td>
+              </tr>
+              {txn_row}
+            </table>
+
+            <p style="font-size:13px;color:#6b7280;margin:0;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+              If you have any questions regarding this payment, please contact your KGRN account manager.
+            </p>
+
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td bgcolor="#f9fafb" align="center" style="background-color:#f9fafb;padding:18px 36px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;mso-border-radius-bottomleft:12px;mso-border-radius-bottomright:12px;">
+            <p style="font-size:11px;color:#9ca3af;margin:0;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+              &#169; KGRN Chartered Accountants LLC. This is an automated receipt. Please do not reply to this email.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+      <!--[if mso]></td></tr></table><![endif]-->
+
+    </td>
+  </tr>
+</table>
+</body>
+</html>'''
+
+        mail_values = {
+            'subject': f'Payment Receipt \u2013 {contract_name} \u2013 {period_label}',
+            'body_html': body,
+            'email_to': self.customer_email,
+            'email_from': self.company_id.email or self.env.user.email,
+            'res_id': self.id,
+            'model': 'kgrn.recurring.contract',
+        }
+        mail = self.env['mail.mail'].sudo().create(mail_values)
+        mail.send(raise_exception=False)
 
     def _notify_card_removal_request(self):
         """Notify the responsible user that the customer has requested card removal."""
