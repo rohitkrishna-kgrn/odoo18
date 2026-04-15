@@ -37,7 +37,7 @@
                     <group string="General Information">
                         <group>
                             <field name="user_id"/>
-                            <field name="sale_order_id"/>
+                            <field name="sale_order_id" no_create="1" no_create_edit="1"/>
                             <field name="customer_id"/>
                         </group>
                         <group>
