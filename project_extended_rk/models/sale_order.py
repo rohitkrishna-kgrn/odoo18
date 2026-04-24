@@ -15,38 +15,30 @@ class SaleOrder(models.Model):
     billable_type = fields.Selection([('billable', 'Billable'),('non_billable', 'Non-Billable')], string="Billing Type", default='billable')
 
     def action_confirm(self):
-        """Override confirmation to validate advance payment and create projects/tasks."""
+        """Override confirmation to always show the confirmation wizard."""
 
         if not self.env.context.get('skip_advance_check'):
             for order in self:
-                if order.advance_amount > 0.0:
+                paid_invoices = order.invoice_ids.filtered(lambda inv:
+                    inv.state == 'posted' and
+                    inv.payment_state in ['paid', 'in_payment', 'partial'] and
+                    inv.advance_invoice
+                )
+                total_paid = sum(inv.amount_total - inv.amount_residual for inv in paid_invoices)
 
-                    paid_invoices = order.invoice_ids.filtered(lambda inv:
-                        inv.state == 'posted' and
-                        inv.payment_state in ['paid', 'in_payment', 'partial'] and
-                        inv.advance_invoice
-                    )
-
-                    total_paid = sum(inv.amount_total - inv.amount_residual for inv in paid_invoices)
-
-                    if float_compare(
-                        total_paid,
-                        order.advance_amount,
-                        precision_rounding=order.currency_id.rounding
-                    ) < 0:
-                        wizard = self.env['sale.order.advance.confirm.wizard'].create({
-                            'order_id': order.id,
-                            'advance_amount': order.advance_amount,
-                            'paid_amount': total_paid,
-                        })
-                        return {
-                            'type': 'ir.actions.act_window',
-                            'name': _('Advance Payment Confirmation'),
-                            'res_model': 'sale.order.advance.confirm.wizard',
-                            'res_id': wizard.id,
-                            'view_mode': 'form',
-                            'target': 'new',
-                        }
+                wizard = self.env['sale.order.advance.confirm.wizard'].create({
+                    'order_id': order.id,
+                    'advance_amount': order.advance_amount,
+                    'paid_amount': total_paid,
+                })
+                return {
+                    'type': 'ir.actions.act_window',
+                    'name': _('Order Confirmation'),
+                    'res_model': 'sale.order.advance.confirm.wizard',
+                    'res_id': wizard.id,
+                    'view_mode': 'form',
+                    'target': 'new',
+                }
 
         res = super(SaleOrder, self).action_confirm()
 

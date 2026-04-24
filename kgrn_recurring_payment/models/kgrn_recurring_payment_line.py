@@ -66,6 +66,13 @@ class KgrnRecurringPaymentLine(models.Model):
         string='Processed By',
         readonly=True,
     )
+    sale_order_id = fields.Many2one(
+        'sale.order',
+        string='Sale Order',
+        related='contract_id.sale_order_id',
+        store=True,
+        readonly=True,
+    )
 
     def action_view_account_payment(self):
         self.ensure_one()

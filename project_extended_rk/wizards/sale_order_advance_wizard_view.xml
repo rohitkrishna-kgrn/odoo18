@@ -4,18 +4,41 @@
         <field name="name">sale.order.advance.confirm.wizard.form</field>
         <field name="model">sale.order.advance.confirm.wizard</field>
         <field name="arch" type="xml">
-            <form string="Advance Payment Confirmation">
-                <group>
-                    <field name="order_id" invisible="1"/>
-                    <field name="currency_id" invisible="1"/>
-                    <field name="advance_amount" widget="monetary" string="Advance Amount"/>
-                    <field name="paid_amount" widget="monetary" string="Paid Amount"/>
+            <form string="Order Confirmation">
+                <field name="order_id" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
+                <field name="recurring_not_setup" invisible="1"/>
+
+                <!-- Advance payment summary — shown only when advance_amount > 0 -->
+                <group invisible="advance_amount &lt;= 0">
+                    <field name="advance_amount" widget="monetary" string="Advance Amount Required"/>
+                    <field name="paid_amount" widget="monetary" string="Amount Paid So Far"/>
                 </group>
-                <div class="alert alert-warning mt-2" role="alert">
-                    The advance invoice has not been fully paid. Do you want to confirm this order anyway?
+
+                <!-- Advance warning — only when advance is set but underpaid -->
+                <div class="alert alert-warning mt-2" role="alert"
+                     invisible="advance_amount &lt;= 0">
+                    <strong>&#9888; Advance Not Fully Paid</strong> — The advance invoice has not been
+                    fully settled. You may confirm anyway, but please follow up on the outstanding amount.
                 </div>
+
+                <!-- Recurring payment warning — only when contract is not yet running -->
+                <div class="alert alert-danger mt-2" role="alert"
+                     invisible="not recurring_not_setup">
+                    <strong>&#9888; Recurring Payment Not Active</strong> — This sale order has recurring
+                    payment enabled but the contract is still in <strong>Draft</strong> state. The customer
+                    has not yet registered their card. Please send the portal link and ensure the contract
+                    is <strong>Running</strong> before confirming.
+                </div>
+
+                <!-- Default info message when everything is fine -->
+                <div class="alert alert-info mt-2" role="alert"
+                     invisible="advance_amount &gt; 0 or recurring_not_setup">
+                    Please review and confirm this sale order.
+                </div>
+
                 <footer>
-                    <button name="action_confirm_order" string="Confirm" type="object" class="btn-primary"/>
+                    <button name="action_confirm_order" string="Confirm Order" type="object" class="btn-primary"/>
                     <button name="action_discard" string="Discard" type="object" class="btn-secondary"/>
                 </footer>
             </form>

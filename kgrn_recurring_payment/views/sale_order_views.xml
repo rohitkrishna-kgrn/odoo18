@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         SALE ORDER FORM — Recurring Payment section
+    ================================================================ -->
+    <record id="view_sale_order_form_kgrn_recurring" model="ir.ui.view">
+        <field name="name">sale.order.form.kgrn.recurring</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Smart button: recurring payment count -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_create_recurring_contract"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-refresh"
+                        invisible="not is_recurring or not kgrn_recurring_contract_id">
+                    <field name="kgrn_recurring_payment_count" widget="statinfo" string="Recurring"/>
+                </button>
+            </xpath>
+
+            <!-- Append Recurring Payment page at the end of the notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Recurring Payment" name="kgrn_recurring_page">
+
+                    <!-- Toggle — locked once order is submitted for approval / approved -->
+                    <group>
+                        <group string="Recurring Setup">
+                            <field name="kgrn_recurring_locked" invisible="1"/>
+                            <field name="is_recurring"
+                                   widget="boolean_toggle"
+                                   string="Enable Recurring Payment"
+                                   readonly="kgrn_recurring_locked"/>
+                        </group>
+                    </group>
+
+                    <!-- Contract section — visible only when toggle is ON -->
+                    <div invisible="not is_recurring">
+
+                        <!-- Warning: recurring not yet active -->
+                        <div class="alert alert-warning o_form_no_constraints mb-2"
+                             invisible="not is_recurring or kgrn_recurring_contract_state == 'running'"
+                             role="alert">
+                            <strong>&#9888; Recurring Payment Not Active</strong> —
+                            <span invisible="kgrn_recurring_contract_id">
+                                No recurring contract has been created yet. Use <em>Create Recurring Contract</em> below.
+                            </span>
+                            <span invisible="not kgrn_recurring_contract_id or kgrn_recurring_contract_state == 'running'">
+                                The contract is in <strong>Draft</strong> state. Send the portal link so the customer can register their card.
+                            </span>
+                        </div>
+
+                        <group>
+                            <group string="Recurring Contract">
+                                <field name="kgrn_recurring_contract_id"
+                                       string="Contract"
+                                       options="{'no_quick_create': True}"
+                                       placeholder="Select or create a recurring contract…"/>
+                                <field name="kgrn_recurring_contract_state"
+                                       widget="badge"
+                                       decoration-success="kgrn_recurring_contract_state == 'running'"
+                                       decoration-warning="kgrn_recurring_contract_state == 'draft'"
+                                       decoration-muted="kgrn_recurring_contract_state in ('expired', 'cancelled')"
+                                       invisible="not kgrn_recurring_contract_id"/>
+                                <field name="kgrn_recurring_portal_url"
+                                       widget="url"
+                                       string="Customer Payment Portal"
+                                       invisible="not kgrn_recurring_portal_url"/>
+                            </group>
+                            <group string=" ">
+                                <div invisible="kgrn_recurring_contract_id">
+                                    <button name="action_create_recurring_contract"
+                                            type="object"
+                                            string="Create Recurring Contract"
+                                            class="btn-primary"/>
+                                </div>
+                                <div invisible="not kgrn_recurring_contract_id">
+                                    <button name="action_create_recurring_contract"
+                                            type="object"
+                                            string="Open Contract"
+                                            class="btn-secondary"/>
+                                    <button name="action_sale_send_portal_link"
+                                            type="object"
+                                            string="Send Portal Link"
+                                            class="btn-primary ms-2"
+                                            invisible="kgrn_recurring_contract_state != 'draft'"
+                                            help="Send the card registration link to the customer."/>
+                                </div>
+                            </group>
+                        </group>
+
+                        <!-- First Payment button — only shown when contract is running and no payment made yet -->
+                        <div class="o_form_no_constraints mb-2"
+                             invisible="kgrn_recurring_contract_state != 'running' or kgrn_first_payment_done">
+                            <button name="action_recurring_first_payment"
+                                    type="object"
+                                    string="Deduct First Payment Now"
+                                    class="btn-primary"
+                                    icon="fa-credit-card"
+                                    confirm="This will immediately charge the customer's card for the first billing period. Continue?"/>
+                            <span class="text-muted ms-2" style="font-size:12px;">
+                                Click to trigger the first recurring payment deduction. This button disappears after use.
+                            </span>
+                        </div>
+
+                        <!-- Payment History -->
+                        <separator string="Payment History" invisible="not kgrn_recurring_contract_id"/>
+                        <field name="kgrn_recurring_payment_line_ids"
+                               readonly="1"
+                               invisible="not kgrn_recurring_contract_id">
+                            <list string="Recurring Payments"
+                                  decoration-success="state == 'success'"
+                                  decoration-danger="state == 'failed'"
+                                  decoration-warning="state == 'pending'">
+                                <field name="name"/>
+                                <field name="period_start"/>
+                                <field name="period_end"/>
+                                <field name="payment_date"/>
+                                <field name="amount"/>
+                                <field name="currency_id" column_invisible="1"/>
+                                <field name="state" widget="badge"
+                                       decoration-success="state == 'success'"
+                                       decoration-danger="state == 'failed'"
+                                       decoration-warning="state == 'pending'"
+                                       decoration-info="state == 'refunded'"/>
+                                <field name="stripe_payment_intent_id" optional="hide"/>
+                                <field name="account_payment_id" optional="show"/>
+                                <field name="failure_reason" optional="hide"/>
+                            </list>
+                        </field>
+                        <field name="kgrn_first_payment_done" invisible="1"/>
+
+                    </div>
+
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

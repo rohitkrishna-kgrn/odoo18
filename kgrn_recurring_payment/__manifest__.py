@@ -23,6 +23,7 @@ with Stripe integration. Features include:
         'mail',
         'portal',
         'payment',
+        'sale',
     ],
     'data': [
         # Security
@@ -43,6 +44,7 @@ with Stripe integration. Features include:
         'views/kgrn_stripe_config_views.xml',
         'views/kgrn_recurring_contract_views.xml',
         'views/kgrn_recurring_payment_line_views.xml',
+        'views/sale_order_views.xml',
         'views/menu.xml',
     ],
     'assets': {

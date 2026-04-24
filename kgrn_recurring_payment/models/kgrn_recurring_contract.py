@@ -254,6 +254,19 @@ class KgrnRecurringContract(models.Model):
     )
 
     # -----------------------------------------------------------------------
+    # Sale order link
+    # -----------------------------------------------------------------------
+
+    sale_order_id = fields.Many2one(
+        'sale.order',
+        string='Sale Order',
+        copy=False,
+        ondelete='set null',
+        tracking=True,
+        help='Sale order this recurring contract was created from.',
+    )
+
+    # -----------------------------------------------------------------------
     # Accounting
     # -----------------------------------------------------------------------
 
@@ -435,7 +448,12 @@ class KgrnRecurringContract(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('kgrn.recurring.contract') or 'New'
             if not vals.get('access_token'):
                 vals['access_token'] = uuid.uuid4().hex
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        # Sync back to sale order: set kgrn_recurring_contract_id on the sale order
+        for rec in records:
+            if rec.sale_order_id and not rec.sale_order_id.kgrn_recurring_contract_id:
+                rec.sale_order_id.sudo().kgrn_recurring_contract_id = rec.id
+        return records
 
     # -----------------------------------------------------------------------
     # State transitions
@@ -817,14 +835,183 @@ class KgrnRecurringContract(models.Model):
     # -----------------------------------------------------------------------
 
     def _notify_payment_failure(self, period_label, error_msg):
-        template = self.env.ref(
-            'kgrn_recurring_payment.email_template_payment_failed', raise_if_not_found=False
+        """Notify the responsible user AND all Recurring Managers about the failure."""
+        self.ensure_one()
+
+        # Collect recipients: responsible user + all manager-group members
+        recipients = self.user_id.partner_id
+        manager_group = self.env.ref(
+            'kgrn_recurring_payment.group_kgrn_recurring_manager',
+            raise_if_not_found=False,
         )
-        if template:
-            template.with_context(
-                period_label=period_label,
-                error_msg=error_msg,
-            ).send_mail(self.id, force_send=True, raise_exception=False)
+        if manager_group:
+            recipients |= manager_group.users.mapped('partner_id')
+        recipients = recipients.filtered(lambda p: p.email)
+
+        if not recipients:
+            _logger.warning('KGRN Recurring: no recipients for failure notification on %s', self.name)
+            return
+
+        sym = self.currency_id.symbol or self.currency_id.name
+        freq_label = FREQUENCY_LABEL.get(self.frequency, self.frequency)
+        sale_ref = f' / {self.sale_order_id.name}' if self.sale_order_id else ''
+        email_to = ','.join(recipients.mapped('email'))
+
+        body = f'''<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="x-apple-disable-message-reformatting"/>
+  <title>Payment Failed</title>
+  <!--[if mso]>
+  <xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+  <![endif]-->
+  <style>
+    body, table, td {{ -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }}
+    table, td {{ mso-table-lspace:0pt; mso-table-rspace:0pt; }}
+    body {{ margin:0; padding:0; background-color:#fef2f2; }}
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#fef2f2;">
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#fef2f2;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+      <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" width="580"><tr><td><![endif]-->
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="580" style="max-width:580px;">
+
+        <!-- HEADER -->
+        <tr>
+          <td bgcolor="#dc2626" style="background-color:#dc2626;padding:24px 36px;border-radius:12px 12px 0 0;mso-border-radius-topright:12px;mso-border-radius-topleft:12px;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td>
+                  <p style="color:#ffffff;margin:0 0 4px 0;font-size:11px;font-weight:700;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+                    KGRN RECURRING PAYMENTS — INTERNAL ALERT
+                  </p>
+                  <h1 style="color:#ffffff;margin:0;font-size:20px;font-weight:700;font-family:'Segoe UI',Arial,Helvetica,sans-serif;line-height:1.3;">
+                    Payment Failed — Action Required
+                  </h1>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- RED ALERT BADGE -->
+        <tr>
+          <td bgcolor="#fef2f2" style="background-color:#fef2f2;padding:14px 36px;border-left:1px solid #fecaca;border-right:1px solid #fecaca;border-bottom:1px solid #fecaca;">
+            <p style="margin:0;font-size:13px;font-weight:700;color:#dc2626;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+              &#9888;&#160; A recurring payment could not be processed. Please review and action immediately.
+            </p>
+          </td>
+        </tr>
+
+        <!-- BODY -->
+        <tr>
+          <td bgcolor="#ffffff" style="background-color:#ffffff;border-left:1px solid #fecaca;border-right:1px solid #fecaca;padding:28px 36px;">
+
+            <!-- Details table -->
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin:0 0 20px 0;">
+              <tr>
+                <td width="180" bgcolor="#0d2b45" style="background-color:#0d2b45;padding:9px 14px;font-size:12px;font-weight:700;color:#ffffff;font-family:'Segoe UI',Arial,Helvetica,sans-serif;text-transform:uppercase;">
+                  Detail
+                </td>
+                <td bgcolor="#0d2b45" style="background-color:#0d2b45;padding:9px 14px;font-size:12px;font-weight:700;color:#ffffff;font-family:'Segoe UI',Arial,Helvetica,sans-serif;text-transform:uppercase;">
+                  Value
+                </td>
+              </tr>
+              <tr>
+                <td width="180" bgcolor="#f9fafb" style="background-color:#f9fafb;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  Contract
+                </td>
+                <td bgcolor="#f9fafb" style="background-color:#f9fafb;padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  {self.name}{sale_ref}
+                </td>
+              </tr>
+              <tr>
+                <td width="180" bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  Customer
+                </td>
+                <td bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  {self.customer_id.name} ({self.customer_email or 'no email'})
+                </td>
+              </tr>
+              <tr>
+                <td width="180" bgcolor="#f9fafb" style="background-color:#f9fafb;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  Billing Period
+                </td>
+                <td bgcolor="#f9fafb" style="background-color:#f9fafb;padding:10px 14px;color:#1f2937;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  {period_label}
+                </td>
+              </tr>
+              <tr>
+                <td width="180" bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;font-weight:700;color:#374151;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  Amount
+                </td>
+                <td bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;color:#1f2937;font-size:13px;font-weight:700;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                  {sym}&#160;{self.amount:,.2f} ({freq_label})
+                </td>
+              </tr>
+              <tr>
+                <td width="180" bgcolor="#fef2f2" style="background-color:#fef2f2;padding:10px 14px;font-weight:700;color:#dc2626;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-left:1px solid #fecaca;border-right:1px solid #fecaca;border-bottom:1px solid #fecaca;">
+                  Failure Reason
+                </td>
+                <td bgcolor="#fef2f2" style="background-color:#fef2f2;padding:10px 14px;color:#dc2626;font-size:13px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;border-right:1px solid #fecaca;border-bottom:1px solid #fecaca;">
+                  {error_msg}
+                </td>
+              </tr>
+            </table>
+
+            <p style="font-size:13px;font-weight:700;color:#374151;margin:0 0 8px 0;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+              Recommended Actions:
+            </p>
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 0 0;">
+              <tr><td style="padding:4px 0;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">&#8226;&#160; Open the contract and check the Payment History tab for the Stripe error</td></tr>
+              <tr><td style="padding:4px 0;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">&#8226;&#160; Verify the customer's card has sufficient funds / is not expired</td></tr>
+              <tr><td style="padding:4px 0;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">&#8226;&#160; Use the Manual Deduction button once the card issue is resolved</td></tr>
+              <tr><td style="padding:4px 0;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">&#8226;&#160; Send a new portal link if the customer needs to update their card</td></tr>
+            </table>
+
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td bgcolor="#f9fafb" align="center" style="background-color:#f9fafb;padding:16px 36px;border:1px solid #fecaca;border-top:none;border-radius:0 0 12px 12px;mso-border-radius-bottomleft:12px;mso-border-radius-bottomright:12px;">
+            <p style="font-size:11px;color:#9ca3af;margin:0;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+              This is an automated internal alert from KGRN Recurring Payments. Do not forward this email.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+      <!--[if mso]></td></tr></table><![endif]-->
+    </td>
+  </tr>
+</table>
+</body>
+</html>'''
+
+        mail_values = {
+            'subject': f'⚠ URGENT: Recurring Payment Failed – {self.name} – {self.customer_id.name}',
+            'body_html': body,
+            'email_to': email_to,
+            'email_from': self.company_id.email or self.env.user.email,
+            'res_id': self.id,
+            'model': 'kgrn.recurring.contract',
+        }
+        mail = self.env['mail.mail'].sudo().create(mail_values)
+        mail.send(raise_exception=False)
+
+        # Also create an activity on the contract so it shows in the to-do list
+        self.activity_schedule(
+            'mail.mail_activity_data_todo',
+            summary=_('Payment Failed: %s – %s') % (self.name, period_label),
+            note=_('Stripe error: %s') % error_msg,
+            user_id=self.user_id.id or self.env.uid,
+        )
 
     def _send_payment_receipt_email(self, line):
         """Build and send the payment receipt email directly (no mail.template Jinja2)."""
