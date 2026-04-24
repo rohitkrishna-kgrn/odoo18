@@ -1,6 +1,30 @@
+import json
+import re
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from datetime import date
+
+
+def _format_key(key):
+    """'utm_source' → 'Utm Source', 'page_url' → 'Page Url'"""
+    return re.sub(r'[\-_]+', ' ', str(key)).title()
+
+
+def _form_data_to_html(form_data_str):
+    """Convert JSON string to readable HTML key - value lines."""
+    try:
+        data = json.loads(form_data_str)
+    except (json.JSONDecodeError, TypeError):
+        return '<p>%s</p>' % form_data_str
+    if not isinstance(data, dict):
+        return '<p>%s</p>' % form_data_str
+    lines = ''.join(
+        '<p>%s - %s</p>' % (_format_key(k), v)
+        for k, v in data.items()
+        if v not in (None, '', [], {})
+    )
+    return lines or ''
 
 
 class WebLead(models.Model):
@@ -100,7 +124,7 @@ class WebLead(models.Model):
         if self.service:
             other_lines.append('<p>Service: %s</p>' % self.service)
         if self.form_data:
-            other_lines.append('<pre>%s</pre>' % self.form_data)
+            other_lines.append(_form_data_to_html(self.form_data))
         if other_lines:
             note_parts.append(
                 '<p><strong>-- other information --</strong></p>'
