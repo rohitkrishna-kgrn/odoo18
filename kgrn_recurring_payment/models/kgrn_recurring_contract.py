@@ -161,6 +161,11 @@ class KgrnRecurringContract(models.Model):
     _order = 'create_date desc'
     _rec_name = 'name'
 
+    _sql_constraints = [
+        ('sale_order_uniq', 'UNIQUE(sale_order_id)',
+         'This sale order is already linked to another recurring contract.'),
+    ]
+
     # -----------------------------------------------------------------------
     # Identity
     # -----------------------------------------------------------------------
@@ -434,6 +439,21 @@ class KgrnRecurringContract(models.Model):
     # -----------------------------------------------------------------------
     # Constraints
     # -----------------------------------------------------------------------
+
+    @api.constrains('sale_order_id')
+    def _check_sale_order_unique(self):
+        for rec in self:
+            if not rec.sale_order_id:
+                continue
+            duplicate = self.search([
+                ('sale_order_id', '=', rec.sale_order_id.id),
+                ('id', '!=', rec.id),
+            ], limit=1)
+            if duplicate:
+                raise ValidationError(_(
+                    'Sale order "%s" is already linked to recurring contract "%s". '
+                    'Each sale order can only have one recurring contract.'
+                ) % (rec.sale_order_id.name, duplicate.name))
 
     @api.constrains('start_date', 'end_date')
     def _check_dates(self):

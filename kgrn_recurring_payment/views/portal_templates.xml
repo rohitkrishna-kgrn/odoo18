@@ -58,25 +58,69 @@
                                     <span>End Date</span>
                                     <strong><t t-esc="contract.end_date.strftime('%d %b %Y')"/></strong>
                                 </div>
+                                <!-- Advance row — shown only when advance is configured -->
+                                <t t-if="contract.advance_amount &gt; 0">
+                                    <div class="kgrn-subscription-row" style="align-items:center;">
+                                        <span>Advance</span>
+                                        <strong style="display:flex;align-items:center;gap:6px;">
+                                            <t t-esc="contract.currency_id.symbol or contract.currency_id.name"/>&#160;<t t-esc="'%.2f' % contract.advance_amount"/>
+                                            <t t-if="contract.kgrn_advance_paid">
+                                                <span style="background:#16a34a;color:#fff;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:0.5px;">Paid</span>
+                                            </t>
+                                            <t t-else="">
+                                                <span style="background:#d97706;color:#fff;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:0.5px;">Pending</span>
+                                            </t>
+                                        </strong>
+                                    </div>
+                                </t>
                             </div>
 
-                            <!-- Payment schedule preview -->
-                            <t t-if="schedule">
-                                <div class="kgrn-schedule-block">
-                                    <div class="kgrn-schedule-title">Upcoming Payments</div>
+                            <!-- Payment history + upcoming schedule -->
+                            <div class="kgrn-schedule-block">
+
+                                <!-- Payment lines (paid / failed / pending) -->
+                                <t t-if="payment_lines">
+                                    <div class="kgrn-schedule-title">Payment History</div>
+                                    <t t-foreach="payment_lines" t-as="pline">
+                                        <div class="kgrn-schedule-row" style="align-items:center;">
+                                            <span><t t-esc="pline.payment_date.strftime('%d %b %Y') if pline.payment_date else '—'"/></span>
+                                            <span style="display:flex;align-items:center;gap:6px;">
+                                                <t t-esc="contract.currency_id.symbol or contract.currency_id.name"/>&#160;<t t-esc="'%.2f' % pline.amount"/>
+                                                <t t-if="pline.state == 'success'">
+                                                    <span style="background:#16a34a;color:#fff;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:0.5px;">Paid</span>
+                                                </t>
+                                                <t t-elif="pline.state == 'failed'">
+                                                    <span style="background:#dc2626;color:#fff;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:0.5px;">Failed</span>
+                                                </t>
+                                                <t t-elif="pline.state == 'pending'">
+                                                    <span style="background:#d97706;color:#fff;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:0.5px;">Pending</span>
+                                                </t>
+                                                <t t-else="">
+                                                    <span style="background:#6b7280;color:#fff;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:0.5px;"><t t-esc="pline.state"/></span>
+                                                </t>
+                                            </span>
+                                        </div>
+                                    </t>
+                                </t>
+
+                                <!-- Upcoming scheduled payments -->
+                                <t t-if="schedule">
+                                    <div class="kgrn-schedule-title" t-att-style="'margin-top:12px;' if payment_lines else ''">Upcoming Payments</div>
                                     <t t-foreach="schedule[:6]" t-as="pdate">
-                                        <div class="kgrn-schedule-row">
+                                        <div class="kgrn-schedule-row" style="align-items:center;">
                                             <span><t t-esc="pdate.strftime('%d %b %Y')"/></span>
-                                            <span>
+                                            <span style="display:flex;align-items:center;gap:6px;">
                                                 <t t-esc="contract.currency_id.symbol or contract.currency_id.name"/>&#160;<t t-esc="'%.2f' % contract.amount"/>
+                                                <span style="background:#6b7280;color:#fff;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:0.5px;">Scheduled</span>
                                             </span>
                                         </div>
                                     </t>
                                     <t t-if="len(schedule) > 6">
                                         <div class="kgrn-schedule-more">+ <t t-esc="len(schedule) - 6"/> more payments</div>
                                     </t>
-                                </div>
-                            </t>
+                                </t>
+
+                            </div>
 
                             <div class="kgrn-brand-footer">
                                 <p>© KGRN Chartered Accountants LLC. All rights reserved.</p>

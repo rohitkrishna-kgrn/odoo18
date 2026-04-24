@@ -12,11 +12,12 @@
 
             <!-- Smart buttons -->
             <xpath expr="//div[@name='button_box']" position="inside">
-                <!-- Recurring payment lines count (stripe log) -->
+                <!-- Recurring payment lines count (stripe log) — recurring users only -->
                 <button name="action_create_recurring_contract"
                         type="object"
                         class="oe_stat_button"
                         icon="fa-refresh"
+                        groups="kgrn_recurring_payment.group_kgrn_recurring_user"
                         invisible="not is_recurring or not kgrn_recurring_contract_id">
                     <field name="kgrn_recurring_payment_count" widget="statinfo" string="Recurring"/>
                 </button>
@@ -25,6 +26,7 @@
                         type="object"
                         class="oe_stat_button"
                         icon="fa-money"
+                        groups="kgrn_recurring_payment.group_kgrn_recurring_user"
                         invisible="not is_recurring or kgrn_account_payment_count == 0">
                     <field name="kgrn_account_payment_count" widget="statinfo" string="Collected"/>
                 </button>
@@ -78,7 +80,7 @@
                                        string="Customer Payment Portal"
                                        invisible="not kgrn_recurring_portal_url"/>
                             </group>
-                            <group string=" ">
+                            <group string=" " groups="kgrn_recurring_payment.group_kgrn_recurring_user">
                                 <div invisible="kgrn_recurring_contract_id">
                                     <button name="action_create_recurring_contract"
                                             type="object"
@@ -100,8 +102,11 @@
                             </group>
                         </group>
 
-                        <!-- First Payment button — only shown when contract is running and no payment made yet -->
+                        <!-- First Payment + Advance buttons — recurring users only -->
+                        <field name="kgrn_recurring_advance_amount" invisible="1"/>
+                        <field name="kgrn_advance_collected" invisible="1"/>
                         <div class="o_form_no_constraints mb-2"
+                             groups="kgrn_recurring_payment.group_kgrn_recurring_user"
                              invisible="kgrn_recurring_contract_state != 'running' or kgrn_first_payment_done">
                             <button name="action_recurring_first_payment"
                                     type="object"
@@ -114,10 +119,8 @@
                             </span>
                         </div>
 
-                        <!-- Advance Payment button — shown when advance is set and not yet collected -->
-                        <field name="kgrn_recurring_advance_amount" invisible="1"/>
-                        <field name="kgrn_advance_collected" invisible="1"/>
                         <div class="o_form_no_constraints mb-2"
+                             groups="kgrn_recurring_payment.group_kgrn_recurring_user"
                              invisible="kgrn_recurring_contract_state != 'running' or kgrn_advance_collected or kgrn_recurring_advance_amount &lt;= 0">
                             <button name="action_deduct_recurring_advance"
                                     type="object"

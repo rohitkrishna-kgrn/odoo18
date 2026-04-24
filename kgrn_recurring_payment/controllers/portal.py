@@ -64,11 +64,14 @@ class KgrnRecurringPortal(http.Controller):
         # Build payment schedule for display
         schedule = contract.get_payment_schedule(limit=24)
 
+        payment_lines = contract.payment_line_ids.sorted('payment_date', reverse=True)
+
         values = {
             'contract': contract,
             'state': state,
             'card_added': card_added,
             'schedule': schedule,
+            'payment_lines': payment_lines,
             'token': token,
             'publishable_key': contract._get_stripe_publishable_key(),
             'frequency_label': contract._get_frequency_label(),
