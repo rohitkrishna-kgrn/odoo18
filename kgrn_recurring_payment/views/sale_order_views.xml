@@ -10,14 +10,23 @@
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
 
-            <!-- Smart button: recurring payment count -->
+            <!-- Smart buttons -->
             <xpath expr="//div[@name='button_box']" position="inside">
+                <!-- Recurring payment lines count (stripe log) -->
                 <button name="action_create_recurring_contract"
                         type="object"
                         class="oe_stat_button"
                         icon="fa-refresh"
                         invisible="not is_recurring or not kgrn_recurring_contract_id">
                     <field name="kgrn_recurring_payment_count" widget="statinfo" string="Recurring"/>
+                </button>
+                <!-- account.payment records — visible to accounting for reconciliation -->
+                <button name="action_view_recurring_account_payments"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-money"
+                        invisible="not is_recurring or kgrn_account_payment_count == 0">
+                    <field name="kgrn_account_payment_count" widget="statinfo" string="Collected"/>
                 </button>
             </xpath>
 
@@ -105,7 +114,7 @@
                             </span>
                         </div>
 
-                        <!-- Payment History -->
+                        <!-- Stripe Payment Log -->
                         <separator string="Payment History" invisible="not kgrn_recurring_contract_id"/>
                         <field name="kgrn_recurring_payment_line_ids"
                                readonly="1"
@@ -130,6 +139,31 @@
                                 <field name="failure_reason" optional="hide"/>
                             </list>
                         </field>
+
+                        <!-- Accounting Payments (for reconciliation) -->
+                        <separator string="Collected Payments (Accounting)"
+                                   invisible="kgrn_account_payment_count == 0"/>
+                        <field name="kgrn_account_payment_ids"
+                               readonly="1"
+                               invisible="kgrn_account_payment_count == 0">
+                            <list string="Accounting Payments"
+                                  decoration-success="state == 'posted'"
+                                  decoration-muted="state == 'cancel'">
+                                <field name="name"/>
+                                <field name="date"/>
+                                <field name="memo"/>
+                                <field name="amount"/>
+                                <field name="currency_id" column_invisible="1"/>
+                                <field name="journal_id"/>
+                                <field name="state" widget="badge"
+                                       decoration-success="state == 'posted'"
+                                       decoration-warning="state == 'draft'"
+                                       decoration-muted="state == 'cancel'"/>
+                                <field name="reconciled_invoice_ids" optional="show" widget="many2many_tags"/>
+                                <field name="kgrn_recurring_contract_id" optional="hide"/>
+                            </list>
+                        </field>
+                        <field name="kgrn_account_payment_count" invisible="1"/>
                         <field name="kgrn_first_payment_done" invisible="1"/>
 
                     </div>

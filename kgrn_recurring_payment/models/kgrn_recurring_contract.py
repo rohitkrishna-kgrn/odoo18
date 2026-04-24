@@ -818,7 +818,10 @@ class KgrnRecurringContract(models.Model):
             'journal_id': journal.id,
             'date': payment_date,
             'memo': f'KGRN Recurring | {self.name} | {period_label}',
+            'kgrn_recurring_contract_id': self.id,
         }
+        if self.sale_order_id:
+            vals['kgrn_sale_order_id'] = self.sale_order_id.id
         if method_line:
             vals['payment_method_line_id'] = method_line.id
 

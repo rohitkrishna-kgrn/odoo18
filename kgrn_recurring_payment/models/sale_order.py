@@ -39,6 +39,16 @@ class SaleOrder(models.Model):
         string='Recurring Payments',
         compute='_compute_kgrn_recurring_payment_count',
     )
+    kgrn_account_payment_ids = fields.One2many(
+        'account.payment',
+        'kgrn_sale_order_id',
+        string='Recurring Account Payments',
+        readonly=True,
+    )
+    kgrn_account_payment_count = fields.Integer(
+        string='Collected Payments',
+        compute='_compute_kgrn_account_payment_count',
+    )
     kgrn_first_payment_done = fields.Boolean(
         string='First Payment Deducted',
         default=False,
@@ -70,6 +80,22 @@ class SaleOrder(models.Model):
     def _compute_kgrn_recurring_payment_count(self):
         for order in self:
             order.kgrn_recurring_payment_count = len(order.kgrn_recurring_payment_line_ids)
+
+    @api.depends('kgrn_account_payment_ids')
+    def _compute_kgrn_account_payment_count(self):
+        for order in self:
+            order.kgrn_account_payment_count = len(order.kgrn_account_payment_ids)
+
+    def action_view_recurring_account_payments(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Recurring Payments'),
+            'res_model': 'account.payment',
+            'view_mode': 'list,form',
+            'domain': [('kgrn_sale_order_id', '=', self.id)],
+            'context': {'default_kgrn_sale_order_id': self.id},
+        }
 
     def action_recurring_first_payment(self):
         """Trigger the first recurring payment deduction directly from the sale order."""
