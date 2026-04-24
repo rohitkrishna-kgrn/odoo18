@@ -38,12 +38,14 @@ with Stripe integration. Features include:
         'wizard/views/kgrn_send_portal_link_wizard_views.xml',
         'wizard/views/kgrn_card_removal_action_views.xml',
         'wizard/views/kgrn_manual_deduction_wizard_views.xml',
+        'wizard/views/kgrn_apply_existing_payment_wizard_views.xml',
         # Portal
         'views/portal_templates.xml',
         # Backend views
         'views/kgrn_stripe_config_views.xml',
         'views/kgrn_recurring_contract_views.xml',
         'views/kgrn_recurring_payment_line_views.xml',
+        'views/account_move_views.xml',
         'views/sale_order_views.xml',
         'views/menu.xml',
     ],

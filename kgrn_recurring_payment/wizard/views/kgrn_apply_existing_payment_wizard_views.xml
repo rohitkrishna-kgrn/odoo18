@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_kgrn_apply_existing_payment_wizard_form" model="ir.ui.view">
+        <field name="name">kgrn.apply.existing.payment.wizard.form</field>
+        <field name="model">kgrn.apply.existing.payment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Apply Existing Payment">
+                <field name="move_id" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
+
+                <!-- Invoice summary -->
+                <group string="Invoice">
+                    <field name="partner_id" readonly="1"/>
+                    <field name="invoice_amount" widget="monetary" readonly="1"/>
+                    <field name="amount_residual" widget="monetary" readonly="1"
+                           decoration-danger="amount_residual > 0"/>
+                </group>
+
+                <!-- Payment selector -->
+                <group string="Select Payment to Apply">
+                    <field name="payment_id" options="{'no_create': True, 'no_quick_create': True}"/>
+                    <field name="payment_date" readonly="1" invisible="not payment_id"/>
+                    <field name="payment_memo" readonly="1" invisible="not payment_id"/>
+                    <field name="payment_amount" widget="monetary" readonly="1"
+                           invisible="not payment_id"/>
+                    <field name="amount_to_reconcile" widget="monetary" readonly="1"
+                           invisible="not payment_id"/>
+                </group>
+
+                <div class="alert alert-info" role="alert" invisible="not payment_id">
+                    <strong>&#10003; Ready to apply</strong> —
+                    <field name="currency_id" invisible="1"/>
+                    <strong><field name="amount_to_reconcile" widget="monetary" nolabel="1" readonly="1"/></strong>
+                    will be reconciled against this invoice. If the payment covers more than the
+                    outstanding amount, the remainder stays as credit on the payment.
+                </div>
+
+                <div class="alert alert-warning" role="alert"
+                     invisible="not payment_id or amount_to_reconcile >= amount_residual">
+                    &#9888; The selected payment does not fully cover the outstanding amount.
+                    The invoice will remain partially open after applying.
+                </div>
+
+                <footer>
+                    <button name="action_apply"
+                            string="Apply Payment"
+                            type="object"
+                            class="btn-primary"
+                            invisible="not payment_id"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>
