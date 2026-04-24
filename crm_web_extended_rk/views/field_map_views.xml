@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_web_lead_field_map_list" model="ir.ui.view">
+        <field name="name">crm.web.lead.field.map.list</field>
+        <field name="model">crm.web.lead.field.map</field>
+        <field name="arch" type="xml">
+            <list string="Field Mappings" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="source_type"/>
+                <field name="source_key"/>
+                <field name="match_by"
+                       invisible="source_type != 'elementor'"/>
+                <field name="target_field"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_web_lead_field_map_form" model="ir.ui.view">
+        <field name="name">crm.web.lead.field.map.form</field>
+        <field name="model">crm.web.lead.field.map</field>
+        <field name="arch" type="xml">
+            <form string="Field Mapping">
+                <sheet>
+                    <group>
+                        <group string="Source">
+                            <field name="source_type"/>
+                            <field name="source_key"
+                                   placeholder="e.g. phone, your-email, Full Name"/>
+                            <field name="match_by"
+                                   invisible="source_type != 'elementor'"/>
+                        </group>
+                        <group string="Destination">
+                            <field name="target_field"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group string="Help">
+                        <div class="col-12">
+                            <div class="alert alert-info" role="alert">
+                                <strong>Custom / Any:</strong> Enter the exact JSON key from the POST body (e.g. <code>phone</code>, <code>full_name</code>).<br/>
+                                <strong>Elementor Pro:</strong> Enter the Elementor field ID (e.g. <code>your-name</code>) or the field label/title (e.g. <code>Full Name</code>) and set <em>Match By</em> accordingly.
+                            </div>
+                        </div>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_web_lead_field_map" model="ir.actions.act_window">
+        <field name="name">Field Mappings</field>
+        <field name="res_model">crm.web.lead.field.map</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No mappings yet</p>
+            <p>Add mappings to control how incoming webhook fields are matched to web lead fields.</p>
+        </field>
+    </record>
+</odoo>

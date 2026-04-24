@@ -118,40 +118,105 @@
         <field name="arch" type="xml">
             <form string="Webhook API Details">
                 <sheet>
-                    <div class="alert alert-info mb-3" role="alert">
-                        <strong>Use this endpoint to push web leads into Odoo. No authentication headers required.</strong>
-                    </div>
+
+                    <!-- Endpoint summary -->
                     <group string="Endpoint">
                         <field name="method" readonly="1"/>
                         <field name="full_url" readonly="1"/>
                         <field name="content_type" readonly="1"/>
                         <field name="auth" readonly="1"/>
                     </group>
-                    <group string="Accepted Fields">
-                        <div class="o_field_widget col-12">
+
+                    <!-- How mapping works -->
+                    <group string="How Field Mapping Works">
+                        <div class="col-12">
+                            <div class="alert alert-info" role="alert" style="font-size:13px;">
+                                The endpoint <strong>auto-detects</strong> the source on every request:<br/>
+                                &#8226; Payload with a <code>"fields"</code> array (id / title / value objects) → treated as <strong>Elementor Pro</strong>.<br/>
+                                &#8226; Flat JSON or form-urlencoded → treated as <strong>Custom</strong>.<br/><br/>
+                                Field values are resolved via the <strong>Field Mappings</strong> configuration (CRM → Web Leads → Field Mappings).
+                                Any key not matched by a mapping is stored verbatim in <em>Form Data</em> and shown in the Internal Notes of the created CRM lead.
+                            </div>
+                        </div>
+                    </group>
+
+                    <!-- Mapped fields table -->
+                    <group string="Mapped Target Fields">
+                        <div class="col-12">
                             <table class="table table-sm table-bordered" style="font-size:13px;">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Field</th>
-                                        <th>Type</th>
+                                        <th>Odoo Field</th>
                                         <th>Required</th>
-                                        <th>Description</th>
+                                        <th>Default Custom Keys</th>
+                                        <th>Default Elementor IDs</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr><td><code>name</code></td><td>string</td><td>Yes</td><td>Contact / lead name</td></tr>
-                                    <tr><td><code>contact_number</code></td><td>string</td><td>No</td><td>Phone or mobile number</td></tr>
-                                    <tr><td><code>email</code></td><td>string</td><td>No</td><td>Email address</td></tr>
-                                    <tr><td><code>body</code></td><td>string</td><td>No</td><td>Message or enquiry text</td></tr>
-                                    <tr><td><code>service</code></td><td>string</td><td>No</td><td>Service name (also added as CRM tag)</td></tr>
-                                    <tr><td><em>any extra key</em></td><td>any</td><td>No</td><td>Saved as JSON in Form Data field and internal note</td></tr>
+                                    <tr>
+                                        <td><strong>name</strong></td>
+                                        <td>Yes</td>
+                                        <td><code>name</code></td>
+                                        <td><code>name</code>, <code>full_name</code>, <code>your-name</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>contact_number</strong></td>
+                                        <td>No</td>
+                                        <td><code>contact_number</code>, <code>phone</code></td>
+                                        <td><code>phone</code>, <code>your-phone</code>, <code>mobile</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>email</strong></td>
+                                        <td>No</td>
+                                        <td><code>email</code></td>
+                                        <td><code>email</code>, <code>your-email</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>body</strong></td>
+                                        <td>No</td>
+                                        <td><code>body</code>, <code>message</code></td>
+                                        <td><code>message</code>, <code>your-message</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>service</strong></td>
+                                        <td>No</td>
+                                        <td><code>service</code></td>
+                                        <td><code>service</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><em>any extra</em></td>
+                                        <td>No</td>
+                                        <td colspan="2">Saved to Form Data → Internal Notes on the CRM lead</td>
+                                    </tr>
                                 </tbody>
                             </table>
+                            <p style="font-size:12px;color:#888;">To add or change mappings go to: CRM → Web Leads → Field Mappings</p>
                         </div>
                     </group>
-                    <group string="Sample Request Body">
-                        <field name="sample_body" readonly="1" nolabel="1"/>
-                    </group>
+
+                    <notebook>
+                        <page string="Custom / Flat JSON">
+                            <group>
+                                <div class="col-12">
+                                    <p style="font-size:13px;">Send a plain <code>application/json</code> POST. Keys are matched directly against the mapping table.</p>
+                                </div>
+                            </group>
+                            <field name="sample_custom" readonly="1" nolabel="1"/>
+                        </page>
+                        <page string="Elementor Pro">
+                            <group>
+                                <div class="col-12">
+                                    <p style="font-size:13px;">
+                                        In Elementor Pro → Form → Actions → Webhook, set the URL below.<br/>
+                                        Elementor sends <code>application/json</code> with a <code>"fields"</code> array — detected automatically.<br/>
+                                        Match is done against each field's <code>id</code> (or <code>title</code> if configured in Field Mappings).
+                                    </p>
+                                </div>
+                            </group>
+                            <field name="sample_elementor" readonly="1" nolabel="1"/>
+                        </page>
+                    </notebook>
+
                 </sheet>
                 <footer>
                     <button special="cancel" string="Close" class="btn-primary"/>

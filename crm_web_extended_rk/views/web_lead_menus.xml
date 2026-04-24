@@ -25,4 +25,13 @@
         action="action_crm_web_lead_api_info"
         sequence="20"
         groups="sales_team.group_sale_manager"/>
+
+    <!-- Sub: Field Mappings config -->
+    <menuitem
+        id="menu_crm_web_lead_field_map"
+        name="Field Mappings"
+        parent="menu_crm_web_leads_root"
+        action="crm_web_extended_rk.action_web_lead_field_map"
+        sequence="30"
+        groups="sales_team.group_sale_manager"/>
 </odoo>

@@ -154,18 +154,21 @@ class WebLeadApiInfo(models.TransientModel):
     method = fields.Char(string='HTTP Method')
     auth = fields.Char(string='Authentication')
     content_type = fields.Char(string='Content-Type')
-    sample_body = fields.Text(string='Sample Request Body')
+    sample_custom = fields.Text(string='Custom / Flat JSON')
+    sample_elementor = fields.Text(string='Elementor Pro Payload')
 
     @api.model
     def default_get(self, fields_list):
         res = super().default_get(fields_list)
-        base = self.env['ir.config_parameter'].sudo().get_param('web.base.url', 'https://your-odoo-domain.com')
+        base = self.env['ir.config_parameter'].sudo().get_param(
+            'web.base.url', 'https://your-odoo-domain.com'
+        )
         res.update({
             'full_url': base.rstrip('/') + '/webhook/web-lead',
             'method': 'POST',
             'auth': 'None — no Authorization header required (public endpoint)',
-            'content_type': 'application/json',
-            'sample_body': (
+            'content_type': 'application/json  or  application/x-www-form-urlencoded',
+            'sample_custom': (
                 '{\n'
                 '  "name": "John Doe",\n'
                 '  "contact_number": "+971501234567",\n'
@@ -174,6 +177,22 @@ class WebLeadApiInfo(models.TransientModel):
                 '  "service": "SEO",\n'
                 '  "utm_source": "google",\n'
                 '  "utm_campaign": "summer2025"\n'
+                '}'
+            ),
+            'sample_elementor': (
+                '{\n'
+                '  "fields": [\n'
+                '    { "id": "name",         "title": "Name",    "value": "John Doe",                  "type": "text" },\n'
+                '    { "id": "email",        "title": "Email",   "value": "john@example.com",           "type": "email" },\n'
+                '    { "id": "phone",        "title": "Phone",   "value": "+971501234567",              "type": "tel" },\n'
+                '    { "id": "message",      "title": "Message", "value": "I am interested in SEO.",   "type": "textarea" },\n'
+                '    { "id": "service",      "title": "Service", "value": "SEO",                       "type": "select" }\n'
+                '  ],\n'
+                '  "form_name": "Contact Form",\n'
+                '  "form_id": "abc123",\n'
+                '  "page_url": "https://example.com/contact",\n'
+                '  "remote_ip": "1.2.3.4",\n'
+                '  "submitted_on": "2026-04-24 10:00:00"\n'
                 '}'
             ),
         })

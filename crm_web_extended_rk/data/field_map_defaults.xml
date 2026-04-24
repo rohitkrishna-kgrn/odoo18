@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- ═══════════════════════════════════════════
+         Custom / flat-JSON defaults
+    ═══════════════════════════════════════════ -->
+    <record id="map_custom_name" model="crm.web.lead.field.map">
+        <field name="name">Custom → Name</field>
+        <field name="source_type">any</field>
+        <field name="source_key">name</field>
+        <field name="target_field">name</field>
+        <field name="sequence">1</field>
+    </record>
+    <record id="map_custom_email" model="crm.web.lead.field.map">
+        <field name="name">Custom → Email</field>
+        <field name="source_type">any</field>
+        <field name="source_key">email</field>
+        <field name="target_field">email</field>
+        <field name="sequence">2</field>
+    </record>
+    <record id="map_custom_contact_number" model="crm.web.lead.field.map">
+        <field name="name">Custom → Contact Number</field>
+        <field name="source_type">any</field>
+        <field name="source_key">contact_number</field>
+        <field name="target_field">contact_number</field>
+        <field name="sequence">3</field>
+    </record>
+    <record id="map_custom_phone" model="crm.web.lead.field.map">
+        <field name="name">Custom → Phone (alias)</field>
+        <field name="source_type">any</field>
+        <field name="source_key">phone</field>
+        <field name="target_field">contact_number</field>
+        <field name="sequence">4</field>
+    </record>
+    <record id="map_custom_body" model="crm.web.lead.field.map">
+        <field name="name">Custom → Body</field>
+        <field name="source_type">any</field>
+        <field name="source_key">body</field>
+        <field name="target_field">body</field>
+        <field name="sequence">5</field>
+    </record>
+    <record id="map_custom_message" model="crm.web.lead.field.map">
+        <field name="name">Custom → Message (alias)</field>
+        <field name="source_type">any</field>
+        <field name="source_key">message</field>
+        <field name="target_field">body</field>
+        <field name="sequence">6</field>
+    </record>
+    <record id="map_custom_service" model="crm.web.lead.field.map">
+        <field name="name">Custom → Service</field>
+        <field name="source_type">any</field>
+        <field name="source_key">service</field>
+        <field name="target_field">service</field>
+        <field name="sequence">7</field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════
+         Elementor Pro defaults (match by field ID)
+    ═══════════════════════════════════════════ -->
+    <record id="map_elementor_name" model="crm.web.lead.field.map">
+        <field name="name">Elementor → Name (id: name)</field>
+        <field name="source_type">elementor</field>
+        <field name="source_key">name</field>
+        <field name="match_by">id</field>
+        <field name="target_field">name</field>
+        <field name="sequence">10</field>
+    </record>
+    <record id="map_elementor_full_name" model="crm.web.lead.field.map">
+        <field name="name">Elementor → Name (id: full_name)</field>
+        <field name="source_type">elementor</field>
+        <field name="source_key">full_name</field>
+        <field name="match_by">id</field>
+        <field name="target_field">name</field>
+        <field name="sequence">11</field>
+    </record>
+    <record id="map_elementor_your_name" model="crm.web.lead.field.map">
+        <field name="name">Elementor → Name (id: your-name)</field>
+        <field name="source_type">elementor</field>
+        <field name="source_key">your-name</field>
+        <field name="match_by">id</field>
+        <field name="target_field">name</field>
+        <field name="sequence">12</field>
+    </record>
+    <record id="map_elementor_email" model="crm.web.lead.field.map">
+        <field name="name">Elementor → Email (id: email)</field>
+        <field name="source_type">elementor</field>
+        <field name="source_key">email</field>
+        <field name="match_by">id</field>
+        <field name="target_field">email</field>
+        <field name="sequence">13</field>
+    </record>
+    <record id="map_elementor_your_email" model="crm.web.lead.field.map">
+        <field name="name">Elementor → Email (id: your-email)</field>
+        <field name="source_type">elementor</field>
+        <field name="source_key">your-email</field>
+        <field name="match_by">id</field>
+        <field name="target_field">email</field>
+        <field name="sequence">14</field>
+    </record>
+    <record id="map_elementor_phone" model="crm.web.lead.field.map">
+        <field name="name">Elementor → Phone (id: phone)</field>
+        <field name="source_type">elementor</field>
+        <field name="source_key">phone</field>
+        <field name="match_by">id</field>
+        <field name="target_field">contact_number</field>
+        <field name="sequence">15</field>
+    </record>
+    <record id="map_elementor_your_phone" model="crm.web.lead.field.map">
+        <field name="name">Elementor → Phone (id: your-phone)</field>
+        <field name="source_type">elementor</field>
+        <field name="source_key">your-phone</field>
+        <field name="match_by">id</field>
+        <field name="target_field">contact_number</field>
+        <field name="sequence">16</field>
+    </record>
+    <record id="map_elementor_mobile" model="crm.web.lead.field.map">
+        <field name="name">Elementor → Phone (id: mobile)</field>
+        <field name="source_type">elementor</field>
+        <field name="source_key">mobile</field>
+        <field name="match_by">id</field>
+        <field name="target_field">contact_number</field>
+        <field name="sequence">17</field>
+    </record>
+    <record id="map_elementor_message" model="crm.web.lead.field.map">
+        <field name="name">Elementor → Body (id: message)</field>
+        <field name="source_type">elementor</field>
+        <field name="source_key">message</field>
+        <field name="match_by">id</field>
+        <field name="target_field">body</field>
+        <field name="sequence">18</field>
+    </record>
+    <record id="map_elementor_your_message" model="crm.web.lead.field.map">
+        <field name="name">Elementor → Body (id: your-message)</field>
+        <field name="source_type">elementor</field>
+        <field name="source_key">your-message</field>
+        <field name="match_by">id</field>
+        <field name="target_field">body</field>
+        <field name="sequence">19</field>
+    </record>
+    <record id="map_elementor_service" model="crm.web.lead.field.map">
+        <field name="name">Elementor → Service (id: service)</field>
+        <field name="source_type">elementor</field>
+        <field name="source_key">service</field>
+        <field name="match_by">id</field>
+        <field name="target_field">service</field>
+        <field name="sequence">20</field>
+    </record>
+</odoo>
