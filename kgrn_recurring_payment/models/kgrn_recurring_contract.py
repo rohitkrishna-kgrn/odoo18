@@ -809,8 +809,13 @@ class KgrnRecurringContract(models.Model):
                 journal.name,
             )
 
+        # Use commercial_partner_id so the payment appears as Outstanding Credit
+        # on invoices raised against the parent company (Odoo matches partner
+        # on receivable lines using commercial_partner_id, not child contacts).
+        billing_partner = self.customer_id.commercial_partner_id or self.customer_id
+
         vals = {
-            'partner_id': self.customer_id.id,
+            'partner_id': billing_partner.id,
             'amount': self.amount,
             'currency_id': self.currency_id.id,
             'payment_type': 'inbound',
