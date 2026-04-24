@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ─── List View ─── -->
+    <record id="view_crm_web_lead_list" model="ir.ui.view">
+        <field name="name">crm.web.lead.list</field>
+        <field name="model">crm.web.lead</field>
+        <field name="arch" type="xml">
+            <list string="Web Leads" decoration-info="state=='new'" decoration-success="state=='allocated'" decoration-muted="state=='converted'">
+                <field name="name"/>
+                <field name="contact_number"/>
+                <field name="email"/>
+                <field name="service"/>
+                <field name="state" widget="badge" decoration-info="state=='new'" decoration-success="state=='allocated'" decoration-muted="state=='converted'"/>
+                <field name="allocated_user_ids" widget="many2many_tags"/>
+                <field name="crm_lead_count" string="Leads"/>
+                <field name="create_date" string="Received"/>
+                <button name="action_allocate" type="object" string="Allocate" icon="fa-user-plus"
+                        invisible="state != 'new'"
+                        groups="sales_team.group_sale_manager"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ─── Form View ─── -->
+    <record id="view_crm_web_lead_form" model="ir.ui.view">
+        <field name="name">crm.web.lead.form</field>
+        <field name="model">crm.web.lead</field>
+        <field name="arch" type="xml">
+            <form string="Web Lead">
+                <header>
+                    <button name="action_allocate" type="object" string="Allocate to User"
+                            class="btn-primary"
+                            invisible="state != 'new'"
+                            groups="sales_team.group_sale_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="new,allocated,converted"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_crm_leads" type="object"
+                                class="oe_stat_button" icon="fa-handshake-o"
+                                invisible="crm_lead_count == 0">
+                            <field name="crm_lead_count" widget="statinfo" string="Leads"/>
+                        </button>
+                    </div>
+                    <group>
+                        <group string="Contact Info">
+                            <field name="name"/>
+                            <field name="contact_number"/>
+                            <field name="email"/>
+                            <field name="service"/>
+                        </group>
+                        <group string="Allocation">
+                            <field name="state" readonly="1"/>
+                            <field name="allocated_user_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Message">
+                            <field name="body" placeholder="Message from the web form..."/>
+                        </page>
+                        <page string="Form Data">
+                            <field name="form_data" widget="text" placeholder="Raw JSON form data"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ─── Allocate Wizard ─── -->
+    <record id="view_crm_web_lead_allocate_wizard_form" model="ir.ui.view">
+        <field name="name">crm.web.lead.allocate.wizard.form</field>
+        <field name="model">crm.web.lead.allocate.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Allocate Web Leads">
+                <group>
+                    <field name="web_lead_ids" widget="many2many_tags" readonly="1"/>
+                    <field name="user_ids" widget="many2many_tags"
+                           options="{'no_create': True}"
+                           domain="[('share', '=', False)]"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Allocate &amp; Create CRM Leads" class="btn-primary"/>
+                    <button special="cancel" string="Cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ─── Batch Allocate server action (Actions menu in list) ─── -->
+    <record id="action_server_batch_allocate_web_leads" model="ir.actions.server">
+        <field name="name">Allocate to User</field>
+        <field name="model_id" ref="model_crm_web_lead"/>
+        <field name="binding_model_id" ref="model_crm_web_lead"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_allocate()</field>
+        <field name="groups_id" eval="[(4, ref('sales_team.group_sale_manager'))]"/>
+    </record>
+
+    <!-- ─── Action ─── -->
+    <record id="action_crm_web_lead" model="ir.actions.act_window">
+        <field name="name">Web Leads</field>
+        <field name="res_model">crm.web.lead</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_state_new': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No web leads yet</p>
+            <p>Leads received via the webhook API will appear here.</p>
+        </field>
+    </record>
+
+    <!-- ─── API Info Wizard ─── -->
+    <record id="view_crm_web_lead_api_info_form" model="ir.ui.view">
+        <field name="name">crm.web.lead.api.info.form</field>
+        <field name="model">crm.web.lead.api.info</field>
+        <field name="arch" type="xml">
+            <form string="Webhook API Details">
+                <sheet>
+                    <div class="alert alert-info mb-3" role="alert">
+                        <strong>Use this endpoint to push web leads into Odoo. No authentication headers required.</strong>
+                    </div>
+                    <group string="Endpoint">
+                        <field name="method" readonly="1"/>
+                        <field name="full_url" readonly="1"/>
+                        <field name="content_type" readonly="1"/>
+                        <field name="auth" readonly="1"/>
+                    </group>
+                    <group string="Accepted Fields">
+                        <div class="o_field_widget col-12">
+                            <table class="table table-sm table-bordered" style="font-size:13px;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Field</th>
+                                        <th>Type</th>
+                                        <th>Required</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td><code>name</code></td><td>string</td><td>Yes</td><td>Contact / lead name</td></tr>
+                                    <tr><td><code>contact_number</code></td><td>string</td><td>No</td><td>Phone or mobile number</td></tr>
+                                    <tr><td><code>email</code></td><td>string</td><td>No</td><td>Email address</td></tr>
+                                    <tr><td><code>body</code></td><td>string</td><td>No</td><td>Message or enquiry text</td></tr>
+                                    <tr><td><code>service</code></td><td>string</td><td>No</td><td>Service name (also added as CRM tag)</td></tr>
+                                    <tr><td><em>any extra key</em></td><td>any</td><td>No</td><td>Saved as JSON in Form Data field and internal note</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </group>
+                    <group string="Sample Request Body">
+                        <field name="sample_body" readonly="1" nolabel="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button special="cancel" string="Close" class="btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_crm_web_lead_api_info" model="ir.actions.act_window">
+        <field name="name">API Details</field>
+        <field name="res_model">crm.web.lead.api.info</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_crm_web_lead_api_info_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <!-- ─── Default search filter ─── -->
+    <record id="view_crm_web_lead_search" model="ir.ui.view">
+        <field name="name">crm.web.lead.search</field>
+        <field name="model">crm.web.lead</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="email"/>
+                <field name="contact_number"/>
+                <field name="service"/>
+                <filter name="state_new" string="New" domain="[('state','=','new')]"/>
+                <filter name="state_allocated" string="Allocated" domain="[('state','=','allocated')]"/>
+                <filter name="state_converted" string="Converted" domain="[('state','=','converted')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_service" string="Service" context="{'group_by': 'service'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+</odoo>

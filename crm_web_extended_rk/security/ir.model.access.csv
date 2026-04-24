@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_crm_web_lead_sales_manager,crm.web.lead sales manager,model_crm_web_lead,sales_team.group_sale_manager,1,1,1,1
+access_crm_web_lead_allocate_wizard,crm.web.lead.allocate.wizard all,model_crm_web_lead_allocate_wizard,base.group_user,1,1,1,1
+access_crm_web_lead_api_info,crm.web.lead.api.info all,model_crm_web_lead_api_info,base.group_user,1,1,1,1
