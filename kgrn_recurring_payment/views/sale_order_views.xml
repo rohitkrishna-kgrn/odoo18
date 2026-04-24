@@ -85,8 +85,7 @@
                                     <button name="action_create_recurring_contract"
                                             type="object"
                                             string="Create Recurring Contract"
-                                            class="btn-primary"
-                                            groups="kgrn_recurring_payment.group_kgrn_recurring_user"/>
+                                            class="btn-primary"/>
                                 </div>
                                 <div invisible="not kgrn_recurring_contract_id">
                                     <button name="action_create_recurring_contract"

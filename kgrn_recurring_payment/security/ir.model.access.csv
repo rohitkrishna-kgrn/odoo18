@@ -1,5 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_kgrn_recurring_contract_base,kgrn.recurring.contract base read,model_kgrn_recurring_contract,base.group_user,1,0,0,0
+access_kgrn_recurring_contract_base,kgrn.recurring.contract base,model_kgrn_recurring_contract,base.group_user,1,1,1,0
 access_kgrn_recurring_contract_user,kgrn.recurring.contract user,model_kgrn_recurring_contract,group_kgrn_recurring_user,1,1,1,0
 access_kgrn_recurring_contract_manager,kgrn.recurring.contract manager,model_kgrn_recurring_contract,group_kgrn_recurring_manager,1,1,1,1
 access_kgrn_recurring_payment_line_base,kgrn.recurring.payment.line base read,model_kgrn_recurring_payment_line,base.group_user,1,0,0,0
