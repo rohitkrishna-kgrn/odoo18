@@ -80,23 +80,26 @@
                                        string="Customer Payment Portal"
                                        invisible="not kgrn_recurring_portal_url"/>
                             </group>
-                            <group string=" " groups="kgrn_recurring_payment.group_kgrn_recurring_user">
+                            <group string=" ">
                                 <div invisible="kgrn_recurring_contract_id">
                                     <button name="action_create_recurring_contract"
                                             type="object"
                                             string="Create Recurring Contract"
-                                            class="btn-primary"/>
+                                            class="btn-primary"
+                                            groups="kgrn_recurring_payment.group_kgrn_recurring_user"/>
                                 </div>
                                 <div invisible="not kgrn_recurring_contract_id">
                                     <button name="action_create_recurring_contract"
                                             type="object"
                                             string="Open Contract"
-                                            class="btn-secondary"/>
+                                            class="btn-secondary"
+                                            groups="kgrn_recurring_payment.group_kgrn_recurring_user"/>
                                     <button name="action_sale_send_portal_link"
                                             type="object"
                                             string="Send Portal Link"
                                             class="btn-primary ms-2"
                                             invisible="kgrn_recurring_contract_state != 'draft'"
+                                            groups="kgrn_recurring_payment.group_kgrn_recurring_user"
                                             help="Send the card registration link to the customer."/>
                                 </div>
                             </group>
