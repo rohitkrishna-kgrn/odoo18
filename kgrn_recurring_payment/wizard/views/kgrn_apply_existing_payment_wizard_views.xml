@@ -8,10 +8,12 @@
             <form string="Apply Existing Payment">
                 <field name="move_id" invisible="1"/>
                 <field name="currency_id" invisible="1"/>
+                <field name="available_payment_ids" invisible="1"/>
 
                 <!-- Invoice summary -->
                 <group string="Invoice">
                     <field name="partner_id" readonly="1"/>
+                    <field name="sale_order_id" readonly="1" invisible="not sale_order_id"/>
                     <field name="invoice_amount" widget="monetary" readonly="1"/>
                     <field name="amount_residual" widget="monetary" readonly="1"
                            decoration-danger="amount_residual > 0"/>
@@ -20,6 +22,7 @@
                 <!-- Payment selector -->
                 <group string="Select Payment to Apply">
                     <field name="payment_id" options="{'no_create': True, 'no_quick_create': True}"/>
+
                     <field name="payment_date" readonly="1" invisible="not payment_id"/>
                     <field name="payment_memo" readonly="1" invisible="not payment_id"/>
                     <field name="payment_amount" widget="monetary" readonly="1"
@@ -27,6 +30,11 @@
                     <field name="amount_to_reconcile" widget="monetary" readonly="1"
                            invisible="not payment_id"/>
                 </group>
+
+                <div class="alert alert-warning" role="alert" invisible="sale_order_id">
+                    &#9888; No linked sale order found on this invoice. Showing all unreconciled
+                    payments for this customer.
+                </div>
 
                 <div class="alert alert-info" role="alert" invisible="not payment_id">
                     <strong>&#10003; Ready to apply</strong> —

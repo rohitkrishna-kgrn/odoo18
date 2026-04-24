@@ -34,15 +34,26 @@ class KgrnApplyExistingPaymentWizard(models.TransientModel):
         currency_field='currency_id',
         readonly=True,
     )
+
+    # Payments from the sale order linked to this invoice
+    sale_order_id = fields.Many2one(
+        'sale.order',
+        string='Linked Sale Order',
+        compute='_compute_sale_order_id',
+        readonly=True,
+    )
+    available_payment_ids = fields.Many2many(
+        'account.payment',
+        string='Available Payments',
+        compute='_compute_available_payment_ids',
+    )
+
     payment_id = fields.Many2one(
         'account.payment',
-        string='Existing Payment',
+        string='Payment to Apply',
         required=True,
-        domain="[('partner_id', 'child_of', partner_id), "
-               "('state', '=', 'posted'), "
-               "('payment_type', '=', 'inbound'), "
-               "('currency_id', '=', currency_id)]",
-        help='Select a posted payment to reconcile with this invoice.',
+        domain="[('id', 'in', available_payment_ids)]",
+        help='Payments already collected against the linked sale order.',
     )
     payment_amount = fields.Monetary(
         related='payment_id.amount',
@@ -52,7 +63,7 @@ class KgrnApplyExistingPaymentWizard(models.TransientModel):
     )
     payment_memo = fields.Char(
         related='payment_id.memo',
-        string='Payment Memo',
+        string='Payment Reference',
         readonly=True,
     )
     payment_date = fields.Date(
@@ -67,6 +78,36 @@ class KgrnApplyExistingPaymentWizard(models.TransientModel):
         readonly=True,
     )
 
+    @api.depends('move_id')
+    def _compute_sale_order_id(self):
+        for rec in self:
+            sale = rec.move_id.invoice_line_ids.sale_line_ids.order_id[:1]
+            rec.sale_order_id = sale
+
+    @api.depends('sale_order_id', 'move_id')
+    def _compute_available_payment_ids(self):
+        for rec in self:
+            if rec.sale_order_id:
+                # Payments linked to the sale order that are still posted and have
+                # unreconciled receivable lines
+                payments = rec.sale_order_id.kgrn_account_payment_ids.filtered(
+                    lambda p: p.state == 'posted'
+                    and any(
+                        not l.reconciled
+                        for l in p.line_ids
+                        if l.account_id.account_type == 'asset_receivable'
+                    )
+                )
+            else:
+                # Fallback: all posted inbound payments for this partner + currency
+                payments = self.env['account.payment'].search([
+                    ('partner_id', 'child_of', rec.move_id.partner_id.id),
+                    ('state', '=', 'posted'),
+                    ('payment_type', '=', 'inbound'),
+                    ('currency_id', '=', rec.move_id.currency_id.id),
+                ])
+            rec.available_payment_ids = payments
+
     @api.depends('payment_id', 'move_id')
     def _compute_amount_to_reconcile(self):
         for rec in self:
@@ -76,10 +117,32 @@ class KgrnApplyExistingPaymentWizard(models.TransientModel):
             pay_residual = abs(sum(
                 rec.payment_id.line_ids.filtered(
                     lambda l: l.account_id.account_type == 'asset_receivable'
-                               and not l.reconciled
+                              and not l.reconciled
                 ).mapped('amount_residual')
             ))
             rec.amount_to_reconcile = min(rec.move_id.amount_residual, pay_residual)
+
+    @api.model
+    def default_get(self, fields_list):
+        res = super().default_get(fields_list)
+        move_id = res.get('move_id') or self.env.context.get('default_move_id')
+        if not move_id:
+            return res
+        move = self.env['account.move'].browse(move_id)
+        sale = move.invoice_line_ids.sale_line_ids.order_id[:1]
+        if sale:
+            payments = sale.kgrn_account_payment_ids.filtered(
+                lambda p: p.state == 'posted'
+                and any(
+                    not l.reconciled
+                    for l in p.line_ids
+                    if l.account_id.account_type == 'asset_receivable'
+                )
+            )
+            # Auto-select if only one unreconciled payment available
+            if len(payments) == 1:
+                res['payment_id'] = payments.id
+        return res
 
     def action_apply(self):
         self.ensure_one()
@@ -93,11 +156,9 @@ class KgrnApplyExistingPaymentWizard(models.TransientModel):
         if payment.state != 'posted':
             raise UserError(_('Only posted payments can be applied.'))
 
-        # Receivable line from invoice (debit, unreconciled)
         inv_lines = invoice.line_ids.filtered(
             lambda l: l.account_id.account_type == 'asset_receivable' and not l.reconciled
         )
-        # Receivable line from payment (credit, unreconciled)
         pay_lines = payment.line_ids.filtered(
             lambda l: l.account_id.account_type == 'asset_receivable' and not l.reconciled
         )
@@ -113,10 +174,8 @@ class KgrnApplyExistingPaymentWizard(models.TransientModel):
                 'This payment may already be fully applied to another invoice.'
             ) % payment.name)
 
-        # Reconcile — Odoo matches the debit/credit and marks lines reconciled
         (inv_lines | pay_lines).reconcile()
 
-        # Post a note on the invoice chatter
         invoice.message_post(
             body=_('Payment <strong>%s</strong> (%s %s, dated %s) applied via Existing Payment reconciliation.')
             % (
