@@ -47,6 +47,14 @@
                             invisible="state != 'running'"
                             groups="kgrn_recurring_payment.group_kgrn_recurring_manager"/>
 
+                    <button name="action_deduct_advance"
+                            string="Deduct Advance"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'running' or advance_amount &lt;= 0 or kgrn_advance_paid"
+                            confirm="This will immediately charge the advance amount from the customer's card. Continue?"
+                            help="Collect the one-time advance payment from the customer's registered card."/>
+
                     <button name="action_cancel"
                             string="Cancel Contract"
                             type="object"
@@ -112,6 +120,7 @@
                             <field name="amount" readonly="state != 'draft'"/>
                             <field name="frequency" readonly="state != 'draft'"/>
                             <field name="journal_id"/>
+                            <field name="tax_ids" widget="many2many_tags" options="{'no_create': True}"/>
                         </group>
                     </group>
 
@@ -125,6 +134,13 @@
                             <field name="portal_url" readonly="1" widget="url"/>
                             <field name="portal_link_sent" readonly="1"/>
                             <field name="portal_link_sent_date" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <group invisible="advance_amount &lt;= 0 and not kgrn_advance_paid">
+                        <group string="Advance Payment">
+                            <field name="advance_amount"/>
+                            <field name="kgrn_advance_paid" readonly="1" widget="boolean_toggle"/>
                         </group>
                     </group>
 

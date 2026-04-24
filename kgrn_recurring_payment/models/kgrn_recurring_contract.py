@@ -276,6 +276,26 @@ class KgrnRecurringContract(models.Model):
         domain=[('type', 'in', ['bank', 'cash'])],
         help='Journal used to post recurring payment entries.',
     )
+    tax_ids = fields.Many2many(
+        'account.tax',
+        'kgrn_recurring_contract_tax_rel',
+        'contract_id',
+        'tax_id',
+        string='Default Tax',
+        domain=[('type_tax_use', '=', 'sale')],
+        help='Tax shown on payment receipts for reference.',
+    )
+    advance_amount = fields.Monetary(
+        string='Advance Amount',
+        currency_field='currency_id',
+        help='One-time advance to collect before recurring billing. Auto-fetched from the linked sale order.',
+    )
+    kgrn_advance_paid = fields.Boolean(
+        string='Advance Collected',
+        default=False,
+        copy=False,
+        tracking=True,
+    )
 
     # -----------------------------------------------------------------------
     # Stripe
@@ -441,6 +461,13 @@ class KgrnRecurringContract(models.Model):
     # CRUD
     # -----------------------------------------------------------------------
 
+    @api.onchange('sale_order_id')
+    def _onchange_sale_order_id(self):
+        if self.sale_order_id and not self.advance_amount:
+            so = self.sale_order_id
+            if 'advance_amount' in so._fields and so.advance_amount:
+                self.advance_amount = so.advance_amount
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -448,6 +475,11 @@ class KgrnRecurringContract(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('kgrn.recurring.contract') or 'New'
             if not vals.get('access_token'):
                 vals['access_token'] = uuid.uuid4().hex
+            # Auto-fetch advance_amount from the linked sale order on creation
+            if vals.get('sale_order_id') and not vals.get('advance_amount'):
+                so = self.env['sale.order'].browse(vals['sale_order_id'])
+                if 'advance_amount' in so._fields and so.advance_amount:
+                    vals['advance_amount'] = so.advance_amount
         records = super().create(vals_list)
         # Sync back to sale order: set kgrn_recurring_contract_id on the sale order
         for rec in records:
@@ -773,7 +805,7 @@ class KgrnRecurringContract(models.Model):
             self.message_post(body=_('Payment error for period %s: %s') % (period_label, str(e)))
             raise
 
-    def _create_account_payment(self, period_label, payment_date):
+    def _create_account_payment(self, period_label, payment_date, amount=None, memo_override=None):
         """Create and post an account.payment record for the collected amount.
 
         Uses sudo() so the cron (which may run as public user) can write to
@@ -813,16 +845,18 @@ class KgrnRecurringContract(models.Model):
         # on invoices raised against the parent company (Odoo matches partner
         # on receivable lines using commercial_partner_id, not child contacts).
         billing_partner = self.customer_id.commercial_partner_id or self.customer_id
+        charge_amount = amount if amount is not None else self.amount
+        charge_memo = memo_override or f'KGRN Recurring | {self.name} | {period_label}'
 
         vals = {
             'partner_id': billing_partner.id,
-            'amount': self.amount,
+            'amount': charge_amount,
             'currency_id': self.currency_id.id,
             'payment_type': 'inbound',
             'partner_type': 'customer',
             'journal_id': journal.id,
             'date': payment_date,
-            'memo': f'KGRN Recurring | {self.name} | {period_label}',
+            'memo': charge_memo,
             'kgrn_recurring_contract_id': self.id,
         }
         if self.sale_order_id:
@@ -837,6 +871,82 @@ class KgrnRecurringContract(models.Model):
             payment.name, self.name,
         )
         return payment
+
+    def action_deduct_advance(self):
+        """Charge the advance amount from the customer's card and create an accounting entry."""
+        self.ensure_one()
+        if self.state != 'running':
+            raise UserError(_('Contract must be in Running state to collect the advance.'))
+        if not self.stripe_payment_method_id:
+            raise UserError(_('No payment card registered on this contract.'))
+        if self.advance_amount <= 0:
+            raise UserError(_('Advance amount must be greater than zero.'))
+        if self.kgrn_advance_paid:
+            raise UserError(_('Advance has already been collected for this contract.'))
+
+        today = fields.Date.today()
+        period_label = f'Advance – {today.strftime("%d %b %Y")}'
+
+        stripe = self._get_stripe_api()
+        amount_cents = int(self.advance_amount * (10 ** self.currency_id.decimal_places))
+        description = f'KGRN Advance – {self.name}'
+        result = stripe.create_payment_intent(
+            amount_cents=amount_cents,
+            currency=self.currency_id.name,
+            customer_id=self.stripe_customer_id,
+            pm_id=self.stripe_payment_method_id,
+            description=description,
+            contract_ref=self.name,
+            period_label=period_label,
+        )
+
+        if result.get('error'):
+            error_msg = result['error'].get('message', 'Unknown Stripe error')
+            raise UserError(_('Stripe error collecting advance: %s') % error_msg)
+
+        intent_status = result.get('status')
+        pi_id = result.get('id')
+
+        if intent_status not in ('succeeded', 'processing'):
+            raise UserError(_(
+                'Stripe payment did not succeed (status: %s). Please try again or contact support.'
+            ) % intent_status)
+
+        line = self.env['kgrn.recurring.payment.line'].create({
+            'contract_id': self.id,
+            'name': f'{self.name} / {period_label}',
+            'period_start': today,
+            'period_end': today,
+            'payment_date': today,
+            'amount': self.advance_amount,
+            'currency_id': self.currency_id.id,
+            'state': 'success',
+            'stripe_payment_intent_id': pi_id,
+            'processed_by': self.env.user.id,
+        })
+
+        account_payment = self._create_account_payment(
+            period_label,
+            today,
+            amount=self.advance_amount,
+            memo_override=f'KGRN Advance | {self.name} | {today.strftime("%d %b %Y")}',
+        )
+        if account_payment:
+            line.account_payment_id = account_payment.id
+
+        self.kgrn_advance_paid = True
+        self.message_post(
+            body=_(
+                'Advance of <strong>%s %s</strong> collected on %s (Stripe: %s).'
+            ) % (
+                self.currency_id.symbol or self.currency_id.name,
+                f'{self.advance_amount:,.2f}',
+                today.strftime('%d %b %Y'),
+                pi_id,
+            ),
+        )
+        self._send_payment_receipt_email(line)
+        return {'type': 'ir.actions.act_window_close'}
 
     # -----------------------------------------------------------------------
     # Notifications
@@ -1052,6 +1162,24 @@ class KgrnRecurringContract(models.Model):
                 f'</tr>'
             )
 
+        tax_row = ''
+        if self.tax_ids:
+            tax_names = ', '.join(self.tax_ids.mapped('name'))
+            tax_row = (
+                f'<tr>'
+                f'<td width="200" bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;'
+                f'font-weight:bold;color:#374151;font-size:13px;font-family:\'Segoe UI\',Arial,Helvetica,sans-serif;'
+                f'border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">'
+                f'Tax Applied'
+                f'</td>'
+                f'<td bgcolor="#ffffff" style="background-color:#ffffff;padding:10px 14px;color:#6b7280;'
+                f'font-size:13px;font-family:\'Segoe UI\',Arial,Helvetica,sans-serif;'
+                f'border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">'
+                f'{tax_names}'
+                f'</td>'
+                f'</tr>'
+            )
+
         body = f'''<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -1168,6 +1296,7 @@ class KgrnRecurringContract(models.Model):
                 </td>
               </tr>
               {txn_row}
+              {tax_row}
             </table>
 
             <p style="font-size:13px;color:#6b7280;margin:0;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">

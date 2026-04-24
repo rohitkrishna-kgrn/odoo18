@@ -114,6 +114,23 @@
                             </span>
                         </div>
 
+                        <!-- Advance Payment button — shown when advance is set and not yet collected -->
+                        <field name="kgrn_recurring_advance_amount" invisible="1"/>
+                        <field name="kgrn_advance_collected" invisible="1"/>
+                        <div class="o_form_no_constraints mb-2"
+                             invisible="kgrn_recurring_contract_state != 'running' or kgrn_advance_collected or kgrn_recurring_advance_amount &lt;= 0">
+                            <button name="action_deduct_recurring_advance"
+                                    type="object"
+                                    string="Deduct Advance Now"
+                                    class="btn-warning"
+                                    icon="fa-credit-card"
+                                    confirm="This will charge the advance amount from the customer's card. Continue?"/>
+                            <span class="text-muted ms-2" style="font-size:12px;">
+                                Advance: <field name="kgrn_recurring_advance_amount" widget="monetary" nolabel="1" readonly="1" class="d-inline"/>
+                                — This button disappears after collection.
+                            </span>
+                        </div>
+
                         <!-- Stripe Payment Log -->
                         <separator string="Payment History" invisible="not kgrn_recurring_contract_id"/>
                         <field name="kgrn_recurring_payment_line_ids"

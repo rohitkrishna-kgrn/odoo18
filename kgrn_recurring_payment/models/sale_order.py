@@ -55,6 +55,17 @@ class SaleOrder(models.Model):
         copy=False,
         help='Set to True once the first manual recurring payment has been triggered from the sale order.',
     )
+    kgrn_recurring_advance_amount = fields.Monetary(
+        related='kgrn_recurring_contract_id.advance_amount',
+        string='Recurring Advance Amount',
+        currency_field='currency_id',
+        readonly=True,
+    )
+    kgrn_advance_collected = fields.Boolean(
+        related='kgrn_recurring_contract_id.kgrn_advance_paid',
+        string='Advance Collected',
+        readonly=True,
+    )
     kgrn_recurring_locked = fields.Boolean(
         string='Recurring Toggle Locked',
         compute='_compute_kgrn_recurring_locked',
@@ -107,6 +118,14 @@ class SaleOrder(models.Model):
             raise UserError(_('The recurring contract must be in Running state to deduct a payment.'))
         contract._process_single_payment()
         self.kgrn_first_payment_done = True
+
+    def action_deduct_recurring_advance(self):
+        """Delegate advance deduction to the linked recurring contract."""
+        self.ensure_one()
+        contract = self.kgrn_recurring_contract_id
+        if not contract:
+            raise UserError(_('No recurring contract is linked to this sale order.'))
+        return contract.action_deduct_advance()
 
     def action_sale_send_portal_link(self):
         """Open the Send Portal Link wizard for the linked recurring contract."""
