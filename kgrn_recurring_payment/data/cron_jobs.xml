@@ -5,12 +5,12 @@
 
         <!--
             UAE Standard Time = UTC+4 (no DST)
-            8:10 AM UAE  = 04:10 UTC  → payment processing
-            7:50 AM UAE  = 03:50 UTC  → auto-activate contracts
-            7:40 AM UAE  = 03:40 UTC  → expire contracts
+            9:45 AM UAE  = 05:45 UTC  → payment processing
+            9:25 AM UAE  = 05:25 UTC  → auto-activate contracts
+            9:15 AM UAE  = 05:15 UTC  → expire contracts
         -->
 
-        <!-- Expire contracts past their end date (03:40 UTC = 07:40 UAE) -->
+        <!-- Expire contracts past their end date (05:15 UTC = 09:15 UAE) -->
         <record id="cron_expire_contracts" model="ir.cron">
             <field name="name">KGRN: Expire Completed Contracts</field>
             <field name="model_id" ref="model_kgrn_recurring_contract"/>
@@ -19,10 +19,10 @@
             <field name="interval_number">1</field>
             <field name="interval_type">days</field>
             <field name="active">True</field>
-            <field name="nextcall" eval="(datetime.now() + timedelta(days=1)).replace(hour=3, minute=40, second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')"/>
+            <field name="nextcall" eval="(datetime.now() + timedelta(days=1)).replace(hour=5, minute=15, second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')"/>
         </record>
 
-        <!-- Auto-activate contracts whose start_date has arrived (03:50 UTC = 07:50 UAE) -->
+        <!-- Auto-activate contracts whose start_date has arrived (05:25 UTC = 09:25 UAE) -->
         <record id="cron_activate_scheduled_contracts" model="ir.cron">
             <field name="name">KGRN: Auto-Activate Scheduled Contracts</field>
             <field name="model_id" ref="model_kgrn_recurring_contract"/>
@@ -31,10 +31,10 @@
             <field name="interval_number">1</field>
             <field name="interval_type">days</field>
             <field name="active">True</field>
-            <field name="nextcall" eval="(datetime.now() + timedelta(days=1)).replace(hour=3, minute=50, second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')"/>
+            <field name="nextcall" eval="(datetime.now() + timedelta(days=1)).replace(hour=5, minute=25, second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')"/>
         </record>
 
-        <!-- Process due recurring payments (04:10 UTC = 08:10 UAE) -->
+        <!-- Process due recurring payments (05:45 UTC = 09:45 UAE) -->
         <record id="cron_process_recurring_payments" model="ir.cron">
             <field name="name">KGRN: Process Due Recurring Payments</field>
             <field name="model_id" ref="model_kgrn_recurring_contract"/>
@@ -43,7 +43,7 @@
             <field name="interval_number">1</field>
             <field name="interval_type">days</field>
             <field name="active">True</field>
-            <field name="nextcall" eval="(datetime.now() + timedelta(days=1)).replace(hour=4, minute=10, second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')"/>
+            <field name="nextcall" eval="(datetime.now() + timedelta(days=1)).replace(hour=5, minute=45, second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')"/>
         </record>
 
     </data>
