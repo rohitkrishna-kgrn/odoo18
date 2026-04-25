@@ -257,6 +257,11 @@ class KgrnRecurringContract(models.Model):
         readonly=True,
         tracking=True,
     )
+    next_auto_debit = fields.Datetime(
+        string='Next Auto-Debit Run',
+        compute='_compute_next_auto_debit',
+        help='Scheduled time for the next automatic payment run. Times are shown in your profile timezone.',
+    )
 
     # -----------------------------------------------------------------------
     # Sale order link
@@ -432,6 +437,15 @@ class KgrnRecurringContract(models.Model):
     def _compute_payment_count(self):
         for rec in self:
             rec.payment_count = len(rec.payment_line_ids)
+
+    def _compute_next_auto_debit(self):
+        cron = self.env.ref(
+            'kgrn_recurring_payment.cron_process_recurring_payments',
+            raise_if_not_found=False,
+        )
+        nextcall = cron.nextcall if cron and cron.active else False
+        for rec in self:
+            rec.next_auto_debit = nextcall
 
     def _get_frequency_label(self):
         return FREQUENCY_LABEL.get(self.frequency, self.frequency)
@@ -680,11 +694,17 @@ class KgrnRecurringContract(models.Model):
             ('state', '=', 'running'),
             ('next_payment_date', '<=', today),
         ])
+        _logger.info('KGRN Recurring cron: found %d contract(s) due for payment on %s', len(contracts), today)
         for contract in contracts:
             try:
-                contract._process_single_payment()
-            except Exception as e:
-                _logger.error('Recurring payment failed for %s: %s', contract.name, e)
+                # Use a savepoint so a failure on one contract doesn't block others
+                with self.env.cr.savepoint():
+                    contract._process_single_payment()
+            except Exception:
+                _logger.exception(
+                    'KGRN Recurring: payment processing failed for contract %s (%s)',
+                    contract.name, contract.customer_id.name,
+                )
 
     @api.model
     def _cron_activate_scheduled_contracts(self):
@@ -695,11 +715,13 @@ class KgrnRecurringContract(models.Model):
             ('stripe_payment_method_id', '!=', False),
             ('start_date', '<=', today),
         ])
+        _logger.info('KGRN Recurring cron: activating %d contract(s) on %s', len(contracts), today)
         for contract in contracts:
             try:
-                contract._do_activate()
-            except Exception as e:
-                _logger.error('Auto-activate failed for %s: %s', contract.name, e)
+                with self.env.cr.savepoint():
+                    contract._do_activate()
+            except Exception:
+                _logger.exception('KGRN Recurring: auto-activate failed for contract %s', contract.name)
 
     @api.model
     def _cron_expire_contracts(self):

@@ -129,6 +129,10 @@
                             <field name="start_date" readonly="state != 'draft'"/>
                             <field name="end_date" readonly="state != 'draft'"/>
                             <field name="next_payment_date" readonly="1"/>
+                            <field name="next_auto_debit" readonly="1"
+                                   string="Next Auto-Debit (08:10 UAE)"
+                                   widget="datetime"
+                                   help="The cron runs at 08:10 AM UAE time (04:10 UTC) daily. Your profile timezone determines how this is displayed."/>
                         </group>
                         <group string="Portal Access">
                             <field name="portal_url" readonly="1" widget="url"/>
