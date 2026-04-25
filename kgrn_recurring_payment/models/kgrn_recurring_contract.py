@@ -785,15 +785,12 @@ class KgrnRecurringContract(models.Model):
                 line.write({
                     'state': 'failed',
                     'failure_reason': error_msg,
-                    'stripe_payment_intent_id': result.get('error', {}).get('payment_intent', {}).get('id'),
+                    'stripe_payment_intent_id': (result.get('error') or {}).get('payment_intent', {}).get('id'),
                 })
                 self.message_post(
-                    body=_(
-                        'Payment FAILED for period %s.\nStripe error: %s'
-                    ) % (period_label, error_msg),
+                    body=_('Payment FAILED for period %s.\nStripe error: %s') % (period_label, error_msg),
                     subtype_xmlid='mail.mt_note',
                 )
-                # Notify responsible user
                 self._notify_payment_failure(period_label, error_msg)
                 return
 
@@ -801,15 +798,25 @@ class KgrnRecurringContract(models.Model):
             pi_id = result.get('id')
 
             if intent_status in ('succeeded', 'processing'):
-                # Create Odoo accounting payment
-                account_payment = self._create_account_payment(period_label, today)
+                # Create Odoo accounting payment — wrap separately so an accounting
+                # failure does not roll back the Stripe-success line record.
+                account_payment = False
+                try:
+                    account_payment = self._create_account_payment(period_label, today)
+                except Exception:
+                    _logger.exception(
+                        'KGRN Recurring: Stripe charge succeeded (PI=%s) but '
+                        'account.payment creation failed for contract %s. '
+                        'Payment line marked success; please create the journal entry manually.',
+                        pi_id, self.name,
+                    )
+
                 line.write({
                     'state': 'success',
                     'stripe_payment_intent_id': pi_id,
                     'account_payment_id': account_payment.id if account_payment else False,
                     'processed_by': self.env.user.id,
                 })
-                # Advance next payment date
                 next_date = period_start + delta
                 if next_date > self.end_date:
                     self.write({'state': 'expired', 'next_payment_date': next_date})
@@ -839,13 +846,18 @@ class KgrnRecurringContract(models.Model):
                 line.write({
                     'state': 'failed',
                     'stripe_payment_intent_id': pi_id,
-                    'failure_reason': f'Unexpected status: {intent_status}',
+                    'failure_reason': f'Unexpected Stripe status: {intent_status}',
                 })
 
         except Exception as e:
+            # Catch-all: mark the line failed and log — do NOT re-raise so the
+            # cron savepoint commits this failed line instead of rolling it back.
+            _logger.exception(
+                'KGRN Recurring: unexpected error processing payment for contract %s (%s)',
+                self.name, self.customer_id.name,
+            )
             line.write({'state': 'failed', 'failure_reason': str(e)})
             self.message_post(body=_('Payment error for period %s: %s') % (period_label, str(e)))
-            raise
 
     def _create_account_payment(self, period_label, payment_date, amount=None, memo_override=None):
         """Create and post an account.payment record for the collected amount.
