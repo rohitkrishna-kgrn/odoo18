@@ -17,6 +17,7 @@ class AgedReceivable extends owl.Component {
         this.action = useService('action');
         this.tbody = useRef('tbody');
         this.date_range = useRef('date_to');
+        this.date_from = useRef('date_from');
         this.unfoldButton = useRef('unfoldButton');
         this.state = useState({
             move_line: null,
@@ -207,6 +208,7 @@ class AgedReceivable extends owl.Component {
         let filters = {
             'partner': this.state.selected_partner_rec,
             'end_date': this.date_range.el.value,
+            'start_date': this.date_from.el ? this.date_from.el.value : '',
         };
         return filters
     }
@@ -278,7 +280,9 @@ class AgedReceivable extends owl.Component {
             this.state.selected_partner_rec.splice(index, 1)
             this.state.selected_partner = this.state.selected_partner_rec.map((rec) => rec.id)
         }
-        let filtered_data = await this.orm.call("age.receivable.report", "get_filter_values", [this.date_range.el.value, this.state.selected_partner,]);
+        const endDate = this.date_range.el ? this.date_range.el.value : '';
+        const startDate = this.date_from.el ? this.date_from.el.value : '';
+        let filtered_data = await this.orm.call("age.receivable.report", "get_filter_values", [endDate, this.state.selected_partner, startDate]);
         for (const index in filtered_data) {
             const value = filtered_data[index];
             if (index !== 'partner_totals') {
@@ -306,6 +310,13 @@ class AgedReceivable extends owl.Component {
         this.state.diff3_sum = diff3Sum
         this.state.diff4_sum = diff4Sum
         this.state.diff5_sum = diff5Sum
+        this.state.total_debit_display = formatFloat(TotalDebit, { digits: [0, 2] });
+        this.state.diff0_sum_display = formatFloat(diff0Sum, { digits: [0, 2] });
+        this.state.diff1_sum_display = formatFloat(diff1Sum, { digits: [0, 2] });
+        this.state.diff2_sum_display = formatFloat(diff2Sum, { digits: [0, 2] });
+        this.state.diff3_sum_display = formatFloat(diff3Sum, { digits: [0, 2] });
+        this.state.diff4_sum_display = formatFloat(diff4Sum, { digits: [0, 2] });
+        this.state.diff5_sum_display = formatFloat(diff5Sum, { digits: [0, 2] });
     }
     getDomain() {
         return [];

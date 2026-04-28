@@ -120,13 +120,14 @@ class AgeReceivableReport(models.TransientModel):
         return move_line_list
 
     @api.model
-    def get_filter_values(self, date, partner):
+    def get_filter_values(self, date, partner, date_from=False):
         """
          Retrieve move line data categorized by partner and debit difference.
 
          Parameters:
-             date (str): Date for filtering move lines (format: 'YYYY-MM-DD').
+             date (str): As-of end date for filtering (format: 'YYYY-MM-DD').
              partner (list): List of partner IDs to filter move lines for.
+             date_from (str): Start date for filtering (format: 'YYYY-MM-DD').
 
          Returns:
              dict: Dictionary containing move line data categorized by partner
@@ -136,23 +137,31 @@ class AgeReceivableReport(models.TransientModel):
          """
         partner_total = {}
         move_line_list = {}
+
+        def format_number(value):
+            return "{:,.2f}".format(value)
+
+        domain = [
+            ('parent_state', '=', 'posted'),
+            ('account_type', '=', 'asset_receivable'),
+            ('reconciled', '=', False),
+        ]
         if date:
-            paid = self.env['account.move.line'].search(
-                [('parent_state', '=', 'posted'),
-                 ('account_type', '=', 'asset_receivable'),
-                 ('reconciled', '=', False), ('date', '<=', date)])
-        else:
-            paid = self.env['account.move.line'].search(
-                [('parent_state', '=', 'posted'),
-                 ('account_type', '=', 'asset_receivable'),
-                 ('reconciled', '=', False)])
+            domain.append(('date', '<=', date))
+        if date_from:
+            domain.append(('date', '>=', date_from))
+        paid = self.env['account.move.line'].search(domain)
         currency_id = self.env.company.currency_id.symbol
         if partner:
             partner_ids = self.env['res.partner'].search(
                 [('id', 'in', partner)])
         else:
             partner_ids = paid.mapped('partner_id')
-        today = fields.Date.today()
+        # Age buckets are computed relative to the selected as-of date
+        if date:
+            ref_date = fields.Date.from_string(date) if isinstance(date, str) else date
+        else:
+            ref_date = fields.Date.today()
         for partner_id in partner_ids:
             move_line_ids = paid.filtered(
                 lambda rec: rec.partner_id in partner_id)
@@ -160,30 +169,47 @@ class AgeReceivableReport(models.TransientModel):
                 ['name', 'move_name', 'date', 'amount_currency', 'account_id',
                  'date_maturity', 'currency_id', 'debit', 'move_id'])
             for val in move_line_data:
-                diffrence = 0
+                difference = 0
                 if val['date_maturity']:
-                    diffrence = (today - val['date_maturity']).days
-                val['diff0'] = val['debit'] if diffrence <= 0 else 0.0
-                val['diff1'] = val['debit'] if 0 < diffrence <= 30 else 0.0
-                val['diff2'] = val['debit'] if 30 < diffrence <= 60 else 0.0
-                val['diff3'] = val['debit'] if 60 < diffrence <= 90 else 0.0
-                val['diff4'] = val['debit'] if 90 < diffrence <= 120 else 0.0
-                val['diff5'] = val['debit'] if diffrence > 120 else 0.0
+                    difference = (ref_date - val['date_maturity']).days
+                val['raw_amount_currency'] = val['amount_currency']
+                val['raw_debit'] = val['debit']
+                val['diff0'] = val['debit'] if difference <= 0 else 0.0
+                val['diff1'] = val['debit'] if 0 < difference <= 30 else 0.0
+                val['diff2'] = val['debit'] if 30 < difference <= 60 else 0.0
+                val['diff3'] = val['debit'] if 60 < difference <= 90 else 0.0
+                val['diff4'] = val['debit'] if 90 < difference <= 120 else 0.0
+                val['diff5'] = val['debit'] if difference > 120 else 0.0
+                val['raw_diff0'] = val['diff0']
+                val['raw_diff1'] = val['diff1']
+                val['raw_diff2'] = val['diff2']
+                val['raw_diff3'] = val['diff3']
+                val['raw_diff4'] = val['diff4']
+                val['raw_diff5'] = val['diff5']
+                val['amount_currency'] = format_number(val['amount_currency'])
+                val['debit'] = format_number(val['debit'])
+                val['diff0'] = format_number(val['diff0'])
+                val['diff1'] = format_number(val['diff1'])
+                val['diff2'] = format_number(val['diff2'])
+                val['diff3'] = format_number(val['diff3'])
+                val['diff4'] = format_number(val['diff4'])
+                val['diff5'] = format_number(val['diff5'])
             move_line_list[partner_id.name] = move_line_data
             partner_total[partner_id.name] = {
-                'debit_sum': sum(val['debit'] for val in move_line_data),
-                'diff0_sum': round(sum(val['diff0'] for val in move_line_data),
-                                   2),
-                'diff1_sum': round(sum(val['diff1'] for val in move_line_data),
-                                   2),
-                'diff2_sum': round(sum(val['diff2'] for val in move_line_data),
-                                   2),
-                'diff3_sum': round(sum(val['diff3'] for val in move_line_data),
-                                   2),
-                'diff4_sum': round(sum(val['diff4'] for val in move_line_data),
-                                   2),
-                'diff5_sum': round(sum(val['diff5'] for val in move_line_data),
-                                   2),
+                'debit_sum': sum(val['raw_debit'] for val in move_line_data),
+                'diff0_sum': round(sum(val['raw_diff0'] for val in move_line_data), 2),
+                'diff1_sum': round(sum(val['raw_diff1'] for val in move_line_data), 2),
+                'diff2_sum': round(sum(val['raw_diff2'] for val in move_line_data), 2),
+                'diff3_sum': round(sum(val['raw_diff3'] for val in move_line_data), 2),
+                'diff4_sum': round(sum(val['raw_diff4'] for val in move_line_data), 2),
+                'diff5_sum': round(sum(val['raw_diff5'] for val in move_line_data), 2),
+                'debit_sum_display': format_number(sum(val['raw_debit'] for val in move_line_data)),
+                'diff0_sum_display': format_number(round(sum(val['raw_diff0'] for val in move_line_data), 2)),
+                'diff1_sum_display': format_number(round(sum(val['raw_diff1'] for val in move_line_data), 2)),
+                'diff2_sum_display': format_number(round(sum(val['raw_diff2'] for val in move_line_data), 2)),
+                'diff3_sum_display': format_number(round(sum(val['raw_diff3'] for val in move_line_data), 2)),
+                'diff4_sum_display': format_number(round(sum(val['raw_diff4'] for val in move_line_data), 2)),
+                'diff5_sum_display': format_number(round(sum(val['raw_diff5'] for val in move_line_data), 2)),
                 'currency_id': currency_id,
                 'partner_id': partner_id.id
             }
@@ -211,6 +237,7 @@ class AgeReceivableReport(models.TransientModel):
         workbook = xlsxwriter.Workbook(output, {'in_memory': True})
         end_date = data['filters']['end_date'] if \
             data['filters']['end_date'] else ''
+        start_date = data['filters'].get('start_date', '') or ''
         sheet = workbook.add_worksheet()
         head = workbook.add_format(
             {'align': 'center', 'bold': True, 'font_size': '15px'})
@@ -247,8 +274,9 @@ class AgeReceivableReport(models.TransientModel):
         sheet.write('A1:b1', report_name, head)
         sheet.write('B3:b4', 'Date Range', filter_head)
         sheet.write('B4:b4', 'Partners', filter_head)
-        if end_date:
-            sheet.merge_range('C3:G3', f"{end_date}", filter_body)
+        if start_date or end_date:
+            date_range_str = f"{start_date} - {end_date}" if start_date and end_date else (start_date or end_date)
+            sheet.merge_range('C3:G3', date_range_str, filter_body)
         if data['filters']['partner']:
             display_names = [partner.get('display_name', 'undefined') for
                              partner in data['filters']['partner']]
