@@ -79,6 +79,23 @@
         </field>
     </record>
 
+    <record id="view_timesheet_search_billable_filter" model="ir.ui.view">
+        <field name="name">account.analytic.line.search.billable</field>
+        <field name="model">account.analytic.line</field>
+        <field name="inherit_id" ref="hr_timesheet.hr_timesheet_line_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter name="custom_filter_billable"
+                        string="Billable"
+                        domain="[('project_id.billable_type', '=', 'billable')]"/>
+                <filter name="custom_filter_non_billable"
+                        string="Non-Billable"
+                        domain="[('project_id.billable_type', '=', 'non_billable')]"/>
+            </xpath>
+        </field>
+    </record>
+
     <record id="view_move_form_inherit_sale_line" model="ir.ui.view">
         <field name="name">account.move.form.inherit.sale.line</field>
         <field name="model">account.move</field>
