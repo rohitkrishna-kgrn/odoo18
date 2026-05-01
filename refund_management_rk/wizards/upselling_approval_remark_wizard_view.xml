@@ -1,0 +1,19 @@
+<odoo>
+    <record id="view_upselling_approval_remark_wizard_form" model="ir.ui.view">
+        <field name="name">upselling.approval.remark.wizard.form</field>
+        <field name="model">upselling.approval.remark.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Submit for Approval">
+                <group>
+                    <field name="upselling_id" invisible="1"/>
+                    <field name="remark" placeholder="Enter remark..." required="1" nolabel="1"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" string="Submit for Approval"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

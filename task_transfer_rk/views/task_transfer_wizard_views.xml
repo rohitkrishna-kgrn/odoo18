@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_task_transfer_wizard_form" model="ir.ui.view">
+        <field name="name">task.transfer.wizard.form</field>
+        <field name="model">task.transfer.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Transfer Task">
+                <sheet>
+                    <group>
+                        <field name="project_id"
+                               options="{'no_create': True, 'no_open': True}"/>
+                    </group>
+
+                    <group string="Select Tasks">
+                        <field name="task_ids"
+                               widget="many2many_tags"
+                               domain="[('project_id', '=', project_id)]"
+                               options="{'no_create': True, 'no_open': True}"
+                               nolabel="1"/>
+                        <field name="employee_user_ids" invisible="1"/>
+                    </group>
+
+                    <group string="Current Assignees">
+                        <field name="current_assignee_ids"
+                               widget="many2many_tags"
+                               readonly="1"
+                               nolabel="1"/>
+                    </group>
+
+                    <group string="Transfer To">
+                        <field name="add_assignee_ids"
+                               widget="many2many_tags"
+                               domain="[('id', 'in', employee_user_ids)]"
+                               options="{'no_create': True, 'no_open': True}"
+                               nolabel="1"/>
+                    </group>
+
+                    <group string="Add or Remove Team Members">
+                        <field name="team_member_ids"
+                               widget="many2many_tags"
+                               domain="[('id', 'in', employee_user_ids)]"
+                               options="{'no_create': True, 'no_open': True}"
+                               nolabel="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_transfer"
+                            string="Transfer"
+                            type="object"
+                            class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_task_transfer_wizard" model="ir.actions.act_window">
+        <field name="name">Transfer Task</field>
+        <field name="res_model">task.transfer.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

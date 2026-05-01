@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_task_transfer_user,access.task.transfer.user,model_task_transfer,base.group_user,1,0,0,0
+access_task_transfer_transfer_user,access.task.transfer.transfer.user,model_task_transfer,task_transfer_rk.group_task_transfer_user,1,1,1,0
+access_task_transfer_wizard_transfer_user,access.task.transfer.wizard.transfer.user,model_task_transfer_wizard,task_transfer_rk.group_task_transfer_user,1,1,1,0

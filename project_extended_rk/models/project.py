@@ -247,6 +247,11 @@ class ProjectTask(models.Model):
         return super().create(vals)
     
     def write(self, vals):
+        # Skip assignment notifications when called from the transfer wizard
+        # (the wizard sends its own, more informative transfer emails)
+        if self.env.context.get('skip_team_member_notification'):
+            return super(ProjectTask, self).write(vals)
+
         # Track the original team members before write
         old_team_members = {
             rec.id: rec.team_member_ids.sudo()

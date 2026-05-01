@@ -11,6 +11,8 @@
         'data/reimbursement_sequence.xml',
         'wizards/upload_excel_wizard_view.xml',
         'wizards/attach_bills_wizard_view.xml',
+        'wizards/upselling_resubmit_wizard_view.xml',
+        'wizards/upselling_approval_remark_wizard_view.xml',
         'views/reimbursement_views.xml',
         'views/menus.xml',
         'views/upselling_view.xml',

@@ -1,5 +1,6 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError
+from markupsafe import Markup
 
 class Upselling(models.Model):
     _name = 'upselling'
@@ -93,35 +94,52 @@ class Upselling(models.Model):
     def action_submit_review(self):
         for rec in self:
             rec.state = 'review'
+            # Notify all reviewers by email
+            reviewer_group = self.env.ref(
+                'refund_management_rk.group_reimbursement_reviewer', raise_if_not_found=False
+            )
+            if reviewer_group:
+                partner_ids = reviewer_group.users.mapped('partner_id').ids
+                if partner_ids:
+                    rec.message_notify(
+                        partner_ids=partner_ids,
+                        subject=f'Upselling {rec.sequence} - Submitted for Review',
+                        body=Markup(
+                            'Dear Reviewer,<br/><br/>'
+                            'Upselling request <b>{}</b> has been submitted for review by {}.<br/><br/>'
+                            'Please review and take action.'
+                        ).format(rec.sequence, rec.user_id.name),
+                    )
 
     def action_submit_approval(self):
-        for rec in self:
-            missing_fields = []
-            if not rec.description:
-                missing_fields.append('Description')
-            if not rec.sale_order_id:
-                missing_fields.append('Sale Order')
-            if not rec.customer_id:
-                missing_fields.append('Customer')
-            if not rec.proposal_file:
-                missing_fields.append('Proposal File')
-            if not rec.engagement_file:
-                missing_fields.append('Signed Engagement File')
-            if not rec.payment_received_datetime:
-                missing_fields.append('Payment Received Date/Time')
-            if not rec.payment_reference:
-                missing_fields.append('Payment Reference')
-            if missing_fields:
-                raise UserError(
-                    f"Cannot submit for approval. Please fill in all required fields: {', '.join(missing_fields)}"
-                )
-            rec.state = 'approval'
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Submit for Approval',
+            'res_model': 'upselling.approval.remark.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_upselling_id': self.id},
+        }
 
     def action_approve(self):
         for rec in self:
             if not rec.is_approver:
                 raise UserError("You are not authorized to approve this upselling request.")
             rec.state = 'approved'
+
+    def action_resubmit(self):
+        self.ensure_one()
+        if not self.env.user.has_group('refund_management_rk.group_reimbursement_reviewer'):
+            raise UserError("Only Reimbursement Reviewers can request a resubmission.")
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Request Resubmission',
+            'res_model': 'upselling.resubmit.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_upselling_id': self.id},
+        }
 
     def action_view_invoices(self):
         self.ensure_one()

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_task_transfer_action"
+              name="Transfer Task"
+              parent="project.menu_main_pm"
+              action="action_task_transfer_wizard"
+              sequence="25"
+              groups="task_transfer_rk.group_task_transfer_user"/>
+
+</odoo>

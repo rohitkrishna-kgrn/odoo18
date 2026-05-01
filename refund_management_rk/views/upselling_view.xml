@@ -16,6 +16,9 @@
                     <button name="action_submit_review" string="Reset to Review" type="object"
                             invisible="state not in ('approval',)" class="btn-secondary"
                             groups="refund_management_rk.group_reimbursement_reviewer"/>
+                    <button name="action_resubmit" string="Resubmission" type="object"
+                            invisible="state != 'review'" class="btn-warning"
+                            groups="refund_management_rk.group_reimbursement_reviewer"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,review,approval,approved"/>
                 </header>
                 <sheet>
@@ -39,6 +42,7 @@
                             <field name="user_id"/>
                             <field name="sale_order_id" no_create="1" no_create_edit="1"/>
                             <field name="customer_id"/>
+                            <field name="create_date" string="Created Date" readonly="1"/>
                         </group>
                         <group>
                             <field name="company_id" groups="base.group_multi_company"/>
