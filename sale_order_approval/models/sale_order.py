@@ -68,10 +68,12 @@ class SaleOrder(models.Model):
 
     def action_confirm(self):
         self.ensure_one()
-        if self.approval_state != 'approved' and self.env.user != self.company_id.approver_user_id:
-            raise UserError(_("Only the approver can confirm this order before approval."))
-        if self.approval_state != 'approved':
-            raise UserError(_("Order must be in 'Approved' state to confirm."))
+        from_einvoicing = self.env.context.get('einvoicing_portal', False)
+        if not from_einvoicing:
+            if self.approval_state != 'approved' and self.env.user != self.company_id.approver_user_id:
+                raise UserError(_("Only the approver can confirm this order before approval."))
+            if self.approval_state != 'approved':
+                raise UserError(_("Order must be in 'Approved' state to confirm."))
 
         return super(SaleOrder, self).action_confirm()
 
