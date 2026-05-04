@@ -84,10 +84,12 @@ class SaleOrder(models.Model):
 
     def action_approve_order(self):
         self.ensure_one()
-        if self.approval_state != 'to_approve':
-            raise UserError(_("Only quotations in 'To Approve' state can be approved."))
-        if self.env.user != self.company_id.approver_user_id:
-            raise UserError(_("Only the designated approver can approve this quotation."))
+        from_einvoicing = self.env.context.get('einvoicing_portal', False)
+        if not from_einvoicing:
+            if self.approval_state != 'to_approve':
+                raise UserError(_("Only quotations in 'To Approve' state can be approved."))
+            if self.env.user != self.company_id.approver_user_id:
+                raise UserError(_("Only the designated approver can approve this quotation."))
 
         import re
         original_name = self.name or ''
