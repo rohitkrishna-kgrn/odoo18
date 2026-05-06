@@ -1,5 +1,5 @@
 <odoo>
-  <data noupdate="1">
+  <data noupdate="0">
 
     <!-- Monthly update cron - runs on 1st of every month at 00:00 -->
     <record id="ir_cron_update_leave_balances" model="ir.cron">
@@ -13,15 +13,15 @@
       <field name="active">True</field>
     </record>
 
-    <!-- January 1st reset cron - runs once a year -->
-    <record id="ir_cron_reset_leave_balances_jan1" model="ir.cron">
-      <field name="name">Reset Leave Balances on January 1st</field>
+    <!-- Dec 31 reset cron - runs annually on Dec 31 at 23:59 to prepare Jan 1 balances -->
+    <record id="ir_cron_reset_leave_balances_dec31" model="ir.cron">
+      <field name="name">Reset Leave Balances on Dec 31</field>
       <field name="model_id" ref="model_leave_balance"/>
       <field name="state">code</field>
-      <field name="code">model.reset_leave_balances_jan1()</field>
-      <field name="interval_number">12</field>  <!-- 12 months = 1 year -->
+      <field name="code">model.reset_leave_balances_dec31()</field>
+      <field name="interval_number">12</field>
       <field name="interval_type">months</field>
-      <field name="nextcall" eval="'2026-01-01 00:00:00'"/>
+      <field name="nextcall" eval="'2025-12-31 23:59:00'"/>
       <field name="active">True</field>
     </record>
 

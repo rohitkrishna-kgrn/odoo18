@@ -1,0 +1,53 @@
+<odoo>
+    <record id="view_comp_leave_request_form" model="ir.ui.view">
+        <field name="name">leave.comp.request.form</field>
+        <field name="model">leave.comp.request</field>
+        <field name="arch" type="xml">
+            <form string="Compensation Leave Request">
+                <header>
+                    <button name="action_submit" type="object" string="Submit"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="Approve"
+                            invisible="state != 'requested'"
+                            groups="leave_management_rk.group_hr_manager"/>
+                    <button name="action_reject" type="object" string="Reject"
+                            invisible="state not in ('draft', 'requested')"
+                            groups="leave_management_rk.group_hr_manager"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,requested,approved,rejected"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="user_id" readonly="state != 'draft'"/>
+                        <field name="date_worked" readonly="state != 'draft'"/>
+                        <field name="days" readonly="state != 'draft'"/>
+                        <field name="reason" readonly="state != 'draft'"/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        <strong>Note:</strong> When approved by HR, the specified days will be added to your Compensation Leave balance and can be used for future leave requests.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_comp_leave_request_list" model="ir.ui.view">
+        <field name="name">leave.comp.request.list</field>
+        <field name="model">leave.comp.request</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="user_id"/>
+                <field name="date_worked"/>
+                <field name="days"/>
+                <field name="reason"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_comp_leave_request" model="ir.actions.act_window">
+        <field name="name">Compensation Leave Requests</field>
+        <field name="res_model">leave.comp.request</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

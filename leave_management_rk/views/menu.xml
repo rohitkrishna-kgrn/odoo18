@@ -2,7 +2,7 @@
     <!-- Main Root Menu -->
     <menuitem id="menu_leave_root" name="Leave" sequence="10" web_icon="leave_management_rk,static/description/icon.png"/>
 
-    <!-- Leave Requests Action (for users and HR) -->
+    <!-- Leave Requests Action -->
     <record id="action_leave_request" model="ir.actions.act_window">
         <field name="name">Leave Requests</field>
         <field name="res_model">leave.request</field>
@@ -10,11 +10,18 @@
         <field name="view_id" ref="leave_management_rk.view_leave_request_tree"/>
     </record>
 
-    <!-- Leave Requests Menu visible to Leave User and HR Manager -->
+    <!-- Leave Requests Menu -->
     <menuitem id="menu_leave_requests" name="Leave Requests"
               parent="menu_leave_root"
               action="leave_management_rk.action_leave_request"
               sequence="1"
+              groups="leave_management_rk.group_leave_user,leave_management_rk.group_hr_manager"/>
+
+    <!-- Compensation Leave Request (for employees to request comp leave) -->
+    <menuitem id="menu_comp_leave_request" name="Compensation Leave Request"
+              parent="menu_leave_root"
+              action="leave_management_rk.action_comp_leave_request"
+              sequence="3"
               groups="leave_management_rk.group_leave_user,leave_management_rk.group_hr_manager"/>
 
     <!-- Public Holidays Action -->
@@ -24,11 +31,18 @@
         <field name="view_mode">list,form</field>
     </record>
 
-    <!-- Public Holidays Menu (only HR Manager) -->
+    <!-- Public Holidays Menu (HR only) -->
     <menuitem id="menu_public_holiday" name="Public Holidays"
               parent="menu_leave_root"
               action="leave_management_rk.action_public_holiday"
               groups="leave_management_rk.group_hr_manager"
               sequence="4"/>
+
+    <!-- HR Leave Balance Wizard (HR only) -->
+    <menuitem id="menu_hr_leave_balance" name="Employee Leave Balance"
+              parent="menu_leave_root"
+              action="leave_management_rk.action_hr_leave_balance_wizard"
+              groups="leave_management_rk.group_hr_manager"
+              sequence="5"/>
 
 </odoo>

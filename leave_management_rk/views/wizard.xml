@@ -26,10 +26,11 @@
         <field name="target">new</field>
     </record>
 
-    <!-- Menu item to launch wizard -->
+    <!-- Menu item to launch wizard (HR only - for direct balance addition) -->
     <menuitem id="menu_add_comp_leave_wizard"
-              name="Add Compensation Leave"
+              name="Add Compensation Leave (HR)"
               parent="leave_management_rk.menu_leave_root"
               action="action_add_comp_leave_wizard"
+              groups="leave_management_rk.group_hr_manager"
               sequence="10"/>
 </odoo>

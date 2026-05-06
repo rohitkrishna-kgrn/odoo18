@@ -3,10 +3,27 @@
         <field name="name">leave.approval.wizard.form</field>
         <field name="model">leave.approval.wizard</field>
         <field name="arch" type="xml">
-            <form string="Approve Leave">
-                <group>
-                    <field name="paid"/>
-                </group>
+            <form string="Approve Leave Request">
+                <field name="is_permission" invisible="1"/>
+                <sheet>
+                    <group string="Employee Current Leave Balances">
+                        <field name="balance_line_ids" nolabel="1" readonly="1">
+                            <list>
+                                <field name="leave_type_id" string="Leave Type"/>
+                                <field name="balance" string="Balance"/>
+                                <field name="unit" string="Unit"/>
+                            </list>
+                        </field>
+                    </group>
+
+                    <group string="Approval Decision" invisible="is_permission">
+                        <field name="paid" string="Mark as Paid Leave"
+                               help="If checked, days will be deducted from the employee's leave balance"/>
+                    </group>
+                    <div invisible="not is_permission" class="alert alert-info" role="alert">
+                        <strong>Permission Leave:</strong> Hours will be deducted automatically. Not counted in payroll.
+                    </div>
+                </sheet>
                 <footer>
                     <button string="Approve" type="object" name="action_approve" class="btn-primary"/>
                     <button string="Cancel" special="cancel" class="btn-secondary"/>

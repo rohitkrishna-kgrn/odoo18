@@ -15,6 +15,11 @@
         <record id="leave_type_compensation" model="leave.type">
             <field name="name">Compensation Leave</field>
         </record>
-
+    </data>
+    <data noupdate="0">
+        <record id="leave_type_permission" model="leave.type">
+            <field name="name">Permission</field>
+            <field name="is_permission">True</field>
+        </record>
     </data>
 </odoo>

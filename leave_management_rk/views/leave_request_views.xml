@@ -6,19 +6,34 @@
             <form string="Leave Request">
                 <header>
                     <button name="action_request" type="object" string="Submit" invisible="state != 'draft'"/>
-                    <button name="action_open_approve_wizard" type="object" string="Approve" invisible="state != 'requested'" groups="leave_management_rk.group_hr_manager"/>
-                    <button name="action_reject" type="object" string="Reject" invisible="state != 'requested'" groups="leave_management_rk.group_hr_manager"/>
+                    <button name="action_open_approve_wizard" type="object" string="Approve"
+                            invisible="state != 'requested'"
+                            groups="leave_management_rk.group_hr_manager"/>
+                    <button name="action_reject" type="object" string="Reject"
+                            invisible="state != 'requested'"
+                            groups="leave_management_rk.group_hr_manager"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,requested,approved,rejected"/>
                 </header>
                 <sheet>
-
+                    <field name="is_permission_type" invisible="1"/>
                     <group>
                         <field name="user_id" readonly="1"/>
                         <field name="leave_type_id"/>
-                        <field name="available_balance" readonly="1"/>
-                        <field name="start_date"/>
-                        <field name="end_date"/>
-                        <field name="days_requested"/>
+                        <field name="available_balance" readonly="1"
+                               string="Available Balance (Days / Hrs)"/>
+                        <field name="is_half_day"
+                               invisible="is_permission_type"/>
+                        <field name="start_date"
+                               string="Start Date"/>
+                        <field name="end_date"
+                               invisible="is_half_day or is_permission_type"
+                               required="not is_half_day and not is_permission_type"/>
+                        <field name="days_requested"
+                               invisible="is_permission_type"
+                               readonly="1"/>
+                        <field name="hours_requested"
+                               invisible="not is_permission_type"
+                               string="Hours Requested"/>
                         <field name="reason"/>
                         <field name="attachment"/>
                     </group>
@@ -34,9 +49,10 @@
             <list>
                 <field name="user_id"/>
                 <field name="leave_type_id"/>
-                <field name="available_balance" readonly="1"/>
+                <field name="available_balance" readonly="1" string="Balance"/>
                 <field name="start_date"/>
                 <field name="end_date"/>
+                <field name="is_half_day"/>
                 <field name="days_requested"/>
                 <field name="state"/>
             </list>

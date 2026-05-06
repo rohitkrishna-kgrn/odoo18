@@ -1,0 +1,40 @@
+<odoo>
+    <record id="view_hr_leave_balance_wizard_form" model="ir.ui.view">
+        <field name="name">hr.leave.balance.wizard.form</field>
+        <field name="model">hr.leave.balance.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Employee Leave Balance">
+                <sheet>
+                    <group>
+                        <field name="user_id" string="Select Employee"/>
+                    </group>
+                    <field name="line_ids">
+                        <list editable="bottom" create="false" delete="false">
+                            <field name="leave_type_id" readonly="1"/>
+                            <field name="balance" string="Balance"/>
+                            <field name="balance_label" string="Unit" readonly="1"/>
+                        </list>
+                    </field>
+                </sheet>
+                <footer>
+                    <button string="Save Changes" type="object" name="action_save" class="btn-primary"/>
+                    <button string="Reset All Leaves to Default"
+                            type="object"
+                            name="action_reset_all_leaves"
+                            class="btn-danger"
+                            groups="base.group_system"
+                            confirm="This will reset ALL employees' leave balances to default values for the current month. Are you sure?"/>
+                    <button string="Close" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_leave_balance_wizard" model="ir.actions.act_window">
+        <field name="name">Employee Leave Balance</field>
+        <field name="res_model">hr.leave.balance.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_hr_leave_balance_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+</odoo>

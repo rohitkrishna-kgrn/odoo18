@@ -3,7 +3,7 @@
     'version': '1.0',
     'summary': 'Custom Leave Management Module',
     'author': 'Rohit',
-    'depends': ['base', 'hr', 'web'],
+    'depends': ['base', 'hr', 'web', 'mail'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
@@ -13,6 +13,8 @@
         'views/public_holiday_views.xml',
         'views/approve_wizard_views.xml',
         'views/hr_employee_inherit_views.xml',
+        'views/comp_leave_request_views.xml',
+        'views/hr_leave_balance_views.xml',
         'views/menu.xml',
         'views/wizard.xml',
     ],

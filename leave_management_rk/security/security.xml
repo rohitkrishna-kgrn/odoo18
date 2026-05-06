@@ -26,4 +26,20 @@
         <field name="groups" eval="[(4, ref('leave_management_rk.group_leave_user'))]"/>
         <field name="domain_force">[('user_id', '=', user.id)]</field>
     </record>
+
+    <!-- Record rule: HR Manager sees all comp leave requests -->
+    <record id="comp_leave_request_rule_hr" model="ir.rule">
+        <field name="name">HR Manager can see all compensation leave requests</field>
+        <field name="model_id" ref="model_leave_comp_request"/>
+        <field name="groups" eval="[(4, ref('leave_management_rk.group_hr_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- Record rule: Leave User sees only their own comp leave requests -->
+    <record id="comp_leave_request_rule_user" model="ir.rule">
+        <field name="name">Users see their own compensation leave requests</field>
+        <field name="model_id" ref="model_leave_comp_request"/>
+        <field name="groups" eval="[(4, ref('leave_management_rk.group_leave_user'))]"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+    </record>
 </odoo>

@@ -3,8 +3,13 @@ access_leave_request_user,leave.request user,model_leave_request,leave_managemen
 access_leave_request_hr,leave.request hr,model_leave_request,leave_management_rk.group_hr_manager,1,1,1,1
 access_public_holiday_hr,public.holiday hr,model_public_holiday,leave_management_rk.group_hr_manager,1,1,1,1
 access_leave_approval_wizard_hr,leave.approval.wizard hr,model_leave_approval_wizard,leave_management_rk.group_hr_manager,1,1,1,0
+access_leave_approval_wizard_balance_line_hr,leave.approval.wizard.balance.line hr,model_leave_approval_wizard_balance_line,leave_management_rk.group_hr_manager,1,1,1,0
 access_leave_type_hr,leave.type hr,model_leave_type,leave_management_rk.group_hr_manager,1,0,0,0
 access_leave_type_user,leave.type user,model_leave_type,leave_management_rk.group_leave_user,1,0,0,0
 access_leave_balance_user,leave.balance user,model_leave_balance,leave_management_rk.group_leave_user,1,0,0,0
 access_leave_balance_hr,leave.balance hr,model_leave_balance,leave_management_rk.group_hr_manager,1,1,1,1
 access_add_comp_leave_wizard,access_add_comp_leave_wizard,model_add_comp_leave_wizard,leave_management_rk.group_hr_manager,1,1,1,0
+access_leave_comp_request_user,leave.comp.request user,model_leave_comp_request,leave_management_rk.group_leave_user,1,1,1,0
+access_leave_comp_request_hr,leave.comp.request hr,model_leave_comp_request,leave_management_rk.group_hr_manager,1,1,1,1
+access_hr_leave_balance_wizard_hr,hr.leave.balance.wizard hr,model_hr_leave_balance_wizard,leave_management_rk.group_hr_manager,1,1,1,0
+access_hr_leave_balance_wizard_line_hr,hr.leave.balance.wizard.line hr,model_hr_leave_balance_wizard_line,leave_management_rk.group_hr_manager,1,1,1,0

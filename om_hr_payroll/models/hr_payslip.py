@@ -255,7 +255,7 @@ class HrPayslip(models.Model):
             if not user:
                 continue
 
-            # 1. Paid Leaves
+            # 1. Paid Leaves (excludes permission leaves which have paid=False)
             paid_leaves = LeaveRequest.search([
                 ('user_id', '=', user.id),
                 ('state', '=', 'approved'),
@@ -263,20 +263,18 @@ class HrPayslip(models.Model):
                 ('start_date', '<=', date_to),
                 ('end_date', '>=', date_from),
             ])
-            leave_dates_set = set()
+            total_leave_days = 0.0
             for leave in paid_leaves:
-                leave_start = max(fields.Date.to_date(leave.start_date), date_from_dt)
-                leave_end = min(fields.Date.to_date(leave.end_date), date_to_dt)
-                days = (leave_end - leave_start).days + 1
-                leave_dates_set |= {leave_start + timedelta(days=i) for i in range(days)}
+                # Use days_requested directly to correctly handle half-day (0.5) leaves
+                total_leave_days += leave.days_requested
 
-            if leave_dates_set:
+            if total_leave_days:
                 worked_days.append({
                     'name': 'Paid Leave',
                     'sequence': 10,
                     'code': 'LEAVE',
-                    'number_of_days': len(leave_dates_set),
-                    'number_of_hours': len(leave_dates_set) * 8,
+                    'number_of_days': total_leave_days,
+                    'number_of_hours': total_leave_days * 8,
                     'contract_id': contract.id,
                 })
 
@@ -914,7 +912,7 @@ class HrPayslipRun(models.Model):
         if not user:
             return worked_days
 
-        # 1. Paid Leaves
+        # 1. Paid Leaves (excludes permission leaves which have paid=False)
         paid_leaves = LeaveRequest.search([
             ('user_id', '=', user.id),
             ('state', '=', 'approved'),
@@ -922,20 +920,18 @@ class HrPayslipRun(models.Model):
             ('start_date', '<=', date_to),
             ('end_date', '>=', date_from),
         ])
-        leave_dates_set = set()
+        total_leave_days = 0.0
         for leave in paid_leaves:
-            leave_start = max(fields.Date.to_date(leave.start_date), date_from_dt)
-            leave_end = min(fields.Date.to_date(leave.end_date), date_to_dt)
-            days = (leave_end - leave_start).days + 1
-            leave_dates_set |= {leave_start + timedelta(days=i) for i in range(days)}
+            # Use days_requested directly to correctly handle half-day (0.5) leaves
+            total_leave_days += leave.days_requested
 
-        if leave_dates_set:
+        if total_leave_days:
             worked_days.append({
                 'name': 'Paid Leave',
                 'sequence': 10,
                 'code': 'LEAVE',
-                'number_of_days': len(leave_dates_set),
-                'number_of_hours': len(leave_dates_set) * 8,
+                'number_of_days': total_leave_days,
+                'number_of_hours': total_leave_days * 8,
                 'contract_id': contract.id,
             })
 
