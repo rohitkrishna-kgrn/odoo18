@@ -5,37 +5,57 @@
         <field name="arch" type="xml">
             <form string="Leave Request">
                 <header>
-                    <button name="action_request" type="object" string="Submit" invisible="state != 'draft'"/>
-                    <button name="action_open_approve_wizard" type="object" string="Approve"
-                            invisible="state != 'requested'"
-                            groups="leave_management_rk.group_hr_manager"/>
-                    <button name="action_reject" type="object" string="Reject"
-                            invisible="state != 'requested'"
-                            groups="leave_management_rk.group_hr_manager"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,requested,approved,rejected"/>
+                    <button name="action_request" type="object" string="Submit"
+                            invisible="state != 'draft'"/>
+                    <button name="action_manager_approve" type="object" string="Approve"
+                            invisible="state != 'waiting_manager'"
+                            groups="leave_management_rk.group_dept_manager,leave_management_rk.group_hr_manager"
+                            class="btn-primary"/>
+                    <button name="action_manager_reject_wizard" type="object" string="Reject"
+                            invisible="state != 'waiting_manager'"
+                            groups="leave_management_rk.group_dept_manager,leave_management_rk.group_hr_manager"
+                            class="btn-danger"/>
+                    <button name="action_open_approve_wizard" type="object" string="Approve (HR)"
+                            invisible="state != 'manager_approved'"
+                            groups="leave_management_rk.group_hr_manager"
+                            class="btn-primary"/>
+                    <button name="action_reject" type="object" string="Reject (HR)"
+                            invisible="state != 'manager_approved'"
+                            groups="leave_management_rk.group_hr_manager"
+                            class="btn-danger"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,waiting_manager,manager_approved,approved,rejected"/>
                 </header>
                 <sheet>
                     <field name="is_permission_type" invisible="1"/>
                     <group>
                         <field name="user_id" readonly="1"/>
-                        <field name="leave_type_id"/>
+                        <field name="leave_type_id" readonly="state != 'draft'"/>
                         <field name="available_balance" readonly="1"
                                string="Available Balance (Days / Hrs)"/>
                         <field name="is_half_day"
-                               invisible="is_permission_type"/>
+                               invisible="is_permission_type"
+                               readonly="state != 'draft'"/>
                         <field name="start_date"
-                               string="Start Date"/>
+                               string="Start Date"
+                               readonly="state != 'draft'"/>
                         <field name="end_date"
                                invisible="is_half_day or is_permission_type"
-                               required="not is_half_day and not is_permission_type"/>
+                               required="not is_half_day and not is_permission_type and state == 'draft'"
+                               readonly="state != 'draft'"/>
                         <field name="days_requested"
                                invisible="is_permission_type"
                                readonly="1"/>
                         <field name="hours_requested"
                                invisible="not is_permission_type"
-                               string="Hours Requested"/>
-                        <field name="reason"/>
-                        <field name="attachment"/>
+                               string="Hours Requested"
+                               readonly="state != 'draft'"/>
+                        <field name="reason" readonly="state != 'draft'"/>
+                        <field name="attachment" readonly="state != 'draft'"/>
+                        <field name="manager_remarks"
+                               invisible="not manager_remarks"
+                               readonly="1"
+                               string="Manager Remarks"/>
                     </group>
                 </sheet>
             </form>

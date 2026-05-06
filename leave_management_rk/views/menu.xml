@@ -10,19 +10,39 @@
         <field name="view_id" ref="leave_management_rk.view_leave_request_tree"/>
     </record>
 
-    <!-- Leave Requests Menu -->
+    <!-- Leave Requests Menu (employees submit their own) -->
     <menuitem id="menu_leave_requests" name="Leave Requests"
               parent="menu_leave_root"
               action="leave_management_rk.action_leave_request"
               sequence="1"
               groups="leave_management_rk.group_leave_user,leave_management_rk.group_hr_manager"/>
 
-    <!-- Compensation Leave Request (for employees to request comp leave) -->
+    <!-- Compensation Leave Request (employees submit) -->
     <menuitem id="menu_comp_leave_request" name="Compensation Leave Request"
               parent="menu_leave_root"
               action="leave_management_rk.action_comp_leave_request"
               sequence="3"
               groups="leave_management_rk.group_leave_user,leave_management_rk.group_hr_manager"/>
+
+    <!-- Team Approval Parent Menu (dept managers + HR) -->
+    <menuitem id="menu_team_approval" name="Team Approval"
+              parent="menu_leave_root"
+              sequence="5"
+              groups="leave_management_rk.group_dept_manager,leave_management_rk.group_hr_manager"/>
+
+    <!-- Team Approval: Leave Requests submenu -->
+    <menuitem id="menu_team_approval_leave" name="Leave Requests"
+              parent="menu_team_approval"
+              action="leave_management_rk.action_team_approval_leave"
+              sequence="1"
+              groups="leave_management_rk.group_dept_manager,leave_management_rk.group_hr_manager"/>
+
+    <!-- Team Approval: Compensation submenu -->
+    <menuitem id="menu_team_approval_comp" name="Compensation"
+              parent="menu_team_approval"
+              action="leave_management_rk.action_team_approval_comp"
+              sequence="2"
+              groups="leave_management_rk.group_dept_manager,leave_management_rk.group_hr_manager"/>
 
     <!-- Public Holidays Action -->
     <record id="action_public_holiday" model="ir.actions.act_window">
@@ -36,13 +56,12 @@
               parent="menu_leave_root"
               action="leave_management_rk.action_public_holiday"
               groups="leave_management_rk.group_hr_manager"
-              sequence="4"/>
+              sequence="7"/>
 
     <!-- HR Leave Balance Wizard (HR only) -->
     <menuitem id="menu_hr_leave_balance" name="Employee Leave Balance"
               parent="menu_leave_root"
               action="leave_management_rk.action_hr_leave_balance_wizard"
               groups="leave_management_rk.group_hr_manager"
-              sequence="5"/>
-
+              sequence="8"/>
 </odoo>

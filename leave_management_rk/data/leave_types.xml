@@ -9,9 +9,6 @@
         <record id="leave_type_lop" model="leave.type">
             <field name="name">Loss of Pay</field>
         </record>
-        <record id="leave_type_wfh" model="leave.type">
-            <field name="name">Work from Home</field>
-        </record>
         <record id="leave_type_compensation" model="leave.type">
             <field name="name">Compensation Leave</field>
         </record>

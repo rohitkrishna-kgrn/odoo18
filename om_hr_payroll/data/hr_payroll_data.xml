@@ -10,7 +10,7 @@
             <field name="category_id" ref="om_hr_payroll.BASIC"/>
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">result = contract.wage * 0.50</field>
+            <field name="amount_python_compute">result = contract.wage * 0.60</field>
         </record>
 
         <record id="hr_rule_taxable" model="hr.salary.rule">
@@ -30,7 +30,7 @@
             <field name="category_id" ref="om_hr_payroll.ALW"/>
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">result = contract.wage * 0.50</field>
+            <field name="amount_python_compute">result = contract.wage * 0.40</field>
         </record>
 
         <record id="hr_rule_deduction" model="hr.salary.rule">

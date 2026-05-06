@@ -31,7 +31,6 @@ class LeaveBalance(models.Model):
             'casual': LeaveType.search([('name', '=', 'Casual Leave')], limit=1),
             'sick': LeaveType.search([('name', '=', 'Sick Leave')], limit=1),
             'lop': LeaveType.search([('name', '=', 'Loss of Pay')], limit=1),
-            'wfh': LeaveType.search([('name', '=', 'Work from Home')], limit=1),
             'comp': LeaveType.search([('name', '=', 'Compensation Leave')], limit=1),
             'permission': LeaveType.search([('name', '=', 'Permission')], limit=1),
         }
@@ -39,7 +38,7 @@ class LeaveBalance(models.Model):
     @api.model
     def update_monthly_leave_balances(self):
         types = self._get_leave_types()
-        if not (types['casual'] and types['sick'] and types['lop'] and types['wfh'] and types['comp']):
+        if not (types['casual'] and types['sick'] and types['lop'] and types['comp']):
             raise ValueError("One or more required leave types are missing.")
 
         today = fields.Date.today()
@@ -75,7 +74,6 @@ class LeaveBalance(models.Model):
                 self._update_balance(user, types['sick'], first_of_this_month, sick_balance)
                 self._update_balance(user, types['lop'], first_of_this_month, 99999)
                 self._update_balance(user, types['comp'], first_of_this_month, comp_balance)
-                self._update_balance(user, types['wfh'], first_of_this_month, 99999)
                 if types['permission']:
                     self._update_balance(user, types['permission'], first_of_this_month, 3)
 
@@ -96,7 +94,6 @@ class LeaveBalance(models.Model):
                 self._update_balance(user, types['sick'], first_of_this_month, sick_balance)
                 self._update_balance(user, types['lop'], first_of_this_month, 99999)
                 self._update_balance(user, types['comp'], first_of_this_month, comp_balance)
-                self._update_balance(user, types['wfh'], first_of_this_month, 99999)
                 if types['permission']:
                     self._update_balance(user, types['permission'], first_of_this_month, 3)
 
@@ -119,7 +116,7 @@ class LeaveBalance(models.Model):
     @api.model
     def update_user_balance_on_country_change(self, user):
         types = self._get_leave_types()
-        if not (types['casual'] and types['sick'] and types['lop'] and types['wfh'] and types['comp']):
+        if not (types['casual'] and types['sick'] and types['lop'] and types['comp']):
             return
 
         today = date.today()
@@ -159,7 +156,6 @@ class LeaveBalance(models.Model):
             self._update_balance(user, types['sick'], month_date, sick_balance)
             self._update_balance(user, types['lop'], month_date, lop_balance)
             self._update_balance(user, types['comp'], month_date, comp_balance)
-            self._update_balance(user, types['wfh'], month_date, 99999)
             if types['permission']:
                 self._update_balance(user, types['permission'], month_date, perm_balance)
 
@@ -193,8 +189,6 @@ class LeaveBalance(models.Model):
                 self._update_balance(user, types['lop'], jan_first_next_year, lop_balance)
             if types['comp']:
                 self._update_balance(user, types['comp'], jan_first_next_year, 0)
-            if types['wfh']:
-                self._update_balance(user, types['wfh'], jan_first_next_year, 99999)
             if types['permission']:
                 self._update_balance(user, types['permission'], jan_first_next_year, 3)
 
@@ -231,8 +225,6 @@ class LeaveBalance(models.Model):
                 self._update_balance(user, types['lop'], first_of_month, lop_balance)
             if types['comp']:
                 self._update_balance(user, types['comp'], first_of_month, 0)
-            if types['wfh']:
-                self._update_balance(user, types['wfh'], first_of_month, 99999)
             if types['permission']:
                 self._update_balance(user, types['permission'], first_of_month, 3)
 

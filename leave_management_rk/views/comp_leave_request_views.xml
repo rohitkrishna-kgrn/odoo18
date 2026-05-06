@@ -7,24 +7,47 @@
                 <header>
                     <button name="action_submit" type="object" string="Submit"
                             invisible="state != 'draft'"/>
-                    <button name="action_approve" type="object" string="Approve"
-                            invisible="state != 'requested'"
-                            groups="leave_management_rk.group_hr_manager"/>
-                    <button name="action_reject" type="object" string="Reject"
-                            invisible="state not in ('draft', 'requested')"
-                            groups="leave_management_rk.group_hr_manager"/>
+                    <button name="action_manager_approve" type="object" string="Approve"
+                            invisible="state != 'waiting_manager'"
+                            groups="leave_management_rk.group_dept_manager,leave_management_rk.group_hr_manager"
+                            class="btn-primary"/>
+                    <button name="action_manager_reject_wizard" type="object" string="Reject"
+                            invisible="state != 'waiting_manager'"
+                            groups="leave_management_rk.group_dept_manager,leave_management_rk.group_hr_manager"
+                            class="btn-danger"/>
+                    <button name="action_approve" type="object" string="Approve (HR)"
+                            invisible="state != 'manager_approved'"
+                            groups="leave_management_rk.group_hr_manager"
+                            class="btn-primary"/>
+                    <button name="action_reject" type="object" string="Reject (HR)"
+                            invisible="state not in ('waiting_manager', 'manager_approved')"
+                            groups="leave_management_rk.group_hr_manager"
+                            class="btn-danger"/>
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,requested,approved,rejected"/>
+                           statusbar_visible="draft,waiting_manager,manager_approved,approved,rejected"/>
                 </header>
                 <sheet>
+                    <!-- eligible_attendance_ids loaded for domain use -->
+                    <field name="eligible_attendance_ids" invisible="1"/>
                     <group>
                         <field name="user_id" readonly="state != 'draft'"/>
-                        <field name="date_worked" readonly="state != 'draft'"/>
+                        <field name="attendance_id"
+                               string="Date Worked"
+                               domain="[('id', 'in', eligible_attendance_ids)]"
+                               readonly="state != 'draft'"
+                               required="state == 'draft'"/>
+                        <field name="date_worked" readonly="1"
+                               invisible="not date_worked"
+                               string="Resolved Date"/>
                         <field name="days" readonly="state != 'draft'"/>
                         <field name="reason" readonly="state != 'draft'"/>
+                        <field name="manager_remarks"
+                               invisible="not manager_remarks"
+                               readonly="1"
+                               string="Manager Remarks"/>
                     </group>
                     <div class="alert alert-info" role="alert">
-                        <strong>Note:</strong> When approved by HR, the specified days will be added to your Compensation Leave balance and can be used for future leave requests.
+                        <strong>Note:</strong> Only attendance records on Sundays or public holidays are listed. When approved by HR, the specified days will be added to your Compensation Leave balance.
                     </div>
                 </sheet>
             </form>
@@ -37,6 +60,7 @@
         <field name="arch" type="xml">
             <list>
                 <field name="user_id"/>
+                <field name="attendance_id" string="Date Worked"/>
                 <field name="date_worked"/>
                 <field name="days"/>
                 <field name="reason"/>

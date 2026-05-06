@@ -62,8 +62,8 @@ class LeaveApprovalWizard(models.TransientModel):
         self.ensure_one()
         leave = self.leave_id
 
-        if leave.state != 'requested':
-            raise UserError("Only leave requests in 'Requested' state can be approved.")
+        if leave.state != 'manager_approved':
+            raise UserError("Only manager-approved leave requests can be approved here.")
 
         if leave.leave_type_id.is_permission:
             LeaveBalance = self.env['leave.balance']

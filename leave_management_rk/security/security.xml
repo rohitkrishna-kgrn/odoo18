@@ -5,6 +5,12 @@
         <field name="category_id" ref="base.module_category_human_resources"/>
     </record>
 
+    <!-- Department Manager group -->
+    <record id="group_dept_manager" model="res.groups">
+        <field name="name">Department Manager</field>
+        <field name="category_id" ref="base.module_category_human_resources"/>
+    </record>
+
     <!-- HR Manager group -->
     <record id="group_hr_manager" model="res.groups">
         <field name="name">HR Manager</field>
@@ -17,6 +23,14 @@
         <field name="model_id" ref="model_leave_request"/>
         <field name="groups" eval="[(4, ref('leave_management_rk.group_hr_manager'))]"/>
         <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- Record rule: Dept Manager sees team leave requests -->
+    <record id="leave_request_rule_dept_manager" model="ir.rule">
+        <field name="name">Dept Manager sees team leave requests</field>
+        <field name="model_id" ref="model_leave_request"/>
+        <field name="groups" eval="[(4, ref('leave_management_rk.group_dept_manager'))]"/>
+        <field name="domain_force">[('user_id.employee_ids.parent_id.user_id', '=', user.id)]</field>
     </record>
 
     <!-- Record rule: Leave User sees only their own leave requests -->
@@ -33,6 +47,14 @@
         <field name="model_id" ref="model_leave_comp_request"/>
         <field name="groups" eval="[(4, ref('leave_management_rk.group_hr_manager'))]"/>
         <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- Record rule: Dept Manager sees team comp leave requests -->
+    <record id="comp_leave_request_rule_dept_manager" model="ir.rule">
+        <field name="name">Dept Manager sees team compensation leave requests</field>
+        <field name="model_id" ref="model_leave_comp_request"/>
+        <field name="groups" eval="[(4, ref('leave_management_rk.group_dept_manager'))]"/>
+        <field name="domain_force">[('user_id.employee_ids.parent_id.user_id', '=', user.id)]</field>
     </record>
 
     <!-- Record rule: Leave User sees only their own comp leave requests -->

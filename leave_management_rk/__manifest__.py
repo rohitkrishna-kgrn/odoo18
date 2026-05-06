@@ -3,7 +3,7 @@
     'version': '1.0',
     'summary': 'Custom Leave Management Module',
     'author': 'Rohit',
-    'depends': ['base', 'hr', 'web', 'mail'],
+    'depends': ['base', 'hr', 'hr_attendance', 'web', 'mail'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
@@ -15,6 +15,8 @@
         'views/hr_employee_inherit_views.xml',
         'views/comp_leave_request_views.xml',
         'views/hr_leave_balance_views.xml',
+        'views/manager_reject_wizard_views.xml',
+        'views/team_approval_views.xml',
         'views/menu.xml',
         'views/wizard.xml',
     ],

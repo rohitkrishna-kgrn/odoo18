@@ -264,9 +264,11 @@ class HrPayslip(models.Model):
                 ('end_date', '>=', date_from),
             ])
             total_leave_days = 0.0
+            half_day_leave_dates = set()
             for leave in paid_leaves:
-                # Use days_requested directly to correctly handle half-day (0.5) leaves
                 total_leave_days += leave.days_requested
+                if leave.is_half_day and leave.start_date:
+                    half_day_leave_dates.add(leave.start_date)
 
             if total_leave_days:
                 worked_days.append({
@@ -295,7 +297,7 @@ class HrPayslip(models.Model):
                     'contract_id': contract.id,
                 })
 
-            # 3. Attendance Days (just attendance days within the period, no exclusions)
+            # 3. Attendance Days — days with a paid half-day leave count as 0.5
             attendance_records = Attendance.search([
                 ('employee_id', '=', employee.id),
                 ('check_in', '>=', datetime.combine(date_from_dt, datetime.min.time()).replace(tzinfo=UTC)),
@@ -304,10 +306,13 @@ class HrPayslip(models.Model):
             present_days_set = {att.check_in.astimezone(UTC).date() for att in attendance_records if att.check_in}
 
             if not present_days_set:
-                number_of_days = 0
-                number_of_hours = 0
+                number_of_days = 0.0
+                number_of_hours = 0.0
             else:
-                number_of_days = len(present_days_set)
+                number_of_days = sum(
+                    0.5 if d in half_day_leave_dates else 1.0
+                    for d in present_days_set
+                )
                 number_of_hours = number_of_days * 8
 
 
@@ -921,9 +926,11 @@ class HrPayslipRun(models.Model):
             ('end_date', '>=', date_from),
         ])
         total_leave_days = 0.0
+        half_day_leave_dates = set()
         for leave in paid_leaves:
-            # Use days_requested directly to correctly handle half-day (0.5) leaves
             total_leave_days += leave.days_requested
+            if leave.is_half_day and leave.start_date:
+                half_day_leave_dates.add(leave.start_date)
 
         if total_leave_days:
             worked_days.append({
@@ -952,7 +959,7 @@ class HrPayslipRun(models.Model):
                 'contract_id': contract.id,
             })
 
-        # 3. Attendance (just attendance days between date_from and date_to)
+        # 3. Attendance — days with a paid half-day leave count as 0.5
         attendance_records = Attendance.search([
             ('employee_id', '=', employee.id),
             ('check_in', '>=', datetime.combine(date_from_dt, datetime.min.time()).replace(tzinfo=UTC)),
@@ -961,10 +968,13 @@ class HrPayslipRun(models.Model):
         present_days_set = {att.check_in.astimezone(UTC).date() for att in attendance_records if att.check_in}
 
         if not present_days_set:
-            number_of_days = 0
-            number_of_hours = 0
+            number_of_days = 0.0
+            number_of_hours = 0.0
         else:
-            number_of_days = len(present_days_set)
+            number_of_days = sum(
+                0.5 if d in half_day_leave_dates else 1.0
+                for d in present_days_set
+            )
             number_of_hours = number_of_days * 8
 
 

@@ -1,6 +1,5 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError
-from datetime import timedelta
 
 HALF_DAY_TYPES = ['Sick Leave', 'Casual Leave']
 
@@ -19,9 +18,11 @@ class LeaveRequest(models.Model):
     hours_requested = fields.Float(string='Hours Requested')
     reason = fields.Text(string='Reason')
     attachment = fields.Binary(string='Attachment')
+    manager_remarks = fields.Text(string='Manager Remarks')
     state = fields.Selection([
         ('draft', 'Draft'),
-        ('requested', 'Requested'),
+        ('waiting_manager', 'Waiting Manager Approval'),
+        ('manager_approved', 'Manager Approved'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ], default='draft', string='Status')
@@ -51,7 +52,6 @@ class LeaveRequest(models.Model):
             rec.available_balance = 0.0
             if not rec.user_id or not rec.leave_type_id:
                 continue
-            # Fall back to today if start_date not yet selected
             ref_date = rec.start_date or today
             first_of_month = ref_date.replace(day=1)
             balance_record = LeaveBalance.search([
@@ -87,6 +87,14 @@ class LeaveRequest(models.Model):
         if self.leave_type_id and self.leave_type_id.is_permission:
             self.is_half_day = False
 
+    def _get_employee_manager_user(self):
+        employee = self.env['hr.employee'].search(
+            [('user_id', '=', self.user_id.id)], limit=1
+        )
+        if employee and employee.parent_id and employee.parent_id.user_id:
+            return employee.parent_id.user_id
+        return False
+
     def action_request(self):
         for rec in self:
             if not rec.leave_type_id:
@@ -94,7 +102,6 @@ class LeaveRequest(models.Model):
 
             LeaveBalance = self.env['leave.balance']
             first_of_month = (rec.start_date or fields.Date.today()).replace(day=1)
-
             balance_record = LeaveBalance.search([
                 ('user_id', '=', rec.user_id.id),
                 ('leave_type_id', '=', rec.leave_type_id.id),
@@ -121,48 +128,31 @@ class LeaveRequest(models.Model):
                         f"Available: {current_balance}, Requested: {rec.days_requested}"
                     )
 
-            rec.state = 'requested'
-            rec._notify_hr_managers()
+            manager_user = rec._get_employee_manager_user()
+            if manager_user:
+                rec.write({'state': 'waiting_manager'})
+                rec._send_mail_to_manager(manager_user)
+            else:
+                # No manager configured — skip to manager_approved, notify HR
+                rec.write({'state': 'manager_approved'})
+                rec._send_mail_to_hr()
 
-    def _notify_hr_managers(self):
-        hr_group = self.env.ref('leave_management_rk.group_hr_manager', raise_if_not_found=False)
-        if not hr_group:
-            return
-        hr_emails = [u.email for u in hr_group.users if u.email]
-        if not hr_emails:
-            return
+    def action_manager_approve(self):
+        for rec in self:
+            if rec.state != 'waiting_manager':
+                raise UserError("Only leaves waiting for manager approval can be approved here.")
+            rec.write({'state': 'manager_approved'})
+            rec._send_mail_to_hr()
 
-        leave_type = self.leave_type_id.name
-        if self.leave_type_id.is_permission:
-            duration = f"{self.hours_requested} hrs"
-        elif self.is_half_day:
-            duration = "Half Day (0.5)"
-        else:
-            duration = f"{self.days_requested} day(s)"
-
-        date_info = f"{self.start_date}"
-        if self.end_date and self.end_date != self.start_date:
-            date_info += f" to {self.end_date}"
-
-        body_html = f"""
-            <p>Dear HR,</p>
-            <p><strong>{self.user_id.name}</strong> has submitted a leave request awaiting your approval:</p>
-            <table style="border-collapse:collapse; width:100%;">
-                <tr><td style="padding:4px 8px;"><strong>Leave Type</strong></td><td style="padding:4px 8px;">{leave_type}</td></tr>
-                <tr><td style="padding:4px 8px;"><strong>Date</strong></td><td style="padding:4px 8px;">{date_info}</td></tr>
-                <tr><td style="padding:4px 8px;"><strong>Duration</strong></td><td style="padding:4px 8px;">{duration}</td></tr>
-                {"<tr><td style='padding:4px 8px;'><strong>Reason</strong></td><td style='padding:4px 8px;'>" + (self.reason or '-') + "</td></tr>"}
-            </table>
-            <p>Please log in to review and approve or reject this request.</p>
-            <p>Regards,<br/>Leave Management System</p>
-        """
-
-        self.env['mail.mail'].sudo().create({
-            'subject': f"Leave Request - {self.user_id.name} ({leave_type})",
-            'body_html': body_html,
-            'email_to': ','.join(hr_emails),
-            'auto_delete': True,
-        }).send()
+    def action_manager_reject_wizard(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Reject with Remarks',
+            'res_model': 'leave.manager.reject.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_leave_id': self.id},
+        }
 
     def action_open_approve_wizard(self):
         return {
@@ -189,11 +179,69 @@ class LeaveRequest(models.Model):
                         balance_record.balance += rec.hours_requested
                     else:
                         balance_record.balance += rec.days_requested
-                rec.balance_deducted = False
-            rec.state = 'rejected'
+            rec.write({'balance_deducted': False, 'state': 'rejected'})
+
+    def _send_mail_to_manager(self, manager_user):
+        if not manager_user.email:
+            return
+        leave_type = self.leave_type_id.name
+        duration = (f"{self.hours_requested} hrs" if self.leave_type_id.is_permission
+                    else ("Half Day (0.5)" if self.is_half_day else f"{self.days_requested} day(s)"))
+        date_info = str(self.start_date)
+        if self.end_date and self.end_date != self.start_date:
+            date_info += f" to {self.end_date}"
+        body_html = f"""
+            <p>Dear {manager_user.name},</p>
+            <p><strong>{self.user_id.name}</strong> has submitted a leave request requiring your approval:</p>
+            <table style="border-collapse:collapse;">
+                <tr><td style="padding:4px 10px;"><b>Leave Type</b></td><td style="padding:4px 10px;">{leave_type}</td></tr>
+                <tr><td style="padding:4px 10px;"><b>Date</b></td><td style="padding:4px 10px;">{date_info}</td></tr>
+                <tr><td style="padding:4px 10px;"><b>Duration</b></td><td style="padding:4px 10px;">{duration}</td></tr>
+                <tr><td style="padding:4px 10px;"><b>Reason</b></td><td style="padding:4px 10px;">{self.reason or '-'}</td></tr>
+            </table>
+            <p>Please log in and go to <b>Leave → Team Approval</b> to approve or reject.</p>
+        """
+        self.env['mail.mail'].sudo().create({
+            'subject': f"Leave Approval Needed — {self.user_id.name} ({leave_type})",
+            'body_html': body_html,
+            'email_to': manager_user.email,
+            'auto_delete': True,
+        }).send()
+
+    def _send_mail_to_hr(self):
+        hr_group = self.env.ref('leave_management_rk.group_hr_manager', raise_if_not_found=False)
+        if not hr_group:
+            return
+        hr_emails = [u.email for u in hr_group.users if u.email]
+        if not hr_emails:
+            return
+        leave_type = self.leave_type_id.name
+        duration = (f"{self.hours_requested} hrs" if self.leave_type_id.is_permission
+                    else ("Half Day (0.5)" if self.is_half_day else f"{self.days_requested} day(s)"))
+        date_info = str(self.start_date)
+        if self.end_date and self.end_date != self.start_date:
+            date_info += f" to {self.end_date}"
+        body_html = f"""
+            <p>Dear HR,</p>
+            <p>The leave request from <strong>{self.user_id.name}</strong> has been approved by the department manager and requires your final approval:</p>
+            <table style="border-collapse:collapse;">
+                <tr><td style="padding:4px 10px;"><b>Leave Type</b></td><td style="padding:4px 10px;">{leave_type}</td></tr>
+                <tr><td style="padding:4px 10px;"><b>Date</b></td><td style="padding:4px 10px;">{date_info}</td></tr>
+                <tr><td style="padding:4px 10px;"><b>Duration</b></td><td style="padding:4px 10px;">{duration}</td></tr>
+            </table>
+            <p>Please go to <b>Leave → Team Approval</b> to proceed.</p>
+        """
+        self.env['mail.mail'].sudo().create({
+            'subject': f"Leave Ready for HR Approval — {self.user_id.name}",
+            'body_html': body_html,
+            'email_to': ','.join(hr_emails),
+            'auto_delete': True,
+        }).send()
 
     def write(self, vals):
-        for rec in self:
-            if rec.state in ['approved', 'rejected']:
-                raise UserError("You cannot modify a leave request that is already approved or rejected.")
+        protected = {k for k in vals if k not in ('state', 'balance_deducted', 'paid', 'manager_remarks')}
+        if protected:
+            for rec in self:
+                if rec.state in ['approved', 'rejected']:
+                    raise UserError("You cannot modify a leave request that is already approved or rejected.")
         return super(LeaveRequest, self).write(vals)
