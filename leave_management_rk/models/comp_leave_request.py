@@ -103,10 +103,17 @@ class LeaveCompRequest(models.Model):
         for rec in self:
             if rec.state != 'waiting_manager':
                 raise UserError("Only requests waiting for manager approval can be approved here.")
+            manager_user = rec._get_employee_manager_user()
+            if manager_user and self.env.user != manager_user:
+                raise UserError("Only the direct manager of this employee can approve this request.")
             rec.write({'state': 'manager_approved'})
             rec._send_mail_to_hr()
 
     def action_manager_reject_wizard(self):
+        self.ensure_one()
+        manager_user = self._get_employee_manager_user()
+        if manager_user and self.env.user != manager_user:
+            raise UserError("Only the direct manager of this employee can reject this request.")
         return {
             'type': 'ir.actions.act_window',
             'name': 'Reject with Remarks',

@@ -14,6 +14,11 @@
         </record>
     </data>
     <data noupdate="0">
+        <!-- Archive Work from Home — noupdate="0" forces this even on existing records -->
+        <record id="leave_type_wfh" model="leave.type">
+            <field name="name">Work from Home</field>
+            <field name="active" eval="False"/>
+        </record>
         <record id="leave_type_permission" model="leave.type">
             <field name="name">Permission</field>
             <field name="is_permission">True</field>

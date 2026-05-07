@@ -43,6 +43,8 @@ class HrLeaveBalanceWizard(models.TransientModel):
         LeaveBalance = self.env['leave.balance']
 
         for line in self.line_ids:
+            if not line.leave_type_id:
+                continue
             balance_rec = LeaveBalance.search([
                 ('user_id', '=', self.user_id.id),
                 ('leave_type_id', '=', line.leave_type_id.id),
@@ -79,7 +81,7 @@ class HrLeaveBalanceWizardLine(models.TransientModel):
     _description = 'Leave Balance Wizard Line'
 
     wizard_id = fields.Many2one('hr.leave.balance.wizard', string='Wizard')
-    leave_type_id = fields.Many2one('leave.type', string='Leave Type', readonly=True)
+    leave_type_id = fields.Many2one('leave.type', string='Leave Type')
     is_permission = fields.Boolean(related='leave_type_id.is_permission', readonly=True)
     balance = fields.Float(string='Balance')
     balance_label = fields.Char(string='Unit', compute='_compute_balance_label')

@@ -10,6 +10,7 @@ class LeaveType(models.Model):
 
     name = fields.Char(string='Name', required=True)
     is_permission = fields.Boolean(string='Is Permission Leave', default=False)
+    active = fields.Boolean(default=True)
 
 
 class LeaveBalance(models.Model):
@@ -53,15 +54,15 @@ class LeaveBalance(models.Model):
             last_casual = self.search([
                 ('user_id', '=', user.id),
                 ('leave_type_id', '=', types['casual'].id),
-                ('date', '=', last_month_date)
-            ], limit=1)
+                ('date', '<', first_of_this_month),
+            ], order='date desc', limit=1)
             last_casual_balance = last_casual.balance if last_casual else 0
 
             last_comp = self.search([
                 ('user_id', '=', user.id),
                 ('leave_type_id', '=', types['comp'].id),
-                ('date', '=', last_month_date)
-            ], limit=1)
+                ('date', '<', first_of_this_month),
+            ], order='date desc', limit=1)
             last_comp_balance = last_comp.balance if last_comp else 0
 
             if country == 'india':
@@ -124,10 +125,10 @@ class LeaveBalance(models.Model):
             month_date = (today.replace(day=1) + timedelta(days=31 * i)).replace(day=1)
             prev_month = (month_date - timedelta(days=1)).replace(day=1)
 
-            last_casual = self.search([('user_id', '=', user.id), ('leave_type_id', '=', types['casual'].id), ('date', '=', prev_month)], limit=1)
+            last_casual = self.search([('user_id', '=', user.id), ('leave_type_id', '=', types['casual'].id), ('date', '<', month_date)], order='date desc', limit=1)
             last_casual_balance = last_casual.balance if last_casual else 0
 
-            last_comp = self.search([('user_id', '=', user.id), ('leave_type_id', '=', types['comp'].id), ('date', '=', prev_month)], limit=1)
+            last_comp = self.search([('user_id', '=', user.id), ('leave_type_id', '=', types['comp'].id), ('date', '<', month_date)], order='date desc', limit=1)
             last_comp_balance = last_comp.balance if last_comp else 0
 
             if user.country == 'india':

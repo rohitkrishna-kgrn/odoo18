@@ -10,7 +10,7 @@
                     </group>
                     <field name="line_ids">
                         <list editable="bottom" create="false" delete="false">
-                            <field name="leave_type_id" readonly="1"/>
+                            <field name="leave_type_id" options="{'no_create': True, 'no_open': True}"/>
                             <field name="balance" string="Balance"/>
                             <field name="balance_label" string="Unit" readonly="1"/>
                         </list>

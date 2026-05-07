@@ -3,7 +3,7 @@
         <field name="name">leave.comp.request.form</field>
         <field name="model">leave.comp.request</field>
         <field name="arch" type="xml">
-            <form string="Compensation Leave Request">
+            <form string="Compensation Leave Request" delete="false">
                 <header>
                     <button name="action_submit" type="object" string="Submit"
                             invisible="state != 'draft'"/>
@@ -58,7 +58,7 @@
         <field name="name">leave.comp.request.list</field>
         <field name="model">leave.comp.request</field>
         <field name="arch" type="xml">
-            <list>
+            <list delete="false">
                 <field name="user_id"/>
                 <field name="attendance_id" string="Date Worked"/>
                 <field name="date_worked"/>

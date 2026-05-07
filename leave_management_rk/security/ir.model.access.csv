@@ -2,6 +2,8 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_leave_request_user,leave.request user,model_leave_request,leave_management_rk.group_leave_user,1,1,1,0
 access_leave_request_dept_manager,leave.request dept_manager,model_leave_request,leave_management_rk.group_dept_manager,1,1,0,0
 access_leave_request_hr,leave.request hr,model_leave_request,leave_management_rk.group_hr_manager,1,1,1,1
+access_public_holiday_user,public.holiday user,model_public_holiday,leave_management_rk.group_leave_user,1,0,0,0
+access_public_holiday_dept_manager,public.holiday dept_manager,model_public_holiday,leave_management_rk.group_dept_manager,1,0,0,0
 access_public_holiday_hr,public.holiday hr,model_public_holiday,leave_management_rk.group_hr_manager,1,1,1,1
 access_leave_approval_wizard_hr,leave.approval.wizard hr,model_leave_approval_wizard,leave_management_rk.group_hr_manager,1,1,1,0
 access_leave_approval_wizard_balance_line_hr,leave.approval.wizard.balance.line hr,model_leave_approval_wizard_balance_line,leave_management_rk.group_hr_manager,1,1,1,0
@@ -14,7 +16,7 @@ access_leave_balance_dept_manager,leave.balance dept_manager,model_leave_balance
 access_add_comp_leave_wizard,access_add_comp_leave_wizard,model_add_comp_leave_wizard,leave_management_rk.group_hr_manager,1,1,1,0
 access_leave_comp_request_user,leave.comp.request user,model_leave_comp_request,leave_management_rk.group_leave_user,1,1,1,0
 access_leave_comp_request_dept_manager,leave.comp.request dept_manager,model_leave_comp_request,leave_management_rk.group_dept_manager,1,1,0,0
-access_leave_comp_request_hr,leave.comp.request hr,model_leave_comp_request,leave_management_rk.group_hr_manager,1,1,1,1
+access_leave_comp_request_hr,leave.comp.request hr,model_leave_comp_request,leave_management_rk.group_hr_manager,1,1,1,0
 access_hr_leave_balance_wizard_hr,hr.leave.balance.wizard hr,model_hr_leave_balance_wizard,leave_management_rk.group_hr_manager,1,1,1,0
 access_hr_leave_balance_wizard_line_hr,hr.leave.balance.wizard.line hr,model_hr_leave_balance_wizard_line,leave_management_rk.group_hr_manager,1,1,1,0
 access_leave_manager_reject_wizard_user,leave.manager.reject.wizard user,model_leave_manager_reject_wizard,leave_management_rk.group_leave_user,1,1,1,0
