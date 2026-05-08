@@ -33,7 +33,7 @@
         <field name="inherit_id" ref="project.view_task_search_form"/>
         <field name="arch" type="xml">
             <xpath expr="//search" position="inside">
-                <filter name="state_additional_new" string="New" domain="[('state_additional','=','new')]" />
+                <!-- <filter name="state_additional_new" string="New" domain="[('state_additional','=','new')]" /> -->
                 <filter name="state_additional_in_progress" string="In Progress" domain="[('state_additional','=','in_progress')]" />
                 <filter name="state_additional_waiting" string="Waiting for Approval" domain="[('state_additional','=','waiting_for_approval')]" />
                 <filter name="state_additional_completed" string="Completed" domain="[('state_additional','=','completed')]" />
