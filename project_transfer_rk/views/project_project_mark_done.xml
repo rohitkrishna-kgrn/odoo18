@@ -1,5 +1,26 @@
 <!-- views/project_project_mark_done.xml -->
 <odoo>
+    <record id="action_project_list_transfer_projects" model="ir.actions.server">
+        <field name="name">Transfer Projects</field>
+        <field name="model_id" ref="project.model_project_project"/>
+        <field name="binding_model_id" ref="project.model_project_project"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+if records:
+    wizard = env['project.list.transfer.wizard'].create({'project_ids': [(6, 0, records.ids)]})
+    action = {
+        'type': 'ir.actions.act_window',
+        'name': 'Transfer Projects',
+        'res_model': 'project.list.transfer.wizard',
+        'res_id': wizard.id,
+        'view_mode': 'form',
+        'target': 'new',
+        'views': [(False, 'form')],
+    }
+        </field>
+    </record>
+
     <record id="action_project_mark_done" model="ir.actions.server">
         <field name="name">Mark Selected Projects as Done</field>
         <field name="model_id" ref="project.model_project_project"/>

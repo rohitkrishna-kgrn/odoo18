@@ -11,6 +11,7 @@
         'security/res_users_view.xml',
         'data/ir_sequence.xml',
         'views/task_transfer_wizard_views.xml',
+        'views/task_quick_transfer_wizard_views.xml',
         'views/menu.xml',
     ],
     'installable': True,

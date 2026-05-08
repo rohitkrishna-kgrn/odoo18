@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Transfer Projects Wizard Form -->
+    <record id="view_project_list_transfer_wizard_form" model="ir.ui.view">
+        <field name="name">project.list.transfer.wizard.form</field>
+        <field name="model">project.list.transfer.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Transfer Projects">
+                <sheet>
+                    <group string="Selected Projects">
+                        <field name="project_ids" widget="many2many_tags" readonly="1" nolabel="1"/>
+                    </group>
+                    <group string="Current Project Manager(s)">
+                        <field name="current_manager_ids" widget="many2many_tags" readonly="1" nolabel="1"/>
+                    </group>
+                    <group>
+                        <field name="to_user_id" string="Transfer To"
+                               required="1"
+                               options="{'no_create': True, 'no_open': True}"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_transfer" string="Transfer"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Transfer Tasks Wizard Form -->
+    <record id="view_task_list_transfer_wizard_form" model="ir.ui.view">
+        <field name="name">task.list.transfer.wizard.form</field>
+        <field name="model">task.list.transfer.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Transfer Tasks">
+                <sheet>
+                    <group>
+                        <field name="project_id"
+                               required="1"
+                               options="{'no_create': True, 'no_open': True}"/>
+                    </group>
+                    <group string="Project Manager(s)">
+                        <field name="current_manager_ids"
+                               widget="many2many_tags"
+                               readonly="1"
+                               nolabel="1"/>
+                    </group>
+                    <group string="Tasks to Transfer">
+                        <field name="task_ids"
+                               widget="many2many_tags"
+                               domain="[('project_id', '=', project_id)]"
+                               options="{'no_create': True, 'no_open': True}"
+                               required="1"
+                               nolabel="1"/>
+                    </group>
+                    <group string="Transfer To">
+                        <field name="to_user_ids"
+                               widget="many2many_tags"
+                               options="{'no_create': True, 'no_open': True}"
+                               required="1"
+                               nolabel="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_transfer" string="Transfer"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

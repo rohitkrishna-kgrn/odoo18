@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_subtask_create_wizard_form" model="ir.ui.view">
+        <field name="name">subtask.create.wizard.form</field>
+        <field name="model">subtask.create.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Create Sub-Task">
+                <sheet>
+
+                    <!-- Parent task hours summary banner -->
+                    <div class="alert alert-info mb-3 py-2">
+                        <div class="row text-center">
+                            <div class="col-4 border-end">
+                                <div class="fw-bold text-muted small">Parent Task</div>
+                                <div class="fw-semibold">
+                                    <field name="parent_task_name" readonly="1" nolabel="1"/>
+                                </div>
+                            </div>
+                            <div class="col-4 border-end">
+                                <div class="fw-bold text-muted small">Allocated Hours</div>
+                                <div class="fw-semibold">
+                                    <field name="parent_allocated_hours" readonly="1" nolabel="1"/>
+                                    <span class="ms-1 text-muted small">hr(s)</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold text-muted small">Available Hours</div>
+                                <div class="fw-semibold text-success" invisible="available_after &lt; 0">
+                                    <field name="available_after" readonly="1" nolabel="1"/>
+                                    <span class="ms-1 text-muted small">hr(s)</span>
+                                </div>
+                                <div class="fw-semibold text-danger" invisible="available_after &gt;= 0">
+                                    <field name="available_after" readonly="1" nolabel="1"/>
+                                    <span class="ms-1 text-muted small">hr(s) — exceeds limit</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Single-row input layout -->
+                    <div class="row g-3 align-items-end">
+
+                        <div class="col-md-4">
+                            <div class="fw-bold small text-muted mb-1">
+                                Sub-Task Name <span class="text-danger">*</span>
+                            </div>
+                            <field name="name" required="1" nolabel="1"
+                                   placeholder="Enter sub-task name"/>
+                        </div>
+
+                        <div class="col-md-5">
+                            <div class="fw-bold small text-muted mb-1">Assign Users</div>
+                            <field name="user_ids"
+                                   widget="many2many_tags"
+                                   nolabel="1"
+                                   options="{'no_create': True, 'no_open': True}"
+                                   placeholder="Select users…"/>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="fw-bold small text-muted mb-1">
+                                Allocated Hours <span class="text-danger">*</span>
+                            </div>
+                            <field name="allocated_hours" required="1" nolabel="1"/>
+                        </div>
+
+                    </div>
+
+                </sheet>
+                <footer>
+                    <button name="action_create_subtask" type="object"
+                            string="Create Sub-Task" class="btn-primary"/>
+                    <button string="Cancel" class="btn-default" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_subtask_create_wizard" model="ir.actions.act_window">
+        <field name="name">Create Sub-Task</field>
+        <field name="res_model">subtask.create.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

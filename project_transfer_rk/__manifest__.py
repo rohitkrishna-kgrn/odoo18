@@ -8,6 +8,7 @@
         'security/project_transfer_groups.xml',
         "security/ir.model.access.csv",
         "views/project_transfer_wizard_view.xml",
+        "views/project_list_transfer_wizard_views.xml",
         "views/project_project_mark_done.xml"
     ],
     "installable": True,

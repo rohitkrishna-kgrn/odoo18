@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ─────────────────────────────────────────────────
+         Timesheet Form – conditional Sub-Task selector
+         ───────────────────────────────────────────────── -->
+    <record id="view_hr_timesheet_form_inherit_subtask_gk" model="ir.ui.view">
+        <field name="name">hr.timesheet.line.form.inherit.subtask.gk</field>
+        <field name="model">account.analytic.line</field>
+        <field name="inherit_id" ref="hr_timesheet.hr_timesheet_line_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Restrict Task dropdown: only parent tasks of the selected project -->
+            <xpath expr="//field[@name='task_id']" position="attributes">
+                <attribute name="domain">[('parent_id', '=', False), ('project_id', '=', project_id)]</attribute>
+            </xpath>
+
+            <!-- Insert Sub-Task field after task_id; visible only when task has subtasks -->
+            <xpath expr="//field[@name='task_id']" position="after">
+
+                <field name="task_has_subtasks" invisible="1"/>
+
+                <field
+                    name="subtask_id"
+                    string="Sub-Task"
+                    widget="subtask_with_remaining"
+                    invisible="not task_id or not task_has_subtasks"
+                    domain="[('parent_id', '=', task_id)]"
+                    options="{'no_create': True, 'no_open': True}"/>
+
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ─────────────────────────────────────────────────
+         Timesheet List View – show sub-task column
+         ───────────────────────────────────────────────── -->
+    <record id="view_hr_timesheet_list_inherit_subtask_gk" model="ir.ui.view">
+        <field name="name">hr.timesheet.line.list.inherit.subtask.gk</field>
+        <field name="model">account.analytic.line</field>
+        <field name="inherit_id" ref="hr_timesheet.hr_timesheet_line_tree"/>
+        <field name="arch" type="xml">
+
+            <!-- Restrict Task dropdown: only parent tasks of the selected project -->
+            <xpath expr="//field[@name='task_id']" position="attributes">
+                <attribute name="domain">[('parent_id', '=', False), ('project_id', '=', project_id)]</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='task_id']" position="after">
+                <field name="task_has_subtasks" invisible="1" optional="hide"/>
+                <field
+                    name="subtask_id"
+                    string="Sub-Task"
+                    widget="subtask_with_remaining"
+                    optional="show"
+                    domain="[('parent_id', '=', task_id)]"
+                    options="{'no_create': True, 'no_open': True}"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

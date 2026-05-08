@@ -165,6 +165,7 @@ class ProjectTask(models.Model):
     team_member_ids = fields.Many2many('res.users', string='Team Members', required=True)
     allowed_user_ids = fields.Many2many('res.users', compute='_compute_allowed_users')
     task_budget = fields.Float(string="Task Budget")
+    completed_date = fields.Datetime(string='Completed Date', readonly=True)
     completed_this_week = fields.Boolean(compute='_compute_completed_periods', store=True)
     completed_this_month = fields.Boolean(compute='_compute_completed_periods', store=True)
     completed_this_year = fields.Boolean(compute='_compute_completed_periods', store=True)
@@ -317,20 +318,33 @@ class AccountAnalyticLine(models.Model):
     def create(self, vals):
         if vals.get('task_id'):
             task = self.env['project.task'].browse(vals['task_id'])
-            
-            # Check if task.state_additional is 'in_progress'
+
             if task.state_additional != 'in_progress':
                 raise ValidationError(("You can only log time on tasks that are in 'In Progress' state."))
 
-            effective_hours = vals.get('unit_amount', 0)
-            remaining_hours = task.remaining_hours
+            # Block saving a timesheet with zero hours
+            unit_amount = vals.get('unit_amount', 0)
+            if float_compare(unit_amount, 0.0, precision_digits=2) <= 0:
+                raise ValidationError(("Please enter the hours spent. Timesheet cannot be saved without hours."))
 
-            if float_compare(effective_hours, remaining_hours, precision_digits=2) == 1:
-                raise ValidationError(("The effective hours cannot exceed the remaining hours for this task!"))
+            subtask_id = vals.get('subtask_id')
 
-            # Check if current user is in the allowed team members of the task
-            if self.env.user not in task.team_member_ids:
-                raise ValidationError(("You are not authorized to log time on this task."))
+            # Skip parent-task remaining-hours check when a subtask is selected;
+            # subtask_gk handles that validation with a clearer error message.
+            if not subtask_id:
+                remaining_hours = task.remaining_hours
+                if float_compare(unit_amount, remaining_hours, precision_digits=2) == 1:
+                    raise ValidationError(("The effective hours cannot exceed the remaining hours for this task!"))
+
+            # Authorise against the subtask's team members when a subtask is selected,
+            # otherwise fall back to the parent task's team members.
+            if subtask_id:
+                subtask = self.env['project.task'].browse(subtask_id)
+                if self.env.user not in subtask.team_member_ids:
+                    raise ValidationError(("You are not authorized to log time on this sub-task."))
+            else:
+                if self.env.user not in task.team_member_ids:
+                    raise ValidationError(("You are not authorized to log time on this task."))
 
         return super(AccountAnalyticLine, self).create(vals)
 
@@ -339,19 +353,41 @@ class AccountAnalyticLine(models.Model):
             task_id = vals.get('task_id') or record.task_id.id
             if task_id:
                 task = self.env['project.task'].browse(task_id)
-                
+
                 if task.state_additional != 'in_progress':
                     raise ValidationError(("You can only log time on tasks that are in 'In Progress' state."))
 
-                effective_hours = vals.get('unit_amount', 0)
-                remaining_hours = task.remaining_hours
+                # Only validate hours when unit_amount is explicitly being changed
+                if 'unit_amount' in vals:
+                    unit_amount = vals['unit_amount']
 
-                if float_compare(effective_hours, remaining_hours, precision_digits=2) == 1:
-                    raise ValidationError(("The effective hours cannot exceed the remaining hours for this task!"))
+                    # Block saving a timesheet with zero hours
+                    if float_compare(unit_amount, 0.0, precision_digits=2) <= 0:
+                        raise ValidationError(("Please enter the hours spent. Timesheet cannot be saved without hours."))
 
-                # Check if current user is in the allowed team members of the task
-                if self.env.user not in task.team_member_ids:
-                    raise ValidationError(("You are not authorized to log time on this task."))
+                    subtask_id = vals.get('subtask_id') or (
+                        record._fields.get('subtask_id') and record.subtask_id.id
+                    )
+
+                    # Skip parent-task remaining-hours check when a subtask is selected;
+                    # subtask_gk handles that validation with a clearer error message.
+                    if not subtask_id:
+                        remaining_hours = task.remaining_hours
+                        if float_compare(unit_amount, remaining_hours, precision_digits=2) == 1:
+                            raise ValidationError(("The effective hours cannot exceed the remaining hours for this task!"))
+
+                # Authorise against the subtask's team members when a subtask is selected,
+                # otherwise fall back to the parent task's team members.
+                subtask_id = vals.get('subtask_id') or (
+                    record._fields.get('subtask_id') and record.subtask_id.id
+                )
+                if subtask_id:
+                    subtask = self.env['project.task'].browse(subtask_id)
+                    if self.env.user not in subtask.team_member_ids:
+                        raise ValidationError(("You are not authorized to log time on this sub-task."))
+                else:
+                    if self.env.user not in task.team_member_ids:
+                        raise ValidationError(("You are not authorized to log time on this task."))
 
         return super(AccountAnalyticLine, self).write(vals)
 

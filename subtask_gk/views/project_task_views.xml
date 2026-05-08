@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_task_form_inherit_subtask_gk" model="ir.ui.view">
+        <field name="name">project.task.form.inherit.subtask.gk</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+
+            <!-- "Create Sub-Task" button in header -->
+            <xpath expr="//header" position="inside">
+                <button
+                    name="action_open_subtask_wizard"
+                    type="object"
+                    string="Create Sub-Task"
+                    class="btn-primary"
+                    invisible="not enable_subtasks or parent_id"/>
+            </xpath>
+
+            <!-- Step 1: strip the native "(incl. X on Sub-tasks) (YY%)" text by
+                 replacing hr_timesheet's text-nowrap div with a clean version.
+                 Must run BEFORE the enable_subtasks xpath so the toggle group
+                 is not inside the div when the replace fires. -->
+            <xpath expr="//div[hasclass('text-nowrap') and field[@name='allocated_hours']]" position="replace">
+                <div class="text-nowrap" invisible="not allow_timesheets" groups="hr_timesheet.group_hr_timesheet_user">
+                    <field name="allocated_hours" class="oe_inline o_field_float_time o_task_planned_hours" widget="timesheet_uom_no_toggle"/>
+                </div>
+            </xpath>
+
+            <!-- Step 2: add the Subtask toggle row after the clean div.
+                 No wrapping <group> — fields are added directly into the outer
+                 form group so they render as a normal labelled row below
+                 Allocated Hours. -->
+            <xpath expr="//div[hasclass('text-nowrap') and field[@name='allocated_hours']]" position="after">
+                <field name="enable_subtasks"
+                       string="Subtask"
+                       widget="boolean_toggle"
+                       invisible="parent_id"/>
+                <field name="has_subtasks" invisible="1"/>
+            </xpath>
+
+            <!-- Default sub-tasks tab to Kanban view.
+                 Odoo's form_controller ignores order when mode has a comma and
+                 always picks "list" on desktop, so a single value "kanban" is
+                 the only way to force kanban as the default. -->
+            <xpath expr="//page[@name='sub_tasks_page']/field[@name='child_ids']" position="attributes">
+                <attribute name="mode">kanban</attribute>
+            </xpath>
+
+            <!-- Show Parent Task field on sub-task forms -->
+            <xpath expr="//field[@name='project_id']" position="after">
+                <field name="parent_id"
+                       string="Parent Task"
+                       readonly="1"
+                       invisible="not parent_id"
+                       options="{'no_create': True, 'no_open': False}"/>
+            </xpath>
+
+
+        </field>
+    </record>
+
+</odoo>
