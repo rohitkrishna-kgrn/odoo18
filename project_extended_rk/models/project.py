@@ -187,7 +187,13 @@ class ProjectTask(models.Model):
         readonly=True,
     )
     billable_type = fields.Selection([('billable', 'Billable'),('non_billable', 'Non-Billable')], string="Billing Type", default='billable')
-    
+    state_additional = fields.Selection([
+        ('new', 'New'),
+        ('in_progress', 'In Progress'),
+        ('waiting_for_approval', 'Waiting for Approval'),
+        ('completed', 'Completed'),
+    ], string="Status", default='new', tracking=True)
+
     @api.depends('completed_date')
     def _compute_completed_periods(self):
         user_tz = self.env.user.tz or 'UTC'
