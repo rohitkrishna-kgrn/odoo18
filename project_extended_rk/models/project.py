@@ -19,6 +19,10 @@ class ProjectProject(models.Model):
         related='sale_order_id.partner_id',
         store=True,  # optional: store it in the database
     )
+    dms_folder_id = fields.Many2one(
+        'dms.directory', string="DMS Folder", readonly=True
+    )
+
     sale_order_name = fields.Char(
         string="Sale Order Name",
         compute='_compute_sale_order_name',
@@ -165,6 +169,9 @@ class ProjectTask(models.Model):
     completed_this_week = fields.Boolean(compute='_compute_completed_periods', store=True)
     completed_this_month = fields.Boolean(compute='_compute_completed_periods', store=True)
     completed_this_year = fields.Boolean(compute='_compute_completed_periods', store=True)
+    dms_folder_id = fields.Many2one(
+        'dms.directory', string="DMS Folder", readonly=True
+    )
     customer_id = fields.Many2one(
         'res.partner',
         string='Customer',

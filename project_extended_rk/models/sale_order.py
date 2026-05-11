@@ -204,7 +204,6 @@ class SaleOrder(models.Model):
         tasks_to_create = []
         for i in range(int(order_line.product_uom_qty)):
             task_name = f"Task {i + 1} for {order_line.product_id.name}"
-            # Create subfolder for each task inside project directory
 
             task_vals = {
                 'name': task_name,

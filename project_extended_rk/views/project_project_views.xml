@@ -8,6 +8,7 @@
             <xpath expr="//field[@name='tag_ids']" position="after">
                 <field name="deadline"/>
                 <field name="partner_id" readonly="1"/>
+                <field name="dms_folder_id" readonly="1"/>
                 <field name="billable_type" readonly="1"/>
             </xpath>
         </field>
