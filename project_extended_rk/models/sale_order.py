@@ -1,4 +1,4 @@
-from odoo import models, fields, api, _
+﻿from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 from odoo.tools.float_utils import float_compare
 
@@ -165,15 +165,10 @@ class SaleOrder(models.Model):
 
     @api.model
     def _create_project_and_tasks(self, order_line, calculated_advance_amount):
-        """Create a project and tasks linked to the sale order line, and corresponding DMS folders."""
+        """Create a project and tasks linked to the sale order line."""
 
         Project = self.env['project.project'].sudo()
         Task = self.env['project.task'].sudo()
-
-        # If you’re using Odoo Community DMS:
-        DMSDirectory = self.env['dms.directory'].sudo()
-        # If Enterprise (Documents app):
-        # DMSDirectory = self.env['documents.folder'].sudo()
 
         project_amount = order_line.price_unit * order_line.product_uom_qty if order_line.product_uom_qty else 0
         advance_diff = project_amount - calculated_advance_amount
@@ -202,31 +197,7 @@ class SaleOrder(models.Model):
         project = Project.create(project_vals)
         new_stage = self.env.ref('project.project_stage_0')
 
-        storage = self.env['dms.storage'].search([('name', '=', 'DB')], limit=1)
-        if not storage:
-            raise UserError(_("Storage 'DB' not found."))
-
-        admin_group = self.env['dms.access.group'].sudo().search([('name', '=', 'Admin')], limit=1)
-        if not admin_group:
-            raise UserError(_("DMS group 'Admin' not found."))
-
-        # --- Create root DMS directory for project ---
-        project_directory = DMSDirectory.create({
-            'name': project.name,
-            'parent_id': False,
-            'is_root_directory': True,
-            'storage_id': storage.id,
-            'group_ids': [(6, 0, [admin_group.id])],
-            # 'owner_id': project.user_id.id if project.user_id else self.env.user.id,
-            'company_id': order_line.company_id.id,
-            # Optional: add reference for easy linking
-            'res_model': 'project.project',
-            'res_id': project.id,
-        })
-
-        project.sudo().write({'dms_folder_id': project_directory.id})
-
-        # --- Create tasks + subdirectories ---
+        # --- Create tasks ---
         task_amount = advance_diff / order_line.product_uom_qty if order_line.product_uom_qty else 0.0
         estimated_hours = getattr(order_line, 'estimated_hours', 0.0)
 
@@ -253,20 +224,7 @@ class SaleOrder(models.Model):
             }
             task = Task.create(task_vals)
 
-            task_directory_name = f"{sale_order.name} - {task.name}"
-
-            task_directory = DMSDirectory.create({
-                'name': task_directory_name,
-                'parent_id': project_directory.id,
-                # 'owner_id': task.user_ids[0].id if task.user_ids else self.env.user.id,
-                'company_id': order_line.company_id.id,
-                'res_model': 'project.task',
-                'res_id': task.id,
-            })
-
             tasks_to_create.append(task_vals)
-
-            task.sudo().write({'dms_folder_id': task_directory.id})
 
         order_line.write({'project_id': project.id})
 

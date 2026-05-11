@@ -21,7 +21,6 @@
         <field name="inherit_id" ref="project.view_task_form2"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='partner_id']" position="after">
-                <field name="dms_folder_id" readonly="1"/>
                 <field name="billable_type" readonly="1"/>
             </xpath>
         </field>

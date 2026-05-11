@@ -1,7 +1,7 @@
 {
     'name': 'Project Extended RK',
     'version': '1.0',
-    'depends': ['project', 'sale', 'sale_timesheet', 'account', 'hr_timesheet', 'dms'],
+    'depends': ['project', 'sale', 'sale_timesheet', 'account', 'hr_timesheet'],
     'author': 'Rohit',
     'category': 'Project',
     'data': [
