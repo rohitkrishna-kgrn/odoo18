@@ -28,6 +28,7 @@
                 </header>
                 <sheet>
                     <field name="is_permission_type" invisible="1"/>
+                    <field name="is_dubai_sick_leave" invisible="1"/>
                     <group>
                         <field name="user_id" readonly="1"/>
                         <field name="leave_type_id" readonly="state != 'draft'"/>
@@ -51,12 +52,27 @@
                                string="Hours Requested"
                                readonly="state != 'draft'"/>
                         <field name="reason" readonly="state != 'draft'"/>
-                        <field name="attachment" readonly="state != 'draft'"/>
+                        <field name="applied_date" readonly="1"
+                               invisible="not applied_date"/>
                         <field name="manager_remarks"
                                invisible="not manager_remarks"
                                readonly="1"
                                string="Manager Remarks"/>
                     </group>
+                    <group invisible="not is_dubai_sick_leave">
+                        <field name="dha_certificate"
+                               widget="binary"
+                               filename="dha_certificate_filename"
+                               string="Upload DHA Sick Leave Certificate"
+                               required="is_dubai_sick_leave and state == 'draft'"
+                               readonly="state != 'draft'"/>
+                        <field name="dha_certificate_filename" invisible="1"/>
+                    </group>
+                    <div invisible="not is_dubai_sick_leave" class="mb-2">
+                        <a href="/leave_management_rk/static/src/img/dha_template.png"
+                           target="_blank"
+                           class="btn btn-secondary btn-sm">Download Reference Template</a>
+                    </div>
                 </sheet>
             </form>
         </field>
@@ -74,6 +90,7 @@
                 <field name="end_date"/>
                 <field name="is_half_day"/>
                 <field name="days_requested"/>
+                <field name="applied_date" readonly="1"/>
                 <field name="state"/>
             </list>
         </field>

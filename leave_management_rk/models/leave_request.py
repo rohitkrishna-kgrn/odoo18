@@ -17,7 +17,12 @@ class LeaveRequest(models.Model):
     days_requested = fields.Float(string='Days Requested', compute='_compute_days_requested', store=True)
     hours_requested = fields.Float(string='Hours Requested')
     reason = fields.Text(string='Reason')
-    attachment = fields.Binary(string='Attachment')
+    applied_date = fields.Datetime(string='Applied Date', readonly=True)
+    dha_certificate = fields.Binary(string='Upload DHA Sick Leave Certificate')
+    dha_certificate_filename = fields.Char(string='DHA Certificate Filename')
+    is_dubai_sick_leave = fields.Boolean(
+        compute='_compute_is_dubai_sick_leave', store=False
+    )
     manager_remarks = fields.Text(string='Manager Remarks')
     state = fields.Selection([
         ('draft', 'Draft'),
@@ -38,6 +43,16 @@ class LeaveRequest(models.Model):
         compute='_compute_is_permission_type',
         store=False
     )
+
+    @api.depends('user_id', 'leave_type_id', 'days_requested')
+    def _compute_is_dubai_sick_leave(self):
+        for rec in self:
+            rec.is_dubai_sick_leave = (
+                rec.user_id.country == 'dubai'
+                and rec.leave_type_id
+                and rec.leave_type_id.name == 'Sick Leave'
+                and rec.days_requested >= 2
+            )
 
     @api.depends('leave_type_id')
     def _compute_is_permission_type(self):
@@ -128,13 +143,19 @@ class LeaveRequest(models.Model):
                         f"Available: {current_balance}, Requested: {rec.days_requested}"
                     )
 
+            if rec.is_dubai_sick_leave and not rec.dha_certificate:
+                raise UserError(
+                    "A DHA Sick Leave Certificate is mandatory for Dubai employees "
+                    "requesting Sick Leave of 2 or more days."
+                )
+
             manager_user = rec._get_employee_manager_user()
             if manager_user:
-                rec.write({'state': 'waiting_manager'})
+                rec.write({'state': 'waiting_manager', 'applied_date': fields.Datetime.now()})
                 rec._send_mail_to_manager(manager_user)
             else:
                 # No manager configured — skip to manager_approved, notify HR
-                rec.write({'state': 'manager_approved'})
+                rec.write({'state': 'manager_approved', 'applied_date': fields.Datetime.now()})
                 rec._send_mail_to_hr()
 
     def action_manager_approve(self):
@@ -246,7 +267,7 @@ class LeaveRequest(models.Model):
         }).send()
 
     def write(self, vals):
-        protected = {k for k in vals if k not in ('state', 'balance_deducted', 'paid', 'manager_remarks')}
+        protected = {k for k in vals if k not in ('state', 'balance_deducted', 'paid', 'manager_remarks', 'applied_date')}
         if protected:
             for rec in self:
                 if rec.state in ['approved', 'rejected']:
