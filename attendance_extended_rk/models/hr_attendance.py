@@ -1,10 +1,80 @@
 from odoo import models, api, fields, _
 from odoo.exceptions import UserError
 from datetime import datetime, timedelta
+import requests
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class HrAttendance(models.Model):
     _inherit = 'hr.attendance'
+
+    # -------------------------------------------------
+    # DESKTIME API CALL (STRICT MODE)
+    # -------------------------------------------------
+    def _send_desktime_webhook(self, attendance, status, ignore_non_blocking_errors=False):
+        try:
+            employee = attendance.employee_id
+            email = employee.work_email
+
+            if not email:
+                if ignore_non_blocking_errors:
+                    _logger.warning("DeskTime: Missing email for %s", employee.name)
+                    return False
+                raise UserError(_("Employee %s does not have a work email configured.") % employee.name)
+
+            if status == "check_in":
+                location = f"{attendance.in_latitude},{attendance.in_longitude}"
+            else:
+                location = f"{attendance.out_latitude},{attendance.out_longitude}"
+
+            payload = {
+                "email": email,
+                "status": status,
+                "timestamp": fields.Datetime.now().isoformat(),
+                "location": location,
+                "odooAttendanceId": attendance.id or 0,
+            }
+
+            response = requests.post(
+                "https://backend-desktime.averelabs.com/api/attendance/webhook",
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=5
+            )
+
+            if response.status_code == 200:
+                return True
+
+            if ignore_non_blocking_errors and response.status_code in (403, 404):
+                _logger.warning(
+                    "DeskTime ignored (auto checkout): %s - %s",
+                    response.status_code,
+                    response.text
+                )
+                return False
+
+            if response.status_code == 400:
+                raise UserError(_("DeskTime Error: Invalid payload."))
+            elif response.status_code == 403:
+                raise UserError(_("DeskTime Error: Client is not active."))
+            elif response.status_code == 404:
+                raise UserError(_("DeskTime Error: User not found."))
+            else:
+                raise UserError(_("DeskTime Error: Unexpected response (%s).") % response.status_code)
+
+        except requests.exceptions.Timeout:
+            if ignore_non_blocking_errors:
+                _logger.warning("DeskTime timeout (auto checkout)")
+                return False
+            raise UserError(_("DeskTime server timeout."))
+
+        except requests.exceptions.RequestException as e:
+            if ignore_non_blocking_errors:
+                _logger.warning("DeskTime connection failed (auto): %s", str(e))
+                return False
+            raise UserError(_("DeskTime connection failed: %s") % str(e))
 
     # -------------------------------------------------
     # CREATE (CHECK-IN)
@@ -12,7 +82,7 @@ class HrAttendance(models.Model):
     @api.model
     def create(self, vals):
 
-        # 1️⃣ GPS VALIDATION
+        # GPS VALIDATION
         if 'check_in' in vals and (not vals.get('in_latitude') or not vals.get('in_longitude')):
             raise UserError(_('Cannot check in without location. Please enable GPS/location services.'))
 
@@ -24,7 +94,7 @@ class HrAttendance(models.Model):
             start_of_day = check_in.replace(hour=0, minute=0, second=0, microsecond=0)
             end_of_day = check_in.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-            # 2️⃣ ONE CHECK-IN PER DAY
+            # ONE CHECK-IN PER DAY
             existing_attendance = self.search([
                 ('employee_id', '=', employee_id),
                 ('check_in', '>=', start_of_day),
@@ -40,7 +110,7 @@ class HrAttendance(models.Model):
             if not user_id:
                 raise UserError(_('Employee %s is not linked to a user.') % employee.name)
 
-            # 3️⃣ TIMESHEET VALIDATION
+            # TIMESHEET VALIDATION
             start_of_month = check_in.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
             previous_attendances = self.search([
@@ -101,6 +171,11 @@ class HrAttendance(models.Model):
 
                 raise UserError(message)
 
+        # CALL DESKTIME API BEFORE SAVE (BLOCKING)
+        if vals.get('check_in'):
+            temp_record = self.new(vals)
+            self._send_desktime_webhook(temp_record, "check_in")
+
         record = super().create(vals)
         return record
 
@@ -115,6 +190,13 @@ class HrAttendance(models.Model):
                 # GPS VALIDATION
                 if not vals.get('out_latitude') or not vals.get('out_longitude'):
                     raise UserError(_('Cannot check out without location.'))
+
+                # CALL DESKTIME API BEFORE WRITE (BLOCKING)
+                temp_vals = attendance.copy_data()[0]
+                temp_vals.update(vals)
+
+                temp_record = self.new(temp_vals)
+                self._send_desktime_webhook(temp_record, "check_out")
 
         return super().write(vals)
 
@@ -139,6 +221,12 @@ class HrAttendance(models.Model):
                 'out_latitude': att.in_latitude or 0.0,
                 'out_longitude': att.in_longitude or 0.0,
             }
+
+            temp_vals = att.copy_data()[0]
+            temp_vals.update(vals)
+
+            temp_record = self.new(temp_vals)
+            self._send_desktime_webhook(temp_record, "check_out", ignore_non_blocking_errors=True)
 
             att.write(vals)
 
