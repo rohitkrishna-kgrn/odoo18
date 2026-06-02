@@ -49,15 +49,13 @@ class AmlRequestDocument(models.Model):
     _order = 'sequence'
 
     PI_DOCS = [
-        ('kyc_form', 'Signed copy of KYC Form'),
+        # Entity documents
         ('trade_license', 'Latest copy of trade license'),
         ('branch_licenses', 'Latest copy of all branch licenses (if any)'),
         ('cert_incorporation', 'Certificate of incorporation'),
         ('vat_corp_tax', 'UAE VAT & Corporate Tax Registration Certificate'),
         ('moa', 'Memorandum and Articles of Association'),
         ('cert_incumbency', 'Certificate of incumbency / good standing'),
-        ('shareholder_register', 'Register of Shareholders / Members'),
-        ('director_register', 'Register of Directors / Managers'),
         ('board_resolution', 'Board Resolution authorizing appointment of auditor'),
         ('share_certificates', 'Share certificates'),
         ('org_chart', 'Organizational / Group Chart up to UBO'),
@@ -65,29 +63,28 @@ class AmlRequestDocument(models.Model):
         ('lease_agreement', 'Lease agreement'),
         ('business_profile', 'Business profile / Description of business activities'),
         ('authorized_signatories', 'List of authorized signatories'),
-        ('passport_individual', 'Passport copy – Individual Shareholder/Manager/Director'),
-        ('emirates_id_individual', 'Emirates ID / National ID and Visa – Individual Shareholder/Manager/Director'),
         ('family_book', 'Family book issued by UAE Government (UAE National)'),
-        ('proof_of_residence', 'Proof of residence – Individual Shareholder/Manager/Director'),
-        ('corporate_shareholder_docs', 'In case of corporate shareholder – license, incorporation, group structure, passport'),
         ('residing_together_declaration', 'Declaration – shareholders/managers residing together (if applicable)'),
         ('related_party_licenses', 'License copies of related parties / parent companies (if applicable)'),
+        # Individual documents
+        ('ind_passport_copy', 'Passport Copy (Front & Back)'),
+        ('ind_proof_residence', 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement)'),
+        ('ind_visa', 'Visa'),
+        ('ind_emirates_id_doc', 'Emirates ID'),
+        ('ind_profile_cv', 'Profile Information / Resume / CV with Photograph'),
     ]
 
     PI_MANDATORY = {
-        'kyc_form', 'trade_license', 'vat_corp_tax', 'moa', 'shareholder_register',
-        'director_register', 'org_chart', 'utility_bills', 'lease_agreement',
-        'business_profile', 'authorized_signatories', 'passport_individual',
-        'emirates_id_individual', 'family_book', 'proof_of_residence',
+        # Entity mandatory
+        'trade_license', 'vat_corp_tax', 'moa',
+        'org_chart', 'utility_bills', 'lease_agreement',
+        'business_profile', 'family_book',
+        # Individual mandatory
+        'ind_passport_copy', 'ind_proof_residence',
     }
 
     PI_TOOLTIPS = {
-        'kyc_form': 'Please fill up the KYC form and return it signed in PDF version.',
-        'shareholder_register': 'Fill the Excel format provided. Details must match supporting documents.',
-        'director_register': 'Fill the Excel format provided. Details must match supporting documents.',
         'authorized_signatories': 'Fill the Excel format provided. Details must match supporting documents.',
-        'proof_of_residence': 'Must be in the name of the individual and within last 3 months.',
-        'corporate_shareholder_docs': 'Include license, incorporation certificate, group structure and passport of authorised representative.',
         'residing_together_declaration': 'Required only if shareholder stays with family and has no separate proof of residence.',
         'cert_incumbency': 'Any one of certificate of incumbency or good standing certificate.',
     }

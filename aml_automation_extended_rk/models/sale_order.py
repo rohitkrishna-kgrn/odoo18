@@ -37,18 +37,26 @@ class SaleOrder(models.Model):
         })
         aml._portal_ensure_token()
 
-        # Pre-populate PI document lines
-        pi_docs = [
-            ('kyc_form', 10), ('trade_license', 20), ('branch_licenses', 30),
-            ('cert_incorporation', 40), ('vat_corp_tax', 50), ('moa', 60),
-            ('cert_incumbency', 70), ('shareholder_register', 80), ('director_register', 90),
-            ('board_resolution', 100), ('share_certificates', 110), ('org_chart', 120),
-            ('utility_bills', 130), ('lease_agreement', 140), ('business_profile', 150),
-            ('authorized_signatories', 160), ('passport_individual', 170),
-            ('emirates_id_individual', 180), ('family_book', 190), ('proof_of_residence', 200),
-            ('corporate_shareholder_docs', 210), ('residing_together_declaration', 220),
-            ('related_party_licenses', 230),
-        ]
+        # Pre-populate PI document lines based on KYC type
+        if aml.kyc_type == 'individual':
+            pi_docs = [
+                ('ind_passport_copy', 10),
+                ('ind_proof_residence', 20),
+                ('ind_visa', 30),
+                ('ind_emirates_id_doc', 40),
+                ('ind_profile_cv', 50),
+            ]
+        else:
+            pi_docs = [
+                ('trade_license', 10), ('branch_licenses', 20),
+                ('cert_incorporation', 30), ('vat_corp_tax', 40), ('moa', 50),
+                ('cert_incumbency', 60),
+                ('board_resolution', 70), ('share_certificates', 80), ('org_chart', 90),
+                ('utility_bills', 100), ('lease_agreement', 110), ('business_profile', 120),
+                ('authorized_signatories', 130), ('family_book', 140),
+                ('residing_together_declaration', 150),
+                ('related_party_licenses', 160),
+            ]
         for doc_key, seq in pi_docs:
             self.env['aml.request.document'].sudo().create({
                 'request_id': aml.id,

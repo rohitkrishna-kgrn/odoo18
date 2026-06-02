@@ -1,6 +1,6 @@
 {
     'name': 'AML Automation Extended',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.0.1',
     'category': 'Accounting/AML',
     'summary': 'AML KYC workflow with portal web form, user pipeline and manager approval.',
     'description': """
@@ -22,6 +22,7 @@
     'data': [
         'security/aml_groups.xml',
         'security/ir.model.access.csv',
+        'security/aml_additional_docs_access.xml',
         'data/aml_sequences.xml',
         'data/aml_mail_templates.xml',
         'data/aml_cron.xml',
@@ -44,4 +45,5 @@
     'installable': True,
     'application': True,
     'license': 'LGPL-3',
+    'post_init_hook': 'post_init_hook',
 }

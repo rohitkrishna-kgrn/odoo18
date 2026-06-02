@@ -81,15 +81,15 @@
                         <span class="step-num">2</span>
                         <span class="step-label">KYC Information</span>
                     </div>
-                    <div class="aml-step" data-step="2">
+                    <div class="aml-step" data-step="2" data-entity-only="true">
                         <span class="step-num">3</span>
                         <span class="step-label">UBO Details</span>
                     </div>
-                    <div class="aml-step" data-step="3">
+                    <div class="aml-step" data-step="3" data-entity-only="true">
                         <span class="step-num">4</span>
                         <span class="step-label">Directors &amp; Managers</span>
                     </div>
-                    <div class="aml-step" data-step="4">
+                    <div class="aml-step" data-step="4" data-entity-only="true">
                         <span class="step-num">5</span>
                         <span class="step-label">Shareholders</span>
                     </div>
@@ -123,6 +123,9 @@
                 </script>
                 <script type="application/json" id="aml-doc-lines-data">
                     <t t-out="doc_lines_json"/>
+                </script>
+                <script type="application/json" id="aml-saved-fields">
+                    <t t-out="saved_fields_json"/>
                 </script>
 
                 <!-- ===================================================
@@ -279,11 +282,11 @@
                                 <input type="text" name="ent_nature_of_business" required="required"/>
                             </div>
                             <div class="aml-field aml-field-full">
-                                <label>Source of Wealth <span class="req-star">*</span></label>
+                                <label>What is the Source of Wealth of entity? <span class="req-star">*</span></label>
                                 <textarea name="ent_source_of_wealth" rows="2" required="required"></textarea>
                             </div>
                             <div class="aml-field">
-                                <label>Ownership Structure Complexity <span class="req-star">*</span></label>
+                                <label>Is the Ownership structure is complexity? <span class="req-star">*</span></label>
                                 <div class="aml-radio-group">
                                     <label><input type="radio" name="ent_ownership_complexity" value="yes" required="required"/> Yes</label>
                                     <label><input type="radio" name="ent_ownership_complexity" value="no"/> No</label>
@@ -327,12 +330,30 @@
                         <h3>Trade Partners</h3>
                         <div class="aml-grid-2">
                             <div class="aml-field aml-field-full">
-                                <label>Top 5 Supplier Countries <span class="req-star">*</span></label>
-                                <textarea name="ent_top5_suppliers" rows="2" required="required"></textarea>
+                                <label>List down the top 5 countries in which your suppliers are located <span class="req-star">*</span></label>
+                                <input type="hidden" name="ent_top5_suppliers" id="ent_top5_suppliers_val"/>
+                                <div class="aml-country-picker">
+                                    <div style="display:flex;gap:8px;align-items:center;">
+                                        <select id="supplier_country_select" class="aml-country-select">
+                                            <option value="">— Select a Country —</option>
+                                        </select>
+                                        <button type="button" class="aml-btn-add" style="white-space:nowrap;" onclick="amlForm.addCountry('supplier')">+ Add</button>
+                                    </div>
+                                    <div class="aml-country-tags" id="supplier_country_tags"></div>
+                                </div>
                             </div>
                             <div class="aml-field aml-field-full">
-                                <label>Top 5 Customer Countries <span class="req-star">*</span></label>
-                                <textarea name="ent_top5_customers" rows="2" required="required"></textarea>
+                                <label>List down the top 5 countries in which your customers are located <span class="req-star">*</span></label>
+                                <input type="hidden" name="ent_top5_customers" id="ent_top5_customers_val"/>
+                                <div class="aml-country-picker">
+                                    <div style="display:flex;gap:8px;align-items:center;">
+                                        <select id="customer_country_select" class="aml-country-select">
+                                            <option value="">— Select a Country —</option>
+                                        </select>
+                                        <button type="button" class="aml-btn-add" style="white-space:nowrap;" onclick="amlForm.addCountry('customer')">+ Add</button>
+                                    </div>
+                                    <div class="aml-country-tags" id="customer_country_tags"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -426,9 +447,14 @@
                         <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
                             <span>&#8249;</span> Back
                         </button>
-                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
-                            Next Page <span>&#8250;</span>
-                        </button>
+                        <div style="display:flex;gap:8px;">
+                            <button type="button" class="aml-btn-save" onclick="amlForm.savePage()">
+                                &#10003; Save Progress
+                            </button>
+                            <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                                Next Page <span>&#8250;</span>
+                            </button>
+                        </div>
                     </div>
                 </section>
 
@@ -438,201 +464,393 @@
                 <section class="aml-page" id="page-1-individual">
                     <div class="aml-page-header">
                         <h2>KYC Information – Individual</h2>
-                        <p class="aml-page-subtitle">Personal information and identification details</p>
+                        <p class="aml-page-subtitle">Please answer all questions carefully. Fields marked <span class="req-star">*</span> are mandatory.</p>
                     </div>
 
                     <div class="aml-form-section">
-                        <h3>Personal Information</h3>
-                        <div class="aml-grid-2">
-                            <div class="aml-field aml-field-full">
-                                <label>Full Name <span class="req-star">*</span></label>
-                                <input type="text" name="ind_full_name" required="required"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Gender <span class="req-star">*</span></label>
-                                <div class="aml-radio-group">
-                                    <label><input type="radio" name="ind_gender" value="male" required="required"/> Male</label>
-                                    <label><input type="radio" name="ind_gender" value="female"/> Female</label>
-                                    <label><input type="radio" name="ind_gender" value="other"/> Other</label>
+                        <div class="aml-qform">
+
+                            <!-- Personal Information -->
+                            <div class="aml-q-divider">Personal Information</div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">1</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your full name? <span class="req-star">*</span></span>
+                                    <input type="text" name="ind_full_name" required="required" placeholder="Enter full name as per ID"/>
                                 </div>
                             </div>
-                            <div class="aml-field">
-                                <label>Nationality <span class="req-star">*</span></label>
-                                <input type="text" name="ind_nationality" required="required"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Date of Birth <span class="req-star">*</span></label>
-                                <input type="date" name="ind_date_of_birth" required="required"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Place of Birth <span class="req-star">*</span></label>
-                                <input type="text" name="ind_place_of_birth" required="required"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Type of ID Presented <span class="req-star">*</span></label>
-                                <select name="ind_id_type" required="required" onchange="amlForm.toggleIdOther(this.value)">
-                                    <option value="">– Select –</option>
-                                    <option value="emirates_id">Emirates ID</option>
-                                    <option value="passport">Passport</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div class="aml-field" id="ind-id-other-wrap" style="display:none;">
-                                <label>Specify Other ID Type <span class="req-star">*</span></label>
-                                <input type="text" name="ind_id_type_other" id="ind_id_type_other"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Emirates ID / Passport Number <span class="req-star">*</span></label>
-                                <input type="text" name="ind_id_number" required="required"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Issuing Country <span class="req-star">*</span></label>
-                                <input type="text" name="ind_issuing_country" required="required"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Valid Until <span class="req-star">*</span></label>
-                                <input type="date" name="ind_valid_until" required="required"/>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="aml-form-section">
-                        <h3>Contact and Residential Details</h3>
-                        <div class="aml-grid-2">
-                            <div class="aml-field aml-field-full">
-                                <label>Permanent Residential Address <span class="req-star">*</span></label>
-                                <textarea name="ind_permanent_address" rows="2" required="required"></textarea>
-                            </div>
-                            <div class="aml-field aml-field-full">
-                                <label>Current UAE Address (if different)</label>
-                                <textarea name="ind_uae_address" rows="2"></textarea>
-                            </div>
-                            <div class="aml-field">
-                                <label>City <span class="req-star">*</span></label>
-                                <input type="text" name="ind_city" required="required"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Country <span class="req-star">*</span></label>
-                                <input type="text" name="ind_country" required="required"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Mobile / Telephone No. <span class="req-star">*</span></label>
-                                <input type="tel" name="ind_mobile" required="required"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Email Address <span class="req-star">*</span></label>
-                                <input type="email" name="ind_email" required="required"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Proof of Address Type <span class="req-star">*</span></label>
-                                <select name="ind_proof_address_type" required="required"
-                                    onchange="amlForm.toggleProofOther(this.value)">
-                                    <option value="">– Select –</option>
-                                    <option value="utility_bill">Utility Bill</option>
-                                    <option value="bank_statement">Bank Statement</option>
-                                    <option value="lease">Lease / Title</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div class="aml-field" id="ind-proof-other-wrap" style="display:none;">
-                                <label>Specify <span class="req-star">*</span></label>
-                                <input type="text" name="ind_proof_address_other" id="ind_proof_address_other"/>
-                            </div>
-                            <div class="aml-field">
-                                <label>Document Date <span class="req-star">*</span></label>
-                                <input type="date" name="ind_document_date" required="required"/>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="aml-form-section">
-                        <h3>Identification and Verification</h3>
-                        <div class="aml-verify-grid">
-                            <div class="aml-verify-row">
-                                <span>Emirates ID (Front &amp; Back)</span>
-                                <label><input type="radio" name="ind_emirates_id_attached" value="yes" required="required"/> Yes</label>
-                                <label><input type="radio" name="ind_emirates_id_attached" value="no"/> No</label>
-                            </div>
-                            <div class="aml-verify-row">
-                                <span>Passport (Photo page + Visa Page)</span>
-                                <label><input type="radio" name="ind_passport_attached" value="yes" required="required"/> Yes</label>
-                                <label><input type="radio" name="ind_passport_attached" value="no"/> No</label>
-                            </div>
-                            <div class="aml-verify-row">
-                                <span>Proof of Address</span>
-                                <label><input type="radio" name="ind_proof_address_attached" value="yes" required="required"/> Yes</label>
-                                <label><input type="radio" name="ind_proof_address_attached" value="no"/> No</label>
-                            </div>
-                            <div class="aml-verify-row">
-                                <span>Other Government-Issued ID</span>
-                                <label><input type="radio" name="ind_other_id_attached" value="yes" required="required"/> Yes</label>
-                                <label><input type="radio" name="ind_other_id_attached" value="no"/> No</label>
-                            </div>
-                            <div class="aml-verify-row">
-                                <span>Verified via Portal / Smart Pass / UAE Pass</span>
-                                <label><input type="radio" name="ind_verified_portal" value="yes" required="required"/> Yes</label>
-                                <label><input type="radio" name="ind_verified_portal" value="no"/> No</label>
-                            </div>
-                            <div class="aml-verify-row">
-                                <span>Verified Physically by Staff</span>
-                                <label><input type="radio" name="ind_verified_physically" value="yes" required="required"/> Yes</label>
-                                <label><input type="radio" name="ind_verified_physically" value="no"/> No</label>
-                            </div>
-                            <div class="aml-verify-row">
-                                <span>Video KYC Completed</span>
-                                <label><input type="radio" name="ind_video_kyc" value="yes" required="required"/> Yes</label>
-                                <label><input type="radio" name="ind_video_kyc" value="no"/> No</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="aml-form-section">
-                        <h3>Nature of Relationship</h3>
-                        <div class="aml-grid-2">
-                            <div class="aml-field aml-field-full">
-                                <label>Purpose of Account / Relationship <span class="req-star">*</span></label>
-                                <textarea name="ind_purpose_of_relationship" rows="2" required="required"></textarea>
-                            </div>
-                            <div class="aml-field aml-field-full">
-                                <label>Expected Nature of Transactions <span class="req-star">*</span></label>
-                                <textarea name="ind_expected_transactions" rows="2" required="required"></textarea>
-                            </div>
-                            <div class="aml-field">
-                                <label>Expected Monthly Turnover / Transaction Value <span class="req-star">*</span></label>
-                                <input type="text" name="ind_monthly_turnover" required="required"/>
-                            </div>
-                            <div class="aml-field aml-field-full">
-                                <label>Source of Funds / Income <span class="req-star">*</span></label>
-                                <textarea name="ind_source_of_funds" rows="2" required="required"></textarea>
-                            </div>
-                            <div class="aml-field">
-                                <label>Hold Shares on Behalf of Another? <span class="req-star">*</span></label>
-                                <div class="aml-radio-group">
-                                    <label><input type="radio" name="ind_hold_shares_behalf" value="yes" required="required"/> Yes</label>
-                                    <label><input type="radio" name="ind_hold_shares_behalf" value="no"/> No</label>
+                            <div class="aml-q">
+                                <div class="aml-q-num">2</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your gender? <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_gender" value="male" required="required"/> Male</label>
+                                        <label><input type="radio" name="ind_gender" value="female"/> Female</label>
+                                        <label><input type="radio" name="ind_gender" value="other"/> Other</label>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="aml-field">
-                                <label>High-Risk Jurisdiction Association? <span class="req-star">*</span></label>
-                                <div class="aml-radio-group">
-                                    <label><input type="radio" name="ind_high_risk_jurisdiction" value="yes" required="required"/> Yes</label>
-                                    <label><input type="radio" name="ind_high_risk_jurisdiction" value="no"/> No</label>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">3</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your nationality? <span class="req-star">*</span></span>
+                                    <select name="ind_nationality" id="ind_nationality" required="required">
+                                        <option value="">— Select Country —</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="aml-field aml-field-full">
-                                <label>Anticipated Origin of Funds (Country / Entity) <span class="req-star">*</span></label>
-                                <textarea name="ind_anticipated_origin" rows="2" required="required"></textarea>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">4</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your date of birth? <span class="req-star">*</span></span>
+                                    <input type="date" name="ind_date_of_birth" required="required"/>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">5</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your place of birth? <span class="req-star">*</span></span>
+                                    <select name="ind_place_of_birth" id="ind_place_of_birth" required="required">
+                                        <option value="">— Select Country —</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">6</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What type of ID are you presenting? <span class="req-star">*</span></span>
+                                    <select name="ind_id_type" required="required" onchange="amlForm.toggleIdOther(this.value)">
+                                        <option value="">– Select –</option>
+                                        <option value="emirates_id">Emirates ID</option>
+                                        <option value="passport">Passport</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="aml-q aml-q-sub" id="ind-id-other-wrap" style="display:none;">
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Please specify the other ID type <span class="req-star">*</span></span>
+                                    <input type="text" name="ind_id_type_other" id="ind_id_type_other" placeholder="Specify ID type"/>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">7</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your Emirates ID / Passport Number? <span class="req-star">*</span></span>
+                                    <input type="text" name="ind_id_number" required="required" placeholder="Enter ID or passport number"/>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">8</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is the issuing country of your ID document? <span class="req-star">*</span></span>
+                                    <input type="text" name="ind_issuing_country" required="required" placeholder="e.g. United Arab Emirates"/>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">9</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is the expiry date of your ID document? <span class="req-star">*</span></span>
+                                    <input type="date" name="ind_valid_until" required="required"/>
+                                </div>
+                            </div>
+
+                            <!-- Contact and Residential Details -->
+                            <div class="aml-q-divider" style="margin-top:12px;">Contact and Residential Details</div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">10</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your permanent residential address? <span class="req-star">*</span></span>
+                                    <textarea name="ind_permanent_address" rows="2" required="required" placeholder="Street, City, Country"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">11</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your current UAE address (if different from above)?</span>
+                                    <textarea name="ind_uae_address" rows="2" placeholder="Leave blank if same as above"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">12</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your city? <span class="req-star">*</span></span>
+                                    <input type="text" name="ind_city" required="required" placeholder="e.g. Dubai"/>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">13</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your country of residence? <span class="req-star">*</span></span>
+                                    <input type="text" name="ind_country" required="required" placeholder="e.g. United Arab Emirates"/>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">14</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your mobile / telephone number? <span class="req-star">*</span></span>
+                                    <input type="tel" name="ind_mobile" required="required" placeholder="+971 XX XXX XXXX"/>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">15</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is your email address? <span class="req-star">*</span></span>
+                                    <input type="email" name="ind_email" required="required" placeholder="example@email.com"/>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">16</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What type of proof of address are you providing? <span class="req-star">*</span></span>
+                                    <select name="ind_proof_address_type" required="required"
+                                        onchange="amlForm.toggleProofOther(this.value)">
+                                        <option value="">– Select –</option>
+                                        <option value="utility_bill">Utility Bill</option>
+                                        <option value="bank_statement">Bank Statement</option>
+                                        <option value="lease">Lease / Title</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="aml-q aml-q-sub" id="ind-proof-other-wrap" style="display:none;">
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Please specify the proof of address type <span class="req-star">*</span></span>
+                                    <input type="text" name="ind_proof_address_other" id="ind_proof_address_other" placeholder="Specify document type"/>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">17</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is the document date of your proof of address? <span class="req-star">*</span></span>
+                                    <input type="date" name="ind_document_date" required="required"/>
+                                </div>
+                            </div>
+
+                            <!-- Identification and Verification -->
+                            <div class="aml-q-divider" style="margin-top:12px;">Identification and Verification</div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">18</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Have you attached your Emirates ID (Front &amp; Back)? <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_emirates_id_attached" value="yes" required="required"/> Yes</label>
+                                        <label><input type="radio" name="ind_emirates_id_attached" value="no"/> No</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">19</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Have you attached your Passport (Photo page + Visa Page)? <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_passport_attached" value="yes" required="required"/> Yes</label>
+                                        <label><input type="radio" name="ind_passport_attached" value="no"/> No</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">20</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Have you attached your Proof of Address? <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_proof_address_attached" value="yes" required="required"/> Yes</label>
+                                        <label><input type="radio" name="ind_proof_address_attached" value="no"/> No</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">21</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Have you attached any other Government-Issued ID? <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_other_id_attached" value="yes" required="required"/> Yes</label>
+                                        <label><input type="radio" name="ind_other_id_attached" value="no"/> No</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">22</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Has the ID been verified via Portal / Smart Pass / UAE Pass? <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_verified_portal" value="yes" required="required"/> Yes</label>
+                                        <label><input type="radio" name="ind_verified_portal" value="no"/> No</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">23</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Has the ID been verified physically by staff? <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_verified_physically" value="yes" required="required"/> Yes</label>
+                                        <label><input type="radio" name="ind_verified_physically" value="no"/> No</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">24</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Has Video KYC been completed? <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_video_kyc" value="yes" required="required"/> Yes</label>
+                                        <label><input type="radio" name="ind_video_kyc" value="no"/> No</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Nature of Relationship -->
+                            <div class="aml-q-divider" style="margin-top:12px;">Nature of Relationship</div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">25</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is the purpose of this account / relationship? <span class="req-star">*</span></span>
+                                    <select name="ind_purpose_of_relationship" required="required"
+                                        onchange="amlForm.togglePurposeOther(this.value)">
+                                        <option value="">– Select –</option>
+                                        <option value="Issue of Networth Certificate">Issue of Networth Certificate</option>
+                                        <option value="Issue of Income Certificate">Issue of Income Certificate</option>
+                                        <option value="Attestation of Documents">Attestation of Documents</option>
+                                        <option value="Company Incorporation">Company Incorporation</option>
+                                        <option value="PR Services">PR Services</option>
+                                        <option value="other">Other (If any)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="aml-q aml-q-sub" id="ind-purpose-other-wrap" style="display:none;">
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Please describe the purpose <span class="req-star">*</span></span>
+                                    <input type="text" name="ind_purpose_of_relationship_other" id="ind_purpose_of_relationship_other"
+                                        placeholder="Describe the purpose of account / relationship"/>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">26</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is the expected nature of transactions? <span class="req-star">*</span></span>
+                                    <textarea name="ind_expected_transactions" rows="2" required="required" placeholder="Describe the expected transactions"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">27</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is the expected monthly turnover / transaction value? <span class="req-star">*</span></span>
+                                    <input type="text" name="ind_monthly_turnover" required="required" placeholder="e.g. AED 50,000"/>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">28</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is the source of your funds / income? <span class="req-star">*</span></span>
+                                    <textarea name="ind_source_of_funds" rows="2" required="required" placeholder="e.g. Salary, Business income, Investments"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">29</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Whether the individual holds shares on behalf of another person? (Nominee shareholder) <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_hold_shares_behalf" value="yes" required="required"/> Yes</label>
+                                        <label><input type="radio" name="ind_hold_shares_behalf" value="no"/> No</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">30</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Does the individual belong to a high-risk jurisdiction? (Iran, DPRK - North Korea, Myanmar) <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_high_risk_jurisdiction" value="yes" required="required"/> Yes</label>
+                                        <label><input type="radio" name="ind_high_risk_jurisdiction" value="no"/> No</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">31</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">What is the anticipated origin of funds (Country / Entity)? <span class="req-star">*</span></span>
+                                    <textarea name="ind_anticipated_origin" rows="2" required="required" placeholder="Country or entity from which funds are expected"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">32</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Is the individual a citizen of more than one country? <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_dual_citizenship" value="yes" required="required"
+                                            onchange="amlForm.toggleIndDualCitizenship(this.value)"/> Yes</label>
+                                        <label><input type="radio" name="ind_dual_citizenship" value="no"
+                                            onchange="amlForm.toggleIndDualCitizenship(this.value)"/> No</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="aml-q aml-q-sub" id="ind-dual-citizenship-wrap" style="display:none;">
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Please specify the details of dual / multiple citizenship <span class="req-star">*</span></span>
+                                    <textarea name="ind_dual_citizenship_detail" id="ind_dual_citizenship_detail"
+                                        rows="2" placeholder="Mention country names and relevant details"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">33</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Is the individual a high net worth individual (net worth ≥ USD 15m)? <span class="req-star">*</span></span>
+                                    <div class="aml-radio-group">
+                                        <label><input type="radio" name="ind_high_net_worth" value="yes" required="required"/> Yes</label>
+                                        <label><input type="radio" name="ind_high_net_worth" value="no"/> No</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div><!-- end .aml-qform -->
+                    </div><!-- end .aml-form-section -->
 
                     <div class="aml-nav-buttons">
                         <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
                             <span>&#8249;</span> Back
                         </button>
-                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
-                            Next Page <span>&#8250;</span>
-                        </button>
+                        <div style="display:flex;gap:8px;">
+                            <button type="button" class="aml-btn-save" onclick="amlForm.savePage()">
+                                &#10003; Save Progress
+                            </button>
+                            <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                                Next Page <span>&#8250;</span>
+                            </button>
+                        </div>
                     </div>
                 </section>
 
@@ -662,7 +880,9 @@
                             </div>
                             <div class="aml-field">
                                 <label>Nationality <span class="req-star">*</span></label>
-                                <input type="text" name="ubo_nationality" required="required"/>
+                                <select name="ubo_nationality" id="ubo_nationality" required="required">
+                                    <option value="">— Select Country —</option>
+                                </select>
                             </div>
                             <div class="aml-field">
                                 <label>Date of Birth <span class="req-star">*</span></label>
@@ -670,7 +890,9 @@
                             </div>
                             <div class="aml-field">
                                 <label>Place of Birth <span class="req-star">*</span></label>
-                                <input type="text" name="ubo_place_of_birth" required="required"/>
+                                <select name="ubo_place_of_birth" id="ubo_place_of_birth" required="required">
+                                    <option value="">— Select Country —</option>
+                                </select>
                             </div>
                             <div class="aml-field">
                                 <label>Citizen of More Than One Country? <span class="req-star">*</span></label>
@@ -690,14 +912,14 @@
                                 <textarea name="ubo_source_of_income" rows="2" required="required"></textarea>
                             </div>
                             <div class="aml-field">
-                                <label>Hold Shares on Behalf of Another? <span class="req-star">*</span></label>
+                                <label>Whether UBO holds shares on behalf of another person? (Nominee shareholder) <span class="req-star">*</span></label>
                                 <div class="aml-radio-group">
                                     <label><input type="radio" name="ubo_hold_shares_behalf" value="yes" required="required"/> Yes</label>
                                     <label><input type="radio" name="ubo_hold_shares_behalf" value="no"/> No</label>
                                 </div>
                             </div>
                             <div class="aml-field">
-                                <label>High-Risk Jurisdiction Association? <span class="req-star">*</span></label>
+                                <label>Does the UBO belongs to high-risk jurisdiction? (Iran, DPRK - North Korea, Myanmar) <span class="req-star">*</span></label>
                                 <div class="aml-radio-group">
                                     <label><input type="radio" name="ubo_high_risk_jurisdiction" value="yes" required="required"/> Yes</label>
                                     <label><input type="radio" name="ubo_high_risk_jurisdiction" value="no"/> No</label>
@@ -726,7 +948,7 @@
                                 <input type="email" name="ubo_email" required="required"/>
                             </div>
                             <div class="aml-field">
-                                <label>High Net Worth Individual (assets ≥ USD 15m)? <span class="req-star">*</span></label>
+                                <label>Is the UBO is high networth individual (networth ≥ USD 15m)? <span class="req-star">*</span></label>
                                 <div class="aml-radio-group">
                                     <label><input type="radio" name="ubo_high_net_worth" value="yes" required="required"/> Yes</label>
                                     <label><input type="radio" name="ubo_high_net_worth" value="no"/> No</label>
@@ -739,16 +961,16 @@
                         <h3>Bank Details</h3>
                         <div class="aml-grid-2">
                             <div class="aml-field">
-                                <label>Bank Name <span class="req-star">*</span></label>
-                                <input type="text" name="ubo_bank_name" required="required"/>
+                                <label>Bank Name</label>
+                                <input type="text" name="ubo_bank_name"/>
                             </div>
                             <div class="aml-field aml-field-full">
-                                <label>Bank Branch Address <span class="req-star">*</span></label>
-                                <textarea name="ubo_bank_branch_address" rows="2" required="required"></textarea>
+                                <label>Bank Branch Address</label>
+                                <textarea name="ubo_bank_branch_address" rows="2"></textarea>
                             </div>
                             <div class="aml-field">
-                                <label>IBAN / Account Number <span class="req-star">*</span></label>
-                                <input type="text" name="ubo_iban" required="required"/>
+                                <label>IBAN / Account Number</label>
+                                <input type="text" name="ubo_iban"/>
                             </div>
                         </div>
                     </div>
@@ -757,9 +979,14 @@
                         <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
                             <span>&#8249;</span> Back
                         </button>
-                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
-                            Next Page <span>&#8250;</span>
-                        </button>
+                        <div style="display:flex;gap:8px;">
+                            <button type="button" class="aml-btn-save" onclick="amlForm.savePage()">
+                                &#10003; Save Progress
+                            </button>
+                            <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                                Next Page <span>&#8250;</span>
+                            </button>
+                        </div>
                     </div>
                 </section>
 
@@ -769,7 +996,7 @@
                 <section class="aml-page" id="page-3">
                     <div class="aml-page-header">
                         <h2>Register of Directors / Managers</h2>
-                        <p class="aml-page-subtitle">List all directors, managers, and secretaries</p>
+                        <p class="aml-page-subtitle">List down the details of managers, directors, secretary as per license, Memorandum, Board resolution, Group structure</p>
                     </div>
                     <div class="aml-form-section">
                         <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
@@ -783,12 +1010,12 @@
                                     <tr>
                                         <th>#</th>
                                         <th>Full Name <span class="req-star">*</span></th>
-                                        <th>Position</th>
-                                        <th>Nationality</th>
-                                        <th>ID / Passport No.</th>
-                                        <th>Appointment Date</th>
+                                        <th>Position <span class="req-star">*</span></th>
+                                        <th>Nationality <span class="req-star">*</span></th>
+                                        <th>ID / Passport No. <span class="req-star">*</span></th>
+                                        <th>Appointment Date <span class="req-star">*</span></th>
                                         <th>Resignation Date</th>
-                                        <th>Status</th>
+                                        <th>Status <span class="req-star">*</span></th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -807,9 +1034,14 @@
                         <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
                             <span>&#8249;</span> Back
                         </button>
-                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
-                            Next Page <span>&#8250;</span>
-                        </button>
+                        <div style="display:flex;gap:8px;">
+                            <button type="button" class="aml-btn-save" onclick="amlForm.savePage()">
+                                &#10003; Save Progress
+                            </button>
+                            <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                                Next Page <span>&#8250;</span>
+                            </button>
+                        </div>
                     </div>
                 </section>
 
@@ -833,13 +1065,13 @@
                                     <tr>
                                         <th>#</th>
                                         <th>Shareholder Name <span class="req-star">*</span></th>
-                                        <th>Nationality</th>
-                                        <th>Type</th>
-                                        <th>Passport No.</th>
-                                        <th>Share Class</th>
-                                        <th>No. of Shares</th>
-                                        <th>% Holding</th>
-                                        <th>Date of Entry</th>
+                                        <th>Nationality <span class="req-star">*</span></th>
+                                        <th>Type <span class="req-star">*</span></th>
+                                        <th>Passport No. / Corporate Registration No. <span class="req-star">*</span></th>
+                                        <th>Share Class <span class="req-star">*</span></th>
+                                        <th>No. of Shares <span class="req-star">*</span></th>
+                                        <th>% Holding <span class="req-star">*</span></th>
+                                        <th>Date of Entry <span class="req-star">*</span></th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -857,9 +1089,14 @@
                         <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
                             <span>&#8249;</span> Back
                         </button>
-                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
-                            Next Page <span>&#8250;</span>
-                        </button>
+                        <div style="display:flex;gap:8px;">
+                            <button type="button" class="aml-btn-save" onclick="amlForm.savePage()">
+                                &#10003; Save Progress
+                            </button>
+                            <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                                Next Page <span>&#8250;</span>
+                            </button>
+                        </div>
                     </div>
                 </section>
 
@@ -880,9 +1117,14 @@
                         <button type="button" class="aml-btn-back" onclick="amlForm.prevPage()">
                             <span>&#8249;</span> Back
                         </button>
-                        <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
-                            Next Page <span>&#8250;</span>
-                        </button>
+                        <div style="display:flex;gap:8px;">
+                            <button type="button" class="aml-btn-save" onclick="amlForm.savePage()">
+                                &#10003; Save Progress
+                            </button>
+                            <button type="button" class="aml-btn-next" onclick="amlForm.nextPage()">
+                                Next Page <span>&#8250;</span>
+                            </button>
+                        </div>
                     </div>
                 </section>
 
@@ -898,26 +1140,43 @@
                         <!-- Built dynamically by JS -->
                     </div>
 
+                    <!-- Declaration, Details and Signature – single form -->
                     <div class="aml-form-section">
                         <h3>Declaration</h3>
-                        <div class="aml-declaration-box">
-                            <label class="aml-accept-label">
-                                <input type="checkbox" id="accept_declaration" required="required"/>
-                                <span>I hereby confirm that all information provided in this KYC form is
-                                accurate, complete, and consistent with the supporting documents submitted.
-                                I understand that any false or misleading information may have legal consequences
-                                and may result in the termination of the business relationship.</span>
+                        <div class="aml-declaration-box" style="margin-bottom:20px;">
+                            <p style="margin:0;line-height:1.7;">
+                                I declare that the information provided in this form is true and correct.
+                                I am aware that I may be subjected to prosecution and criminal sanctions under
+                                written law if I am found to have made false statement which I know to be false,
+                                or which I do not believe to be true, or if I have intentionally suppressed any
+                                material fact.
+                            </p>
+                        </div>
+
+                        <div class="aml-field" style="margin-bottom:20px;">
+                            <label class="aml-accept-label" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                                <input type="checkbox" id="accept_declaration" required="required" style="width:18px;height:18px;flex-shrink:0;"/>
+                                <span>Declaration Accepted <span class="req-star">*</span></span>
                             </label>
                         </div>
-                    </div>
 
-                    <div class="aml-form-section">
-                        <h3>E-Signature</h3>
-                        <div class="aml-field">
-                            <label>Full Name (Signatory) <span class="req-star">*</span></label>
-                            <input type="text" id="signatory_name" required="required"
-                                placeholder="Type your full name as it appears on official documents"/>
+                        <div class="aml-grid-2" style="align-items:start;margin-bottom:20px;">
+                            <div class="aml-field">
+                                <label>Signatory Name <span class="req-star">*</span></label>
+                                <input type="text" id="signatory_name" required="required"
+                                    placeholder="Full name as it appears on official documents"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Designation <span class="req-star">*</span></label>
+                                <input type="text" id="signatory_designation" required="required"
+                                    placeholder="e.g. Director, Manager, Authorised Signatory"/>
+                            </div>
+                            <div class="aml-field">
+                                <label>Signed On <span class="req-star">*</span></label>
+                                <input type="date" id="signed_on" required="required"/>
+                            </div>
                         </div>
+
                         <div class="aml-signature-wrap">
                             <label>Signature <span class="req-star">*</span></label>
                             <div class="aml-sig-tabs">

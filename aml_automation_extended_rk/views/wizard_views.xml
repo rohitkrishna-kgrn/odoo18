@@ -236,4 +236,46 @@
         </field>
     </record>
 
+
+    <!-- =====================================================================
+         AML Additional Documents Wizard (In Progress state)
+    ====================================================================== -->
+    <record id="view_aml_additional_docs_wizard_form" model="ir.ui.view">
+        <field name="name">aml.additional.docs.wizard.form</field>
+        <field name="model">aml.additional.docs.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Request Additional Documents">
+                <sheet>
+                    <group>
+                        <field name="request_id" readonly="1"/>
+                    </group>
+                    <label for="doc_line_ids" string="Documents to Request from Client"/>
+                    <p class="text-muted">
+                        Add the documents you need the client to upload. Each line is one document.
+                        Clicking <strong>Send Mail</strong> will email the client a secure upload link.
+                    </p>
+                    <field name="doc_line_ids">
+                        <list editable="bottom">
+                            <field name="document_name" required="1"
+                                placeholder="e.g. Updated Passport Copy"/>
+                        </list>
+                    </field>
+                </sheet>
+                <footer>
+                    <button name="action_send_mail" type="object"
+                        string="Send Mail" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_aml_additional_docs_wizard" model="ir.actions.act_window">
+        <field name="name">Request Additional Documents</field>
+        <field name="res_model">aml.additional.docs.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_aml_additional_docs_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+
 </odoo>

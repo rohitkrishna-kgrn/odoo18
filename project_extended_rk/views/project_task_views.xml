@@ -52,8 +52,6 @@
                     <filter name="completed_this_year" string="Completed This Year" domain="[('completed_this_year', '=', True)]"/>
                 </group>
 
-                <!-- Optional: manual filter by completed_date -->
-                <field name="completed_date" string="Completed Date"/>
             </xpath>
         </field>
     </record>

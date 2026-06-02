@@ -2,6 +2,8 @@ from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 from datetime import timedelta
 import uuid
+import base64
+from io import BytesIO
 
 
 class AmlRequest(models.Model):
@@ -48,6 +50,7 @@ class AmlRequest(models.Model):
     # Signature / Declaration
     signature_data = fields.Binary(string='Client Signature', attachment=True)
     signatory_name = fields.Char(string='Signatory Name')
+    signatory_designation = fields.Char(string='Designation')
     signed_date = fields.Datetime(string='Signed On', readonly=True)
     accept_declaration = fields.Boolean(string='Declaration Accepted')
 
@@ -157,13 +160,17 @@ class AmlRequest(models.Model):
     ind_verified_portal = fields.Selection([('yes', 'Yes'), ('no', 'No')], string='Verified via Portal/Smart Pass/UAE Pass')
     ind_verified_physically = fields.Selection([('yes', 'Yes'), ('no', 'No')], string='Verified Physically by Staff')
     ind_video_kyc = fields.Selection([('yes', 'Yes'), ('no', 'No')], string='Video KYC Completed')
-    ind_purpose_of_relationship = fields.Text(string='Purpose of Account/Relationship')
+    ind_purpose_of_relationship = fields.Char(string='Purpose of Account/Relationship')
+    ind_purpose_of_relationship_other = fields.Char(string='Purpose of Relationship (Other)')
     ind_expected_transactions = fields.Text(string='Expected Nature of Transactions')
     ind_monthly_turnover = fields.Char(string='Expected Monthly Turnover/Transaction Value')
     ind_source_of_funds = fields.Text(string='Source of Funds/Income')
     ind_hold_shares_behalf = fields.Selection([('yes', 'Yes'), ('no', 'No')], string='Hold Shares on Behalf of Another')
     ind_high_risk_jurisdiction = fields.Selection([('yes', 'Yes'), ('no', 'No')], string='High-Risk Jurisdiction Association')
     ind_anticipated_origin = fields.Text(string='Anticipated Origin of Funds')
+    ind_dual_citizenship = fields.Selection([('yes', 'Yes'), ('no', 'No')], string='Citizen of More Than One Country')
+    ind_dual_citizenship_detail = fields.Text(string='Dual / Multiple Citizenship Details')
+    ind_high_net_worth = fields.Selection([('yes', 'Yes'), ('no', 'No')], string='High Net Worth Individual (≥ USD 15m)')
 
     # =========================================================================
     # UBO Fields
@@ -444,9 +451,10 @@ class AmlRequest(models.Model):
             'ind_emirates_id_attached', 'ind_passport_attached',
             'ind_proof_address_attached', 'ind_other_id_attached',
             'ind_verified_portal', 'ind_verified_physically', 'ind_video_kyc',
-            'ind_purpose_of_relationship', 'ind_expected_transactions',
+            'ind_purpose_of_relationship', 'ind_purpose_of_relationship_other', 'ind_expected_transactions',
             'ind_monthly_turnover', 'ind_source_of_funds', 'ind_hold_shares_behalf',
             'ind_high_risk_jurisdiction', 'ind_anticipated_origin',
+            'ind_dual_citizenship', 'ind_dual_citizenship_detail', 'ind_high_net_worth',
         ],
         'ubo': [
             'ubo_full_name', 'ubo_gender', 'ubo_nationality', 'ubo_date_of_birth',
@@ -556,6 +564,19 @@ class AmlRequest(models.Model):
             'type': 'ir.actions.act_window',
             'name': _('Request Additional Documents'),
             'res_model': 'aml.hit.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_request_id': self.id},
+        }
+
+    def action_additional_documents(self):
+        self.ensure_one()
+        if self.state != 'in_progress':
+            raise UserError(_("Request must be In Progress to request additional documents."))
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Request Additional Documents'),
+            'res_model': 'aml.additional.docs.wizard',
             'view_mode': 'form',
             'target': 'new',
             'context': {'default_request_id': self.id},
@@ -775,3 +796,25 @@ class AmlRequest(models.Model):
                 'email_to': user.email,
                 'author_id': self.env.user.partner_id.id,
             }).send()
+
+    def get_logo_white_jpeg(self):
+        """Composite company logo onto a white background and return as base64 JPEG.
+        JPEG has no alpha channel so transparent areas can never render as black.
+        Returns False if Pillow is unavailable so the caller can fall back."""
+        company = self.company_id or self.env.company
+        if not company.logo:
+            return False
+        try:
+            from PIL import Image as PILImage
+            logo_b64 = company.logo
+            if isinstance(logo_b64, bytes):
+                logo_b64 = logo_b64.decode('utf-8')
+            raw = base64.b64decode(logo_b64)
+            img = PILImage.open(BytesIO(raw)).convert('RGBA')
+            bg = PILImage.new('RGB', img.size, (255, 255, 255))
+            bg.paste(img, mask=img.split()[3])
+            out = BytesIO()
+            bg.save(out, format='JPEG', quality=95)
+            return base64.b64encode(out.getvalue())
+        except Exception:
+            return False

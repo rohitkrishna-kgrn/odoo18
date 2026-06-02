@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Access rules for the Additional Documents wizard models.
+        Kept in a separate file (loaded after ir.model.access.csv) so that
+        these records can be re-created by the post_init_hook / migration script
+        without touching the main CSV.
+    -->
+    <data noupdate="0">
+        <record id="access_aml_additional_docs_wizard_user" model="ir.model.access">
+            <field name="name">aml.additional.docs.wizard.user</field>
+            <field name="model_id" ref="aml_automation_extended_rk.model_aml_additional_docs_wizard"/>
+            <field name="group_id" ref="aml_automation_extended_rk.group_aml_user"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+        <record id="access_aml_additional_docs_wizard_line_user" model="ir.model.access">
+            <field name="name">aml.additional.docs.wizard.line.user</field>
+            <field name="model_id" ref="aml_automation_extended_rk.model_aml_additional_docs_wizard_line"/>
+            <field name="group_id" ref="aml_automation_extended_rk.group_aml_user"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+    </data>
+</odoo>

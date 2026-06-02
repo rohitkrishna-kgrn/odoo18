@@ -165,6 +165,18 @@ class ProjectTask(models.Model):
     team_member_ids = fields.Many2many('res.users', string='Team Members', required=True)
     allowed_user_ids = fields.Many2many('res.users', compute='_compute_allowed_users')
     task_budget = fields.Float(string="Task Budget")
+    state_additional = fields.Selection(
+        [
+            ('new', 'New'),
+            ('in_progress', 'In Progress'),
+            ('waiting_for_approval', 'Waiting for Approval'),
+            ('completed', 'Completed'),
+            ('cancelled', 'Cancelled'),
+        ],
+        string='Additional State',
+        default='new',
+        required=True,
+    )
     completed_date = fields.Datetime(string='Completed Date', readonly=True)
     completed_this_week = fields.Boolean(compute='_compute_completed_periods', store=True)
     completed_this_month = fields.Boolean(compute='_compute_completed_periods', store=True)
@@ -187,12 +199,6 @@ class ProjectTask(models.Model):
         readonly=True,
     )
     billable_type = fields.Selection([('billable', 'Billable'),('non_billable', 'Non-Billable')], string="Billing Type", default='billable')
-    state_additional = fields.Selection([
-        ('new', 'New'),
-        ('in_progress', 'In Progress'),
-        ('waiting_for_approval', 'Waiting for Approval'),
-        ('completed', 'Completed'),
-    ], string="Status", default='new', tracking=True)
 
     @api.depends('completed_date')
     def _compute_completed_periods(self):

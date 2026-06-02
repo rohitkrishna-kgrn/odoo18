@@ -13,18 +13,6 @@ logger = logging.getLogger(__name__)
 class ProjectTask(models.Model):
     _inherit = 'project.task'
 
-    state_additional = fields.Selection(
-        [
-            ('new', 'New'),
-            ('in_progress', 'In Progress'),
-            ('waiting_for_approval', 'Waiting for Approval'),
-            ('completed', 'Completed'),
-            ('cancelled', 'Cancelled'),
-        ],
-        string='Additional State',
-        default='new',
-        required=True,
-    )
     invoice_ids = fields.Many2many(
         'account.move',
         'project_task_invoice_rel',
@@ -35,7 +23,6 @@ class ProjectTask(models.Model):
     )
     user_id = fields.Many2one('res.users', string='Assigned to')
     auto_invoice = fields.Boolean(string='Auto Invoice', store=True, readonly=True)
-    completed_date = fields.Datetime(string='Completed Date', readonly=True)
     sale_line_id = fields.Many2one('sale.order.line', string='Sales Order Line')
 
     # ── Upcoming tasks: auto-cancel when created under a cancelled SO ─────────

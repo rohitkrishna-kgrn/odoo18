@@ -47,6 +47,10 @@
                         class="btn-danger"
                         invisible="state != 'in_progress'"
                         groups="aml_automation_extended_rk.group_aml_user"/>
+                    <button name="action_additional_documents" type="object" string="Additional Documents"
+                        class="btn-secondary"
+                        invisible="state != 'in_progress'"
+                        groups="aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_approve" type="object" string="Approve"
                         class="btn-success"
                         invisible="state != 'additional_info'"
@@ -231,12 +235,18 @@
                             </group>
                             <group string="Nature of Relationship">
                                 <field name="ind_purpose_of_relationship"/>
+                                <field name="ind_purpose_of_relationship_other"
+                                    invisible="ind_purpose_of_relationship != 'other'"/>
                                 <field name="ind_expected_transactions"/>
                                 <field name="ind_monthly_turnover"/>
                                 <field name="ind_source_of_funds"/>
                                 <field name="ind_hold_shares_behalf"/>
                                 <field name="ind_high_risk_jurisdiction"/>
                                 <field name="ind_anticipated_origin"/>
+                                <field name="ind_dual_citizenship"/>
+                                <field name="ind_dual_citizenship_detail"
+                                    invisible="ind_dual_citizenship != 'yes'"/>
+                                <field name="ind_high_net_worth"/>
                             </group>
                         </page>
 
@@ -354,6 +364,16 @@
                                 <field name="additional_submitted_date" readonly="1"/>
                                 <field name="additional_info_text" readonly="1" string="Client Notes"/>
                             </group>
+                            <separator string="Documents Submitted by Client"/>
+                            <field name="hit_document_ids" readonly="1">
+                                <list>
+                                    <field name="sequence" optional="hide"/>
+                                    <field name="document_name" string="Document"/>
+                                    <field name="submitted" string="Submitted"/>
+                                    <field name="attachment_ids" widget="many2many_tags"
+                                        string="Uploaded Files"/>
+                                </list>
+                            </field>
                         </page>
 
                     </notebook>

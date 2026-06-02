@@ -32,13 +32,43 @@ class SignaturePad {
     toDataURL() { return this.canvas.toDataURL('image/png'); }
 }
 
+/* ---- Countries List ---- */
+const COUNTRIES = [
+    'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina',
+    'Armenia','Australia','Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados',
+    'Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina',
+    'Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cabo Verde','Cambodia',
+    'Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia','Comoros',
+    'Congo (Republic)','Congo (Democratic Republic)','Costa Rica',"Côte d'Ivoire",'Croatia',
+    'Cuba','Cyprus','Czech Republic','Denmark','Djibouti','Dominica','Dominican Republic',
+    'Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini',
+    'Ethiopia','Fiji','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana',
+    'Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana','Haiti','Honduras',
+    'Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy',
+    'Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kuwait','Kyrgyzstan','Laos',
+    'Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg',
+    'Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands',
+    'Mauritania','Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia','Montenegro',
+    'Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal','Netherlands','New Zealand',
+    'Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan',
+    'Palau','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal',
+    'Qatar','Romania','Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia',
+    'Saint Vincent and the Grenadines','Samoa','San Marino','Sao Tome and Principe',
+    'Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia',
+    'Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan',
+    'Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria','Taiwan',
+    'Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago',
+    'Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine','United Arab Emirates',
+    'United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Vatican City',
+    'Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'
+];
+
 /* ============================================================
    Main Form Controller
    ============================================================ */
 const amlForm = (function () {
 
     let currentPage = 0;
-    const TOTAL_PAGES = 7;
     let signaturePad = null;
     let kyc_type = 'entity';
     let accessToken = '';
@@ -46,9 +76,17 @@ const amlForm = (function () {
     let directorRows = [];
     let shareholderRows = [];
     let docLines = [];
+    let dirRowCounter = 0;
+    let shRowCounter = 0;
+    let supplierCountries = [];
+    let customerCountries = [];
 
-    // Page mapping index → element ID
-    const PAGE_IDS = ['page-0', null /*dynamic kyc*/, 'page-2', 'page-3', 'page-4', 'page-5', 'page-6'];
+    // Page sequences per KYC type
+    const ENTITY_PAGES    = ['page-0', 'page-1-entity',      'page-2', 'page-3', 'page-4', 'page-5', 'page-6'];
+    const INDIVIDUAL_PAGES = ['page-0', 'page-1-individual',  'page-5', 'page-6'];
+
+    function getPages()      { return kyc_type === 'entity' ? ENTITY_PAGES : INDIVIDUAL_PAGES; }
+    function totalPages()    { return getPages().length; }
 
     function init() {
         accessToken = (document.getElementById('aml-access-token') || {}).value || '';
@@ -78,15 +116,87 @@ const amlForm = (function () {
             signaturePad = new SignaturePad(canvas);
         }
 
-        // Show first page
-        showPage(0);
+        // Hide entity-only sidebar steps for individual KYC and renumber visible steps
+        if (kyc_type === 'individual') {
+            document.querySelectorAll('.aml-step[data-entity-only]').forEach(el => {
+                el.style.display = 'none';
+            });
+            let num = 1;
+            document.querySelectorAll('.aml-step').forEach(el => {
+                if (el.style.display === 'none') return;
+                const numEl = el.querySelector('.step-num');
+                if (numEl) numEl.textContent = num++;
+            });
+        }
+
+        // Populate country pickers
+        initCountryPickers();
+
+        // Restore saved field values from server
+        try {
+            const savedData = JSON.parse(document.getElementById('aml-saved-fields').textContent || '{}');
+            restoreFields(savedData);
+        } catch(e) {}
+
+        // Restore last visited page from localStorage, else start at page 0
+        const storageKey = 'aml_page_' + accessToken;
+        const savedPage = parseInt(localStorage.getItem(storageKey) || '0', 10);
+        showPage(isNaN(savedPage) ? 0 : Math.max(0, Math.min(savedPage, totalPages() - 1)));
+    }
+
+    // ---- Restore saved field values into form inputs ----
+    function restoreFields(data) {
+        if (!data || !Object.keys(data).length) return;
+        Object.entries(data).forEach(([name, value]) => {
+            if (value === null || value === undefined || value === false || value === '') return;
+            // Checkboxes (by name)
+            const cb = document.querySelector(`input[type="checkbox"][name="${name}"]`);
+            if (cb) { cb.checked = Boolean(value); return; }
+            // Radio buttons
+            const radios = document.querySelectorAll(`input[type="radio"][name="${name}"]`);
+            if (radios.length) {
+                radios.forEach(r => { r.checked = r.value === String(value); });
+                return;
+            }
+            // Text / textarea / date / select
+            const el = document.querySelector(`input[name="${name}"], textarea[name="${name}"], select[name="${name}"]`);
+            if (el) el.value = value;
+        });
+        // Country pickers (stored as "Country1, Country2, ...")
+        if (data.ent_top5_suppliers) {
+            supplierCountries = data.ent_top5_suppliers.split(', ').filter(Boolean);
+            renderCountryTags('supplier');
+            updateCountryHidden('supplier');
+        }
+        if (data.ent_top5_customers) {
+            customerCountries = data.ent_top5_customers.split(', ').filter(Boolean);
+            renderCountryTags('customer');
+            updateCountryHidden('customer');
+        }
+        // Declaration date fields (use id, not name)
+        if (data.director_declaration_date) {
+            const el = document.getElementById('director_declaration_date');
+            if (el) el.value = data.director_declaration_date;
+        }
+        if (data.shareholder_declaration_date) {
+            const el = document.getElementById('shareholder_declaration_date');
+            if (el) el.value = data.shareholder_declaration_date;
+        }
+        // Trigger conditional toggles
+        const idTypeEl = document.querySelector('select[name="ind_id_type"]');
+        if (idTypeEl && idTypeEl.value) toggleIdOther(idTypeEl.value);
+        const proofTypeEl = document.querySelector('select[name="ind_proof_address_type"]');
+        if (proofTypeEl && proofTypeEl.value) toggleProofOther(proofTypeEl.value);
+        const purposeEl = document.querySelector('select[name="ind_purpose_of_relationship"]');
+        if (purposeEl && purposeEl.value) togglePurposeOther(purposeEl.value);
+        const indDualEl = document.querySelector('input[name="ind_dual_citizenship"]:checked');
+        if (indDualEl) toggleIndDualCitizenship(indDualEl.value);
+        const dualEl = document.querySelector('input[name="ubo_dual_citizenship"]:checked');
+        if (dualEl) toggleEl('ubo-dual-detail', dualEl.value === 'yes');
     }
 
     // ---- Page Navigation ----
-    function getPageId(idx) {
-        if (idx === 1) return kyc_type === 'entity' ? 'page-1-entity' : 'page-1-individual';
-        return PAGE_IDS[idx];
-    }
+    function getPageId(idx) { return getPages()[idx] || null; }
 
     function showPage(idx) {
         // Hide all pages
@@ -95,20 +205,32 @@ const amlForm = (function () {
         const pageEl = document.getElementById(getPageId(idx));
         if (pageEl) { pageEl.classList.add('active'); pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 
-        // Update sidebar
-        document.querySelectorAll('.aml-step').forEach((el, i) => {
+        // Update sidebar — only count visible steps
+        let visibleIdx = 0;
+        document.querySelectorAll('.aml-step').forEach(el => {
+            if (el.style.display === 'none') return;
             el.classList.remove('active', 'done');
-            if (i < idx) el.classList.add('done');
-            else if (i === idx) el.classList.add('active');
+            if (visibleIdx < idx) el.classList.add('done');
+            else if (visibleIdx === idx) el.classList.add('active');
+            visibleIdx++;
         });
 
         // Progress bar
-        const pct = (idx / (TOTAL_PAGES - 1)) * 100;
+        const pct = (idx / (totalPages() - 1)) * 100;
         const bar = document.getElementById('aml-progress-bar');
         if (bar) bar.style.width = pct + '%';
 
-        // If review page – build review
-        if (idx === TOTAL_PAGES - 1) buildReview();
+        // If review page – build review and pre-fill today's date
+        if (getPageId(idx) === 'page-6') {
+            buildReview();
+            const signedOnEl = document.getElementById('signed_on');
+            if (signedOnEl && !signedOnEl.value) {
+                signedOnEl.value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        // Persist current page so refresh resumes here
+        if (accessToken) localStorage.setItem('aml_page_' + accessToken, idx);
 
         currentPage = idx;
     }
@@ -149,7 +271,21 @@ const amlForm = (function () {
     async function nextPage() {
         if (!validateCurrentPage()) return;
         await saveCurrentPage();
-        if (currentPage < TOTAL_PAGES - 1) showPage(currentPage + 1);
+        if (currentPage < totalPages() - 1) showPage(currentPage + 1);
+    }
+
+    async function savePage() {
+        const pageEl = document.getElementById(getPageId(currentPage));
+        const btn = pageEl ? pageEl.querySelector('.aml-btn-save') : null;
+        if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+        try {
+            await saveCurrentPage();
+            showToast('Progress saved successfully.', 'info');
+        } catch (e) {
+            showToast('Save failed: ' + e.message, 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = '&#10003; Save Progress'; }
+        }
     }
 
     function prevPage() {
@@ -177,15 +313,17 @@ const amlForm = (function () {
     }
 
     async function saveCurrentPage() {
-        if (currentPage === 3) return await saveDirectors();
-        if (currentPage === 4) return await saveShareholders();
-        if (currentPage === 5) return;  // documents saved on upload
-        if (currentPage === 6) return;  // submit handles this
+        const pageId = getPageId(currentPage);
+        if (pageId === 'page-3') return await saveDirectors();
+        if (pageId === 'page-4') return await saveShareholders();
+        if (pageId === 'page-5') return;  // documents saved on upload
+        if (pageId === 'page-6') return;  // submit handles this
 
         let page_key = '';
-        if (currentPage === 0) page_key = 'instructions';  // nothing to save
-        else if (currentPage === 1) page_key = kyc_type === 'entity' ? 'kyc_entity' : 'kyc_individual';
-        else if (currentPage === 2) page_key = 'ubo';
+        if (pageId === 'page-0')            page_key = 'instructions';
+        else if (pageId === 'page-1-entity')      page_key = 'kyc_entity';
+        else if (pageId === 'page-1-individual')  page_key = 'kyc_individual';
+        else if (pageId === 'page-2')             page_key = 'ubo';
 
         if (!page_key || page_key === 'instructions') return;
 
@@ -207,33 +345,71 @@ const amlForm = (function () {
     function addDirectorRow(prefill = null) {
         const tbody = document.getElementById('directors-tbody');
         if (!tbody) return;
-        const idx = tbody.rows.length + 1;
+        dirRowCounter++;
+        const rowId = 'dir-' + dirRowCounter;
+        const idx = tbody.querySelectorAll('tr.dir-main-row').length + 1;
         const d = prefill || {};
+
         const tr = document.createElement('tr');
+        tr.className = 'dir-main-row';
+        tr.dataset.rowId = rowId;
         tr.innerHTML = `
             <td>${idx}</td>
             <td><input type="text" name="dir_full_name" placeholder="Full Name" required value="${esc(d.full_name||'')}"/></td>
-            <td><input type="text" name="dir_position" placeholder="Director / Manager" value="${esc(d.position||'')}"/></td>
-            <td><input type="text" name="dir_nationality" placeholder="Nationality" value="${esc(d.nationality||'')}"/></td>
-            <td><input type="text" name="dir_id_passport" placeholder="ID / Passport" value="${esc(d.id_passport_no||'')}"/></td>
-            <td><input type="date" name="dir_appointment_date" value="${esc(d.appointment_date||'')}"/></td>
+            <td><input type="text" name="dir_position" placeholder="Director / Manager" required value="${esc(d.position||'')}"/></td>
+            <td><input type="text" name="dir_nationality" placeholder="Nationality" required value="${esc(d.nationality||'')}"/></td>
+            <td><input type="text" name="dir_id_passport" placeholder="ID / Passport" required value="${esc(d.id_passport_no||'')}"/></td>
+            <td><input type="date" name="dir_appointment_date" required value="${esc(d.appointment_date||'')}"/></td>
             <td><input type="date" name="dir_resignation_date" value="${esc(d.resignation_date||'')}"/></td>
             <td>
-                <select name="dir_status">
+                <select name="dir_status" required>
                     <option value="active" ${(d.status||'active')==='active'?'selected':''}>Active</option>
                     <option value="resigned" ${d.status==='resigned'?'selected':''}>Resigned</option>
                 </select>
             </td>
-            <td><button type="button" class="del-row-btn" onclick="this.closest('tr').remove(); renumberRows('directors-tbody');">✕</button></td>
+            <td><button type="button" class="del-row-btn" onclick="amlForm.removeDirectorRow('${rowId}')">✕</button></td>
         `;
         tbody.appendChild(tr);
+
+        // Document upload sub-row
+        const dtLabels = { passport: 'Passport Copy', proof_of_residence: 'Proof of Residence', emirates_id: 'Emirates ID' };
+        const docsHtml = ['passport', 'proof_of_residence', 'emirates_id'].map(dt => `
+            <div style="display:flex;flex-direction:column;gap:4px;min-width:140px;">
+                <span style="font-size:11px;color:#555;font-weight:600;">${dtLabels[dt]}</span>
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:500;color:#1565c0;">
+                    &#128206; Upload
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none;"
+                        onchange="amlForm.uploadDirectorDoc(this,'${rowId}','${dt}')"/>
+                </label>
+                <span id="dir-doc-status-${rowId}-${dt}" style="font-size:11px;color:#2e7d32;"></span>
+            </div>
+        `).join('');
+        const docsTr = document.createElement('tr');
+        docsTr.className = 'dir-docs-row';
+        docsTr.dataset.rowId = rowId;
+        docsTr.innerHTML = `
+            <td colspan="9" style="background:#f5f9ff;padding:8px 16px;border-top:none;">
+                <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+                    <span style="font-size:12px;font-weight:600;color:#555;padding-top:6px;white-space:nowrap;">Documents:</span>
+                    ${docsHtml}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(docsTr);
+    }
+
+    function removeDirectorRow(rowId) {
+        const tbody = document.getElementById('directors-tbody');
+        if (!tbody) return;
+        tbody.querySelectorAll('[data-row-id="' + rowId + '"]').forEach(tr => tr.remove());
+        window.renumberRows('directors-tbody');
     }
 
     async function saveDirectors() {
         const tbody = document.getElementById('directors-tbody');
         const rows = [];
         if (tbody) {
-            tbody.querySelectorAll('tr').forEach(tr => {
+            tbody.querySelectorAll('tr.dir-main-row').forEach(tr => {
                 rows.push({
                     full_name: val(tr, 'dir_full_name'),
                     position: val(tr, 'dir_position'),
@@ -255,45 +431,177 @@ const amlForm = (function () {
         } catch (e) { console.error(e); }
     }
 
+    async function uploadDirectorDoc(input, rowId, docType) {
+        if (!input.files || !input.files[0]) return;
+        const statusEl = document.getElementById('dir-doc-status-' + rowId + '-' + docType);
+        if (statusEl) statusEl.textContent = 'Uploading…';
+        const tbody = document.getElementById('directors-tbody');
+        let dirName = '';
+        let dirIdx = 1;
+        if (tbody) {
+            const mainRows = Array.from(tbody.querySelectorAll('tr.dir-main-row'));
+            const mainRow = mainRows.find(tr => tr.dataset.rowId === rowId);
+            if (mainRow) {
+                dirIdx = mainRows.indexOf(mainRow) + 1;
+                const nameInput = mainRow.querySelector('[name="dir_full_name"]');
+                if (nameInput) dirName = nameInput.value;
+            }
+        }
+        const fd = new FormData();
+        fd.append('access_token', accessToken);
+        fd.append('dir_index', String(dirIdx));
+        fd.append('dir_name', dirName);
+        fd.append('doc_type', docType);
+        fd.append('file', input.files[0]);
+        try {
+            const resp = await fetch('/aml/form/upload_director_doc', { method: 'POST', body: fd });
+            const result = await resp.json();
+            if (result.success) {
+                if (statusEl) statusEl.textContent = '✔ ' + result.filename;
+            } else {
+                if (statusEl) statusEl.textContent = 'Failed';
+                showToast('Upload failed: ' + (result.error || ''), 'error');
+            }
+        } catch (e) {
+            if (statusEl) statusEl.textContent = 'Error';
+            showToast('Upload error: ' + e.message, 'error');
+        }
+    }
+
     // ---- Shareholders Table ----
+    function _buildShDocItem(rowId, dt, label) {
+        return `
+            <div style="display:flex;flex-direction:column;gap:4px;min-width:160px;">
+                <span style="font-size:11px;color:#555;font-weight:600;">${label}</span>
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:500;color:#1565c0;">
+                    &#128206; Upload
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none;"
+                        onchange="amlForm.uploadShareholderDoc(this,'${rowId}','${dt}')"/>
+                </label>
+                <span id="sh-doc-status-${rowId}-${dt}" style="font-size:11px;color:#2e7d32;"></span>
+            </div>
+        `;
+    }
+
+    function _buildShDocsContent(rowId, shType) {
+        const IND = { passport: 'Passport Copy', proof_of_residence: 'Proof of Residence', emirates_id: 'Emirates ID' };
+        const CORP = { trade_license: 'Trade License', memorandum: 'Memorandum of Association / Articles of Association' };
+        let inner = '';
+        if (shType === 'individual') {
+            inner = Object.entries(IND).map(([dt, lbl]) => _buildShDocItem(rowId, dt, lbl)).join('');
+        } else if (shType === 'corporate') {
+            inner = Object.entries(CORP).map(([dt, lbl]) => _buildShDocItem(rowId, dt, lbl)).join('');
+        } else {
+            inner = '<span style="font-size:12px;color:#999;padding-top:6px;">Select a type above to see upload options.</span>';
+        }
+        return `<span style="font-size:12px;font-weight:600;color:#555;padding-top:6px;white-space:nowrap;">Documents:</span>${inner}`;
+    }
+
     function addShareholderRow(prefill = null) {
         const tbody = document.getElementById('shareholders-tbody');
         if (!tbody) return;
-        const idx = tbody.rows.length + 1;
+        shRowCounter++;
+        const rowId = 'sh-' + shRowCounter;
+        const idx = tbody.querySelectorAll('tr.sh-main-row').length + 1;
         const s = prefill || {};
+        const shType = s.shareholder_type || '';
+
         const tr = document.createElement('tr');
+        tr.className = 'sh-main-row';
+        tr.dataset.rowId = rowId;
         tr.innerHTML = `
             <td>${idx}</td>
             <td><input type="text" name="sh_name" placeholder="Shareholder Name" required value="${esc(s.shareholder_name||'')}"/></td>
-            <td><input type="text" name="sh_nationality" placeholder="Nationality" value="${esc(s.nationality||'')}"/></td>
+            <td><input type="text" name="sh_nationality" placeholder="Nationality" required value="${esc(s.nationality||'')}"/></td>
             <td>
-                <select name="sh_type">
+                <select name="sh_type" required onchange="amlForm.updateShareholderDocs('${rowId}', this.value)">
                     <option value="">– Select –</option>
-                    <option value="individual" ${s.shareholder_type==='individual'?'selected':''}>Individual</option>
-                    <option value="corporate" ${s.shareholder_type==='corporate'?'selected':''}>Corporate</option>
+                    <option value="individual" ${shType==='individual'?'selected':''}>Individual</option>
+                    <option value="corporate" ${shType==='corporate'?'selected':''}>Corporate</option>
                 </select>
             </td>
-            <td><input type="text" name="sh_passport" placeholder="Passport No." value="${esc(s.passport_no||'')}"/></td>
+            <td><input type="text" name="sh_passport" placeholder="Passport No. / Corp. Reg. No." required value="${esc(s.passport_no||'')}"/></td>
             <td>
-                <select name="sh_share_class">
+                <select name="sh_share_class" required>
                     <option value="">– –</option>
                     <option value="ordinary" ${s.share_class==='ordinary'?'selected':''}>Ordinary</option>
                     <option value="preference" ${s.share_class==='preference'?'selected':''}>Preference</option>
                 </select>
             </td>
-            <td><input type="number" name="sh_num_shares" min="0" value="${s.num_shares||0}" style="width:80px"/></td>
-            <td><input type="number" name="sh_pct" min="0" max="100" step="0.01" value="${s.percentage_holding||0}" style="width:70px"/></td>
-            <td><input type="date" name="sh_date_entry" value="${esc(s.date_of_entry||'')}"/></td>
-            <td><button type="button" class="del-row-btn" onclick="this.closest('tr').remove(); renumberRows('shareholders-tbody');">✕</button></td>
+            <td><input type="number" name="sh_num_shares" min="0" required value="${s.num_shares||0}" style="width:80px"/></td>
+            <td><input type="number" name="sh_pct" min="0" max="100" step="0.01" required value="${s.percentage_holding||0}" style="width:70px"/></td>
+            <td><input type="date" name="sh_date_entry" required value="${esc(s.date_of_entry||'')}"/></td>
+            <td><button type="button" class="del-row-btn" onclick="amlForm.removeShareholderRow('${rowId}')">✕</button></td>
         `;
         tbody.appendChild(tr);
+
+        const docsTr = document.createElement('tr');
+        docsTr.className = 'sh-docs-row';
+        docsTr.dataset.rowId = rowId;
+        docsTr.innerHTML = `
+            <td colspan="10" style="background:#f5f9ff;padding:8px 16px;border-top:none;">
+                <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;" id="sh-docs-content-${rowId}">
+                    ${_buildShDocsContent(rowId, shType)}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(docsTr);
+    }
+
+    function updateShareholderDocs(rowId, shType) {
+        const el = document.getElementById('sh-docs-content-' + rowId);
+        if (el) el.innerHTML = _buildShDocsContent(rowId, shType);
+    }
+
+    function removeShareholderRow(rowId) {
+        const tbody = document.getElementById('shareholders-tbody');
+        if (!tbody) return;
+        tbody.querySelectorAll('[data-row-id="' + rowId + '"]').forEach(tr => tr.remove());
+        window.renumberRows('shareholders-tbody');
+    }
+
+    async function uploadShareholderDoc(input, rowId, docType) {
+        if (!input.files || !input.files[0]) return;
+        const statusEl = document.getElementById('sh-doc-status-' + rowId + '-' + docType);
+        if (statusEl) statusEl.textContent = 'Uploading…';
+        const tbody = document.getElementById('shareholders-tbody');
+        let shName = '';
+        let shIdx = 1;
+        if (tbody) {
+            const mainRows = Array.from(tbody.querySelectorAll('tr.sh-main-row'));
+            const mainRow = mainRows.find(tr => tr.dataset.rowId === rowId);
+            if (mainRow) {
+                shIdx = mainRows.indexOf(mainRow) + 1;
+                const nameInput = mainRow.querySelector('[name="sh_name"]');
+                if (nameInput) shName = nameInput.value;
+            }
+        }
+        const fd = new FormData();
+        fd.append('access_token', accessToken);
+        fd.append('sh_index', String(shIdx));
+        fd.append('sh_name', shName);
+        fd.append('doc_type', docType);
+        fd.append('file', input.files[0]);
+        try {
+            const resp = await fetch('/aml/form/upload_shareholder_doc', { method: 'POST', body: fd });
+            const result = await resp.json();
+            if (result.success) {
+                if (statusEl) statusEl.textContent = '✔ ' + result.filename;
+            } else {
+                if (statusEl) statusEl.textContent = 'Failed';
+                showToast('Upload failed: ' + (result.error || ''), 'error');
+            }
+        } catch (e) {
+            if (statusEl) statusEl.textContent = 'Error';
+            showToast('Upload error: ' + e.message, 'error');
+        }
     }
 
     async function saveShareholders() {
         const tbody = document.getElementById('shareholders-tbody');
         const rows = [];
         if (tbody) {
-            tbody.querySelectorAll('tr').forEach(tr => {
+            tbody.querySelectorAll('tr.sh-main-row').forEach(tr => {
                 rows.push({
                     shareholder_name: val(tr, 'sh_name'),
                     nationality: val(tr, 'sh_nationality'),
@@ -534,12 +842,22 @@ const amlForm = (function () {
         // Validate review page
         const acceptBox = document.getElementById('accept_declaration');
         if (!acceptBox || !acceptBox.checked) {
-            showToast('Please read and accept the declaration.', 'error');
+            showToast('Please accept the declaration.', 'error');
             return;
         }
         const signatoryName = (document.getElementById('signatory_name') || {}).value || '';
         if (!signatoryName.trim()) {
             showToast('Please enter the signatory name.', 'error');
+            return;
+        }
+        const signedOn = (document.getElementById('signed_on') || {}).value || '';
+        if (!signedOn) {
+            showToast('Please enter the signed on date.', 'error');
+            return;
+        }
+        const signatoryDesignation = (document.getElementById('signatory_designation') || {}).value || '';
+        if (!signatoryDesignation.trim()) {
+            showToast('Please enter the designation.', 'error');
             return;
         }
         if (!signaturePad || signaturePad.isEmpty) {
@@ -555,6 +873,8 @@ const amlForm = (function () {
             const result = await jsonRpc('/aml/form/submit', {
                 access_token: accessToken,
                 signatory_name: signatoryName,
+                signatory_designation: signatoryDesignation,
+                signed_on: signedOn,
                 signature_data: sigData,
             });
             if (result && result.success) {
@@ -588,9 +908,79 @@ const amlForm = (function () {
         if (input) input.required = show;
     }
 
+    function togglePurposeOther(val) {
+        const wrap = document.getElementById('ind-purpose-other-wrap');
+        const input = document.getElementById('ind_purpose_of_relationship_other');
+        if (!wrap) return;
+        const show = val === 'other';
+        wrap.style.display = show ? '' : 'none';
+        if (input) input.required = show;
+    }
+
+    function toggleIndDualCitizenship(val) {
+        const wrap = document.getElementById('ind-dual-citizenship-wrap');
+        const input = document.getElementById('ind_dual_citizenship_detail');
+        if (!wrap) return;
+        const show = val === 'yes';
+        wrap.style.display = show ? '' : 'none';
+        if (input) input.required = show;
+    }
+
     function toggleEl(id, show) {
         const el = document.getElementById(id);
         if (el) el.style.display = show ? '' : 'none';
+    }
+
+    // ---- Country Picker ----
+    function initCountryPickers() {
+        ['supplier_country_select', 'customer_country_select', 'ubo_nationality', 'ubo_place_of_birth', 'ind_nationality', 'ind_place_of_birth'].forEach(id => {
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            COUNTRIES.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                sel.appendChild(opt);
+            });
+        });
+    }
+
+    function addCountry(type) {
+        const selId = type === 'supplier' ? 'supplier_country_select' : 'customer_country_select';
+        const sel = document.getElementById(selId);
+        if (!sel || !sel.value) { showToast('Please select a country first.', 'error'); return; }
+        const country = sel.value;
+        const arr = type === 'supplier' ? supplierCountries : customerCountries;
+        if (arr.includes(country)) { showToast(country + ' is already added.', 'error'); return; }
+        arr.push(country);
+        sel.value = '';
+        renderCountryTags(type);
+        updateCountryHidden(type);
+    }
+
+    function removeCountry(type, country) {
+        const arr = type === 'supplier' ? supplierCountries : customerCountries;
+        const idx = arr.indexOf(country);
+        if (idx > -1) arr.splice(idx, 1);
+        renderCountryTags(type);
+        updateCountryHidden(type);
+    }
+
+    function renderCountryTags(type) {
+        const tagsId = type === 'supplier' ? 'supplier_country_tags' : 'customer_country_tags';
+        const container = document.getElementById(tagsId);
+        if (!container) return;
+        const arr = type === 'supplier' ? supplierCountries : customerCountries;
+        container.innerHTML = arr.map(c =>
+            `<span class="aml-country-tag">${esc(c)}<button type="button" class="aml-country-tag-remove" onclick="amlForm.removeCountry('${type}','${esc(c)}')" title="Remove">&#x2715;</button></span>`
+        ).join('');
+    }
+
+    function updateCountryHidden(type) {
+        const hiddenId = type === 'supplier' ? 'ent_top5_suppliers_val' : 'ent_top5_customers_val';
+        const hidden = document.getElementById(hiddenId);
+        const arr = type === 'supplier' ? supplierCountries : customerCountries;
+        if (hidden) hidden.value = arr.join(', ');
     }
 
     // ---- Helpers ----
@@ -640,7 +1030,7 @@ const amlForm = (function () {
     }
 
     // Public API
-    return { init, nextPage, prevPage, addDirectorRow, addShareholderRow, handleDocUpload, clearSignature, switchSigTab, uploadSignatureImage, submitForm, toggleIdOther, toggleProofOther, toggleEl };
+    return { init, nextPage, prevPage, savePage, addDirectorRow, removeDirectorRow, addShareholderRow, removeShareholderRow, updateShareholderDocs, uploadShareholderDoc, handleDocUpload, clearSignature, switchSigTab, uploadSignatureImage, submitForm, toggleIdOther, toggleProofOther, togglePurposeOther, toggleIndDualCitizenship, toggleEl, addCountry, removeCountry, uploadDirectorDoc };
 
 })();
 
@@ -792,10 +1182,12 @@ window.amlAdditional = amlAdditional;
 window.renumberRows = function(tbodyId) {
     const tbody = document.getElementById(tbodyId);
     if (!tbody) return;
-    tbody.querySelectorAll('tr').forEach((tr, i) => {
+    let num = 1;
+    tbody.querySelectorAll('tr').forEach(tr => {
+        if (tr.classList.contains('dir-docs-row') || tr.classList.contains('sh-docs-row')) return;
         const firstTd = tr.querySelector('td:first-child');
         if (firstTd && !firstTd.querySelector('input') && !firstTd.querySelector('select')) {
-            firstTd.textContent = i + 1;
+            firstTd.textContent = num++;
         }
     });
 };
