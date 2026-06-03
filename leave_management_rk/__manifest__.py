@@ -17,6 +17,7 @@
         'views/hr_leave_balance_views.xml',
         'views/manager_reject_wizard_views.xml',
         'views/team_approval_views.xml',
+        'views/hr_attendance_inherit_views.xml',
         'views/menu.xml',
         'views/wizard.xml',
     ],

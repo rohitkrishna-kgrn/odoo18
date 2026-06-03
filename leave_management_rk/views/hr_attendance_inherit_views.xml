@@ -1,0 +1,38 @@
+<odoo>
+    <!-- Add login status and Dubai time fields to attendance form view -->
+    <record id="view_hr_attendance_form_login_status" model="ir.ui.view">
+        <field name="name">hr.attendance.form.login.status</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.hr_attendance_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <field name="is_late_login" invisible="1"/>
+                <div class="alert alert-danger" role="alert"
+                     invisible="not is_late_login">
+                    <strong>Late Login:</strong> 0.5 day salary deduction will be applied for this attendance.
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='check_in']" position="after">
+                <field name="check_in_dubai" readonly="1" invisible="not check_in_dubai"/>
+            </xpath>
+            <xpath expr="//field[@name='worked_hours']" position="after">
+                <field name="login_status" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Add login status and Dubai time columns to attendance list view -->
+    <record id="view_hr_attendance_tree_login_status" model="ir.ui.view">
+        <field name="name">hr.attendance.tree.login.status</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.view_attendance_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='check_in']" position="after">
+                <field name="check_in_dubai" readonly="1"/>
+            </xpath>
+            <xpath expr="//field[@name='worked_hours']" position="after">
+                <field name="login_status" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

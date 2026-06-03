@@ -53,6 +53,16 @@
             <field name="amount_python_compute">total_days = worked_days.WORK100.number_of_days if worked_days.WORK100 else 0.0; worked_days_count = worked_days.PRESENT.number_of_days if worked_days.PRESENT else 0.0; paid_leaves = worked_days.LEAVE.number_of_days if worked_days.LEAVE else 0.0; sundays = worked_days.SUNDAY.number_of_days if worked_days.SUNDAY else 0.0; public_holidays = worked_days.PH.number_of_days if worked_days.PH else 0.0; lop_days = total_days - (worked_days_count + paid_leaves + sundays + public_holidays); result = -(contract.wage / total_days) * lop_days if total_days else 0.0</field>
         </record>
 
+        <record id="hr_rule_late_login_deduction" model="hr.salary.rule">
+            <field name="name">Late Login Deduction</field>
+            <field name="sequence" eval="101"/>
+            <field name="code">LATE_LOGIN_DED</field>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">total_days = worked_days.WORK100.number_of_days if worked_days.WORK100 else 0.0; late_days = worked_days.LATE_DEDUCT.number_of_days if worked_days.LATE_DEDUCT else 0.0; result = -(contract.wage / total_days) * late_days if total_days else 0.0</field>
+        </record>
+
 <!--        <record id="hr_rule_unpaid" model="hr.salary.rule">-->
 <!--            <field name="name">Unpaid Leave</field>-->
 <!--            <field name="sequence" eval="100"/>-->

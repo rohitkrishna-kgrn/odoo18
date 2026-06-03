@@ -315,7 +315,6 @@ class HrPayslip(models.Model):
                 )
                 number_of_hours = number_of_days * 8
 
-
             worked_days.append({
                 'name': 'Present (Attendance)',
                 'sequence': 30,
@@ -324,6 +323,39 @@ class HrPayslip(models.Model):
                 'number_of_hours': number_of_hours,
                 'contract_id': contract.id,
             })
+
+            # 3b. Late Login Deduction (0.5 day per late check-in, Asia/Dubai time)
+            _DUBAI_TZ = timezone('Asia/Dubai')
+            late_login_count = 0
+            for att in attendance_records:
+                if not att.check_in:
+                    continue
+                check_in_dubai = att.check_in.replace(tzinfo=UTC).astimezone(_DUBAI_TZ)
+                deadline = check_in_dubai.replace(hour=8, minute=50, second=0, microsecond=0)
+                if check_in_dubai <= deadline:
+                    continue
+                date_worked = check_in_dubai.date()
+                permissions = LeaveRequest.search([
+                    ('user_id', '=', user.id),
+                    ('state', '=', 'approved'),
+                    ('leave_type_id.is_permission', '=', True),
+                    ('start_date', '=', date_worked),
+                ])
+                permission_hours = sum(permissions.mapped('hours_requested'))
+                extended_deadline = deadline + timedelta(hours=permission_hours)
+                if check_in_dubai > extended_deadline:
+                    late_login_count += 1
+
+            if late_login_count:
+                late_deduct_days = late_login_count * 0.5
+                worked_days.append({
+                    'name': 'Late Login Deduction',
+                    'sequence': 35,
+                    'code': 'LATE_DEDUCT',
+                    'number_of_days': late_deduct_days,
+                    'number_of_hours': late_deduct_days * 8,
+                    'contract_id': contract.id,
+                })
 
             # 4. Sundays in Period
             worked_days.append({
@@ -977,7 +1009,6 @@ class HrPayslipRun(models.Model):
             )
             number_of_hours = number_of_days * 8
 
-
         worked_days.append({
             'name': 'Present (Attendance)',
             'sequence': 30,
@@ -986,6 +1017,39 @@ class HrPayslipRun(models.Model):
             'number_of_hours': number_of_hours,
             'contract_id': contract.id,
         })
+
+        # 3b. Late Login Deduction (0.5 day per late check-in, Asia/Dubai time)
+        _DUBAI_TZ = timezone('Asia/Dubai')
+        late_login_count = 0
+        for att in attendance_records:
+            if not att.check_in:
+                continue
+            check_in_dubai = att.check_in.replace(tzinfo=UTC).astimezone(_DUBAI_TZ)
+            deadline = check_in_dubai.replace(hour=8, minute=50, second=0, microsecond=0)
+            if check_in_dubai <= deadline:
+                continue
+            date_worked = check_in_dubai.date()
+            permissions = LeaveRequest.search([
+                ('user_id', '=', user.id),
+                ('state', '=', 'approved'),
+                ('leave_type_id.is_permission', '=', True),
+                ('start_date', '=', date_worked),
+            ])
+            permission_hours = sum(permissions.mapped('hours_requested'))
+            extended_deadline = deadline + timedelta(hours=permission_hours)
+            if check_in_dubai > extended_deadline:
+                late_login_count += 1
+
+        if late_login_count:
+            late_deduct_days = late_login_count * 0.5
+            worked_days.append({
+                'name': 'Late Login Deduction',
+                'sequence': 35,
+                'code': 'LATE_DEDUCT',
+                'number_of_days': late_deduct_days,
+                'number_of_hours': late_deduct_days * 8,
+                'contract_id': contract.id,
+            })
 
         # 4. Sundays in Period
         worked_days.append({
