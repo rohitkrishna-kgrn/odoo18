@@ -136,6 +136,7 @@ const amlForm = (function () {
         try {
             const savedData = JSON.parse(document.getElementById('aml-saved-fields').textContent || '{}');
             restoreFields(savedData);
+            Object.assign(formData, savedData);
         } catch(e) {}
 
         // Restore last visited page from localStorage, else start at page 0
@@ -265,6 +266,25 @@ const amlForm = (function () {
             if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
             showToast('Please fill in all required fields.', 'error');
         }
+
+        // Mandatory document upload check on page-5
+        if (valid && getPageId(currentPage) === 'page-5') {
+            const ANY_ONE_KEYS = ['cert_incumbency'];
+            const missing = docLines.filter(doc => {
+                if (!doc.is_mandatory) return false;
+                if (ANY_ONE_KEYS.includes(doc.doc_key)) return false;
+                const el = document.getElementById('doc-item-' + doc.id);
+                return el && !el.classList.contains('uploaded');
+            });
+            if (missing.length > 0) {
+                const names = missing.map(d => d.doc_name).join(', ');
+                showToast('Please upload all mandatory documents before proceeding: ' + names, 'error');
+                const firstMissing = document.getElementById('doc-item-' + missing[0].id);
+                if (firstMissing) firstMissing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+        }
+
         return valid;
     }
 
@@ -715,15 +735,67 @@ const amlForm = (function () {
                     'Legal Type': formData['ent_legal_type'],
                     'Trading Name': formData['ent_trading_name'],
                     'Date of Incorporation': formData['ent_date_of_incorporation'],
-                    'Registration Number': formData['ent_license_number'],
+                    'Place of Incorporation': formData['ent_place_of_incorporation'],
+                    'Registration Authority': formData['ent_registration_authority'],
+                    'License Number': formData['ent_license_number'],
                     'License Expiry': formData['ent_license_expiry'],
                     'Registered Address': formData['ent_registered_address'],
                     'Business Address': formData['ent_business_address'],
                     'Industry Type': formData['ent_industry_type'],
-                    'Nature of Business': formData['ent_nature_of_business'],
+                    'List of Business Activities': formData['ent_nature_of_business'],
+                    'Source of Wealth': formData['ent_source_of_wealth'],
+                    'Ownership Complexity': formData['ent_ownership_complexity'],
+                    'Cash Payment Transactions': formData['ent_countries_commercial'],
+                    'High-Risk Jurisdiction': formData['ent_high_risk_jurisdiction'],
+                    'Channel – Cash': formData['ent_channel_cash'] ? 'Yes' : '',
+                    'Channel – Wire Transfer': formData['ent_channel_wire'] ? 'Yes' : '',
+                    'Channel – Cheque': formData['ent_channel_cheque'] ? 'Yes' : '',
+                    'Channel – Credit Card': formData['ent_channel_credit'] ? 'Yes' : '',
+                    'Channel – Crypto': formData['ent_channel_crypto'] ? 'Yes' : '',
+                    'Channel – Debit Card': formData['ent_channel_debit'] ? 'Yes' : '',
+                    'Cash Payment < AED 50K': formData['ent_cash_less_50k'] ? 'Yes' : '',
+                    'Cash Payment > AED 50K': formData['ent_cash_more_50k'] ? 'Yes' : '',
+                    'Cash Payment N/A': formData['ent_cash_na'] ? 'Yes' : '',
+                    'Top 5 Suppliers': formData['ent_top5_suppliers'],
+                    'Top 5 Customers': formData['ent_top5_customers'],
                     'Contact Person': formData['ent_contact_name'],
+                    'Contact Designation': formData['ent_contact_designation'],
                     'Contact Email': formData['ent_contact_email'],
                     'Contact Mobile': formData['ent_contact_mobile'],
+                    'Manager Name as per License': formData['ent_manager_name'],
+                    'Parent Company / Head Office': formData['ent_parent_company_name'],
+                    'Parent Company Address': formData['ent_parent_company_address'],
+                    'Subject to International Sanctions': formData['ent_international_sanctions'],
+                    'PEP – Shareholder': formData['ent_pep_shareholder'],
+                    'PEP – Director': formData['ent_pep_director'],
+                    'PEP – Owner / Partner': formData['ent_pep_owner'],
+                    'PEP – Local Sponsor': formData['ent_pep_local_sponsor'],
+                    'PEP – Key Management': formData['ent_pep_key_management'],
+                    'PEP – Officer': formData['ent_pep_officer'],
+                    'PEP – Agent': formData['ent_pep_agent'],
+                },
+            });
+
+            sections.push({
+                title: 'UBO',
+                fields: {
+                    'Full Name': formData['ubo_full_name'],
+                    'Gender': formData['ubo_gender'],
+                    'Nationality': formData['ubo_nationality'],
+                    'Date of Birth': formData['ubo_date_of_birth'],
+                    'Place of Birth': formData['ubo_place_of_birth'],
+                    'Dual Citizenship': formData['ubo_dual_citizenship'],
+                    'Source of Income': formData['ubo_source_of_income'],
+                    'Holds Shares on Behalf of Another': formData['ubo_hold_shares_behalf'],
+                    'High-Risk Jurisdiction': formData['ubo_high_risk_jurisdiction'],
+                    'Home Country Address': formData['ubo_home_country_address'],
+                    'UAE Address': formData['ubo_uae_address'],
+                    'Mobile': formData['ubo_mobile'],
+                    'Email': formData['ubo_email'],
+                    'High Net Worth Individual': formData['ubo_high_net_worth'],
+                    'Bank Name': formData['ubo_bank_name'],
+                    'Bank Branch Address': formData['ubo_bank_branch_address'],
+                    'IBAN / Account Number': formData['ubo_iban'],
                 },
             });
         } else {
@@ -734,25 +806,31 @@ const amlForm = (function () {
                     'Gender': formData['ind_gender'],
                     'Nationality': formData['ind_nationality'],
                     'Date of Birth': formData['ind_date_of_birth'],
+                    'Place of Birth': formData['ind_place_of_birth'],
                     'ID Type': formData['ind_id_type'],
                     'ID Number': formData['ind_id_number'],
-                    'Email': formData['ind_email'],
+                    'Issuing Country': formData['ind_issuing_country'],
+                    'Valid Until': formData['ind_valid_until'],
+                    'Permanent Address': formData['ind_permanent_address'],
+                    'UAE Address': formData['ind_uae_address'],
+                    'City': formData['ind_city'],
+                    'Country': formData['ind_country'],
                     'Mobile': formData['ind_mobile'],
+                    'Email': formData['ind_email'],
+                    'Proof of Address Type': formData['ind_proof_address_type'],
+                    'Document Date': formData['ind_document_date'],
+                    'Purpose of Relationship': formData['ind_purpose_of_relationship'],
+                    'Expected Transactions': formData['ind_expected_transactions'],
+                    'Monthly Turnover': formData['ind_monthly_turnover'],
+                    'Source of Funds': formData['ind_source_of_funds'],
+                    'Holds Shares on Behalf of Another': formData['ind_hold_shares_behalf'],
+                    'High-Risk Jurisdiction': formData['ind_high_risk_jurisdiction'],
+                    'Anticipated Origin of Funds': formData['ind_anticipated_origin'],
+                    'Dual Citizenship': formData['ind_dual_citizenship'],
+                    'High Net Worth Individual': formData['ind_high_net_worth'],
                 },
             });
         }
-
-        sections.push({
-            title: 'UBO',
-            fields: {
-                'Full Name': formData['ubo_full_name'],
-                'Nationality': formData['ubo_nationality'],
-                'Date of Birth': formData['ubo_date_of_birth'],
-                'Source of Income': formData['ubo_source_of_income'],
-                'Bank': formData['ubo_bank_name'],
-                'IBAN': formData['ubo_iban'],
-            },
-        });
 
         let html = '';
         sections.forEach(sec => {
@@ -839,6 +917,28 @@ const amlForm = (function () {
 
     // ---- Final Submit ----
     async function submitForm() {
+        // Check mandatory documents are uploaded before submitting
+        const ANY_ONE_KEYS = ['cert_incumbency'];
+        const missingDocs = docLines.filter(doc => {
+            if (!doc.is_mandatory) return false;
+            if (ANY_ONE_KEYS.includes(doc.doc_key)) return false;
+            const el = document.getElementById('doc-item-' + doc.id);
+            return el && !el.classList.contains('uploaded');
+        });
+        if (missingDocs.length > 0) {
+            const names = missingDocs.map(d => '• ' + d.doc_name).join('\n');
+            showToast(
+                'Please attach the following mandatory documents before submitting:\n' + names,
+                'error'
+            );
+            // Navigate to the documents page so the user can upload
+            const docPageIdx = getPages().indexOf('page-5');
+            if (docPageIdx !== -1) showPage(docPageIdx);
+            const firstEl = document.getElementById('doc-item-' + missingDocs[0].id);
+            if (firstEl) firstEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
         // Validate review page
         const acceptBox = document.getElementById('accept_declaration');
         if (!acceptBox || !acceptBox.checked) {
@@ -1056,16 +1156,14 @@ const amlAdditional = (function () {
         container.innerHTML = '';
         hitDocs.forEach((doc, i) => {
             const div = document.createElement('div');
-            div.className = 'aml-doc-item' + (doc.submitted ? ' uploaded' : '');
+            div.className = 'aml-doc-item';
             div.id = 'hit-doc-item-' + doc.id;
             div.innerHTML = `
                 <div class="aml-doc-num">${i + 1}</div>
                 <div class="aml-doc-info">
                     <span class="aml-doc-name">${esc(doc.document_name)}</span>
                     <span class="aml-doc-badge mandatory">Required</span>
-                    <div id="hit-doc-names-${doc.id}">
-                        ${doc.submitted ? '<div class="aml-doc-uploaded-names">✔ Previously uploaded</div>' : ''}
-                    </div>
+                    <div id="hit-doc-names-${doc.id}"></div>
                 </div>
                 <div class="aml-doc-upload-btn">
                     <label>
@@ -1073,9 +1171,7 @@ const amlAdditional = (function () {
                         <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                             onchange="amlAdditional.handleUpload(this, ${doc.id})"/>
                     </label>
-                    <span class="aml-upload-status" id="hit-doc-status-${doc.id}">
-                        ${doc.submitted ? '✔ Uploaded' : ''}
-                    </span>
+                    <span class="aml-upload-status" id="hit-doc-status-${doc.id}"></span>
                 </div>
             `;
             container.appendChild(div);
@@ -1112,6 +1208,19 @@ const amlAdditional = (function () {
     }
 
     async function submit() {
+        // Validate all required documents are uploaded in this session
+        const missingDocs = hitDocs.filter(doc => {
+            const el = document.getElementById('hit-doc-item-' + doc.id);
+            return el && !el.classList.contains('uploaded');
+        });
+        if (missingDocs.length > 0) {
+            const names = missingDocs.map(d => '• ' + d.document_name).join('\n');
+            showToast('Please attach the following required documents before submitting:\n' + names, 'error');
+            const firstEl = document.getElementById('hit-doc-item-' + missingDocs[0].id);
+            if (firstEl) firstEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
         const notes = (document.getElementById('additional-notes') || {}).value || '';
         const overlay = document.getElementById('aml-loading-overlay');
         if (overlay) overlay.style.display = 'flex';

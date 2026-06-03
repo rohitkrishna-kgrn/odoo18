@@ -118,11 +118,33 @@ class AmlRequestDocument(models.Model):
         for rec in self:
             rec.tooltip = self.PI_TOOLTIPS.get(rec.doc_key, '')
 
+    def action_download_attachments(self):
+        self.ensure_one()
+        attachments = self.attachment_ids
+        if not attachments:
+            return
+        if len(attachments) == 1:
+            return {
+                'type': 'ir.actions.act_url',
+                'url': '/web/content/%s?download=true' % attachments.id,
+                'target': 'new',
+            }
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Files – %s' % self.doc_name,
+            'res_model': 'ir.attachment',
+            'view_mode': 'list',
+            'views': [(self.env.ref('aml_automation_extended_rk.view_aml_attachment_list').id, 'list')],
+            'domain': [('id', 'in', attachments.ids)],
+            'target': 'new',
+            'context': {'create': False, 'delete': False},
+        }
+
 
 class AmlHitDocument(models.Model):
     _name = 'aml.hit.document'
     _description = 'AML HIT – Additional Document Request'
-    _order = 'sequence'
+    _order = 'sequence asc, id asc'
 
     request_id = fields.Many2one('aml.request', string='AML Request', ondelete='cascade', required=True)
     sequence = fields.Integer(default=10)

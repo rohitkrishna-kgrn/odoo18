@@ -137,7 +137,7 @@
                                 <tr style="background:#f5f5f5;">
                                     <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Industry Type</td>
                                     <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_industry_type or ''"/></td>
-                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Nature of Business</td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Business Activities (as per license)</td>
                                     <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_nature_of_business or ''"/></td>
                                 </tr>
                                 <tr>
@@ -147,13 +147,13 @@
                                 <tr style="background:#f5f5f5;">
                                     <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Ownership Complexity</td>
                                     <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_ownership_complexity.capitalize() if o.ent_ownership_complexity else ''"/></td>
-                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">High-Risk Jurisdiction</td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">High-Risk Jurisdiction (Iran/DPRK/Myanmar)</td>
                                     <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_high_risk_jurisdiction.capitalize() if o.ent_high_risk_jurisdiction else ''"/></td>
                                 </tr>
                                 <tr>
                                     <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Int'l Sanctions</td>
                                     <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_international_sanctions.capitalize() if o.ent_international_sanctions else ''"/></td>
-                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Countries (Commercial)</td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Cash Payment Transactions</td>
                                     <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_countries_commercial or ''"/></td>
                                 </tr>
                                 <tr style="background:#f5f5f5;">
@@ -186,14 +186,20 @@
                                 <tr>
                                     <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Contact Name</td>
                                     <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_contact_name or ''"/></td>
-                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Contact Email</td>
-                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_contact_email or ''"/></td>
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Contact Designation</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_contact_designation or ''"/></td>
                                 </tr>
                                 <tr style="background:#f5f5f5;">
+                                    <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Contact Email</td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_contact_email or ''"/></td>
                                     <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Contact Mobile</td>
                                     <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_contact_mobile or ''"/></td>
+                                </tr>
+                                <tr>
                                     <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Manager Name</td>
                                     <td style="padding:5px 8px; border:1px solid #ddd;"><t t-esc="o.ent_manager_name or ''"/></td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"></td>
+                                    <td style="padding:5px 8px; border:1px solid #ddd;"></td>
                                 </tr>
                                 <tr>
                                     <td style="padding:5px 8px; font-weight:bold; border:1px solid #ddd;">Parent Company</td>

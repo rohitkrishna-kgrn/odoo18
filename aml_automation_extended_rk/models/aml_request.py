@@ -78,14 +78,14 @@ class AmlRequest(models.Model):
     ent_registered_address = fields.Text(string='Registered Address')
     ent_business_address = fields.Text(string='Place of Business Address')
     ent_industry_type = fields.Char(string='Industry Type')
-    ent_nature_of_business = fields.Text(string='Nature of Business')
+    ent_nature_of_business = fields.Text(string='List of business activities as per license')
     ent_source_of_wealth = fields.Text(string='Source of Wealth')
     ent_ownership_complexity = fields.Selection(
         [('yes', 'Yes'), ('no', 'No')], string='Ownership Structure Complexity'
     )
-    ent_countries_commercial = fields.Text(string='Countries of Commercial Activities')
+    ent_countries_commercial = fields.Text(string='Is the business is involved in cash payment transactions?')
     ent_high_risk_jurisdiction = fields.Selection(
-        [('yes', 'Yes'), ('no', 'No')], string='High-Risk Jurisdiction Association'
+        [('yes', 'Yes'), ('no', 'No')], string='Is the business is involved in high-risk jurisdiction? (Iran, DPRK - North Korea, Myanmar)'
     )
     # Channel of transaction
     ent_channel_cash = fields.Boolean(string='Cash')
@@ -102,6 +102,7 @@ class AmlRequest(models.Model):
     ent_top5_customers = fields.Text(string='Top 5 Customers Countries')
     # Contact
     ent_contact_name = fields.Char(string='Contact Person Name')
+    ent_contact_designation = fields.Char(string='Contact Person Designation')
     ent_contact_email = fields.Char(string='Contact Person Email')
     ent_contact_mobile = fields.Char(string='Contact Person Mobile')
     ent_manager_name = fields.Char(string='Manager Name as per License')
@@ -109,7 +110,7 @@ class AmlRequest(models.Model):
     ent_parent_company_name = fields.Char(string='Parent Company/Head Office Name')
     ent_parent_company_address = fields.Text(string='Parent Company/Head Office Address')
     ent_international_sanctions = fields.Selection(
-        [('yes', 'Yes'), ('no', 'No')], string='Subject to International Sanctions'
+        [('yes', 'Yes'), ('no', 'No')], string='Is the business subject to sanction from United Nations, United Arab Emirates, DFAC and UK Sanctions'
     )
     # PEP
     ent_pep_shareholder = fields.Selection([('yes', 'Yes'), ('no', 'No')], string='PEP - Shareholder')
@@ -201,9 +202,19 @@ class AmlRequest(models.Model):
     # =========================================================================
     director_line_ids = fields.One2many('aml.request.director', 'request_id', string='Directors / Managers')
     director_declaration_date = fields.Date(string='Directors Register – As of Date')
+    director_attachment_ids = fields.Many2many(
+        'ir.attachment',
+        compute='_compute_director_attachments',
+        string='Director / Manager Documents',
+    )
 
     shareholder_line_ids = fields.One2many('aml.request.shareholder', 'request_id', string='Shareholders')
     shareholder_declaration_date = fields.Date(string='Shareholder Register – As of Date')
+    shareholder_attachment_ids = fields.Many2many(
+        'ir.attachment',
+        compute='_compute_shareholder_attachments',
+        string='Shareholder Documents',
+    )
 
     document_line_ids = fields.One2many('aml.request.document', 'request_id', string='PI Documents')
     hit_document_ids = fields.One2many('aml.hit.document', 'request_id', string='HIT Document Requests')
@@ -218,6 +229,24 @@ class AmlRequest(models.Model):
     # =========================================================================
     # Computed
     # =========================================================================
+    def _compute_director_attachments(self):
+        Attachment = self.env['ir.attachment']
+        for rec in self:
+            rec.director_attachment_ids = Attachment.search([
+                ('res_model', '=', 'aml.request'),
+                ('res_id', '=', rec.id),
+                ('name', '=like', 'Director %'),
+            ])
+
+    def _compute_shareholder_attachments(self):
+        Attachment = self.env['ir.attachment']
+        for rec in self:
+            rec.shareholder_attachment_ids = Attachment.search([
+                ('res_model', '=', 'aml.request'),
+                ('res_id', '=', rec.id),
+                ('name', '=like', 'Shareholder %'),
+            ])
+
     def _compute_user_flags(self):
         is_mgr = self.env.user.has_group('aml_automation_extended_rk.group_aml_manager')
         is_usr = self.env.user.has_group('aml_automation_extended_rk.group_aml_user')
@@ -436,7 +465,7 @@ class AmlRequest(models.Model):
             'ent_channel_credit', 'ent_channel_crypto', 'ent_channel_debit',
             'ent_cash_less_50k', 'ent_cash_more_50k', 'ent_cash_na',
             'ent_top5_suppliers', 'ent_top5_customers',
-            'ent_contact_name', 'ent_contact_email', 'ent_contact_mobile',
+            'ent_contact_name', 'ent_contact_designation', 'ent_contact_email', 'ent_contact_mobile',
             'ent_manager_name', 'ent_parent_company_name', 'ent_parent_company_address',
             'ent_international_sanctions',
             'ent_pep_shareholder', 'ent_pep_director', 'ent_pep_owner',

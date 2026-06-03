@@ -92,6 +92,7 @@ class AmlPortalController(http.Controller):
             'ent_top5_suppliers': s(aml.ent_top5_suppliers),
             'ent_top5_customers': s(aml.ent_top5_customers),
             'ent_contact_name': s(aml.ent_contact_name),
+            'ent_contact_designation': s(aml.ent_contact_designation),
             'ent_contact_email': s(aml.ent_contact_email),
             'ent_contact_mobile': s(aml.ent_contact_mobile),
             'ent_manager_name': s(aml.ent_manager_name),
@@ -412,7 +413,7 @@ class AmlPortalController(http.Controller):
             'id': d.id,
             'document_name': d.document_name,
             'submitted': d.submitted,
-        } for d in aml.hit_document_ids]
+        } for d in aml.hit_document_ids if not d.submitted]
 
         base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url')
         logo_url = '%s/web/image/res.company/%s/logo' % (base_url, aml.company_id.id)

@@ -176,6 +176,7 @@
                             </group>
                             <group string="Contact Person">
                                 <field name="ent_contact_name"/>
+                                <field name="ent_contact_designation"/>
                                 <field name="ent_contact_email"/>
                                 <field name="ent_contact_mobile"/>
                                 <field name="ent_manager_name"/>
@@ -251,7 +252,7 @@
                         </page>
 
                         <!-- ====================== UBO Tab ====================== -->
-                        <page string="UBO" name="ubo">
+                        <page string="UBO" name="ubo" invisible="kyc_type != 'entity'">
                             <group string="Personal Information">
                                 <field name="ubo_full_name"/>
                                 <field name="ubo_gender"/>
@@ -280,7 +281,7 @@
                         </page>
 
                         <!-- ====================== Directors Tab ====================== -->
-                        <page string="Directors / Managers" name="directors">
+                        <page string="Directors / Managers" name="directors" invisible="kyc_type != 'entity'">
                             <field name="director_line_ids">
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
@@ -297,10 +298,19 @@
                                 <field name="director_declaration_date"
                                     string="Register accurate as of"/>
                             </group>
+                            <separator string="Director / Manager Documents"/>
+                            <field name="director_attachment_ids" readonly="1">
+                                <list create="0" delete="0">
+                                    <field name="name" string="Document Name"/>
+                                    <field name="mimetype" string="Type" optional="hide"/>
+                                    <button string="Download" type="object" name="action_download"
+                                            icon="fa-download" class="btn btn-sm btn-primary"/>
+                                </list>
+                            </field>
                         </page>
 
                         <!-- ====================== Shareholders Tab ====================== -->
-                        <page string="Shareholders" name="shareholders">
+                        <page string="Shareholders" name="shareholders" invisible="kyc_type != 'entity'">
                             <field name="shareholder_line_ids">
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
@@ -318,19 +328,33 @@
                                 <field name="shareholder_declaration_date"
                                     string="Register accurate as of"/>
                             </group>
+                            <separator string="Shareholder Documents"/>
+                            <field name="shareholder_attachment_ids" readonly="1">
+                                <list create="0" delete="0">
+                                    <field name="name" string="Document Name"/>
+                                    <field name="mimetype" string="Type" optional="hide"/>
+                                    <button string="Download" type="object" name="action_download"
+                                            icon="fa-download" class="btn btn-sm btn-primary"/>
+                                </list>
+                            </field>
                         </page>
 
                         <!-- ====================== PI Documents Tab ====================== -->
                         <page string="Preliminary Information" name="pi_documents">
                             <field name="document_line_ids">
-                                <list>
+                                <list delete="0">
                                     <field name="sequence" optional="hide"/>
                                     <field name="doc_name" string="Document"/>
                                     <field name="is_mandatory" string="Mandatory"/>
                                     <field name="tooltip" string="Guidance" optional="show"/>
                                     <field name="attachment_ids" widget="many2many_tags"
-                                        string="Files"/>
+                                        string="Files" readonly="1"/>
                                     <field name="is_submitted"/>
+                                    <button string="Download" type="object"
+                                            name="action_download_attachments"
+                                            icon="fa-download"
+                                            class="btn btn-sm btn-primary"
+                                            invisible="not attachment_ids"/>
                                 </list>
                                 <form>
                                     <group>
@@ -338,7 +362,7 @@
                                         <field name="is_mandatory" readonly="1"/>
                                         <field name="tooltip" readonly="1"/>
                                     </group>
-                                    <field name="attachment_ids" widget="many2many_binary"/>
+                                    <field name="attachment_ids" widget="many2many_binary" readonly="1"/>
                                 </form>
                             </field>
                         </page>
@@ -348,7 +372,7 @@
                             invisible="state not in ('hit_detected','additional_info','approved','rejected')">
                             <field name="hit_document_ids">
                                 <list>
-                                    <field name="sequence" optional="hide"/>
+                                    <field name="sequence" string="#"/>
                                     <field name="document_name"/>
                                     <field name="submitted"/>
                                     <field name="attachment_ids" widget="many2many_tags"
@@ -367,7 +391,6 @@
                             <separator string="Documents Submitted by Client"/>
                             <field name="hit_document_ids" readonly="1">
                                 <list>
-                                    <field name="sequence" optional="hide"/>
                                     <field name="document_name" string="Document"/>
                                     <field name="submitted" string="Submitted"/>
                                     <field name="attachment_ids" widget="many2many_tags"
@@ -381,6 +404,22 @@
 
                 <chatter/>
             </form>
+        </field>
+    </record>
+
+    <!-- =====================================================================
+         ir.attachment list view with Download button (used in PI Documents popup)
+    ====================================================================== -->
+    <record id="view_aml_attachment_list" model="ir.ui.view">
+        <field name="name">aml.ir.attachment.list</field>
+        <field name="model">ir.attachment</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" edit="0">
+                <field name="name" string="File Name"/>
+                <field name="mimetype" string="Type" optional="hide"/>
+                <button string="Download" type="object" name="action_download"
+                        icon="fa-download" class="btn btn-sm btn-primary"/>
+            </list>
         </field>
     </record>
 

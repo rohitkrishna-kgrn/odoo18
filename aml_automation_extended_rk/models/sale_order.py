@@ -68,6 +68,23 @@ class SaleOrder(models.Model):
         aml._send_kyc_form_email()
         return aml
 
+    def write(self, vals):
+        if vals.get('state') == 'cancel':
+            cancellable_states = ('draft', 'new', 'accepted', 'in_progress',
+                                  'hit_detected', 'additional_info', 'no_hit')
+            for order in self:
+                aml_to_cancel = order.aml_request_ids.filtered(
+                    lambda r: r.state in cancellable_states
+                )
+                if aml_to_cancel:
+                    aml_to_cancel.sudo().write({'state': 'cancelled'})
+                    for aml in aml_to_cancel:
+                        aml.sudo().message_post(
+                            body=_("Request automatically cancelled because Sale Order %s was cancelled.")
+                                 % order.name
+                        )
+        return super().write(vals)
+
     def action_view_aml_requests(self):
         self.ensure_one()
         return {

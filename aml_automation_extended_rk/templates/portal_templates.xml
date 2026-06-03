@@ -49,7 +49,7 @@
                     <h2>KYC Form Submitted Successfully</h2>
                     <p>Your AML Reference Number is: <strong t-out="aml_name"/></p>
                     <p>Thank you for submitting your KYC information. Our AML team will review
-                       your submission and contact you if additional information is required="required".</p>
+                       your submission and contact you if additional information is required.</p>
                     <p style="font-size:13px;color:#888;margin-top:24px;">
                         Please retain your reference number for correspondence.
                     </p>
@@ -278,7 +278,7 @@
                                 <input type="text" name="ent_industry_type" required="required"/>
                             </div>
                             <div class="aml-field">
-                                <label>Nature of Business <span class="req-star">*</span></label>
+                                <label>List of business activities as per license <span class="req-star">*</span></label>
                                 <input type="text" name="ent_nature_of_business" required="required"/>
                             </div>
                             <div class="aml-field aml-field-full">
@@ -293,12 +293,12 @@
                                 </div>
                             </div>
                             <div class="aml-field aml-field-full">
-                                <label>Countries of Commercial Activities <span class="req-star">*</span></label>
+                                <label>Is the business is involved in cash payment transactions? <span class="req-star">*</span></label>
                                 <textarea name="ent_countries_commercial" rows="2" required="required"
                                     placeholder="List countries where entity conducts activities or has connections"></textarea>
                             </div>
                             <div class="aml-field">
-                                <label>High-Risk Jurisdiction Association <span class="req-star">*</span></label>
+                                <label>Is the business is involved in high-risk jurisdiction? (Iran, DPRK - North Korea, Myanmar) <span class="req-star">*</span></label>
                                 <div class="aml-radio-group">
                                     <label><input type="radio" name="ent_high_risk_jurisdiction" value="yes" required="required"/> Yes</label>
                                     <label><input type="radio" name="ent_high_risk_jurisdiction" value="no"/> No</label>
@@ -366,6 +366,10 @@
                                 <input type="text" name="ent_contact_name" required="required"/>
                             </div>
                             <div class="aml-field">
+                                <label>Contact Person Designation <span class="req-star">*</span></label>
+                                <input type="text" name="ent_contact_designation" required="required"/>
+                            </div>
+                            <div class="aml-field">
                                 <label>Contact Person Email <span class="req-star">*</span></label>
                                 <input type="email" name="ent_contact_email" required="required"/>
                             </div>
@@ -392,7 +396,7 @@
                                 <textarea name="ent_parent_company_address" rows="2"></textarea>
                             </div>
                             <div class="aml-field">
-                                <label>Subject to International Sanctions? <span class="req-star">*</span></label>
+                                <label>Is the business subject to sanction from United Nations, United Arab Emirates, DFAC and UK Sanctions? <span class="req-star">*</span></label>
                                 <div class="aml-radio-group">
                                     <label><input type="radio" name="ent_international_sanctions" value="yes" required="required"/> Yes</label>
                                     <label><input type="radio" name="ent_international_sanctions" value="no"/> No</label>
@@ -1106,7 +1110,7 @@
                 <section class="aml-page" id="page-5">
                     <div class="aml-page-header">
                         <h2>Preliminary Information List</h2>
-                        <p class="aml-page-subtitle">Upload required="required" documents (hover on document name for guidance)</p>
+                        <p class="aml-page-subtitle">Upload required documents (hover on document name for guidance)</p>
                     </div>
                     <div class="aml-form-section">
                         <div id="aml-doc-upload-list">
