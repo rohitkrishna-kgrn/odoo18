@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="mis_report_kgrn.MisProjectDashboard" owl="1">
+        <div class="o_action mis_dashboard">
+
+            <!-- Top bar -->
+            <div class="mis_topbar d-flex align-items-center justify-content-between p-3 mb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="mis_title">
+                        <i class="fa fa-bar-chart me-2"/>MIS Dashboard — Project Wise
+                    </span>
+                    <span t-if="!state.loading" class="badge bg-light text-dark">
+                        <t t-esc="state.totalProjects"/> projects
+                    </span>
+                </div>
+                <button class="btn btn-sm btn-outline-light" t-on-click="() => this.loadData()">
+                    <i class="fa fa-refresh me-1"/>Refresh
+                </button>
+            </div>
+
+            <!-- Loading -->
+            <t t-if="state.loading">
+                <div class="mis_spinner d-flex justify-content-center align-items-center">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;"/>
+                        <p class="mt-3 text-muted">Loading…</p>
+                    </div>
+                </div>
+            </t>
+
+            <!-- Empty -->
+            <t t-elif="!state.data.length">
+                <div class="text-center py-5 text-muted">
+                    <i class="fa fa-folder-open-o fa-4x mb-3"/>
+                    <p class="fs-5">No projects found for your account.</p>
+                </div>
+            </t>
+
+            <!-- Tree: Company → Dept → Manager → Projects -->
+            <t t-else="">
+                <div class="mis_tree px-3 pb-4">
+
+                    <!-- ── Company level ─────────────────────────────────── -->
+                    <t t-foreach="state.data" t-as="comp" t-key="comp.id">
+                        <div class="mis_comp_node mb-3">
+
+                            <div class="mis_comp_header d-flex align-items-center"
+                                 t-on-click="() => this.toggleNode('comp_' + comp.id)">
+                                <i t-att-class="'fa fa-fw me-2 ' + (isExpanded('comp_' + comp.id) ? 'fa-chevron-down' : 'fa-chevron-right')"/>
+                                <i class="fa fa-building-o me-2"/>
+                                <span class="mis_comp_name" t-esc="comp.name"/>
+                                <span class="badge ms-2" t-esc="comp.projects_count + ' project(s)'"/>
+                            </div>
+
+                            <t t-if="isExpanded('comp_' + comp.id)">
+                                <div class="mis_comp_body ms-4 mt-1">
+
+                                    <!-- ── Department level ──────────────────── -->
+                                    <t t-foreach="comp.departments" t-as="dept" t-key="dept.id">
+                                        <div class="mis_dept_node mb-2">
+
+                                            <div class="mis_dept_header d-flex align-items-center"
+                                                 t-on-click="() => this.toggleNode('dept_' + comp.id + '_' + dept.id)">
+                                                <i t-att-class="'fa fa-fw me-2 ' + (isExpanded('dept_' + comp.id + '_' + dept.id) ? 'fa-chevron-down' : 'fa-chevron-right')"/>
+                                                <i class="fa fa-sitemap me-1"/>
+                                                <span class="mis_dept_name" t-esc="dept.name"/>
+                                                <span class="badge ms-2" t-esc="dept.projects_count + ' project(s)'"/>
+                                            </div>
+
+                                            <t t-if="isExpanded('dept_' + comp.id + '_' + dept.id)">
+                                                <div class="mis_dept_body ms-4 mt-1">
+
+                                                    <!-- ── Manager level ──────── -->
+                                                    <t t-foreach="dept.managers" t-as="mgr" t-key="mgr.id">
+                                                        <div class="mis_mgr_node mb-2">
+
+                                                            <div class="mis_mgr_header d-flex align-items-center flex-wrap"
+                                                                 t-on-click="() => this.toggleNode('mgr_' + comp.id + '_' + dept.id + '_' + mgr.id)">
+                                                                <i t-att-class="'fa fa-fw me-2 ' + (isExpanded('mgr_' + comp.id + '_' + dept.id + '_' + mgr.id) ? 'fa-chevron-down' : 'fa-chevron-right')"/>
+                                                                <i class="fa fa-user-circle-o me-1"/>
+                                                                <span class="mis_mgr_name" t-esc="mgr.name"/>
+                                                                <span class="badge bg-light text-dark ms-2" t-esc="mgr.projects_count + ' project(s)'"/>
+                                                                <!-- Summary chips -->
+                                                                <div class="ms-auto d-flex gap-2 flex-wrap pe-2">
+                                                                    <span class="mis_chip mis_chip_so">
+                                                                        SO: <strong t-esc="fmt(mgr.total_so_ex_vat)"/>
+                                                                    </span>
+                                                                    <span class="mis_chip mis_chip_invoiced">
+                                                                        Invoiced: <strong t-esc="fmt(mgr.total_invoiced_ex_vat)"/>
+                                                                    </span>
+                                                                    <span class="mis_chip mis_chip_paid">
+                                                                        Paid: <strong t-esc="fmt(mgr.total_paid_ex_vat)"/>
+                                                                    </span>
+                                                                    <span class="mis_chip mis_chip_outstanding">
+                                                                        Outstanding: <strong t-esc="fmt(mgr.total_outstanding_ex_vat)"/>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- ── Project cards ── -->
+                                                            <t t-if="isExpanded('mgr_' + comp.id + '_' + dept.id + '_' + mgr.id)">
+                                                                <div class="mis_project_grid ms-4 mt-2">
+                                                                    <t t-foreach="mgr.projects" t-as="proj" t-key="proj.id">
+                                                                        <div t-att-class="'mis_project_card ' + (proj.days_overdue &gt; 0 ? 'mis_card_overdue' : '')">
+
+                                                                            <!-- Card header -->
+                                                                            <div class="mis_card_header">
+                                                                                <div class="d-flex justify-content-between align-items-start">
+                                                                                    <span class="mis_proj_name" t-esc="proj.project_name"/>
+                                                                                    <span class="mis_so_badge" t-esc="proj.so_number"/>
+                                                                                </div>
+                                                                                <div class="mis_card_meta mt-1">
+                                                                                    <span><i class="fa fa-briefcase me-1"/>
+                                                                                        <t t-esc="proj.salesperson_id ? proj.salesperson_id[1] : '—'"/>
+                                                                                    </span>
+                                                                                </div>
+                                                                                <!-- Deadline badge -->
+                                                                                <t t-if="proj.deadline">
+                                                                                    <div t-att-class="'mis_deadline_badge mt-1 ' + (proj.days_overdue &gt; 0 ? 'mis_overdue' : 'mis_ontime')">
+                                                                                        <i class="fa fa-clock-o me-1"/>
+                                                                                        <t t-esc="proj.deadline ? proj.deadline.split('T')[0] : ''"/>
+                                                                                        <t t-if="proj.days_overdue &gt; 0">
+                                                                                            <span class="ms-2 fw-bold">
+                                                                                                (<t t-esc="proj.days_overdue"/> days overdue)
+                                                                                            </span>
+                                                                                        </t>
+                                                                                    </div>
+                                                                                </t>
+                                                                            </div>
+
+                                                                            <!-- Card body -->
+                                                                            <div class="mis_card_body">
+                                                                                <div class="mis_section_label">Quantities</div>
+                                                                                <table class="mis_metric_table">
+                                                                                    <tr><td>Ordered</td><td t-esc="(proj.product_uom_qty||0).toFixed(2)"/></tr>
+                                                                                    <tr><td>Delivered</td><td t-esc="(proj.qty_delivered||0).toFixed(2)"/></tr>
+                                                                                    <tr><td>Unit Value (Ex VAT)</td><td t-esc="fmt(proj.unit_value_ex_vat)"/></tr>
+                                                                                    <tr><td>Unit Value (Inc VAT)</td><td t-esc="fmt(proj.unit_value_inc_vat)"/></tr>
+                                                                                    <tr><td>Delivered (Ex VAT)</td><td t-esc="fmt(proj.delivered_value_ex_vat)"/></tr>
+                                                                                </table>
+
+                                                                                <div class="mis_section_label">Sale Order</div>
+                                                                                <table class="mis_metric_table">
+                                                                                    <tr><td>SO Total (Ex VAT)</td><td t-esc="fmt(proj.so_total_ex_vat)"/></tr>
+                                                                                    <tr><td>SO Total (Inc VAT)</td><td t-esc="fmt(proj.so_total_inc_vat)"/></tr>
+                                                                                    <tr><td>Advance (SO)</td><td t-esc="fmt(proj.advance_amount)"/></tr>
+                                                                                    <tr><td>Advance (This Line)</td><td t-esc="fmt(proj.advance_per_line)"/></tr>
+                                                                                </table>
+
+                                                                                <div class="mis_section_label">Invoicing</div>
+                                                                                <table class="mis_metric_table">
+                                                                                    <tr><td>Last Invoice Date</td>
+                                                                                        <td t-esc="proj.last_invoice_date || '—'"/>
+                                                                                    </tr>
+                                                                                    <t t-if="proj.invoice_days_ago !== false and proj.invoice_days_ago !== null">
+                                                                                        <tr><td>Invoice Raised (Days Ago)</td><td t-esc="proj.invoice_days_ago"/></tr>
+                                                                                    </t>
+                                                                                    <tr><td>Invoiced (Ex VAT)</td><td t-esc="fmt(proj.invoiced_ex_vat)"/></tr>
+                                                                                    <tr><td>Invoiced (Inc VAT)</td><td t-esc="fmt(proj.invoiced_inc_vat)"/></tr>
+                                                                                    <tr class="mis_row_paid"><td>Paid (Ex VAT)</td><td t-esc="fmt(proj.paid_ex_vat)"/></tr>
+                                                                                    <tr class="mis_row_paid"><td>Paid (Inc VAT)</td><td t-esc="fmt(proj.paid_inc_vat)"/></tr>
+                                                                                    <tr t-att-class="'mis_row_outstanding ' + (proj.outstanding_ex_vat &gt; 0 ? 'mis_row_warn' : '')">
+                                                                                        <td>Outstanding (Ex VAT)</td><td t-esc="fmt(proj.outstanding_ex_vat)"/>
+                                                                                    </tr>
+                                                                                    <tr t-att-class="'mis_row_outstanding ' + (proj.outstanding_inc_vat &gt; 0 ? 'mis_row_warn' : '')">
+                                                                                        <td>Outstanding (Inc VAT)</td><td t-esc="fmt(proj.outstanding_inc_vat)"/>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </div>
+                                                                        </div>
+                                                                    </t>
+                                                                </div>
+                                                            </t>
+
+                                                        </div><!-- /mgr_node -->
+                                                    </t>
+
+                                                </div>
+                                            </t>
+
+                                        </div><!-- /dept_node -->
+                                    </t>
+
+                                </div>
+                            </t>
+
+                        </div><!-- /comp_node -->
+                    </t>
+
+                </div><!-- /mis_tree -->
+            </t>
+
+        </div>
+    </t>
+
+</templates>

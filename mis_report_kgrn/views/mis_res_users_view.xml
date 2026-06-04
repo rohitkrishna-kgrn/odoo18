@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- Add MIS Role dropdown to the user preferences section -->
+    <record id="view_users_form_inherit_mis_role" model="ir.ui.view">
+        <field name="name">res.users.form.inherit.mis.role</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='preferences']" position="inside">
+                <field name="mis_role" widget="selection"
+                       groups="base.group_system"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

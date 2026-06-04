@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- MIS User: default role — sees only own projects (as PM or salesperson) -->
+        <record id="group_mis_user" model="res.groups">
+            <field name="name">MIS User</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- MIS Manager: sees data for direct subordinates (parent_id = this user's employee) -->
+        <record id="group_mis_manager" model="res.groups">
+            <field name="name">MIS Manager</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+            <field name="implied_ids" eval="[(4, ref('mis_report_kgrn.group_mis_user'))]"/>
+        </record>
+
+        <!-- MIS Admin: sees all data regardless of ownership -->
+        <record id="group_mis_admin" model="res.groups">
+            <field name="name">MIS Admin</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+            <field name="implied_ids" eval="[(4, ref('mis_report_kgrn.group_mis_manager'))]"/>
+        </record>
+
+    </data>
+</odoo>

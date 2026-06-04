@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_mis_project_wise_search" model="ir.ui.view">
+        <field name="name">mis.project.wise.search</field>
+        <field name="model">mis.project.wise</field>
+        <field name="arch" type="xml">
+            <search string="Project Wise Report">
+                <field name="project_name"       string="Project"/>
+                <field name="so_number"          string="SO Number"/>
+                <field name="project_manager_id" string="Project Manager"/>
+                <field name="salesperson_id"     string="Salesperson"/>
+                <field name="department_id"      string="Department"/>
+                <field name="company_id"         string="Company"/>
+                <filter string="Overdue"      name="overdue"      domain="[('days_overdue', '&gt;', 0)]"/>
+                <filter string="Completed"    name="completed"    domain="[('is_completed', '=', True)]"/>
+                <filter string="In Progress"  name="in_progress"  domain="[('is_completed', '=', False)]"/>
+                <group expand="1" string="Group By">
+                    <filter string="Company"        name="group_company"     context="{'group_by': 'company_id'}"/>
+                    <filter string="Department"     name="group_department"  context="{'group_by': 'department_id'}"/>
+                    <filter string="Project Manager" name="group_manager"    context="{'group_by': 'project_manager_id'}"/>
+                    <filter string="Salesperson"    name="group_salesperson" context="{'group_by': 'salesperson_id'}"/>
+                    <filter string="Sale Order"     name="group_so"          context="{'group_by': 'sale_order_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_mis_project_wise_list" model="ir.ui.view">
+        <field name="name">mis.project.wise.list</field>
+        <field name="model">mis.project.wise</field>
+        <field name="arch" type="xml">
+            <list string="Project Wise Report"
+                  create="false" edit="false" delete="false"
+                  decoration-success="is_completed == True"
+                  decoration-danger="is_completed == False">
+
+                <field name="company_id"         optional="show"/>
+                <field name="department_id"      optional="show"/>
+                <field name="project_manager_id" optional="show" widget="many2one"/>
+                <field name="project_id"         string="Project"    optional="show" widget="many2one"/>
+                <field name="sale_order_id"      string="Sale Order" optional="show" widget="many2one"/>
+                <field name="salesperson_id"     optional="show"     widget="many2one"/>
+
+                <field name="deadline"           optional="show"/>
+                <field name="days_overdue"       optional="show"/>
+
+                <field name="product_uom_qty"    string="Ordered Qty"   optional="show"/>
+                <field name="qty_delivered"      string="Delivered Qty" optional="show"/>
+                <field name="unit_value_ex_vat"  string="Unit (Ex VAT)"     optional="show" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="unit_value_inc_vat" string="Unit (Inc VAT)"     optional="hide" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="delivered_value_ex_vat"  string="Delivered (Ex VAT)"  optional="show" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="delivered_value_inc_vat" string="Delivered (Inc VAT)" optional="hide" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="so_total_ex_vat"    string="SO Total (Ex VAT)"  optional="show" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="so_total_inc_vat"   string="SO Total (Inc VAT)" optional="hide" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="advance_amount"     string="Advance (SO)"   optional="show" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="advance_per_line"   string="Advance (Line)" optional="show" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="invoiced_ex_vat"    string="Invoiced (Ex VAT)"      optional="show" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="invoiced_inc_vat"   string="Invoiced (Inc VAT)"     optional="hide" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="paid_ex_vat"        string="Paid (Ex VAT)"          optional="show" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="paid_inc_vat"       string="Paid (Inc VAT)"         optional="hide" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="outstanding_ex_vat"  string="Outstanding (Ex VAT)"  optional="show" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="outstanding_inc_vat" string="Outstanding (Inc VAT)" optional="show" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="last_invoice_date"  optional="show"/>
+                <field name="invoice_days_ago"   string="Invoice (Days Ago)" optional="show"/>
+
+                <field name="is_completed"   column_invisible="1"/>
+                <field name="currency_id"    column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_mis_project_wise_list" model="ir.actions.act_window">
+        <field name="name">Project Wise Report</field>
+        <field name="res_model">mis.project.wise</field>
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="view_mis_project_wise_search"/>
+        <field name="context">{
+            "search_default_group_company": 1,
+            "search_default_group_department": 1,
+            "search_default_group_manager": 1
+        }</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             mis.project.wise  —  record rules
+             Rule logic (groups OR together per user):
+               Admin  → admin rule (all data) wins
+               Manager→ manager rule (own + subordinates)
+               User   → user rule (own only)
+        ═══════════════════════════════════════════════════════════ -->
+
+        <record id="rule_mis_project_wise_admin" model="ir.rule">
+            <field name="name">MIS Project Wise: Admin sees all</field>
+            <field name="model_id" ref="model_mis_project_wise"/>
+            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_admin'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="rule_mis_project_wise_manager" model="ir.rule">
+            <field name="name">MIS Project Wise: Manager sees own + direct reports</field>
+            <field name="model_id" ref="model_mis_project_wise"/>
+            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_manager'))]"/>
+            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('project_manager_id', 'in', user.employee_ids[:1].child_ids.user_id.ids if user.employee_ids else [])]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="rule_mis_project_wise_user" model="ir.rule">
+            <field name="name">MIS Project Wise: User sees own data only</field>
+            <field name="model_id" ref="model_mis_project_wise"/>
+            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_user'))]"/>
+            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('salesperson_id', '=', user.id)]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             mis.outstanding.line  —  same rules
+        ═══════════════════════════════════════════════════════════ -->
+
+        <record id="rule_mis_outstanding_admin" model="ir.rule">
+            <field name="name">MIS Outstanding: Admin sees all</field>
+            <field name="model_id" ref="model_mis_outstanding_line"/>
+            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_admin'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="rule_mis_outstanding_manager" model="ir.rule">
+            <field name="name">MIS Outstanding: Manager sees own + direct reports</field>
+            <field name="model_id" ref="model_mis_outstanding_line"/>
+            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_manager'))]"/>
+            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('project_manager_id', 'in', user.employee_ids[:1].child_ids.user_id.ids if user.employee_ids else [])]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="rule_mis_outstanding_user" model="ir.rule">
+            <field name="name">MIS Outstanding: User sees own data only</field>
+            <field name="model_id" ref="model_mis_outstanding_line"/>
+            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_user'))]"/>
+            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('salesperson_id', '=', user.id)]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+    </data>
+</odoo>
