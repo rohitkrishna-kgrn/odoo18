@@ -12,6 +12,7 @@
     <menuitem id="menu_ledger_extended_root"
               name="Ledger"
               parent="account.menu_finance"
+              groups="account.group_account_manager"
               sequence="20"/>
     <menuitem id="menu_general_partner_ledger"
               name="General Partner Ledger"
