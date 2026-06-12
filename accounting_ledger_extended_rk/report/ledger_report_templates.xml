@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Shared branded header: company details centered, no logo, no border -->
+    <template id="rk_ledger_header">
+        <t t-set="addr" t-value="company.partner_id._display_address(without_company=True)"/>
+        <div style="text-align:center;background:#ffffff;color:#000000;margin-bottom:14px;">
+            <div style="font-size:24px;font-weight:bold;color:#f25d23;line-height:1.1;">
+                <span t-out="company.name"/>
+            </div>
+            <div t-if="addr and addr.strip()"
+                 style="font-size:13px;color:#000000;white-space:pre-line;margin-top:4px;"
+                 t-out="addr"/>
+            <div t-if="company.vat" style="font-size:13px;color:#000000;">
+                <strong>TRN:</strong> <span t-out="company.vat"/>
+            </div>
+            <div t-if="company.phone" style="font-size:13px;color:#000000;">
+                <strong>Phone:</strong> <span t-out="company.phone"/>
+            </div>
+            <div t-if="company.email" style="font-size:13px;color:#000000;">
+                <strong>Email:</strong> <span t-out="company.email"/>
+            </div>
+        </div>
+    </template>
+
+    <!-- ============ GENERAL LEDGER ============ -->
+    <template id="report_general_ledger">
+        <t t-call="web.html_container">
+            <t t-call="web.basic_layout">
+                <div class="page" style="background:#ffffff;color:#000000;padding:18px 14px 14px 14px;">
+                    <t t-set="cur" t-value="docs['currency']"/>
+                    <style>
+                        .rk-ledger { width:100%;border-collapse:collapse; }
+                        .rk-ledger th, .rk-ledger td { padding:7px 8px; font-size:13px; color:#000; }
+                        .rk-ledger thead th { background:#f25d23; color:#fff; border:1px solid #f25d23; font-size:13px; }
+                        .rk-ledger td { border:1px solid #d0d0d0; }
+                        .rk-tot td { background:#fde3d7; font-weight:bold; }
+                        .rk-c { text-align:center; }
+                    </style>
+                    <t t-call="accounting_ledger_extended_rk.rk_ledger_header"/>
+                    <h2 style="text-align:center;margin-bottom:2px;color:#000;font-size:20px;">General Ledger</h2>
+                    <p style="text-align:center;margin-top:0;color:#000;font-size:14px;">
+                        <strong t-out="docs['partner']['name']"/>
+                        <span> | </span>
+                        <span t-out="docs['date_from']"/> to <span t-out="docs['date_to']"/>
+                    </p>
+                    <table class="rk-ledger">
+                        <thead>
+                            <tr>
+                                <th>Date</th><th>Voucher</th><th>Journal</th>
+                                <th>Narration</th>
+                                <th class="rk-c">Debit</th>
+                                <th class="rk-c">Credit</th>
+                                <th class="rk-c">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="rk-tot">
+                                <td colspan="4" class="rk-c">Opening Balance</td>
+                                <td></td><td></td>
+                                <td class="rk-c">
+                                    <span t-esc="'%s %.2f %s' % (cur, abs(docs['opening_balance']), 'Dr' if docs['opening_balance'] &gt;= 0 else 'Cr')"/>
+                                </td>
+                            </tr>
+                            <tr t-foreach="docs['rows']" t-as="r">
+                                <td t-out="r['date']"/>
+                                <td t-out="r['move_name']"/>
+                                <td t-out="r['journal']"/>
+                                <td t-out="r['narration']"/>
+                                <td class="rk-c"><span t-esc="('%s %.2f Dr' % (cur, r['debit'])) if r['debit'] else ''"/></td>
+                                <td class="rk-c"><span t-esc="('%s %.2f Cr' % (cur, r['credit'])) if r['credit'] else ''"/></td>
+                                <td class="rk-c"><span t-esc="'%s %.2f %s' % (cur, abs(r['balance']), 'Dr' if r['balance'] &gt;= 0 else 'Cr')"/></td>
+                            </tr>
+                            <tr class="rk-tot">
+                                <td colspan="4" class="rk-c">Total</td>
+                                <td class="rk-c"><span t-esc="'%s %.2f Dr' % (cur, docs['total_debit'])"/></td>
+                                <td class="rk-c"><span t-esc="'%s %.2f Cr' % (cur, docs['total_credit'])"/></td>
+                                <td class="rk-c"><span t-esc="'%s %.2f %s' % (cur, abs(docs['closing_balance']), 'Dr' if docs['closing_balance'] &gt;= 0 else 'Cr')"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- ============ OUTSTANDING LEDGER ============ -->
+    <template id="report_outstanding_ledger">
+        <t t-call="web.html_container">
+            <t t-call="web.basic_layout">
+                <div class="page" style="background:#ffffff;color:#000000;padding:18px 14px 14px 14px;">
+                    <t t-set="cur" t-value="docs['currency']"/>
+                    <style>
+                        .rk-ledger { width:100%;border-collapse:collapse; }
+                        .rk-ledger th, .rk-ledger td { padding:7px 8px; font-size:13px; color:#000; }
+                        .rk-ledger thead th { background:#f25d23; color:#fff; border:1px solid #f25d23; font-size:13px; }
+                        .rk-ledger td { border:1px solid #d0d0d0; }
+                        .rk-tot td { background:#fde3d7; font-weight:bold; }
+                        .rk-c { text-align:center; }
+                        .rk-over td { color:#c00000; }
+                    </style>
+                    <t t-call="accounting_ledger_extended_rk.rk_ledger_header"/>
+                    <h2 style="text-align:center;margin-bottom:2px;color:#000;font-size:20px;">Outstanding Ledger</h2>
+                    <p style="text-align:center;margin-top:0;color:#000;font-size:14px;">
+                        <strong t-out="docs['partner']['name']"/>
+                        <span> | as on </span><span t-out="docs['date_to']"/>
+                    </p>
+                    <table class="rk-ledger">
+                        <thead>
+                            <tr>
+                                <th>Date</th><th>Due Date</th><th>Invoice</th>
+                                <th>Narration</th>
+                                <th class="rk-c">Invoice Amount</th>
+                                <th class="rk-c">Outstanding</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="docs['rows']" t-as="r" t-att-class="'rk-over' if r['overdue'] else ''">
+                                <td t-out="r['date']"/>
+                                <td t-out="r['due_date']"/>
+                                <td t-out="r['move_name']"/>
+                                <td t-out="r['narration']"/>
+                                <td class="rk-c"><span t-esc="'%s %.2f %s' % (cur, abs(r['amount_total']), 'Dr' if r['amount_total'] &gt;= 0 else 'Cr')"/></td>
+                                <td class="rk-c"><span t-esc="'%s %.2f %s' % (cur, abs(r['residual']), 'Dr' if r['residual'] &gt;= 0 else 'Cr')"/></td>
+                            </tr>
+                            <tr class="rk-tot">
+                                <td colspan="4" class="rk-c">Total Outstanding</td>
+                                <td class="rk-c"><span t-esc="'%s %.2f %s' % (cur, abs(docs['total_amount']), 'Dr' if docs['total_amount'] &gt;= 0 else 'Cr')"/></td>
+                                <td class="rk-c"><span t-esc="'%s %.2f %s' % (cur, abs(docs['total_residual']), 'Dr' if docs['total_residual'] &gt;= 0 else 'Cr')"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

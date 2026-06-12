@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_ledger_rk" model="ir.ui.view">
+        <field name="name">res.partner.form.ledger.rk</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/notebook" position="inside">
+                <page string="Ledger &amp; Outstanding"
+                      name="ledger_rk"
+                      groups="account.group_account_user">
+                    <group>
+                        <group string="Accountant Verification">
+                            <field name="ledger_verified_by_accountant" readonly="1"/>
+                            <field name="ledger_verified_by" readonly="1"
+                                   invisible="not ledger_verified_by_accountant"/>
+                            <field name="ledger_verified_date" readonly="1"
+                                   invisible="not ledger_verified_by_accountant"/>
+                            <button name="action_verify_for_ledger" type="object"
+                                    string="Verify" class="btn-primary"
+                                    invisible="ledger_verified_by_accountant"/>
+                            <button name="action_unverify_for_ledger" type="object"
+                                    string="Remove Verification"
+                                    invisible="not ledger_verified_by_accountant"/>
+                        </group>
+                        <group string="Outstanding Email">
+                            <field name="ledger_email_enabled"
+                                   readonly="not ledger_verified_by_accountant"/>
+                            <div colspan="2" class="text-muted"
+                                 invisible="ledger_verified_by_accountant">
+                                Verify this customer first to enable the weekly
+                                outstanding email.
+                            </div>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

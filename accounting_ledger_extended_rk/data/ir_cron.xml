@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="ir_cron_outstanding_email" model="ir.cron">
+        <field name="name">Ledger: Weekly Outstanding Emails (Friday)</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_send_outstanding_emails()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">weeks</field>
+        <field name="active" eval="True"/>
+        <!-- Anchor on a Friday so weekly recurrence keeps landing on Friday -->
+        <field name="nextcall" eval="(DateTime.now() + relativedelta(days=(4 - DateTime.now().weekday()) % 7, hour=8, minute=0, second=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+    </record>
+</odoo>

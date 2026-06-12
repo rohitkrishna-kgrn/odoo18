@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_general_partner_ledger" model="ir.actions.client">
+        <field name="name">General Partner Ledger</field>
+        <field name="tag">rk_general_ledger</field>
+    </record>
+    <record id="action_outstanding_partner_ledger" model="ir.actions.client">
+        <field name="name">Outstanding Partner Ledger</field>
+        <field name="tag">rk_outstanding_ledger</field>
+    </record>
+
+    <menuitem id="menu_ledger_extended_root"
+              name="Ledger"
+              parent="account.menu_finance"
+              sequence="20"/>
+    <menuitem id="menu_general_partner_ledger"
+              name="General Partner Ledger"
+              parent="menu_ledger_extended_root"
+              action="action_general_partner_ledger"
+              sequence="1"/>
+    <menuitem id="menu_outstanding_partner_ledger"
+              name="Outstanding Partner Ledger"
+              parent="menu_ledger_extended_root"
+              action="action_outstanding_partner_ledger"
+              sequence="2"/>
+</odoo>

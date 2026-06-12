@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="accounting_ledger_extended_rk.GeneralPartnerLedger" owl="1">
+        <div class="rk-ledger-page">
+            <div class="rk-ledger-header">
+                <h2>General Partner Ledger</h2>
+            </div>
+
+            <!-- PARTNER LIST VIEW -->
+            <t t-if="!state.selected">
+                <div class="rk-search-bar">
+                    <i class="fa fa-search"/>
+                    <input type="text" placeholder="Search customer..."
+                           t-att-value="state.search"
+                           t-on-input="onSearchInput"/>
+                </div>
+                <div class="rk-partner-list">
+                    <t t-if="state.partners.length === 0">
+                        <div class="rk-empty">No customers found.</div>
+                    </t>
+                    <t t-foreach="state.partners" t-as="p" t-key="p.id">
+                        <div class="rk-partner-row" t-on-click="() => this.selectPartner(p)">
+                            <i class="fa fa-user-circle-o"/>
+                            <span t-esc="p.name"/>
+                            <i class="fa fa-chevron-right rk-arrow"/>
+                        </div>
+                    </t>
+                </div>
+                <div class="rk-pager" t-if="state.pages > 1">
+                    <button class="btn btn-sm btn-secondary" t-on-click="prevPage"
+                            t-att-disabled="state.page &lt;= 1">
+                        <i class="fa fa-chevron-left"/> Prev
+                    </button>
+                    <span class="rk-pager-info">
+                        Page <t t-esc="state.page"/> / <t t-esc="state.pages"/>
+                        (<t t-esc="state.total"/> customers)
+                    </span>
+                    <button class="btn btn-sm btn-secondary" t-on-click="nextPage"
+                            t-att-disabled="state.page &gt;= state.pages">
+                        Next <i class="fa fa-chevron-right"/>
+                    </button>
+                </div>
+            </t>
+
+            <!-- LEDGER DETAIL VIEW -->
+            <t t-if="state.selected">
+                <div class="rk-toolbar">
+                    <button class="btn btn-link rk-back" t-on-click="backToList">
+                        <i class="fa fa-arrow-left"/> Back
+                    </button>
+                    <div class="rk-partner-name" t-esc="state.selected.name"/>
+                    <div class="rk-dates">
+                        <label>From</label>
+                        <input type="date" name="date_from"
+                               t-att-value="state.date_from" t-on-change="onDateChange"/>
+                        <label>To</label>
+                        <input type="date" name="date_to"
+                               t-att-value="state.date_to" t-on-change="onDateChange"/>
+                    </div>
+                    <div class="rk-export">
+                        <button class="btn btn-secondary" t-on-click="printPdf">
+                            <i class="fa fa-file-pdf-o"/> PDF
+                        </button>
+                        <button class="btn btn-success" t-on-click="printXlsx">
+                            <i class="fa fa-file-excel-o"/> Excel
+                        </button>
+                    </div>
+                </div>
+
+                <t t-if="state.loading">
+                    <div class="rk-empty">Loading...</div>
+                </t>
+                <t t-if="state.data and !state.loading">
+                    <div class="rk-table-wrap">
+                        <table class="rk-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th><th>Voucher</th><th>Journal</th>
+                                    <th>Narration</th>
+                                    <th class="rk-num">Debit</th>
+                                    <th class="rk-num">Credit</th>
+                                    <th class="rk-num">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="rk-opening">
+                                    <td colspan="4" class="rk-num">Opening Balance</td>
+                                    <td></td><td></td>
+                                    <td class="rk-num">
+                                        <t t-esc="state.data.currency"/><t t-esc="fmt(state.data.opening_balance)"/>
+                                    </td>
+                                </tr>
+                                <tr t-foreach="state.data.rows" t-as="r" t-key="r.id"
+                                    class="rk-row" t-on-click="() => this.openInvoice(r.move_id)">
+                                    <td t-esc="r.date"/>
+                                    <td t-esc="r.move_name"/>
+                                    <td t-esc="r.journal"/>
+                                    <td t-esc="r.narration"/>
+                                    <td class="rk-num">
+                                        <t t-if="r.debit"><t t-esc="state.data.currency"/><t t-esc="fmt(r.debit)"/></t>
+                                    </td>
+                                    <td class="rk-num">
+                                        <t t-if="r.credit"><t t-esc="state.data.currency"/><t t-esc="fmt(r.credit)"/></t>
+                                    </td>
+                                    <td class="rk-num"><t t-esc="state.data.currency"/><t t-esc="fmt(r.balance)"/></td>
+                                </tr>
+                                <tr t-if="state.data.rows.length === 0">
+                                    <td colspan="7" class="rk-empty">No transactions in this period.</td>
+                                </tr>
+                                <tr class="rk-total">
+                                    <td colspan="4" class="rk-num">Total</td>
+                                    <td class="rk-num"><t t-esc="state.data.currency"/><t t-esc="fmt(state.data.total_debit)"/></td>
+                                    <td class="rk-num"><t t-esc="state.data.currency"/><t t-esc="fmt(state.data.total_credit)"/></td>
+                                    <td class="rk-num"><t t-esc="state.data.currency"/><t t-esc="fmt(state.data.closing_balance)"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </div>
+    </t>
+</templates>
