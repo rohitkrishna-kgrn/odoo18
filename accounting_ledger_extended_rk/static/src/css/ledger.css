@@ -72,6 +72,25 @@
 .rk-export { display: flex; gap: 8px; }
 .rk-back { color: #1f3864 !important; text-decoration: none; }
 
+.rk-verify-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    background: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    margin-bottom: 14px;
+}
+.rk-badge { font-weight: 600; padding: 4px 10px; border-radius: 14px; font-size: 13px; }
+.rk-badge-ok { background: #e3f6e8; color: #1e7e34; }
+.rk-badge-no { background: #fde3e3; color: #c0392b; }
+.rk-toggle { display: flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; font-size: 13px; }
+.rk-toggle input { width: 16px; height: 16px; }
+.rk-muted { color: #8a96a8; font-size: 13px; }
+.rk-warn { color: #c0392b; font-size: 13px; }
+
 .rk-table-wrap {
     background: #fff;
     border-radius: 8px;

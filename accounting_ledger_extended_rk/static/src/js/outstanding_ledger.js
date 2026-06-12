@@ -9,6 +9,7 @@ export class OutstandingPartnerLedger extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
+        this.notification = useService("notification");
         const defaults = this._defaultDates();
         this.state = useState({
             partners: [],
@@ -21,6 +22,7 @@ export class OutstandingPartnerLedger extends Component {
             date_to: defaults.date_to,
             data: null,
             loading: false,
+            settings: null,
         });
         this.loadPartners();
     }
@@ -74,12 +76,46 @@ export class OutstandingPartnerLedger extends Component {
 
     async selectPartner(partner) {
         this.state.selected = partner;
-        await this.loadLedger();
+        await Promise.all([this.loadLedger(), this.loadSettings()]);
+    }
+
+    async loadSettings() {
+        this.state.settings = await this.orm.call(
+            "account.ledger.extended.rk", "get_partner_settings",
+            [this.state.selected.id]);
+    }
+
+    async verifyPartner() {
+        this.state.settings = await this.orm.call(
+            "account.ledger.extended.rk", "verify_partner",
+            [this.state.selected.id]);
+    }
+
+    async unverifyPartner() {
+        this.state.settings = await this.orm.call(
+            "account.ledger.extended.rk", "unverify_partner",
+            [this.state.selected.id]);
+    }
+
+    async toggleEmail() {
+        this.state.settings = await this.orm.call(
+            "account.ledger.extended.rk", "set_partner_email_enabled",
+            [this.state.selected.id, !this.state.settings.email_enabled]);
+    }
+
+    async sendEmailNow() {
+        const res = await this.orm.call(
+            "account.ledger.extended.rk", "send_outstanding_email_now",
+            [this.state.selected.id]);
+        this.notification.add(res.message, {
+            type: res.sent ? "success" : "warning",
+        });
     }
 
     backToList() {
         this.state.selected = null;
         this.state.data = null;
+        this.state.settings = null;
     }
 
     async onDateChange(ev) {

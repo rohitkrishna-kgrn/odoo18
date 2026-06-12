@@ -67,6 +67,46 @@
                     </div>
                 </div>
 
+                <!-- Verification & email controls -->
+                <div class="rk-verify-bar" t-if="state.settings">
+                    <t t-if="state.settings.verified">
+                        <span class="rk-badge rk-badge-ok">
+                            <i class="fa fa-check-circle"/> Verified
+                            <t t-if="state.settings.verified_by">
+                                by <t t-esc="state.settings.verified_by"/>
+                            </t>
+                        </span>
+                        <button class="btn btn-sm btn-outline-secondary"
+                                t-on-click="unverifyPartner">
+                            Remove Verification
+                        </button>
+                        <label class="rk-toggle">
+                            <input type="checkbox"
+                                   t-att-checked="state.settings.email_enabled"
+                                   t-on-change="toggleEmail"/>
+                            <span>Send Weekly Outstanding Email</span>
+                        </label>
+                        <span class="rk-warn" t-if="!state.settings.has_email">
+                            <i class="fa fa-exclamation-triangle"/> No email set on this customer
+                        </span>
+                        <button class="btn btn-sm btn-warning"
+                                t-on-click="sendEmailNow"
+                                t-att-disabled="!state.settings.has_email">
+                            <i class="fa fa-paper-plane"/> Send Now (Test)
+                        </button>
+                    </t>
+                    <t t-else="">
+                        <span class="rk-badge rk-badge-no">
+                            <i class="fa fa-times-circle"/> Not Verified
+                        </span>
+                        <button class="btn btn-sm btn-primary"
+                                t-on-click="verifyPartner">
+                            <i class="fa fa-check"/> Verify Customer
+                        </button>
+                        <span class="rk-muted">Verify to enable the weekly outstanding email.</span>
+                    </t>
+                </div>
+
                 <t t-if="state.loading">
                     <div class="rk-empty">Loading...</div>
                 </t>

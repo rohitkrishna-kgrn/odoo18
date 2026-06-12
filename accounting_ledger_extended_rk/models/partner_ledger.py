@@ -92,10 +92,11 @@ class AccountLedgerExtended(models.AbstractModel):
         move = line.move_id
         if move.move_type in ('out_invoice', 'out_refund', 'in_invoice',
                               'in_refund'):
-            descriptions = [n.strip() for n in
-                            move.invoice_line_ids.mapped('name') if n]
-            if descriptions:
-                return ', '.join(descriptions)
+            # The "Add a note" lines (display_type='line_note') on the invoice
+            notes = [n.strip() for n in move.line_ids.filtered(
+                lambda l: l.display_type == 'line_note').mapped('name') if n]
+            if notes:
+                return ', '.join(notes)
         payment = getattr(move, 'payment_id', False) or \
             getattr(move, 'origin_payment_id', False)
         if payment:
@@ -212,6 +213,51 @@ class AccountLedgerExtended(models.AbstractModel):
             'total_amount': total_due,
             'total_residual': total_residual,
         }
+
+    # ------------------------------------------------------------------
+    # Verification / email toggle (used by the Outstanding Ledger UI)
+    # ------------------------------------------------------------------
+    @api.model
+    def get_partner_settings(self, partner_id):
+        p = self.env['res.partner'].browse(int(partner_id))
+        return {
+            'verified': p.ledger_verified_by_accountant,
+            'verified_by': p.ledger_verified_by.name or '',
+            'email_enabled': p.ledger_email_enabled,
+            'has_email': bool(p.email),
+        }
+
+    @api.model
+    def verify_partner(self, partner_id):
+        p = self.env['res.partner'].browse(int(partner_id))
+        p.action_verify_for_ledger()
+        return self.get_partner_settings(partner_id)
+
+    @api.model
+    def unverify_partner(self, partner_id):
+        p = self.env['res.partner'].browse(int(partner_id))
+        p.action_unverify_for_ledger()
+        return self.get_partner_settings(partner_id)
+
+    @api.model
+    def set_partner_email_enabled(self, partner_id, enabled):
+        p = self.env['res.partner'].browse(int(partner_id))
+        p.ledger_email_enabled = bool(enabled)
+        return self.get_partner_settings(partner_id)
+
+    @api.model
+    def send_outstanding_email_now(self, partner_id):
+        """Manually trigger the outstanding email for one customer (testing).
+        Returns a status dict for the UI to display."""
+        p = self.env['res.partner'].browse(int(partner_id))
+        if not p.email:
+            return {'sent': False, 'message': 'No email set on this customer.'}
+        sent = p.send_outstanding_email()
+        if not sent:
+            return {'sent': False,
+                    'message': 'No outstanding invoices to send.'}
+        return {'sent': True, 'message': 'Outstanding email sent to %s.'
+                % p.email}
 
     # ------------------------------------------------------------------
     # XLSX export (shared by both ledgers)
