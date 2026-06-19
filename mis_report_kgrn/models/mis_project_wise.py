@@ -61,6 +61,9 @@ class MisProjectWise(models.Model):
     last_invoice_date = fields.Date(string='Last Invoice Date', readonly=True)
     invoice_days_ago = fields.Integer(string='Invoice Raised (Days Ago)', readonly=True)
 
+    # ── Dates ────────────────────────────────────────────────────────────
+    create_date = fields.Date(string='Created Date', readonly=True)
+
     # ── Completion status ────────────────────────────────────────────────
     is_completed = fields.Boolean(string='Completed', readonly=True)
 
@@ -156,6 +159,8 @@ class MisProjectWise(models.Model):
                     CASE WHEN COALESCE(slc.cnt, 0) > 0
                          THEN so.advance_amount / slc.cnt
                          ELSE 0 END                                         AS advance_per_line,
+
+                    pp.create_date::date                                     AS create_date,
 
                     /* use project.project.date (planned end) for deadline */
                     pp.date                                                  AS deadline,
