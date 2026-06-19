@@ -22,6 +22,7 @@
                 <field name="project_create_date" string="Created To"
                        filter_domain="[('project_create_date', '&lt;=', self)]"/>
                 <filter string="Overdue"      name="overdue"      domain="[('days_overdue', '&gt;', 0)]"/>
+                <filter string="Created Date" name="filter_create_date" date="project_create_date"/>
                 <filter string="Completed"    name="completed"    domain="[('is_completed', '=', True)]"/>
                 <filter string="In Progress"  name="in_progress"  domain="[('is_completed', '=', False)]"/>
                 <group expand="1" string="Group By">
