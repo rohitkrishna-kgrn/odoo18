@@ -67,7 +67,7 @@ class MisOutstandingLine(models.Model):
     invoice_days_ago = fields.Integer(string='Invoice Raised (Days Ago)', readonly=True)
 
     # ── Dates ────────────────────────────────────────────────────────────
-    create_date = fields.Date(string='Created Date', readonly=True)
+    project_create_date = fields.Date(string='Created Date', readonly=True)
 
     # ── Completion status ────────────────────────────────────────────────
     is_completed = fields.Boolean(string='Completed', readonly=True)
@@ -200,7 +200,7 @@ class MisOutstandingLine(models.Model):
                     COALESCE(ta.completed_not_invoiced_amount,     0)               AS completed_not_invoiced_amount,
                     so.advance_amount                                               AS advance_amount,
 
-                    pp.create_date::date                                            AS create_date,
+                    pp.create_date::date                                            AS project_create_date,
 
                     pp.date                                                         AS deadline,
                     CASE WHEN pp.date IS NOT NULL AND pp.date < CURRENT_DATE
