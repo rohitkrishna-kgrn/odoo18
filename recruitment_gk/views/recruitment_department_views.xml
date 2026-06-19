@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         DEPARTMENT FORM VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_hr_department_recruitment_form" model="ir.ui.view">
+        <field name="name">hr.department.recruitment.form</field>
+        <field name="model">hr.department</field>
+        <field name="arch" type="xml">
+            <form string="Department">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Department Name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Audit, Tax, Finance…"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <field name="manager_id"
+                               domain="[('company_id', '=', company_id)]"
+                               options="{'no_create_edit': True}"/>
+                        <field name="parent_id" options="{'no_create_edit': True}"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                    </group>
+
+                    <separator string="Job Positions"/>
+
+                    <field name="position_ids" nolabel="1">
+                        <list string="Job Positions">
+                            <field name="name" string="Position"/>
+                            <field name="department_id"
+                                   string="Current Department"
+                                   optional="hide"
+                                   readonly="1"/>
+                            <field name="no_of_recruitment"
+                                   string="Target Headcount"
+                                   optional="show"/>
+                            <field name="no_of_employee"
+                                   string="Current Employees"
+                                   optional="show"
+                                   readonly="1"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         DEPARTMENT LIST VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_hr_department_recruitment_list" model="ir.ui.view">
+        <field name="name">hr.department.recruitment.list</field>
+        <field name="model">hr.department</field>
+        <field name="arch" type="xml">
+            <list string="Departments">
+                <field name="name"/>
+                <field name="manager_id"/>
+                <field name="parent_id" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ACTION
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_recruitment_department" model="ir.actions.act_window">
+        <field name="name">Departments</field>
+        <field name="res_model">hr.department</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_hr_department_recruitment_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_hr_department_recruitment_form')})]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No departments found. Create your first department!
+            </p>
+            <p>
+                Add existing or new job positions inside each department.
+                These positions will appear in the Position dropdown of
+                Recruitment Requests when that department is selected.
+            </p>
+        </field>
+    </record>
+
+</odoo>

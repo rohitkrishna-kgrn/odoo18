@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FORM VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_candidate_form" model="ir.ui.view">
+        <field name="name">recruitment.candidate.form</field>
+        <field name="model">recruitment.candidate</field>
+        <field name="arch" type="xml">
+            <form string="Candidate" class="rg_no_compose">
+                <header>
+                    <field name="is_hr_admin" invisible="1"/>
+                    <field name="is_hiring_manager" invisible="1"/>
+                    <field name="is_management" invisible="1"/>
+                    <field name="request_state" invisible="1"/>
+                    <field name="all_rounds_completed" invisible="1"/>
+                    <field name="final_approval_count" invisible="1"/>
+                    <field name="it_onboarding_count" invisible="1"/>
+
+                    <button name="action_move_to_manager_review"
+                            string="Send to Manager" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'draft' or not request_id or request_state not in ('hr_review', 'in_progress', 'interview') or not is_hr_admin"/>
+
+                    <button name="action_hm_select_candidate"
+                            string="Select Candidate" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'manager_review' or not is_hiring_manager"/>
+                    <button name="action_reject"
+                            string="Reject Candidate" type="object"
+                            class="btn-danger"
+                            invisible="state != 'manager_review' or not is_hiring_manager"/>
+
+                    <button name="action_approve_for_interview"
+                            string="Schedule Interview" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'hm_approved' or not is_hr_admin"/>
+
+                    <field name="current_round_state" invisible="1"/>
+                    <!-- Rounds still in progress (not all completed yet) -->
+                    <button name="action_reschedule_round"
+                            string="Reschedule Round" type="object"
+                            invisible="state != 'interview' or current_round_state not in ('completed', 'selected', 'passed') or not is_hr_admin or all_rounds_completed"/>
+                    <button name="action_move_to_next_round"
+                            string="Next Round" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'interview' or current_round_state not in ('completed', 'selected', 'passed') or not is_hr_admin or all_rounds_completed"/>
+
+                    <!-- All rounds completed → final decision buttons -->
+                    <button name="action_mark_selected"
+                            string="Select Candidate" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'interview' or not all_rounds_completed or (not is_hr_admin and not is_hiring_manager and not is_management)"/>
+                    <button name="action_reject"
+                            string="Reject Candidate" type="object"
+                            class="btn-danger"
+                            invisible="state != 'interview' or not all_rounds_completed or (not is_hr_admin and not is_hiring_manager)"/>
+
+                    <!-- Selected → Final Approval Details (hidden once the record exists) -->
+                    <button name="action_open_final_approval"
+                            string="Final Approval Details" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'selected' or final_approval_count > 0"
+                            groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="new,draft,manager_review,hm_approved,interview,interview_completed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_interviews" type="object"
+                                class="oe_stat_button" icon="fa-calendar-check-o">
+                            <field name="interview_count" widget="statinfo" string="Interviews"/>
+                        </button>
+                        <button name="action_open_final_approval" type="object"
+                                class="oe_stat_button" icon="fa-check-circle"
+                                invisible="state != 'selected' or final_approval_count == 0"
+                                groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management">
+                            <field name="final_approval_count" widget="statinfo" string="Final Approval"/>
+                        </button>
+                        <button name="action_open_it_onboarding" type="object"
+                                class="oe_stat_button" icon="fa-laptop"
+                                invisible="it_onboarding_count == 0"
+                                groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management,recruitment_gk.group_recruitment_hiring_manager">
+                            <field name="it_onboarding_count" widget="statinfo" string="Onboarding Details"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Candidate Name…"/>
+                        </h1>
+                        <h3 class="text-muted">
+                            <field name="current_designation" placeholder="Designation…"/>
+                            <span invisible="not current_company"> @ <field name="current_company"/></span>
+                        </h3>
+                    </div>
+                    <group>
+                        <group string="Contact Information">
+                            <field name="email" widget="email"/>
+                            <label for="phone_country_code" string="Contact Number"/>
+                            <div class="d-flex gap-2 align-items-center">
+                                <field name="phone_country_code" nolabel="1"
+                                       style="max-width:160px;"/>
+                                <field name="phone" nolabel="1"
+                                       placeholder="Digits only"
+                                       style="flex:1;"/>
+                            </div>
+                        </group>
+                        <group string="Recruitment Details">
+                            <field name="priority" widget="priority" options="{'autosave': false}"/>
+                            <field name="hiring_manager_id"
+                                   string="Sent to Hiring Manager"
+                                   widget="many2one_avatar_user"
+                                   invisible="state != 'manager_review'"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Experience &amp; Compensation">
+                            <field name="current_company"/>
+                            <label for="total_experience" string="Total Experience"/>
+                            <div class="d-flex gap-2">
+                                <field name="total_experience" nolabel="1"
+                                       placeholder="Years" style="flex:1;"/>
+                                <field name="total_experience_months" nolabel="1"
+                                       placeholder="Months (optional)" style="flex:1;"/>
+                            </div>
+                            <label for="relevant_experience" string="Relevant Experience"/>
+                            <div class="d-flex gap-2">
+                                <field name="relevant_experience" nolabel="1"
+                                       placeholder="Years" style="flex:1;"/>
+                                <field name="relevant_experience_months" nolabel="1"
+                                       placeholder="Months (optional)" style="flex:1;"/>
+                            </div>
+                            <field name="salary_currency" string="Salary Currency"/>
+                            <field name="current_salary"/>
+                            <field name="expected_salary"/>
+                            <field name="notice_period"/>
+                        </group>
+                        <group string="Skills">
+                            <field name="key_skills"
+                                   string="Key Skills"
+                                   placeholder="e.g. Project Management, Data Analysis…"/>
+                            <field name="technologies"
+                                   string="Technologies"
+                                   placeholder="e.g. Python, React, AWS…"/>
+                            <field name="certifications"
+                                   string="Certifications"
+                                   placeholder="e.g. PMP, CPA, AWS Solutions Architect…"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="CV / Resume" name="page_cv">
+                            <field name="cv_attachment_ids" widget="cv_attachment_download"
+                                   string="CV / Resume Files"
+                                   nolabel="1"/>
+                        </page>
+                        <page string="HR Remarks" name="page_hr_remarks"
+                              groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management">
+                            <field name="hr_remarks" placeholder="Internal HR notes…"/>
+                        </page>
+                        <!-- Interview Rounds ordered ascending by round_order -->
+                        <page string="Interview Rounds" name="page_interviews"
+                              invisible="state not in ('interview', 'selected', 'rejected')">
+                            <field name="interview_ids" readonly="1" nolabel="1">
+                                <list default_order="round_order asc"
+                                      decoration-muted="state == 'draft'"
+                                      decoration-success="state in ('selected', 'passed')"
+                                      decoration-danger="state == 'rejected'"
+                                      decoration-warning="state == 'cancelled'">
+                                    <field name="round_order" string="#"/>
+                                    <field name="name" string="Round"/>
+                                    <field name="interview_date" string="Date"/>
+                                    <field name="interviewer_id" string="Interviewer"/>
+                                    <field name="overall_rating" string="Rating"/>
+                                    <field name="round_result" widget="badge"
+                                           decoration-success="round_result == 'selected'"
+                                           decoration-danger="round_result == 'rejected'"/>
+                                    <field name="state" widget="badge"
+                                           decoration-muted="state == 'draft'"
+                                           decoration-info="state in ('scheduled', 'completed')"
+                                           decoration-success="state in ('selected', 'passed')"
+                                           decoration-danger="state == 'rejected'"
+                                           decoration-warning="state == 'cancelled'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Rejection Details" name="page_rejection"
+                              invisible="state != 'rejected'">
+                            <field name="rejection_remark" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LIST VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_candidate_list" model="ir.ui.view">
+        <field name="name">recruitment.candidate.list</field>
+        <field name="model">recruitment.candidate</field>
+        <field name="arch" type="xml">
+            <list string="Candidates"
+                  decoration-danger="state == 'rejected'"
+                  decoration-success="state in ('selected', 'hm_approved')"
+                  decoration-warning="state == 'interview_completed'">
+                <field name="all_rounds_completed" column_invisible="1"/>
+                <field name="name"/>
+                <field name="job_title"/>
+                <field name="department_id"/>
+                <field name="current_designation"/>
+                <field name="current_company"/>
+                <field name="total_experience" string="Experience"/>
+                <field name="salary_currency" string="Currency" optional="hide"/>
+                <field name="expected_salary"/>
+                <field name="notice_period"/>
+                <field name="hiring_manager_id" widget="many2one_avatar_user" optional="show"/>
+                <field name="priority" widget="priority" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state in ('draft', 'new')"
+                       decoration-success="state == 'selected'"
+                       decoration-warning="state in ('hm_approved', 'manager_review', 'interview_completed')"
+                       decoration-danger="state == 'rejected'"
+                       decoration-info="state == 'interview'"/>
+                <!-- Badge: all rounds completed or interview completed -->
+                <field name="interview_status_badge" widget="badge"
+                       decoration-success="interview_status_badge == 'All Rounds Completed'"
+                       decoration-warning="interview_status_badge == 'Interview Completed'"
+                       optional="show"
+                       invisible="interview_status_badge == ''"/>
+                <!-- All rounds completed → Select + Reject -->
+                <button name="action_mark_selected" string="Select" type="object"
+                        class="btn-success btn-sm"
+                        invisible="not all_rounds_completed or state != 'interview'"
+                        groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+                <button name="action_reject" string="Reject" type="object"
+                        class="btn-danger btn-sm"
+                        invisible="not all_rounds_completed or state != 'interview'"
+                        groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_candidate_search" model="ir.ui.view">
+        <field name="name">recruitment.candidate.search</field>
+        <field name="model">recruitment.candidate</field>
+        <field name="arch" type="xml">
+            <search string="Candidates">
+                <field name="name"/>
+                <field name="department_id"/>
+                <field name="hiring_manager_id"/>
+                <filter string="Draft" name="state_draft"
+                        domain="[('state','=','draft')]"/>
+                <filter string="Pending Review" name="pending_review"
+                        domain="[('state','=','manager_review')]"/>
+                <filter string="HM Approved" name="hm_approved"
+                        domain="[('state','=','hm_approved')]"/>
+                <filter string="In Interview" name="in_interview"
+                        domain="[('state','=','interview')]"/>
+                <filter string="Selected" name="selected"
+                        domain="[('state','=','selected')]"/>
+                <filter string="Rejected" name="rejected"
+                        domain="[('state','=','rejected')]"/>
+                <separator/>
+                <filter string="Active Candidates" name="active_candidates"
+                        domain="[('state','not in',['rejected','selected'])]"/>
+                <filter string="Closed Requests" name="closed_request_candidates"
+                        domain="[('request_id.state','=','closed')]"/>
+                <!-- Pipeline default: active candidates OR candidates from closed requests -->
+                <filter string="Pipeline View" name="pipeline_candidates"
+                        domain="['|', ('state','not in',['rejected','selected']), ('request_id.state','=','closed')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Stage" name="grp_stage"
+                            context="{'group_by':'stage_id'}"/>
+                    <filter string="Hiring Manager" name="grp_manager"
+                            context="{'group_by':'hiring_manager_id'}"/>
+                    <filter string="Department" name="grp_department"
+                            context="{'group_by':'department_id'}"/>
+                    <filter string="Status" name="grp_state"
+                            context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ACTION
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_recruitment_candidate" model="ir.actions.act_window">
+        <field name="name">Candidates</field>
+        <field name="res_model">recruitment.candidate</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_recruitment_candidate_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No candidates yet</p>
+            <p>Candidates shared by HR Admin will appear here.</p>
+        </field>
+    </record>
+
+</odoo>

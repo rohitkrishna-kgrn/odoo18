@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Settings form view -->
+    <record id="view_referral_config_form" model="ir.ui.view">
+        <field name="name">referral.config.form</field>
+        <field name="model">referral.config</field>
+        <field name="arch" type="xml">
+            <form string="Referral Settings" delete="false">
+                <sheet>
+
+                    <!-- ── System Settings ── -->
+                    <div class="mb-4">
+                        <h4 class="fw-bold mb-1" style="color: #111827;">System Settings</h4>
+                        <p class="text-muted mb-3">Configure how the referral programme operates.</p>
+
+                        <div class="card border-0 shadow-sm p-4 mb-3" style="border-radius: 12px;">
+                            <group string="Commission">
+                                <field name="commission_basis" widget="radio" string="Calculation Basis"/>
+                                <field name="auto_assign" widget="boolean_toggle"/>
+                            </group>
+                            <group string="References &amp; Notifications">
+                                <field name="ref_format" placeholder="e.g. REF-YYYY-####"/>
+                                <field name="send_welcome_email" widget="boolean_toggle"/>
+                            </group>
+                        </div>
+                    </div>
+
+                    <!-- ── Payment Settings ── -->
+                    <div class="mb-4">
+                        <h4 class="fw-bold mb-1" style="color: #111827;">Payment Settings</h4>
+                        <p class="text-muted mb-3">Configure commission payout rules.</p>
+
+                        <div class="card border-0 shadow-sm p-4" style="border-radius: 12px;">
+                            <group string="Payout Rules">
+                                <field name="min_payout" string="Minimum Payout Threshold (AED)"/>
+                                <field name="payout_frequency" widget="radio" string="Payout Frequency"/>
+                            </group>
+                            <group string="Banking Details">
+                                <field name="bank_details" nolabel="1" colspan="2"
+                                       placeholder="Enter bank name, account number, IBAN, routing details…"/>
+                            </group>
+                        </div>
+                    </div>
+
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Server action to open settings -->
+    <record id="action_referral_settings" model="ir.actions.server">
+        <field name="name">Referral Settings</field>
+        <field name="model_id" ref="model_referral_config"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_settings()</field>
+    </record>
+
+</odoo>

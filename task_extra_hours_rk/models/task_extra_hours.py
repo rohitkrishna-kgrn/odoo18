@@ -1,5 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError,AccessError
+from odoo.exceptions import UserError
 
 class TaskExtraHours(models.Model):
     _name = 'task.extra.hours'
@@ -35,7 +35,7 @@ class TaskExtraHours(models.Model):
     def action_open_edit_approve_wizard(self):
         self.ensure_one()
         if not self.is_approver:
-            raise AccessError(_("You are not authorized to edit this request."))
+            raise UserError(_("You are not authorized to edit this request."))
         return {
             'type': 'ir.actions.act_window',
             'name': _('Edit & Approve Extra Hours'),
@@ -56,7 +56,7 @@ class TaskExtraHours(models.Model):
         for rec in self:
             employee = self.env['hr.employee'].sudo().search([('user_id', '=', rec.user_id.id)], limit=1)
             if not employee:
-                raise AccessError(_("No employee record linked to user %s.") % rec.user_id.name)
+                raise UserError(_("No employee record linked to user %s.") % rec.user_id.name)
 
             manager = employee.parent_id
             manager_user = manager.user_id if manager else False
@@ -67,7 +67,7 @@ class TaskExtraHours(models.Model):
 
             if not (is_manager or is_admin):
                 manager_name = manager.name if manager else "No Manager Assigned"
-                raise AccessError(_(
+                raise UserError(_(
                     "You are not authorized to approve this request.\n"
                     "Only the employee's manager (%s) or an administrator can approve it."
                 ) % manager_name)
@@ -95,7 +95,7 @@ class TaskExtraHours(models.Model):
         for rec in self:
             employee = self.env['hr.employee'].sudo().search([('user_id', '=', rec.user_id.id)], limit=1)
             if not employee:
-                raise AccessError(_("No employee record linked to user %s.") % rec.user_id.name)
+                raise UserError(_("No employee record linked to user %s.") % rec.user_id.name)
 
             manager = employee.parent_id
             manager_user = manager.user_id if manager else False
@@ -106,7 +106,7 @@ class TaskExtraHours(models.Model):
 
             if not (is_manager or is_admin):
                 manager_name = manager.name if manager else "No Manager Assigned"
-                raise AccessError(_(
+                raise UserError(_(
                     "You are not authorized to reject this request.\n"
                     "Only the employee's manager (%s) or an administrator can reject it."
                 ) % manager_name)

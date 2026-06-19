@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FORM VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_interview_round_form" model="ir.ui.view">
+        <field name="name">recruitment.interview.round.form</field>
+        <field name="model">recruitment.interview.round</field>
+        <field name="arch" type="xml">
+            <form string="Interview Round" class="rg_no_compose">
+                <header>
+                    <!-- ── draft state: Start Scheduling ─────────────── -->
+                    <button name="action_start"
+                            string="Start Scheduling" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'draft' or not can_schedule"
+                            groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+
+                    <!-- ── scheduled state buttons ─────────────────────── -->
+                    <button name="action_send_interview_invitation"
+                            string="Send Interview Invitation" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'scheduled' or invitation_sent or not interview_date or not interviewer_id or not location_type or (location_type == 'online' and not meeting_link) or (location_type == 'offline' and not venue)"
+                            groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+                    <button name="action_reschedule"
+                            string="Reschedule" type="object"
+                            class="btn-warning"
+                            invisible="state != 'scheduled' or not invitation_sent"
+                            groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+                    <button name="action_complete"
+                            string="Round Completed" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'scheduled' or not invitation_sent"
+                            groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+
+                    <!-- ── completed state: choose outcome ─────────────── -->
+                    <button name="action_round_selected"
+                            string="Round Selected" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'completed'"
+                            groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+                    <button name="action_reject"
+                            string="Round Rejected" type="object"
+                            class="btn-danger"
+                            invisible="state != 'completed'"
+                            groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+
+                    <!-- ── selected state: open next round (non-last rounds only) ── -->
+                    <button name="action_pass_to_next"
+                            string="Open Next Round" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'selected' or is_last_round"
+                            groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+
+                    <field name="can_schedule" invisible="1"/>
+                    <field name="is_last_round" invisible="1"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,scheduled,completed,selected,rejected"/>
+                </header>
+                <sheet>
+                    <!-- Draft banner: waiting for previous round -->
+                    <div class="alert alert-info mb-3" role="alert"
+                         invisible="state != 'draft' or can_schedule">
+                        <i class="fa fa-lock me-1"/>
+                        <strong>Locked</strong> — This round will unlock once the previous
+                        interview round is completed.
+                    </div>
+                    <!-- Draft banner: ready to schedule -->
+                    <div class="alert alert-success mb-3" role="alert"
+                         invisible="state != 'draft' or not can_schedule">
+                        <i class="fa fa-calendar me-1"/>
+                        <strong>Ready to Schedule</strong> — Fill in the details below and
+                        click <em>Start Scheduling</em> to activate this round.
+                    </div>
+                    <!-- Reschedule notice banner -->
+                    <div class="alert alert-warning mb-3" role="alert"
+                         invisible="not is_rescheduled">
+                        <i class="fa fa-refresh me-1"/>
+                        <strong>Rescheduled Interview</strong> — This round was rescheduled.
+                        <span invisible="not original_round_id">
+                            Original round: <field name="original_round_id" readonly="1" nolabel="1"/>
+                        </span>
+                    </div>
+
+                    <div class="oe_title">
+                        <div class="d-flex align-items-baseline gap-3 flex-wrap">
+                            <h2 class="mb-0 me-2">
+                                <field name="name" placeholder="Round Name…"/>
+                            </h2>
+                            <span class="text-muted" style="font-size:0.9rem;">Candidate:</span>
+                            <span style="font-size:1rem; font-weight:700; color:#212529;">
+                                <field name="candidate_name" readonly="1"/>
+                            </span>
+                        </div>
+                        <div class="mt-1 d-flex gap-2 flex-wrap">
+                            <span invisible="not invitation_sent">
+                                <span class="badge rounded-pill text-bg-success">
+                                    <i class="fa fa-envelope-o me-1"/> Invitation Sent
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                    <group>
+                        <group string="Schedule">
+                            <field name="stage_id" readonly="1"/>
+                            <field name="interview_date" string="Interview Date" required="1"/>
+                            <field name="interview_time" widget="float_time_ampm"
+                                   string="Interview Time (UAE)"/>
+                            <field name="interview_time_ist" readonly="1"
+                                   string="India Time (IST)"/>
+                            <field name="interviewer_id" required="1"/>
+                            <field name="location_type" string="Location" required="1"/>
+                            <field name="meeting_link" widget="url" placeholder="https://…"
+                                   required="location_type == 'online'"/>
+                            <field name="venue"
+                                   placeholder="Enter venue address…"
+                                   invisible="location_type != 'offline'"
+                                   required="location_type == 'offline'"/>
+                        </group>
+                        <group string="Linked To">
+                            <field name="request_id" readonly="1"
+                                   string="Recruitment Request"/>
+                            <field name="job_title" readonly="1" string="Position"/>
+                            <field name="department_id" readonly="1" string="Department"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Pre-Interview Notes" name="page_notes">
+                            <field name="interview_notes" placeholder="Notes to prepare for the interview…"/>
+                        </page>
+                        <page string="Feedback &amp; Rating" name="page_feedback"
+                              invisible="state not in ('completed', 'selected', 'passed', 'rejected')">
+                            <group>
+                                <group string="Ratings">
+                                    <field name="technical_rating"/>
+                                    <field name="communication_rating"/>
+                                    <field name="overall_rating"/>
+                                    <field name="recommendation"/>
+                                </group>
+                                <group string="Comments">
+                                    <field name="feedback_comments" nolabel="1"
+                                           placeholder="Detailed feedback…"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Rejection Details" name="page_rejection"
+                              invisible="state != 'rejected'">
+                            <field name="rejection_remark" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LIST VIEW  (ordered ascending by round_order)
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_interview_round_list" model="ir.ui.view">
+        <field name="name">recruitment.interview.round.list</field>
+        <field name="model">recruitment.interview.round</field>
+        <field name="arch" type="xml">
+            <list string="Interview Rounds"
+                  default_order="round_order asc"
+                  decoration-muted="state == 'draft'"
+                  decoration-success="state in ('selected', 'passed')"
+                  decoration-danger="state == 'rejected'"
+                  decoration-warning="state == 'cancelled'">
+                <field name="name"/>
+                <field name="candidate_name" string="Candidate"/>
+                <field name="job_title"/>
+                <field name="department_id"/>
+                <field name="interview_datetime" context="{'tz': 'Asia/Dubai'}" string="Date &amp; Time (UAE)"/>
+                <field name="location_type" string="Location"/>
+                <field name="interviewer_id"/>
+                <field name="overall_rating"/>
+                <field name="recommendation"/>
+                <field name="round_result" widget="badge"
+                       decoration-success="round_result == 'selected'"
+                       decoration-danger="round_result == 'rejected'"
+                       optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state == 'draft'"
+                       decoration-info="state in ('scheduled', 'completed')"
+                       decoration-success="state in ('selected', 'passed')"
+                       decoration-danger="state == 'rejected'"
+                       decoration-warning="state == 'cancelled'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_interview_round_search" model="ir.ui.view">
+        <field name="name">recruitment.interview.round.search</field>
+        <field name="model">recruitment.interview.round</field>
+        <field name="arch" type="xml">
+            <search string="Interview Rounds">
+                <field name="name"/>
+                <field name="candidate_id"/>
+                <field name="interviewer_id"/>
+                <field name="department_id"/>
+                <filter string="My Interviews" name="my_interviews"
+                        domain="[('interviewer_id','=',uid)]"/>
+                <filter string="Draft" name="draft"
+                        domain="[('state','=','draft')]"/>
+                <filter string="Scheduled" name="scheduled"
+                        domain="[('state','=','scheduled')]"/>
+                <filter string="Completed" name="completed"
+                        domain="[('state','=','completed')]"/>
+                <filter string="Selected" name="round_selected"
+                        domain="[('state','=','selected')]"/>
+                <filter string="Rejected" name="rejected"
+                        domain="[('state','=','rejected')]"/>
+                <filter string="Cancelled" name="cancelled"
+                        domain="[('state','=','cancelled')]"/>
+                <filter string="Rescheduled" name="rescheduled"
+                        domain="[('is_rescheduled','=',True)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Stage / Round" name="grp_stage"
+                            context="{'group_by':'stage_id'}"/>
+                    <filter string="Interviewer" name="grp_interviewer"
+                            context="{'group_by':'interviewer_id'}"/>
+                    <filter string="Department" name="grp_dept"
+                            context="{'group_by':'department_id'}"/>
+                    <filter string="Status" name="grp_state"
+                            context="{'group_by':'state'}"/>
+                    <filter string="Interview Date" name="grp_date"
+                            context="{'group_by':'interview_date:week'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ACTION
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_recruitment_interview_round" model="ir.actions.act_window">
+        <field name="name">Interview Rounds</field>
+        <field name="res_model">recruitment.interview.round</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_recruitment_interview_round_search"/>
+        <field name="context">{'search_default_scheduled': 1}</field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         REJECT WIZARD VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_reject_wizard_form" model="ir.ui.view">
+        <field name="name">recruitment.reject.wizard.form</field>
+        <field name="model">recruitment.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reject Candidate">
+                <group>
+                    <field name="candidate_id" readonly="1"/>
+                    <field name="interview_round_id" readonly="1"
+                           invisible="not interview_round_id"/>
+                    <field name="rejection_remark" placeholder="Reason for rejection…"/>
+                </group>
+                <footer>
+                    <button name="action_confirm_reject" string="Confirm Rejection"
+                            type="object" class="btn-danger"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

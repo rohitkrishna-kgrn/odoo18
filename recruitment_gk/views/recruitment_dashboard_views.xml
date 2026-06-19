@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         DASHBOARD FORM VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_dashboard_form" model="ir.ui.view">
+        <field name="name">recruitment.dashboard.form</field>
+        <field name="model">recruitment.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Recruitment Dashboard" create="false" delete="false">
+                <sheet>
+                    <h2 style="margin-bottom:24px;">Recruitment Dashboard</h2>
+
+                    <!-- ── Recruitment Requests ──────────────────────────── -->
+                    <group string="Recruitment Requests" col="4">
+                        <div class="o_kanban_primary_left" style="display:flex;gap:16px;flex-wrap:wrap;padding:8px 0;">
+                            <div style="background:#875A7B;color:#fff;border-radius:8px;padding:16px 24px;min-width:140px;text-align:center;">
+                                <div style="font-size:32px;font-weight:bold;">
+                                    <field name="total_open_requests" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:13px;margin-top:4px;">Total Open Requests</div>
+                            </div>
+                            <div style="background:#6c757d;color:#fff;border-radius:8px;padding:16px 24px;min-width:140px;text-align:center;">
+                                <div style="font-size:32px;font-weight:bold;">
+                                    <field name="total_pending_requests" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:13px;margin-top:4px;">Pending Requests</div>
+                            </div>
+                            <div style="background:#28a745;color:#fff;border-radius:8px;padding:16px 24px;min-width:140px;text-align:center;">
+                                <div style="font-size:32px;font-weight:bold;">
+                                    <field name="total_closed_requests" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:13px;margin-top:4px;">Closed Requests</div>
+                            </div>
+                        </div>
+                    </group>
+
+                    <separator/>
+
+                    <!-- ── Candidate Statistics ──────────────────────────── -->
+                    <group string="Candidate Statistics" col="6">
+                        <div style="display:flex;gap:16px;flex-wrap:wrap;padding:8px 0;">
+                            <div style="background:#17a2b8;color:#fff;border-radius:8px;padding:16px 24px;min-width:130px;text-align:center;">
+                                <div style="font-size:32px;font-weight:bold;">
+                                    <field name="total_candidates" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:13px;margin-top:4px;">Total Candidates</div>
+                            </div>
+                            <div style="background:#ffc107;color:#212529;border-radius:8px;padding:16px 24px;min-width:130px;text-align:center;">
+                                <div style="font-size:32px;font-weight:bold;">
+                                    <field name="candidates_under_review" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:13px;margin-top:4px;">Under Review</div>
+                            </div>
+                            <div style="background:#875A7B;color:#fff;border-radius:8px;padding:16px 24px;min-width:130px;text-align:center;">
+                                <div style="font-size:32px;font-weight:bold;">
+                                    <field name="candidates_in_interview" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:13px;margin-top:4px;">In Interview</div>
+                            </div>
+                            <div style="background:#28a745;color:#fff;border-radius:8px;padding:16px 24px;min-width:130px;text-align:center;">
+                                <div style="font-size:32px;font-weight:bold;">
+                                    <field name="selected_candidates" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:13px;margin-top:4px;">Selected</div>
+                            </div>
+                            <div style="background:#dc3545;color:#fff;border-radius:8px;padding:16px 24px;min-width:130px;text-align:center;">
+                                <div style="font-size:32px;font-weight:bold;">
+                                    <field name="rejected_candidates" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:13px;margin-top:4px;">Rejected</div>
+                            </div>
+                        </div>
+                    </group>
+
+                    <separator/>
+
+                    <!-- ── IT Onboarding ─────────────────────────────────── -->
+                    <group string="IT Onboarding">
+                        <div style="display:flex;gap:16px;flex-wrap:wrap;padding:8px 0;">
+                            <div style="background:#fd7e14;color:#fff;border-radius:8px;padding:16px 24px;min-width:140px;text-align:center;">
+                                <div style="font-size:32px;font-weight:bold;">
+                                    <field name="it_onboarding_pending" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:13px;margin-top:4px;">Pending / In Progress</div>
+                            </div>
+                            <div style="background:#28a745;color:#fff;border-radius:8px;padding:16px 24px;min-width:140px;text-align:center;">
+                                <div style="font-size:32px;font-weight:bold;">
+                                    <field name="it_onboarding_completed" readonly="1" nolabel="1"/>
+                                </div>
+                                <div style="font-size:13px;margin-top:4px;">Completed</div>
+                            </div>
+                        </div>
+                    </group>
+
+                    <separator/>
+
+                    <!-- ── Hiring Metrics ────────────────────────────────── -->
+                    <group string="Hiring Metrics — Detailed Reports">
+                        <div style="padding:8px 0;">
+                            <p style="color:#6c757d;margin-bottom:12px;">
+                                Use the <strong>Reports</strong> menu to access detailed hiring metrics:
+                            </p>
+                            <ul style="color:#555;line-height:1.9;">
+                                <li><strong>Recruitment Overview</strong> — Open positions by department (pivot)</li>
+                                <li><strong>Hiring Manager Summary</strong> — Recruitment status by hiring manager</li>
+                                <li><strong>Candidate Pipeline</strong> — Candidates grouped by stage and department</li>
+                                <li><strong>Interview Report</strong> — Interview pipeline overview by round and state</li>
+                            </ul>
+                        </div>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SERVER ACTION — opens singleton dashboard form
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_server_recruitment_dashboard" model="ir.actions.server">
+        <field name="name">Recruitment Dashboard</field>
+        <field name="model_id" ref="model_recruitment_dashboard"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_dashboard()</field>
+    </record>
+
+</odoo>

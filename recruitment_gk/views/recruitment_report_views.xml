@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         RECRUITMENT REQUEST — PIVOT & GRAPH
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_request_pivot" model="ir.ui.view">
+        <field name="name">recruitment.request.pivot</field>
+        <field name="model">recruitment.request</field>
+        <field name="arch" type="xml">
+            <pivot string="Recruitment Requests" disable_linking="1">
+                <field name="department_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="num_vacancies" type="measure"/>
+                <field name="candidate_count" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_recruitment_request_graph" model="ir.ui.view">
+        <field name="name">recruitment.request.graph</field>
+        <field name="model">recruitment.request</field>
+        <field name="arch" type="xml">
+            <graph string="Recruitment Requests" type="bar">
+                <field name="department_id"/>
+                <field name="state"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_recruitment_request_report" model="ir.actions.act_window">
+        <field name="name">Recruitment Overview</field>
+        <field name="res_model">recruitment.request</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="search_view_id" ref="recruitment_gk.view_recruitment_request_search"/>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         CANDIDATE PIPELINE — PIVOT & GRAPH
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_candidate_pivot" model="ir.ui.view">
+        <field name="name">recruitment.candidate.pivot</field>
+        <field name="model">recruitment.candidate</field>
+        <field name="arch" type="xml">
+            <pivot string="Candidates" disable_linking="1">
+                <field name="department_id" type="row"/>
+                <field name="stage_id" type="col"/>
+                <field name="interview_count" type="measure"/>
+                <field name="expected_salary" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_recruitment_candidate_graph" model="ir.ui.view">
+        <field name="name">recruitment.candidate.graph</field>
+        <field name="model">recruitment.candidate</field>
+        <field name="arch" type="xml">
+            <graph string="Candidates by Stage" type="bar">
+                <field name="stage_id"/>
+                <field name="department_id"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_recruitment_candidate_report" model="ir.actions.act_window">
+        <field name="name">Candidate Pipeline Report</field>
+        <field name="res_model">recruitment.candidate</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="search_view_id" ref="recruitment_gk.view_recruitment_candidate_search"/>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         INTERVIEW ROUNDS — PIVOT & GRAPH
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_interview_round_pivot" model="ir.ui.view">
+        <field name="name">recruitment.interview.round.pivot</field>
+        <field name="model">recruitment.interview.round</field>
+        <field name="arch" type="xml">
+            <pivot string="Interview Rounds" disable_linking="1">
+                <field name="department_id" type="row"/>
+                <field name="state" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_recruitment_interview_round_graph" model="ir.ui.view">
+        <field name="name">recruitment.interview.round.graph</field>
+        <field name="model">recruitment.interview.round</field>
+        <field name="arch" type="xml">
+            <graph string="Interviews by Round" type="bar">
+                <field name="name"/>
+                <field name="state"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_recruitment_interview_report" model="ir.actions.act_window">
+        <field name="name">Interview Report</field>
+        <field name="res_model">recruitment.interview.round</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="search_view_id" ref="recruitment_gk.view_recruitment_interview_round_search"/>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HIRING MANAGER SUMMARY — graph by manager
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_manager_graph" model="ir.ui.view">
+        <field name="name">recruitment.request.manager.graph</field>
+        <field name="model">recruitment.request</field>
+        <field name="arch" type="xml">
+            <graph string="Requests by Hiring Manager" type="bar">
+                <field name="user_id"/>
+                <field name="state"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_recruitment_manager_report" model="ir.actions.act_window">
+        <field name="name">Hiring Manager Summary</field>
+        <field name="res_model">recruitment.request</field>
+        <field name="view_mode">graph,pivot,list</field>
+        <field name="search_view_id" ref="recruitment_gk.view_recruitment_request_search"/>
+        <field name="context">{'search_default_grp_manager': 1}</field>
+    </record>
+
+</odoo>

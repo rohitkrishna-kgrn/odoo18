@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        noupdate="0" → schedule is re-applied on module upgrade.
+        UAE Standard Time = UTC+4 (no DST).  06:00 UTC = 10:00 UAE.
+    -->
+    <data noupdate="0">
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             Cron 1 – Daily Status Update
+             Runs first each day to transition line states based on date.
+             (scheduled → upcoming → notification_sent → completed)
+        ══════════════════════════════════════════════════════════════════════ -->
+        <record id="cron_reminder_daily" model="ir.cron">
+            <field name="name">Project Reminders: Daily Status Update</field>
+            <field name="model_id" ref="model_project_reminder_schedule"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_update_statuses()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+            <field name="nextcall" eval="(lambda n, t: t if t > n else t + timedelta(days=1))(datetime.now(), datetime.now().replace(hour=6, minute=0, second=0, microsecond=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             Cron 2 – Upcoming Reminder Notification
+             Fires daily at 06:30 UTC (10:30 UAE).
+             Sends the "Upcoming Reminder" email when
+             reminder_date = today + 2 days AND upcoming_mail_sent = False.
+        ══════════════════════════════════════════════════════════════════════ -->
+        <record id="cron_upcoming_reminder_notification" model="ir.cron">
+            <field name="name">Project Reminders: Upcoming Reminder Notification</field>
+            <field name="model_id" ref="model_project_reminder_schedule"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_upcoming_reminder_notification()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+            <field name="nextcall" eval="(lambda n, t: t if t > n else t + timedelta(days=1))(datetime.now(), datetime.now().replace(hour=6, minute=30, second=0, microsecond=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             Cron 3 – Due Today Reminder Notification
+             Fires daily at 07:00 UTC (11:00 UAE).
+             Sends the "Due Today" email when
+             reminder_date = today AND due_today_mail_sent = False.
+             Also updates line status → Notification Sent.
+        ══════════════════════════════════════════════════════════════════════ -->
+        <record id="cron_due_today_reminder_notification" model="ir.cron">
+            <field name="name">Project Reminders: Due Today Reminder Notification</field>
+            <field name="model_id" ref="model_project_reminder_schedule"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_due_today_reminder_notification()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+            <field name="nextcall" eval="(lambda n, t: t if t > n else t + timedelta(days=1))(datetime.now(), datetime.now().replace(hour=7, minute=0, second=0, microsecond=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             Cron 4 – Monthly PM Summary (1st of each month, 06:00 UTC)
+        ══════════════════════════════════════════════════════════════════════ -->
+        <record id="cron_reminder_monthly_pm" model="ir.cron">
+            <field name="name">Project Reminders: Monthly PM Summary Email</field>
+            <field name="model_id" ref="model_project_reminder_schedule"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_send_monthly_pm_summary()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">months</field>
+            <field name="active">True</field>
+            <field name="nextcall">2026-07-01 06:00:00</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════════
+             Cron 5 – Monthly Approver Summary (1st of each month, 06:05 UTC)
+        ══════════════════════════════════════════════════════════════════════ -->
+        <record id="cron_reminder_monthly_approver" model="ir.cron">
+            <field name="name">Project Reminders: Monthly Approver Summary Email</field>
+            <field name="model_id" ref="model_project_reminder_schedule"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_send_monthly_approver_summary()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">months</field>
+            <field name="active">True</field>
+            <field name="nextcall">2026-07-01 06:05:00</field>
+        </record>
+
+    </data>
+</odoo>

@@ -1,7 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import AccessError
-from odoo.exceptions import ValidationError
-from odoo.exceptions import UserError
+from odoo.exceptions import ValidationError, UserError
 from odoo.tools.float_utils import float_compare
 from datetime import timedelta
 import logging
@@ -133,7 +131,7 @@ class ProjectProject(models.Model):
     def create(self, vals):
         # Allow only users in group_project_manager to create projects
         if not self.env.user.has_group('project.group_project_manager'):
-            raise AccessError("You do not have the access rights to create projects.")
+            raise UserError("You do not have the access rights to create projects.")
         return super().create(vals)
 
     @api.model
@@ -252,7 +250,7 @@ class ProjectTask(models.Model):
     def create(self, vals):
         # Allow only users in group_project_manager to create tasks
         if not self.env.user.has_group('project.group_project_manager'):
-            raise AccessError("You do not have the access rights to create tasks.")
+            raise UserError("You do not have the access rights to create tasks.")
         return super().create(vals)
     
     def write(self, vals):

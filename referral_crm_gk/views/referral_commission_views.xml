@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════
+         Commission — List view
+    ══════════════════════════════════════════════════════════ -->
+    <record id="view_referral_commission_list" model="ir.ui.view">
+        <field name="name">referral.commission.list</field>
+        <field name="model">referral.commission</field>
+        <field name="arch" type="xml">
+            <list string="Commissions" default_order="create_date desc">
+                <field name="name" string="Reference"/>
+                <field name="referrer_id" string="Referrer"/>
+                <field name="referrer_company" string="Referrer Company" optional="show"/>
+                <field name="referrer_tier" widget="badge"
+                       decoration-info="referrer_tier == 'starter'"
+                       decoration-warning="referrer_tier == 'active'"
+                       decoration-primary="referrer_tier == 'premier'"
+                       optional="show"/>
+                <field name="referral_company" string="Referred Company"/>
+                <field name="partner_name" string="Contact" optional="show"/>
+                <field name="deal_value" string="Deal Value (AED)"
+                       widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="referrer_commission_rate" string="Rate (%)" widget="float"/>
+                <field name="commission_amount" string="Commission (AED)"
+                       widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state == 'pending'"
+                       decoration-success="state == 'paid'"/>
+                <field name="paid_date" string="Paid On" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════
+         Commission — Form view
+    ══════════════════════════════════════════════════════════ -->
+    <record id="view_referral_commission_form" model="ir.ui.view">
+        <field name="name">referral.commission.form</field>
+        <field name="model">referral.commission</field>
+        <field name="arch" type="xml">
+            <form string="Commission">
+                <header>
+                    <button name="action_mark_paid" type="object"
+                            string="Mark as Paid" class="btn btn-primary"
+                            invisible="state == 'paid'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="pending,paid"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button type="object" name="action_view_referral"
+                                class="oe_stat_button" icon="fa-handshake-o">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">View Referral</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" string="Commission Reference"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Referrer Details">
+                            <field name="referrer_id" readonly="1"
+                                   options="{'no_open': False}"/>
+                            <field name="referrer_company" readonly="1"/>
+                            <field name="referrer_tier" readonly="1" widget="badge"
+                                   decoration-info="referrer_tier == 'starter'"
+                                   decoration-warning="referrer_tier == 'active'"
+                                   decoration-primary="referrer_tier == 'premier'"/>
+                            <field name="referrer_commission_rate" readonly="1"
+                                   string="Commission Rate (%)" widget="float"/>
+                            <field name="referrer_email" readonly="1" widget="email"/>
+                            <field name="referrer_phone" readonly="1" widget="phone"/>
+                        </group>
+                        <group string="Referral Details">
+                            <field name="referral_ref" readonly="1"/>
+                            <field name="referral_company" readonly="1"/>
+                            <field name="partner_name" readonly="1" string="Contact"/>
+                            <field name="deal_value" readonly="1"
+                                   widget="monetary" options="{'currency_field': 'currency_id'}"
+                                   string="Deal Value (AED)"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Commission">
+                            <field name="commission_amount" readonly="1"
+                                   widget="monetary" options="{'currency_field': 'currency_id'}"
+                                   string="Commission Amount (AED)"/>
+                        </group>
+                        <group string="Payment" invisible="state == 'pending'">
+                            <field name="paid_date"/>
+                            <field name="payment_ref" placeholder="Cheque / Transfer Ref…"/>
+                        </group>
+                    </group>
+
+                    <group string="Notes" invisible="not notes and state == 'pending'">
+                        <field name="notes" nolabel="1" widget="text"
+                               placeholder="Add payment notes or references…"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════
+         Commission — Search view
+    ══════════════════════════════════════════════════════════ -->
+    <record id="view_referral_commission_search" model="ir.ui.view">
+        <field name="name">referral.commission.search</field>
+        <field name="model">referral.commission</field>
+        <field name="arch" type="xml">
+            <search string="Search Commissions">
+                <field name="name" string="Reference"/>
+                <field name="referrer_id" string="Referrer"/>
+                <field name="referral_company" string="Referred Company"/>
+                <field name="partner_name" string="Contact"/>
+                <filter string="Pending" name="state_pending" domain="[('state', '=', 'pending')]"/>
+                <filter string="Paid" name="state_paid" domain="[('state', '=', 'paid')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Referrer" name="group_referrer" context="{'group_by': 'referrer_id'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════
+         Commission — Window action (replaces old crm.lead-based action)
+    ══════════════════════════════════════════════════════════ -->
+    <record id="action_referral_commissions" model="ir.actions.act_window">
+        <field name="name">Commissions</field>
+        <field name="res_model">referral.commission</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[]</field>
+        <field name="context">{}</field>
+        <field name="search_view_id" ref="view_referral_commission_search"/>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_referral_commission_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_referral_commission_form')}),
+        ]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No commissions yet — they are created automatically when a referral lead
+                reaches the Converted stage.
+            </p>
+        </field>
+    </record>
+
+</odoo>

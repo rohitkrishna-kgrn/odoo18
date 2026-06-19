@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Fixed stages (noupdate so user customisation is preserved) -->
+        <record id="stage_draft" model="recruitment.stage">
+            <field name="name">Draft</field>
+            <field name="sequence">5</field>
+            <field name="stage_type">draft</field>
+            <field name="fold">False</field>
+        </record>
+
+        <record id="stage_submitted" model="recruitment.stage">
+            <field name="name">New</field>
+            <field name="sequence">10</field>
+            <field name="stage_type">new</field>
+            <field name="fold">False</field>
+        </record>
+
+        <record id="stage_manager_review" model="recruitment.stage">
+            <field name="name">Manager Review</field>
+            <field name="sequence">20</field>
+            <field name="stage_type">manager_review</field>
+            <field name="fold">False</field>
+        </record>
+
+        <!-- Default interview rounds (replaced when a config is applied) -->
+        <record id="stage_interview_round1" model="recruitment.stage">
+            <field name="name">Technical Interview</field>
+            <field name="sequence">30</field>
+            <field name="stage_type">interview</field>
+            <field name="round_number">1</field>
+            <field name="fold">False</field>
+        </record>
+
+        <record id="stage_interview_round2" model="recruitment.stage">
+            <field name="name">Manager Interview</field>
+            <field name="sequence">40</field>
+            <field name="stage_type">interview</field>
+            <field name="round_number">2</field>
+            <field name="fold">False</field>
+        </record>
+
+        <record id="stage_interview_round3" model="recruitment.stage">
+            <field name="name">Final HR Interview</field>
+            <field name="sequence">50</field>
+            <field name="stage_type">interview</field>
+            <field name="round_number">3</field>
+            <field name="fold">False</field>
+        </record>
+
+        <record id="stage_final_evaluation" model="recruitment.stage">
+            <field name="name">Final Evaluation</field>
+            <field name="sequence">60</field>
+            <field name="stage_type">final_evaluation</field>
+            <field name="fold">False</field>
+        </record>
+
+        <record id="stage_selected" model="recruitment.stage">
+            <field name="name">Selected</field>
+            <field name="sequence">70</field>
+            <field name="stage_type">selected</field>
+            <field name="fold">False</field>
+        </record>
+
+        <record id="stage_rejected" model="recruitment.stage">
+            <field name="name">Rejected</field>
+            <field name="sequence">80</field>
+            <field name="stage_type">rejected</field>
+            <field name="fold">True</field>
+        </record>
+
+        <!-- Default interview configuration -->
+        <record id="interview_config_default" model="recruitment.interview.config">
+            <field name="name">Default Configuration (3 Rounds)</field>
+        </record>
+        <record id="round_config_1" model="recruitment.round.config">
+            <field name="config_id" ref="interview_config_default"/>
+            <field name="sequence">10</field>
+            <field name="name">Technical Interview</field>
+        </record>
+        <record id="round_config_2" model="recruitment.round.config">
+            <field name="config_id" ref="interview_config_default"/>
+            <field name="sequence">20</field>
+            <field name="name">Manager Interview</field>
+        </record>
+        <record id="round_config_3" model="recruitment.round.config">
+            <field name="config_id" ref="interview_config_default"/>
+            <field name="sequence">30</field>
+            <field name="name">Final HR Interview</field>
+        </record>
+
+    </data>
+</odoo>

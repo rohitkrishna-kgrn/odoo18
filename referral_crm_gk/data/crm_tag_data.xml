@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Audit & Assurance -->
+    <record id="tag_financial_statement_audit" model="crm.tag">
+        <field name="name">Financial Statement Audit</field>
+    </record>
+    <record id="tag_internal_audit" model="crm.tag">
+        <field name="name">Internal Audit</field>
+    </record>
+    <record id="tag_soc_audit" model="crm.tag">
+        <field name="name">SOC Audit</field>
+    </record>
+    <record id="tag_fraud_investigation" model="crm.tag">
+        <field name="name">Fraud Investigation</field>
+    </record>
+
+    <!-- Accounting & Finance -->
+    <record id="tag_accounting_bookkeeping" model="crm.tag">
+        <field name="name">Accounting &amp; Bookkeeping</field>
+    </record>
+    <record id="tag_cloud_accounting" model="crm.tag">
+        <field name="name">Cloud Accounting</field>
+    </record>
+    <record id="tag_family_office_accounting" model="crm.tag">
+        <field name="name">Family Office Accounting</field>
+    </record>
+    <record id="tag_payroll_outsourcing" model="crm.tag">
+        <field name="name">Payroll Outsourcing</field>
+    </record>
+
+    <!-- Tax Services -->
+    <record id="tag_corporate_tax" model="crm.tag">
+        <field name="name">Corporate Tax</field>
+    </record>
+    <record id="tag_vat" model="crm.tag">
+        <field name="name">VAT</field>
+    </record>
+    <record id="tag_vat_return_filing" model="crm.tag">
+        <field name="name">VAT Return Filing</field>
+    </record>
+    <record id="tag_tax_agent_services" model="crm.tag">
+        <field name="name">Tax Agent Services</field>
+    </record>
+    <record id="tag_tax_residency_certificate" model="crm.tag">
+        <field name="name">Tax Residency Certificate</field>
+    </record>
+
+    <!-- Advisory & Compliance -->
+    <record id="tag_business_valuation" model="crm.tag">
+        <field name="name">Business Valuation</field>
+    </record>
+    <record id="tag_ubo_declaration" model="crm.tag">
+        <field name="name">UBO Declaration</field>
+    </record>
+    <record id="tag_due_diligence" model="crm.tag">
+        <field name="name">Due Diligence</field>
+    </record>
+    <record id="tag_feasibility_study" model="crm.tag">
+        <field name="name">Feasibility Study</field>
+    </record>
+    <record id="tag_business_advisory" model="crm.tag">
+        <field name="name">Business Advisory</field>
+    </record>
+    <record id="tag_financial_advisory" model="crm.tag">
+        <field name="name">Financial Advisory</field>
+    </record>
+    <record id="tag_aml_compliance" model="crm.tag">
+        <field name="name">AML Compliance</field>
+    </record>
+
+    <!-- Business Setup -->
+    <record id="tag_mainland_company_formation" model="crm.tag">
+        <field name="name">Mainland Company Formation</field>
+    </record>
+    <record id="tag_freezone_business_setup" model="crm.tag">
+        <field name="name">FreeZone Business Setup</field>
+    </record>
+    <record id="tag_offshore_company_formation" model="crm.tag">
+        <field name="name">Offshore Company Formation</field>
+    </record>
+    <record id="tag_liquidation_deregistration" model="crm.tag">
+        <field name="name">Liquidation &amp; Deregistration</field>
+    </record>
+
+    <!-- Corporate Services -->
+    <record id="tag_visa_services" model="crm.tag">
+        <field name="name">Visa Services</field>
+    </record>
+    <record id="tag_will_writing_services" model="crm.tag">
+        <field name="name">Will Writing Services</field>
+    </record>
+    <record id="tag_trademark_registration" model="crm.tag">
+        <field name="name">Trademark Registration</field>
+    </record>
+
+    <!-- Technology -->
+    <record id="tag_uae_einvoicing" model="crm.tag">
+        <field name="name">UAE E-Invoicing</field>
+    </record>
+    <record id="tag_icv_certification" model="crm.tag">
+        <field name="name">ICV Certification</field>
+    </record>
+</odoo>

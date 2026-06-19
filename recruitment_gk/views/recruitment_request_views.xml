@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FORM VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_request_form" model="ir.ui.view">
+        <field name="name">recruitment.request.form</field>
+        <field name="model">recruitment.request</field>
+        <field name="arch" type="xml">
+            <form string="Recruitment Request" class="rg_no_compose">
+                <header>
+                    <field name="is_hr_admin" invisible="1"/>
+                    <field name="is_hiring_manager" invisible="1"/>
+                    <field name="is_management" invisible="1"/>
+                    <field name="needs_more_candidates" invisible="1"/>
+
+                    <!-- ── Draft ── -->
+                    <button name="action_submit" string="Submit to HR" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'draft'"/>
+
+                    <!-- ── Submitted to HR (HR Admin) ── -->
+                    <button name="action_start_review" string="HR Review" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'submitted' or not is_hr_admin"/>
+                    <button name="action_reject_request" string="Reject" type="object"
+                            class="btn-danger"
+                            invisible="state != 'submitted' or not is_hr_admin"/>
+
+                    <!-- ── HR Review (HR Admin) ── -->
+                    <button name="action_share_candidates" string="Share Candidates" type="object"
+                            class="btn-success"
+                            invisible="state != 'hr_review' or not is_hr_admin"/>
+                    <button name="action_in_progress" string="In Progress" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'hr_review' or not is_hr_admin"/>
+                    <button name="action_reset_draft" string="Send for Resubmission" type="object"
+                            invisible="state != 'hr_review' or not is_hr_admin"/>
+                    <button name="action_reject_request" string="Reject" type="object"
+                            class="btn-danger"
+                            invisible="state != 'hr_review' or not is_hr_admin"/>
+
+                    <!-- ── In Progress (HR Admin) ── -->
+                    <button name="action_share_candidates" string="Share Candidates" type="object"
+                            class="btn-success"
+                            invisible="state != 'in_progress' or not is_hr_admin"/>
+                    <!-- ── Interview Process (HR Admin + Hiring Manager + Management) ── -->
+                    <button name="action_mark_request_selected" string="Mark as Selected" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'interview' or (not is_hr_admin and not is_hiring_manager and not is_management)"/>
+                    <button name="action_reject_request" string="Reject Request" type="object"
+                            class="btn-danger"
+                            invisible="state != 'interview' or (not is_hr_admin and not is_hiring_manager)"/>
+
+                    <!-- ── Share More (HR Admin) when vacancies not yet filled ── -->
+                    <button name="action_share_candidates" string="Share Candidates"
+                            type="object"
+                            invisible="not needs_more_candidates or not is_hr_admin or state not in ('interview',)"/>
+
+                    <!-- ── Close Request (HR Admin / Management) once all vacancies filled ── -->
+                    <button name="action_close_request" string="Close Request" type="object"
+                            class="btn-secondary"
+                            invisible="state != 'selected' or (not is_hr_admin and not is_management)"
+                            groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,hr_review,in_progress,interview,selected,closed"/>
+                </header>
+                <sheet>
+                    <field name="candidates_shared" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_candidates" type="object"
+                                class="oe_stat_button" icon="fa-users"
+                                invisible="not show_candidates_button and not candidates_shared">
+                            <field name="show_candidates_button" invisible="1"/>
+                            <field name="candidate_count" widget="statinfo" string="Candidates"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Position Details">
+                            <field name="available_job_ids" invisible="1"/>
+                            <field name="department_id"/>
+                            <field name="job_id"
+                                   domain="[('id', 'in', available_job_ids)]"
+                                   context="{'default_department_id': department_id}"
+                                   options="{'no_create_edit': False}"/>
+                            <field name="reporting_manager_id"/>
+                            <label for="num_vacancies" string="Number of Vacancies"/>
+                            <div class="d-flex align-items-center gap-2">
+                                <field name="num_vacancies" nolabel="1" style="max-width:80px;"
+                                       readonly="state != 'draft'"/>
+                                <span class="text-muted" invisible="state not in ('interview','selected')">
+                                    <field name="vacancies_progress" nolabel="1" readonly="1"
+                                           style="font-weight:600; color:#198754;"/>
+                                    <span> filled</span>
+                                </span>
+                            </div>
+                            <field name="employment_type"/>
+                            <field name="preferred_joining_date"/>
+                            <field name="priority" widget="priority" options="{'autosave': false}"/>
+                        </group>
+                        <group string="Compensation &amp; Requirements">
+                            <field name="salary_currency" string="Salary Currency"/>
+                            <field name="salary_range_min"/>
+                            <field name="salary_range_max"/>
+                            <field name="experience_required"/>
+                            <field name="education_requirements"/>
+                            <field name="user_id" string="Hiring Manager"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Job Description" name="page_jd">
+                            <field name="job_description" placeholder="Enter job description…"/>
+                        </page>
+                        <page string="Skills &amp; Requirements" name="page_skills">
+                            <field name="required_skills" placeholder="List required skills…"/>
+                        </page>
+                        <page string="Additional Info" name="page_info">
+                            <group>
+                                <field name="business_justification"/>
+                                <field name="other_notes"/>
+                            </group>
+                        </page>
+                        <page string="Rejection Remark" name="page_rejection_remark"
+                              invisible="state != 'rejected'">
+                            <field name="rejection_remark" readonly="1"
+                                   placeholder="No rejection remark recorded."/>
+                        </page>
+
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LIST VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_request_list" model="ir.ui.view">
+        <field name="name">recruitment.request.list</field>
+        <field name="model">recruitment.request</field>
+        <field name="arch" type="xml">
+            <list string="Recruitment Requests"
+                  decoration-info="state == 'draft'"
+                  decoration-warning="state == 'submitted'"
+                  decoration-primary="state == 'hr_review'"
+                  decoration-success="state in ('in_progress', 'selected')"
+                  decoration-danger="state == 'rejected'"
+                  decoration-muted="state == 'closed'">
+                <field name="name" string="Request Number"/>
+                <field name="job_title" string="Position"/>
+                <field name="department_id" string="Department"/>
+                <field name="num_vacancies" string="Vacancies"/>
+                <field name="employment_type" string="Employee Type"/>
+                <field name="candidate_count" string="Candidates"/>
+                <field name="preferred_joining_date" string="Preferred Joining"/>
+                <field name="user_id" string="Hiring Manager" optional="show"/>
+                <field name="priority" widget="priority" optional="show"/>
+                <field name="state" string="Status" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         KANBAN VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_request_kanban" model="ir.ui.view">
+        <field name="name">recruitment.request.kanban</field>
+        <field name="model">recruitment.request</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_recruitment_request_kanban">
+                <field name="name"/>
+                <field name="job_title"/>
+                <field name="department_id"/>
+                <field name="priority"/>
+                <field name="state"/>
+                <field name="candidate_count"/>
+                <field name="user_id"/>
+                <field name="employment_type"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_record_top mb4">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title fs-5">
+                                        <field name="job_title"/>
+                                    </strong>
+                                    <small class="o_kanban_record_subtitle text-muted">
+                                        <field name="name"/>
+                                    </small>
+                                </div>
+                                <field name="priority" widget="priority" class="ms-auto"/>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <span class="badge rounded-pill text-bg-secondary">
+                                        <field name="employment_type"/>
+                                    </span>
+                                    <span invisible="not department_id">
+                                        <i class="fa fa-building-o me-1"/>
+                                        <field name="department_id"/>
+                                    </span>
+                                </div>
+                                <div class="mt-2">
+                                    <i class="fa fa-users me-1"/>
+                                    <field name="candidate_count"/> Candidates
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_bottom mt-2">
+                                <field name="user_id" widget="many2one_avatar_user"/>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_request_search" model="ir.ui.view">
+        <field name="name">recruitment.request.search</field>
+        <field name="model">recruitment.request</field>
+        <field name="arch" type="xml">
+            <search string="Recruitment Requests">
+                <!-- Search fields -->
+                <field name="name" string="Request Number"/>
+                <field name="job_title"/>
+                <field name="department_id"/>
+                <field name="user_id"/>
+                <field name="employment_type"/>
+                <field name="num_vacancies" string="Number of Vacancies"/>
+                <field name="preferred_joining_date" string="Preferred Joining Date"/>
+
+                <!-- Ownership -->
+                <filter string="My Requests" name="my_requests"
+                        domain="[('user_id','=',uid)]"/>
+                <separator/>
+
+                <!-- Logical pipeline views -->
+                <filter string="Active" name="active_requests"
+                        domain="[('state','not in',['rejected'])]"/>
+                <filter string="Pending HR Action" name="pending_hr"
+                        domain="[('state','in',['submitted','hr_review'])]"/>
+                <filter string="Hiring In Progress" name="hiring_active"
+                        domain="[('state','in',['in_progress','interview'])]"/>
+                <filter string="Completed" name="completed"
+                        domain="[('state','=','selected')]"/>
+                <filter string="Rejected" name="rejected"
+                        domain="[('state','=','rejected')]"/>
+                <separator/>
+
+                <!-- Individual states -->
+                <filter string="New" name="state_draft"
+                        domain="[('state','=','draft')]"/>
+                <filter string="Submitted to HR" name="state_submitted"
+                        domain="[('state','=','submitted')]"/>
+                <filter string="HR Review" name="state_review"
+                        domain="[('state','=','hr_review')]"/>
+                <filter string="In Progress" name="state_inprogress"
+                        domain="[('state','=','in_progress')]"/>
+                <filter string="Interview Process" name="state_interview"
+                        domain="[('state','=','interview')]"/>
+                <filter string="Selected" name="state_selected"
+                        domain="[('state','=','selected')]"/>
+                <filter string="Closed" name="state_closed"
+                        domain="[('state','=','closed')]"/>
+                <separator/>
+
+                <!-- Employment type -->
+                <filter string="Permanent" name="emp_permanent"
+                        domain="[('employment_type','=','permanent')]"/>
+                <filter string="Contract" name="emp_contract"
+                        domain="[('employment_type','=','contract')]"/>
+                <filter string="Temporary" name="emp_temporary"
+                        domain="[('employment_type','=','temporary')]"/>
+                <filter string="Internship" name="emp_internship"
+                        domain="[('employment_type','=','internship')]"/>
+                <separator/>
+
+                <!-- Priority & date -->
+                <filter string="High / Critical Priority" name="high_priority"
+                        domain="[('priority','in',['high','critical'])]"/>
+                <filter string="Has Joining Date" name="has_joining_date"
+                        domain="[('preferred_joining_date','!=',False)]"/>
+
+                <group expand="0" string="Group By">
+                    <filter string="Department" name="grp_department"
+                            context="{'group_by':'department_id'}"/>
+                    <filter string="Status" name="grp_state"
+                            context="{'group_by':'state'}"/>
+                    <filter string="Employment Type" name="grp_emp_type"
+                            context="{'group_by':'employment_type'}"/>
+                    <filter string="Hiring Manager" name="grp_manager"
+                            context="{'group_by':'user_id'}"/>
+                    <filter string="Preferred Joining" name="grp_joining"
+                            context="{'group_by':'preferred_joining_date:month'}"/>
+                    <filter string="Priority" name="grp_priority"
+                            context="{'group_by':'priority'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ACTION
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_recruitment_request" model="ir.actions.act_window">
+        <field name="name">Recruitment Requests</field>
+        <field name="res_model">recruitment.request</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="view_recruitment_request_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first Recruitment Request
+            </p>
+            <p>Raise a request for a new position and manage the full hiring pipeline.</p>
+        </field>
+    </record>
+
+</odoo>

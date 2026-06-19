@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Search ── -->
+    <record id="view_referral_referrer_search" model="ir.ui.view">
+        <field name="name">referral.referrer.search</field>
+        <field name="model">referral.referrer</field>
+        <field name="arch" type="xml">
+            <search string="Search Referrers">
+                <field name="name" string="Referrer" filter_domain="['|', ('name', 'ilike', self), ('company', 'ilike', self)]"/>
+                <field name="email"/>
+                <field name="phone"/>
+                <filter string="Starter (10%)" name="tier_starter" domain="[('tier', '=', 'starter')]"/>
+                <filter string="Active (12%)" name="tier_active" domain="[('tier', '=', 'active')]"/>
+                <filter string="Premier (15%)" name="tier_premier" domain="[('tier', '=', 'premier')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Tier" name="group_tier" context="{'group_by': 'tier'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── List ── -->
+    <record id="view_referral_referrer_list" model="ir.ui.view">
+        <field name="name">referral.referrer.list</field>
+        <field name="model">referral.referrer</field>
+        <field name="arch" type="xml">
+            <list string="Referrers" default_order="name">
+                <field name="name"/>
+                <field name="company"/>
+                <field name="email"/>
+                <field name="phone"/>
+                <field name="tier" widget="badge"
+                       decoration-info="tier == 'starter'"
+                       decoration-warning="tier == 'active'"
+                       decoration-primary="tier == 'premier'"/>
+                <field name="commission_rate" string="Rate (%)" widget="float"/>
+                <field name="total_referrals"/>
+                <field name="total_conversions"/>
+                <field name="total_commission_earned" string="Commission Earned (AED)"
+                       widget="monetary" options="{'currency_field': 'currency_id'}"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Form ── -->
+    <record id="view_referral_referrer_form" model="ir.ui.view">
+        <field name="name">referral.referrer.form</field>
+        <field name="model">referral.referrer</field>
+        <field name="arch" type="xml">
+            <form string="Referrer">
+                <sheet>
+                    <!-- KPI stat buttons -->
+                    <div class="oe_button_box" name="button_box">
+                        <button type="object" name="action_view_leads"
+                                class="oe_stat_button" icon="fa-handshake-o">
+                            <field name="total_referrals" widget="statinfo" string="Referrals"/>
+                        </button>
+                        <button type="object" name="action_view_leads"
+                                class="oe_stat_button" icon="fa-check-circle">
+                            <field name="total_conversions" widget="statinfo" string="Converted"/>
+                        </button>
+                        <button type="object" name="action_view_leads"
+                                class="oe_stat_button" icon="fa-money">
+                            <field name="total_commission_earned" widget="statinfo"
+                                   string="Commission (AED)"/>
+                        </button>
+                    </div>
+
+                    <!-- Tier badge -->
+                    <div class="oe_title">
+                        <label for="name" string="Referrer Name"/>
+                        <h1><field name="name" placeholder="Full Name"/></h1>
+                        <div class="d-flex gap-2 align-items-center mt-2">
+                            <field name="tier" widget="badge"
+                                   decoration-info="tier == 'starter'"
+                                   decoration-warning="tier == 'active'"
+                                   decoration-primary="tier == 'premier'"
+                                   readonly="1"/>
+                            <span class="text-muted">
+                                <field name="commission_rate" widget="float" readonly="1"/>% commission
+                            </span>
+                        </div>
+                    </div>
+
+                    <group>
+                        <group string="Contact Details">
+                            <field name="company"/>
+                            <field name="email" widget="email"/>
+                            <field name="phone" widget="phone"/>
+                        </group>
+                        <group string="Programme Stats">
+                            <field name="total_referrals" readonly="1"/>
+                            <field name="total_conversions" readonly="1"/>
+                            <field name="commission_rate" readonly="1" string="Current Commission Rate (%)"/>
+                            <field name="total_commission_earned" readonly="1"
+                                   widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        </group>
+                    </group>
+
+                    <!-- Referral lead list -->
+                    <notebook>
+                        <page string="Referral Leads" name="leads">
+                            <field name="lead_ids" nolabel="1" widget="one2many_list"
+                                   context="{'default_x_referrer_id': id, 'default_x_is_referral': True}">
+                                <list string="Referral Leads">
+                                    <field name="partner_name" string="Contact"/>
+                                    <field name="x_referral_company" string="Company"/>
+                                    <field name="stage_id"/>
+                                    <field name="x_deal_value" string="Deal Value (AED)"
+                                           widget="monetary" options="{'currency_field': 'company_currency'}"/>
+                                    <field name="x_commission_amount" string="Commission (AED)"
+                                           widget="monetary" options="{'currency_field': 'company_currency'}"/>
+                                    <field name="x_payment_status" widget="badge"
+                                           decoration-muted="x_payment_status == 'pending'"
+                                           decoration-warning="x_payment_status == 'partial'"
+                                           decoration-success="x_payment_status == 'full'"/>
+                                    <field name="x_referral_ref" string="Ref"/>
+                                    <field name="create_date" string="Submitted"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Server Action: Delete (appears in Action button for all referral users) ── -->
+    <record id="action_server_referrer_delete" model="ir.actions.server">
+        <field name="name">Delete</field>
+        <field name="model_id" ref="model_referral_referrer"/>
+        <field name="binding_model_id" ref="model_referral_referrer"/>
+        <field name="binding_type">action</field>
+        <field name="groups_id" eval="[(6, 0, [])]"/>
+        <field name="state">code</field>
+        <field name="code">records.unlink()</field>
+    </record>
+
+    <!-- ── Window Action ── -->
+    <record id="action_referral_referrers" model="ir.actions.act_window">
+        <field name="name">Referrers</field>
+        <field name="res_model">referral.referrer</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_referral_referrer_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No referrers yet. They are created automatically when a lead is submitted via the portal.
+            </p>
+        </field>
+    </record>
+
+</odoo>

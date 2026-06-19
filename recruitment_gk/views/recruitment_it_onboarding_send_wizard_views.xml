@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_recruitment_it_onboarding_send_wizard_form" model="ir.ui.view">
+        <field name="name">recruitment.it.onboarding.send.wizard.form</field>
+        <field name="model">recruitment.it.onboarding.send.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Send Onboarding Ready Notification">
+                <group>
+                    <field name="candidate_id" readonly="1"/>
+                    <field name="onboarding_date" readonly="1"/>
+                </group>
+
+                <group string="Send Notification To Candidate">
+                    <field name="candidate_email"
+                           string="Candidate Email"
+                           widget="email"
+                           placeholder="candidate@email.com"
+                           nolabel="1"
+                           colspan="2"/>
+                </group>
+
+                <group string="Send Notification To Reporting Manager">
+                    <field name="reporting_manager_id"
+                           string="Reporting Manager"
+                           readonly="1"
+                           nolabel="1"
+                           colspan="2"/>
+                </group>
+
+                <group string="Send Notification To HR">
+                    <field name="hr_admin_ids"
+                           widget="many2many_tags"
+                           nolabel="1"
+                           colspan="2"
+                           options="{'no_create': True}"
+                           placeholder="Select HR admins to notify…"/>
+                </group>
+
+                <div class="alert alert-info" role="alert">
+                    An onboarding ready notification will be sent to all recipients listed above,
+                    confirming that all IT setup is complete and the offer process can begin.
+                </div>
+                <footer>
+                    <button name="action_send" string="Send" type="object"
+                            class="oe_highlight btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

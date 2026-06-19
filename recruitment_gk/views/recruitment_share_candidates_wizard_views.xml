@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_recruitment_share_candidates_wizard_form" model="ir.ui.view">
+        <field name="name">recruitment.share.candidates.wizard.form</field>
+        <field name="model">recruitment.share.candidates.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Share Candidates with Hiring Manager">
+                <field name="request_id" invisible="1"/>
+                <group>
+                    <field name="hiring_manager_id" widget="many2one_avatar_user"/>
+                </group>
+                <separator string="Select Candidates to Share"/>
+                <field name="candidate_ids"
+                       domain="[('state', '=', 'draft'), ('request_id', '=', False)]">
+                    <list string="Available Candidates" create="0">
+                        <field name="name"/>
+                        <field name="current_designation"/>
+                        <field name="current_company"/>
+                        <field name="total_experience" string="Exp (Yrs)"/>
+                        <field name="expected_salary"/>
+                        <field name="skills"/>
+                        <field name="state" widget="badge"
+                               decoration-info="state == 'new'"
+                               decoration-warning="state == 'manager_review'"
+                               decoration-danger="state == 'rejected'"/>
+                    </list>
+                </field>
+                <footer>
+                    <button string="Send to Hiring Manager" name="action_share_candidates"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

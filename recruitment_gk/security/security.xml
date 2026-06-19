@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- ── Module Category ──────────────────────────────────────────── -->
+        <record id="module_category_recruitment_gk" model="ir.module.category">
+            <field name="name">Recruitment</field>
+            <field name="description">Custom Recruitment Workflow Module</field>
+            <field name="sequence">100</field>
+        </record>
+
+        <!-- ── Security Groups ──────────────────────────────────────────── -->
+        <!-- Group hierarchy (each must be defined before the group that implies it):
+             IT Team ← HR Admin ← Management Admin
+             Hiring Manager ← Management Admin
+             Management Admin implies all four lower groups and is a full super-admin role. -->
+        <record id="group_recruitment_it_team" model="res.groups">
+            <field name="name">IT Team</field>
+            <field name="category_id" ref="module_category_recruitment_gk"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <record id="group_recruitment_hr_admin" model="res.groups">
+            <field name="name">HR Admin</field>
+            <field name="category_id" ref="module_category_recruitment_gk"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('group_recruitment_it_team'))]"/>
+        </record>
+
+        <record id="group_recruitment_hiring_manager" model="res.groups">
+            <field name="name">Hiring Manager</field>
+            <field name="category_id" ref="module_category_recruitment_gk"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <record id="group_recruitment_management" model="res.groups">
+            <field name="name">Management Admin</field>
+            <field name="category_id" ref="module_category_recruitment_gk"/>
+            <field name="implied_ids" eval="[
+                (4, ref('base.group_user')),
+                (4, ref('group_recruitment_it_team')),
+                (4, ref('group_recruitment_hr_admin')),
+                (4, ref('group_recruitment_hiring_manager')),
+            ]"/>
+        </record>
+
+        <!-- ── Record Rules: recruitment.request ────────────────────────── -->
+
+        <!-- Hiring Manager: see only own requests -->
+        <record id="rule_request_hiring_manager_own" model="ir.rule">
+            <field name="name">Recruitment Request – Hiring Manager: Own Only</field>
+            <field name="model_id" ref="model_recruitment_request"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_hiring_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- HR Admin: full access to all requests -->
+        <record id="rule_request_hr_admin_all" model="ir.rule">
+            <field name="name">Recruitment Request – HR Admin: All Records</field>
+            <field name="model_id" ref="model_recruitment_request"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_hr_admin'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Management: full access -->
+        <record id="rule_request_management_read" model="ir.rule">
+            <field name="name">Recruitment Request – Management: All Records</field>
+            <field name="model_id" ref="model_recruitment_request"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_management'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- ── Record Rules: recruitment.candidate ───────────────────────── -->
+
+        <!-- Hiring Manager: own requests only; draft candidates remain hidden -->
+        <record id="rule_candidate_hiring_manager_own" model="ir.rule">
+            <field name="name">Recruitment Candidate – Hiring Manager: Own Requests</field>
+            <field name="model_id" ref="model_recruitment_candidate"/>
+            <field name="domain_force">[('state', '!=', 'draft'), '|', ('request_id.user_id', '=', user.id), ('sent_manager_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_hiring_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- HR Admin: full candidate access -->
+        <record id="rule_candidate_hr_admin_all" model="ir.rule">
+            <field name="name">Recruitment Candidate – HR Admin: All Records</field>
+            <field name="model_id" ref="model_recruitment_candidate"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_hr_admin'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Management: full access to candidates -->
+        <record id="rule_candidate_management_read" model="ir.rule">
+            <field name="name">Recruitment Candidate – Management: All Records</field>
+            <field name="model_id" ref="model_recruitment_candidate"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_management'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- ── Record Rules: recruitment.interview.round ───────────────────── -->
+
+        <!-- Hiring Manager: read-only; only rounds for candidates on their requests -->
+        <record id="rule_interview_round_hiring_manager_own" model="ir.rule">
+            <field name="name">Interview Round – Hiring Manager: Own Candidates (read)</field>
+            <field name="model_id" ref="model_recruitment_interview_round"/>
+            <field name="domain_force">[('candidate_id.request_id.user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_hiring_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- HR Admin: full access to all interview rounds -->
+        <record id="rule_interview_round_hr_admin_all" model="ir.rule">
+            <field name="name">Interview Round – HR Admin: All Records</field>
+            <field name="model_id" ref="model_recruitment_interview_round"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_hr_admin'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Management: full access to all interview rounds -->
+        <record id="rule_interview_round_management_all" model="ir.rule">
+            <field name="name">Interview Round – Management: All Records</field>
+            <field name="model_id" ref="model_recruitment_interview_round"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_management'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- ── Record Rules: ir.attachment (CV downloads) ────────────────── -->
+        <!--
+            Odoo's default ir.attachment record rule only allows users to access
+            attachments they created or where res_model is False.  CV files
+            uploaded by HR Admin have res_model='recruitment.candidate', so
+            Hiring Managers and Management would get a 404 from /web/content.
+            These rules grant the necessary read access at the SQL level so the
+            binary controller can serve the files correctly.
+        -->
+
+        <!-- HR Admin: full access to all attachments -->
+        <record id="rule_attachment_recruitment_hr_admin" model="ir.rule">
+            <field name="name">ir.attachment – HR Admin: Recruitment Files</field>
+            <field name="model_id" ref="base.model_ir_attachment"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_hr_admin'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Hiring Manager: read recruitment candidate attachments (CV downloads) -->
+        <record id="rule_attachment_recruitment_hiring_manager" model="ir.rule">
+            <field name="name">ir.attachment – Hiring Manager: Candidate CVs (read)</field>
+            <field name="model_id" ref="base.model_ir_attachment"/>
+            <field name="domain_force">[('res_model', '=', 'recruitment.candidate')]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_hiring_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- Management: full access to candidate attachments -->
+        <record id="rule_attachment_recruitment_management" model="ir.rule">
+            <field name="name">ir.attachment – Management: All Recruitment Files</field>
+            <field name="model_id" ref="base.model_ir_attachment"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_management'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- IT Team: read recruitment candidate attachments (CV downloads) -->
+        <record id="rule_attachment_recruitment_it_team" model="ir.rule">
+            <field name="name">ir.attachment – IT Team: Candidate CVs (read)</field>
+            <field name="model_id" ref="base.model_ir_attachment"/>
+            <field name="domain_force">[('res_model', '=', 'recruitment.candidate')]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_it_team'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- ── Record Rules: IT Team ─────────────────────────────────────── -->
+
+        <!-- IT Team: read selected candidates (need candidate info in IT onboarding) -->
+        <record id="rule_candidate_it_team_read" model="ir.rule">
+            <field name="name">Recruitment Candidate – IT Team: Selected Only (read)</field>
+            <field name="model_id" ref="model_recruitment_candidate"/>
+            <field name="domain_force">[('state', '=', 'selected')]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_it_team'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- Hiring Manager: read IT onboarding for their own candidates (read) -->
+        <record id="rule_it_onboarding_hiring_manager_read" model="ir.rule">
+            <field name="name">IT Onboarding – Hiring Manager: Own Candidates (read)</field>
+            <field name="model_id" ref="model_recruitment_it_onboarding"/>
+            <field name="domain_force">[('candidate_id.request_id.user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_hiring_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- IT Team: full access to IT onboarding records -->
+        <record id="rule_it_onboarding_it_team_all" model="ir.rule">
+            <field name="name">IT Onboarding – IT Team: All Records</field>
+            <field name="model_id" ref="model_recruitment_it_onboarding"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_it_team'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- IT Team: read final approval records (for context) -->
+        <record id="rule_final_approval_it_team_read" model="ir.rule">
+            <field name="name">Final Approval – IT Team: Read All</field>
+            <field name="model_id" ref="model_recruitment_final_approval"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_it_team'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- HR Admin: full access to final approval records -->
+        <record id="rule_final_approval_hr_admin_all" model="ir.rule">
+            <field name="name">Final Approval – HR Admin: All Records</field>
+            <field name="model_id" ref="model_recruitment_final_approval"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_hr_admin'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Management: full access to final approval records -->
+        <record id="rule_final_approval_management_read" model="ir.rule">
+            <field name="name">Final Approval – Management: All Records</field>
+            <field name="model_id" ref="model_recruitment_final_approval"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_management'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- HR Admin: full access to IT onboarding records -->
+        <record id="rule_it_onboarding_hr_admin_all" model="ir.rule">
+            <field name="name">IT Onboarding – HR Admin: All Records</field>
+            <field name="model_id" ref="model_recruitment_it_onboarding"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_hr_admin'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Management: full access to IT onboarding records -->
+        <record id="rule_it_onboarding_management_read" model="ir.rule">
+            <field name="name">IT Onboarding – Management: All Records</field>
+            <field name="model_id" ref="model_recruitment_it_onboarding"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_recruitment_management'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+    </data>
+</odoo>

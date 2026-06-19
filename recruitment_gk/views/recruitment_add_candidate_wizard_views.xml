@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_recruitment_add_candidate_wizard_form" model="ir.ui.view">
+        <field name="name">recruitment.add.candidate.wizard.form</field>
+        <field name="model">recruitment.add.candidate.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Add Candidates to Request">
+                <field name="request_id" invisible="1"/>
+                <p class="text-muted">Select one or more candidates to link to this recruitment request.</p>
+                <field name="candidate_ids" domain="[('request_id', '=', False)]">
+                    <list string="Available Candidates">
+                        <field name="name"/>
+                        <field name="current_designation"/>
+                        <field name="current_company"/>
+                        <field name="total_experience" string="Exp (Yrs)"/>
+                        <field name="expected_salary"/>
+                        <field name="state" widget="badge"
+                               decoration-success="state == 'selected'"
+                               decoration-danger="state == 'rejected'"
+                               decoration-info="state == 'interview'"
+                               decoration-warning="state == 'manager_review'"/>
+                    </list>
+                </field>
+                <footer>
+                    <button string="Add to Request" name="action_add_candidates"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

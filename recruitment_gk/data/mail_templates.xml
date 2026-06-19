@@ -1,0 +1,781 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- ══════════════════════════════════════════════════════════════
+             1. New Recruitment Request Submitted
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_request_submitted" model="mail.template">
+            <field name="name">Recruitment: New Request Submitted</field>
+            <field name="model_id" ref="model_recruitment_request"/>
+            <field name="subject">New Recruitment Request: {{ object.name }} – {{ object.job_title }}</field>
+            <field name="email_from">{{ object.user_id.email_formatted or user.email_formatted }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">New Recruitment Request Submitted</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear HR Team,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">A new recruitment request has been submitted and requires your review.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Request Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Reference</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Job Title</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.job_title"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Department</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.department_id.name or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Vacancies</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.num_vacancies"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Employment Type</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="(object.employment_type or '').title()"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Priority</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="(object.priority or '').title()"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Submitted By</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.user_id.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Preferred Joining</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.preferred_joining_date or '—'"/></td></tr>
+        </table>
+        <p style="margin:0;color:#555;font-size:13px;">Please log in to Odoo to process this request.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             2. Candidate Added
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_candidate_added" model="mail.template">
+            <field name="name">Recruitment: Candidate Added</field>
+            <field name="model_id" ref="model_recruitment_candidate"/>
+            <field name="subject">New Candidate Added: {{ object.name }} for {{ object.request_id.name }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="email_to">{{ object.request_id.user_id.email or '' }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">New Candidate Profile Submitted</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear <t t-out="object.request_id.user_id.name or 'Team'"/>,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">HR has submitted a new candidate for your review.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Candidate Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Candidate Name</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Current Designation</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.current_designation or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Current Company</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.current_company or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Total Experience</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.total_experience"/> years</td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Expected Salary</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.expected_salary or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Notice Period</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.notice_period or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Contact</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.email or '—'"/> | <t t-out="object.phone or '—'"/></td></tr>
+        </table>
+        <p style="margin:0;color:#555;font-size:13px;">Please log in to Odoo to review this candidate and take action.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             3. Candidate Sent for Manager Review
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_candidate_to_review" model="mail.template">
+            <field name="name">Recruitment: Candidate Sent for Manager Review</field>
+            <field name="model_id" ref="model_recruitment_candidate"/>
+            <field name="subject">Action Required: Review Candidate {{ object.name }} – {{ object.request_id.job_title }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="email_to">{{ object.request_id.user_id.email or '' }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">Action Required: Candidate Review</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear <t t-out="object.request_id.user_id.name or 'Team'"/>,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">Candidate <strong><t t-out="object.name"/></strong> has been shortlisted by HR and is now awaiting your review<t t-if="object.request_id"> for <strong><t t-out="object.request_id.job_title"/></strong></t>.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Candidate Summary</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Candidate</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Current Role</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.current_designation or '—'"/> at <t t-out="object.current_company or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Experience</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.total_experience"/> yrs total / <t t-out="object.relevant_experience"/> yrs relevant</td></tr>
+          <t t-if="object.request_id">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Recruitment Request</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.request_id.name"/></td></tr>
+          </t>
+        </table>
+        <p style="margin:0;color:#555;font-size:13px;">Please log in to Odoo to <strong>Approve for Interview</strong> or <strong>Reject</strong> this candidate.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             4. Candidate Approved for Interview
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_candidate_approved" model="mail.template">
+            <field name="name">Recruitment: Candidate Approved for Interview</field>
+            <field name="model_id" ref="model_recruitment_candidate"/>
+            <field name="subject">Interview Approved: {{ object.name }} – {{ object.request_id.job_title }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">Candidate Approved for Interview</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear HR Team,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">The Hiring Manager has approved <strong><t t-out="object.name"/></strong> to proceed with the interview process.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Approval Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Candidate</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <t t-if="object.request_id">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.request_id.job_title"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Request</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.request_id.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Approved By</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.request_id.user_id.name"/></td></tr>
+          </t>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Current Stage</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.stage_id.name or '—'"/></td></tr>
+        </table>
+        <p style="margin:0;color:#555;font-size:13px;">Please schedule the interview and assign an interviewer in Odoo.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             5. Interview Invitation – Interviewer
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_interview_invitation" model="mail.template">
+            <field name="name">Recruitment: Interview Invitation</field>
+            <field name="model_id" ref="model_recruitment_interview_round"/>
+            <field name="subject">Interview Scheduled: {{ object.candidate_id.name }} – {{ object.name }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="email_to">{{ object.interviewer_id.email or '' }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">Interview Scheduled — Action Required</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <t t-if="object.is_rescheduled">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;"><tr><td style="background:#fff8e1;border:1px solid #f9a825;border-radius:4px;padding:10px 14px;">
+            <strong style="color:#e65100;font-size:13px;">&#8635; Rescheduled Interview Notice</strong>
+            <p style="margin:4px 0 0;color:#795548;font-size:12px;">This interview has been rescheduled. Please disregard any previous invitation.</p>
+          </td></tr></table>
+        </t>
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear <t t-out="object.interviewer_id.name"/>,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">You have been assigned as the interviewer. Please review the details below.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Interview Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Round</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Candidate</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.candidate_id.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.job_title or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Interview Date</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.interview_date.strftime('%d %b %Y') if object.interview_date else '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Time (UAE / Dubai)</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.interview_time_uae or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Time (IST / India)</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.interview_time_ist or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Meeting Link</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;font-size:12px;"><t t-if="object.meeting_link"><a t-att-href="object.meeting_link" style="color:#2563ab;"><t t-out="object.meeting_link"/></a></t><t t-else="">—</t></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Location</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="(object.location_type or '').title() or '—'"/><t t-if="object.venue"> – <t t-out="object.venue"/></t></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Candidate Experience</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.candidate_id.total_experience"/> years total</td></tr>
+        </table>
+        <t t-if="object.interview_notes">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+            <tr><th bgcolor="#2563ab" style="background:#2563ab;color:#fff;padding:9px 14px;font-size:12px;text-align:left;">Pre-Interview Notes</th></tr>
+            <tr><td style="padding:10px 14px;color:#444;font-size:12px;line-height:1.6;" t-out="object.interview_notes"/></tr>
+          </table>
+        </t>
+        <p style="margin:0;color:#555;font-size:13px;">Please log in to Odoo to submit your feedback after the interview.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             6. Candidate Passed Interview Round
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_interview_passed" model="mail.template">
+            <field name="name">Recruitment: Candidate Passed Interview Round</field>
+            <field name="model_id" ref="model_recruitment_interview_round"/>
+            <field name="subject">{{ object.candidate_id.name }} Passed {{ object.name }} – {{ object.job_title }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">&#10003; Candidate Passed Interview Round</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear Team,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">Candidate <strong><t t-out="object.candidate_id.name"/></strong> has successfully passed <strong><t t-out="object.name"/></strong>.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Interview Result</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Candidate</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.candidate_id.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Round Completed</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Next Stage</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.candidate_id.stage_id.name or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Interviewer</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.interviewer_id.name or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Overall Rating</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.overall_rating or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Recommendation</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.recommendation or '—'"/></td></tr>
+        </table>
+        <t t-if="object.feedback_comments">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+            <tr><th bgcolor="#2563ab" style="background:#2563ab;color:#fff;padding:9px 14px;font-size:12px;text-align:left;">Interviewer Feedback</th></tr>
+            <tr><td style="padding:10px 14px;color:#444;font-size:12px;line-height:1.6;" t-out="object.feedback_comments"/></tr>
+          </table>
+        </t>
+        <p style="margin:0;color:#555;font-size:13px;">Please log in to Odoo to schedule the next interview round.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             7. Candidate Rejected
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_candidate_rejected" model="mail.template">
+            <field name="name">Recruitment: Candidate Rejected</field>
+            <field name="model_id" ref="model_recruitment_candidate"/>
+            <field name="subject">Candidate Rejected: {{ object.name }} – {{ object.request_id.job_title }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">Candidate Rejected</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear Team,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">Candidate <strong><t t-out="object.name"/></strong> has been rejected from the recruitment process.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Rejection Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Candidate</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <t t-if="object.request_id">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.request_id.job_title"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Request</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.request_id.name"/></td></tr>
+          </t>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Rejected At Stage</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.stage_id.name or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Rejection Remarks</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.rejection_remark or '—'"/></td></tr>
+        </table>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             8. Candidate Selected
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_candidate_selected" model="mail.template">
+            <field name="name">Recruitment: Candidate Selected</field>
+            <field name="model_id" ref="model_recruitment_candidate"/>
+            <field name="subject">Candidate Selected: {{ object.name }} – {{ object.request_id.job_title }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">&#10003; Candidate Selected</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear <t t-out="object.request_id.user_id.name or 'Team'"/>,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;"><strong><t t-out="object.name"/></strong> has been selected<t t-if="object.request_id"> for the position of <strong><t t-out="object.request_id.job_title"/></strong></t>.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Selection Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Candidate</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <t t-if="object.request_id">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.request_id.job_title"/></td></tr>
+          </t>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Department</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.department_id.name or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Expected Salary</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.expected_salary or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Notice Period</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.notice_period or '—'"/></td></tr>
+          <t t-if="object.request_id">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Recruitment Request</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.request_id.name"/></td></tr>
+          </t>
+        </table>
+        <p style="margin:0;color:#555;font-size:13px;">Please proceed with the offer preparation and onboarding process.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             9. HM Selected Candidate
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_hm_candidate_selected" model="mail.template">
+            <field name="name">Recruitment: HM Selected Candidate</field>
+            <field name="model_id" ref="model_recruitment_candidate"/>
+            <field name="subject">Selected: {{ object.name }} – {{ object.request_id.job_title }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">&#10003; Candidate Selected by Hiring Manager</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear HR Team,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">The Hiring Manager has <strong>selected</strong> the following candidate for further processing.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Candidate Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Candidate</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Current Role</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.current_designation or '—'"/> at <t t-out="object.current_company or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Experience</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.total_experience or '—'"/> yrs total / <t t-out="object.relevant_experience or '—'"/> yrs relevant</td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Notice Period</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.notice_period or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Expected Salary</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.expected_salary or '—'"/></td></tr>
+          <t t-if="object.request_id">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.request_id.job_title"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Hiring Manager</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.request_id.user_id.name"/></td></tr>
+          </t>
+        </table>
+        <p style="margin:0;color:#555;font-size:13px;">Please schedule the interview process for this candidate.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             10. Interview Cancelled – Interviewer
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_interview_cancelled" model="mail.template">
+            <field name="name">Recruitment: Interview Cancelled / Rescheduled</field>
+            <field name="model_id" ref="model_recruitment_interview_round"/>
+            <field name="subject">Interview Cancelled – {{ object.candidate_id.name }} / {{ object.name }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="email_to">{{ object.interviewer_id.email or '' }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">Interview Cancellation Notice</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;"><tr><td style="background:#fff8e1;border:1px solid #f9a825;border-radius:4px;padding:10px 14px;">
+          <strong style="color:#e65100;font-size:13px;">&#9888; Interview Cancelled</strong>
+          <p style="margin:4px 0 0;color:#795548;font-size:12px;">A new invitation will be sent once rescheduled.</p>
+        </td></tr></table>
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear <t t-out="object.interviewer_id.name or 'Interviewer'"/>,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">The following interview has been <strong>cancelled</strong>. No action is required from your end at this time.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Cancelled Interview Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Round</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Candidate</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.candidate_id.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.job_title or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Interview Date</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.interview_date.strftime('%d %b %Y') if object.interview_date else '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Time (UAE / Dubai)</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.interview_time_uae or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Time (IST / India)</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.interview_time_ist or '—'"/></td></tr>
+        </table>
+        <p style="margin:0;color:#555;font-size:13px;">We apologise for any inconvenience caused.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             11. IT Onboarding Request
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_it_onboarding_request" model="mail.template">
+            <field name="name">Recruitment: IT Onboarding Request</field>
+            <field name="model_id" ref="model_recruitment_final_approval"/>
+            <field name="subject">IT Onboarding Required: {{ object.candidate_id.name }} – Joining {{ object.onboarding_date }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">IT Onboarding Action Required</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear IT Team,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">A new candidate has been selected. Please complete all IT setup activities before the joining date.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Candidate Information</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Candidate Name</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.candidate_id.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.job_title or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Department</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.department_id.name or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Joining Date</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;font-size:12px;"><strong style="color:#1a3c6e;"><t t-out="object.onboarding_date or '—'"/></strong></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Personal Email</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.candidate_id.email or '—'"/></td></tr>
+          <t t-if="object.joining_location">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Joining Location</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.joining_location"/></td></tr>
+          </t>
+          <t t-if="object.system_preference">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">System Preference</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="'Laptop' if object.system_preference == 'laptop' else 'Desktop'"/></td></tr>
+          </t>
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th bgcolor="#2563ab" style="background:#2563ab;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">IT Setup Tasks</th></tr>
+          <tr><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;">1. Arrange Laptop / Desktop and necessary IT assets</td></tr>
+          <tr><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;">2. Create Official Email ID</td></tr>
+          <tr><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;">3. Create Odoo Account</td></tr>
+          <tr><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;">4. Create Wave Account</td></tr>
+          <tr><td style="padding:8px 14px;color:#333;font-size:12px;">5. Share Setup and Installation Documentation</td></tr>
+        </table>
+        <p style="margin:0;color:#555;font-size:13px;">Once completed, update the IT Onboarding checklist in Odoo and click <strong>"Send Onboarding Ready Notification"</strong>.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             12. Onboarding Setup Ready – Candidate
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_onboarding_ready" model="mail.template">
+            <field name="name">Recruitment: Onboarding Setup Ready (to Candidate)</field>
+            <field name="model_id" ref="model_recruitment_it_onboarding"/>
+            <field name="subject">Your Onboarding Setup is Ready – Welcome to the Team, {{ object.candidate_id.name }}!</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="email_to">{{ object.candidate_id.email or '' }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">&#10003; Your Onboarding Setup is Ready!</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Chartered Accountants LLC</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear <t t-out="object.candidate_id.name"/>,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">All IT onboarding preparations have been completed for your joining date of <strong><t t-out="object.onboarding_date or '—'"/></strong>. Below are your account details.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Your Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.job_title or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Department</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.department_id.name or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Joining Date</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;font-size:12px;"><strong style="color:#1a3c6e;"><t t-out="object.onboarding_date or '—'"/></strong></td></tr>
+          <t t-if="object.joining_location">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Joining Location</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.joining_location"/></td></tr>
+          </t>
+          <t t-if="object.final_approval_id and object.final_approval_id.reporting_manager_id">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Reporting Manager</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.final_approval_id.reporting_manager_id.name"/></td></tr>
+          </t>
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#2563ab" style="background:#2563ab;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Your Account Details</th></tr>
+          <t t-if="object.official_email">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Official Email</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.official_email"/></td></tr>
+          <t t-if="object.official_email_password">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Email Password</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.official_email_password"/></td></tr>
+          </t>
+          </t>
+          <t t-if="object.odoo_username">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Odoo Username</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.odoo_username"/></td></tr>
+          <t t-if="object.odoo_link">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Odoo Link</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;font-size:12px;"><a t-att-href="object.odoo_link" style="color:#2563ab;"><t t-out="object.odoo_link"/></a></td></tr>
+          </t>
+          <t t-if="object.odoo_notes">
+          <tr><td colspan="2" bgcolor="#fafcff" style="padding:7px 14px;border-bottom:1px solid #dde6f0;color:#666;font-size:11px;font-style:italic;background:#fafcff;"><t t-out="object.odoo_notes"/></td></tr>
+          </t>
+          </t>
+          <t t-if="object.wave_username">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Wave Account</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.wave_username"/></td></tr>
+          <t t-if="object.wave_password">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Wave Password</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.wave_password"/></td></tr>
+          </t>
+          </t>
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:14px 18px;text-align:center;">
+          <p style="color:#ffffff;font-size:14px;font-weight:700;margin:0 0 4px;">&#127881; Welcome to the Team!</p>
+          <p style="color:#a8c4e8;font-size:12px;margin:0;">Contact HR if you have any questions before your joining date.</p>
+        </td></tr></table>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This notification has been sent by the KGRN HR team. Please do not reply to this automated email.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             12b. Onboarding Setup Ready – Internal
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_onboarding_ready_internal" model="mail.template">
+            <field name="name">Recruitment: Onboarding Setup Ready (Internal – HR/Manager)</field>
+            <field name="model_id" ref="model_recruitment_it_onboarding"/>
+            <field name="subject">IT Onboarding Complete: {{ object.candidate_id.name }} – Internal Summary</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">IT Onboarding Complete – Internal Summary</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System · Internal Only</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">All IT onboarding tasks have been completed for <strong><t t-out="object.candidate_id.name"/></strong>.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Onboarding Summary</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.job_title or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Department</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.department_id.name or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Joining Date</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.onboarding_date or '—'"/></td></tr>
+          <t t-if="object.joining_location">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Joining Location</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.joining_location"/></td></tr>
+          </t>
+          <t t-if="object.hardware_preference">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Preferred Device</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="'Laptop' if object.hardware_preference == 'laptop' else 'Desktop'"/></td></tr>
+          </t>
+          <t t-if="object.laptop_notes">
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Asset Details</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.laptop_notes"/></td></tr>
+          </t>
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#fff8e1;border:1px solid #f9a825;border-radius:4px;padding:10px 14px;">
+          <p style="margin:0;color:#795548;font-size:12px;">&#128274; This is an internal summary. Do not forward to the candidate.</p>
+        </td></tr></table>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated internal notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             13. Email Account Created
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_it_email_account_created" model="mail.template">
+            <field name="name">Recruitment: IT Email Account Created</field>
+            <field name="model_id" ref="model_recruitment_it_onboarding"/>
+            <field name="subject">Email Account Created: {{ object.candidate_id.name }} – Please Create Odoo Access</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">Email Account Created – Odoo Access Required</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Recruitment System</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear HR Team,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">The IT team has created an official email account for the following new joiner. Please create their Odoo account and update it in the IT Onboarding form.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">New Joiner Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Candidate Name</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.candidate_id.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Official Email ID</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;font-size:12px;"><strong style="color:#1a3c6e;"><t t-out="object.official_email or '—'"/></strong></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.job_title or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Department</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.department_id.name or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Joining Date</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.onboarding_date or '—'"/></td></tr>
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#fff8e1;border:1px solid #f9a825;border-radius:4px;padding:12px 14px;">
+          <p style="margin:0 0 4px;color:#e65100;font-weight:700;font-size:13px;">&#128161; Action Required</p>
+          <p style="margin:0;color:#795548;font-size:12px;line-height:1.6;">Please create an Odoo account using the official email above, then update the Odoo Username in <strong>Odoo → Recruitment → IT Onboarding</strong> for <strong><t t-out="object.candidate_id.name"/></strong>.</p>
+        </td></tr></table>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             14. Interview Invitation – Candidate
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_interview_invitation_candidate" model="mail.template">
+            <field name="name">Recruitment: Interview Invitation (Candidate)</field>
+            <field name="model_id" ref="model_recruitment_interview_round"/>
+            <field name="subject">Interview Scheduled: {{ object.candidate_id.name }} – {{ object.name }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">Interview Scheduled</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Chartered Accountants LLC</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <t t-if="object.is_rescheduled">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;"><tr><td style="background:#fff8e1;border:1px solid #f9a825;border-radius:4px;padding:10px 14px;">
+            <strong style="color:#e65100;font-size:13px;">&#8635; Rescheduled Interview Notice</strong>
+            <p style="margin:4px 0 0;color:#795548;font-size:12px;">This interview has been rescheduled. Please disregard any previous invitation.</p>
+          </td></tr></table>
+        </t>
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear <t t-out="object.candidate_id.name"/>,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">An interview has been scheduled for you. Please review the details and be prepared accordingly.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Interview Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Round</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.job_title or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Interview Date</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.interview_date.strftime('%d %b %Y') if object.interview_date else '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Time (UAE / Dubai)</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.interview_time_uae or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Time (IST / India)</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.interview_time_ist or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Meeting Link</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;font-size:12px;"><t t-if="object.meeting_link"><a t-att-href="object.meeting_link" style="color:#2563ab;"><t t-out="object.meeting_link"/></a></t><t t-else="">—</t></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Location</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="(object.location_type or '').title() or '—'"/><t t-if="object.venue"> – <t t-out="object.venue"/></t></td></tr>
+        </table>
+        <p style="margin:0;color:#555;font-size:13px;">Please be available at the scheduled time. Contact our HR team if you have any questions.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             15. Interview Cancelled – Candidate
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_interview_cancelled_candidate" model="mail.template">
+            <field name="name">Recruitment: Interview Cancelled (Candidate)</field>
+            <field name="model_id" ref="model_recruitment_interview_round"/>
+            <field name="subject">Interview Cancelled – {{ object.candidate_id.name }} / {{ object.name }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 20px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">Interview Cancellation Notice</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Chartered Accountants LLC</p>
+      </td></tr>
+      <tr><td style="padding:22px 28px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;"><tr><td style="background:#fff8e1;border:1px solid #f9a825;border-radius:4px;padding:10px 14px;">
+          <strong style="color:#e65100;font-size:13px;">&#9888; Interview Cancelled</strong>
+          <p style="margin:4px 0 0;color:#795548;font-size:12px;">You will receive a new invitation once the interview has been rescheduled.</p>
+        </td></tr></table>
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear <t t-out="object.candidate_id.name"/>,</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">We regret to inform you that the following interview has been <strong>cancelled</strong> and will be rescheduled. We apologise for any inconvenience.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Cancelled Interview Details</th></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Round</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Position</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.job_title or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Interview Date</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.interview_date.strftime('%d %b %Y') if object.interview_date else '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Time (UAE / Dubai)</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.interview_time_uae or '—'"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Time (IST / India)</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.interview_time_ist or '—'"/></td></tr>
+        </table>
+        <p style="margin:0;color:#555;font-size:13px;">Thank you for your understanding. You will receive a new invitation shortly.</p>
+      </td></tr>
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">This is an automated notification from the KGRN Recruitment system.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+            </field>
+        </record>
+
+    </data>
+</odoo>

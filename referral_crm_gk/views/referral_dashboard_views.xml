@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Dashboard form view -->
+    <record id="view_referral_dashboard_form" model="ir.ui.view">
+        <field name="name">referral.dashboard.form</field>
+        <field name="model">referral.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Referral Dashboard" create="false" edit="false" delete="false">
+                <sheet>
+                    <!-- hidden field to drive visibility -->
+                    <field name="is_manager" invisible="1"/>
+
+                    <!-- ── KPI Cards ── -->
+                    <div class="row g-3 mb-4">
+
+                        <!-- Total Referrals -->
+                        <div class="col-12 col-sm-6 col-xl">
+                            <div class="card border-0 h-100" style="background: #EEF2FF; border-radius: 12px;">
+                                <div class="card-body text-center py-4">
+                                    <div class="fs-1 fw-bold mb-1" style="color: #3949AB;">
+                                        <field name="total_referrals" readonly="1"/>
+                                    </div>
+                                    <div class="text-muted small fw-semibold text-uppercase" style="letter-spacing: .05em;">
+                                        <span invisible="not is_manager">Total Referrals</span>
+                                        <span invisible="is_manager">My Referrals</span>
+                                    </div>
+                                    <i class="fa fa-handshake-o fa-lg mt-2 opacity-50" style="color: #3949AB;"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- In Pipeline -->
+                        <div class="col-12 col-sm-6 col-xl">
+                            <div class="card border-0 h-100" style="background: #FFFBEB; border-radius: 12px;">
+                                <div class="card-body text-center py-4">
+                                    <div class="fs-1 fw-bold mb-1" style="color: #B45309;">
+                                        <field name="in_pipeline" readonly="1"/>
+                                    </div>
+                                    <div class="text-muted small fw-semibold text-uppercase" style="letter-spacing: .05em;">In Pipeline</div>
+                                    <i class="fa fa-tasks fa-lg mt-2 opacity-50" style="color: #B45309;"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Converted -->
+                        <div class="col-12 col-sm-6 col-xl">
+                            <div class="card border-0 h-100" style="background: #F0FDF4; border-radius: 12px;">
+                                <div class="card-body text-center py-4">
+                                    <div class="fs-1 fw-bold mb-1" style="color: #166534;">
+                                        <field name="total_converted" readonly="1"/>
+                                    </div>
+                                    <div class="text-muted small fw-semibold text-uppercase" style="letter-spacing: .05em;">Converted</div>
+                                    <i class="fa fa-check-circle fa-lg mt-2 opacity-50" style="color: #166534;"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pipeline Value -->
+                        <div class="col-12 col-sm-6 col-xl">
+                            <div class="card border-0 h-100" style="background: #EFF6FF; border-radius: 12px;">
+                                <div class="card-body text-center py-4">
+                                    <div class="fs-1 fw-bold mb-1" style="color: #1D4ED8;">
+                                        AED&#160;<field name="pipeline_value" readonly="1" widget="float"
+                                               options="{'digits': [16, 0]}"/>
+                                    </div>
+                                    <div class="text-muted small fw-semibold text-uppercase" style="letter-spacing: .05em;">Pipeline Value</div>
+                                    <i class="fa fa-bar-chart fa-lg mt-2 opacity-50" style="color: #1D4ED8;"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Commission — label differs by role -->
+                        <div class="col-12 col-sm-6 col-xl">
+                            <div class="card border-0 h-100" style="background: #FFF7ED; border-radius: 12px;">
+                                <div class="card-body text-center py-4">
+                                    <div class="fs-1 fw-bold mb-1" style="color: #C2410C;">
+                                        AED&#160;<field name="commission_liability" readonly="1" widget="float"
+                                               options="{'digits': [16, 0]}"/>
+                                    </div>
+                                    <div class="text-muted small fw-semibold text-uppercase" style="letter-spacing: .05em;">
+                                        <span invisible="not is_manager">Commission Due</span>
+                                        <span invisible="is_manager">My Commission Earned</span>
+                                    </div>
+                                    <i class="fa fa-money fa-lg mt-2 opacity-50" style="color: #C2410C;"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Active Referrers — manager only -->
+                        <div class="col-12 col-sm-6 col-xl" invisible="not is_manager">
+                            <div class="card border-0 h-100" style="background: #F5F3FF; border-radius: 12px;">
+                                <div class="card-body text-center py-4">
+                                    <div class="fs-1 fw-bold mb-1" style="color: #6D28D9;">
+                                        <field name="active_referrers" readonly="1"/>
+                                    </div>
+                                    <div class="text-muted small fw-semibold text-uppercase" style="letter-spacing: .05em;">Active Referrers</div>
+                                    <i class="fa fa-users fa-lg mt-2 opacity-50" style="color: #6D28D9;"/>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ── Commission Tier Structure ── -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3" style="color: #111827;">Commission Tier Structure</h5>
+                        <div class="row g-3">
+
+                            <!-- Starter -->
+                            <div class="col-12 col-md-4">
+                                <div class="card border-0 text-center py-4 px-3 h-100"
+                                     style="background: #F8FAFC; border-radius: 12px; border: 2px solid #E2E8F0 !important;">
+                                    <div style="font-size: 2.5rem;">&#x1F949;</div>
+                                    <div class="fw-bold mt-2" style="color: #374151;">Starter</div>
+                                    <div class="fw-bold mt-1" style="font-size: 2rem; color: #6B7280;">10%</div>
+                                    <div class="text-muted small mt-1">1–2 conversions</div>
+                                    <div class="mt-2">
+                                        <span class="badge rounded-pill px-3 py-1"
+                                              style="background: #E2E8F0; color: #374151;">10% commission</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Active -->
+                            <div class="col-12 col-md-4">
+                                <div class="card border-0 text-center py-4 px-3 h-100"
+                                     style="background: #F0FDF4; border-radius: 12px; border: 2px solid #BBF7D0 !important;">
+                                    <div style="font-size: 2.5rem;">&#x1F948;</div>
+                                    <div class="fw-bold mt-2" style="color: #374151;">Active</div>
+                                    <div class="fw-bold mt-1" style="font-size: 2rem; color: #16A34A;">12%</div>
+                                    <div class="text-muted small mt-1">3–4 conversions</div>
+                                    <div class="mt-2">
+                                        <span class="badge rounded-pill px-3 py-1"
+                                              style="background: #BBF7D0; color: #166534;">12% commission</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Premier -->
+                            <div class="col-12 col-md-4">
+                                <div class="card border-0 text-center py-4 px-3 h-100"
+                                     style="background: #FFFBEB; border-radius: 12px; border: 2px solid #FDE68A !important;">
+                                    <div style="font-size: 2.5rem;">&#x1F947;</div>
+                                    <div class="fw-bold mt-2" style="color: #374151;">Premier</div>
+                                    <div class="fw-bold mt-1" style="font-size: 2rem; color: #D97706;">15%</div>
+                                    <div class="text-muted small mt-1">5+ conversions</div>
+                                    <div class="mt-2">
+                                        <span class="badge rounded-pill px-3 py-1"
+                                              style="background: #FDE68A; color: #92400E;">15% commission</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- ── Commission Rule Note ── -->
+                    <div class="alert d-flex align-items-start gap-2 mb-4"
+                         style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px;">
+                        <i class="fa fa-info-circle mt-1 flex-shrink-0" style="color: #3B82F6;"/>
+                        <div style="color: #1E3A5F;">
+                            Commission is calculated on confirmed deal value (<strong>expected revenue</strong>).
+                            Payment must be marked as <strong>Full</strong> to trigger commission computation.
+                            Pipeline Value = active leads (excluding Converted and Not Qualified).
+                        </div>
+                    </div>
+
+                    <!-- ── Quick Actions ── -->
+                    <div>
+                        <h5 class="fw-bold mb-3" style="color: #111827;">Quick Actions</h5>
+                        <div class="d-flex gap-3 flex-wrap">
+                            <!-- Manager actions -->
+                            <button type="object" name="action_view_pipeline"
+                                    class="btn btn-primary px-4"
+                                    invisible="not is_manager">
+                                <i class="fa fa-bar-chart me-2"/>View Pipeline
+                            </button>
+                            <button type="object" name="action_view_referrers"
+                                    class="btn btn-outline-primary px-4"
+                                    invisible="not is_manager">
+                                <i class="fa fa-users me-2"/>All Referrers
+                            </button>
+                            <!-- User actions -->
+                            <button type="object" name="action_view_my_leads"
+                                    class="btn btn-primary px-4"
+                                    invisible="is_manager">
+                                <i class="fa fa-list me-2"/>My Leads
+                            </button>
+                        </div>
+                    </div>
+
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Server action to open dashboard (creates fresh transient record) -->
+    <record id="action_open_referral_dashboard" model="ir.actions.server">
+        <field name="name">Open Referral Dashboard</field>
+        <field name="model_id" ref="model_referral_dashboard"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_dashboard()</field>
+    </record>
+
+</odoo>

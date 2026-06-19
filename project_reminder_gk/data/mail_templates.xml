@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- ══════════════════════════════════════════════════════════════
+             Project Reminder – Individual Notification
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_individual_reminder" model="mail.template">
+            <field name="name">Project Reminder – Individual Notification</field>
+            <field name="model_id" ref="model_project_reminder_line"/>
+            <field name="subject">Upcoming Reminder - {{ object.project_id.name }} – {{ object.period_label }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="email_to">{{ object.project_manager_id.email }}</field>
+            <field name="body_html" type="html">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr>
+    <td align="center" valign="top" style="padding:24px 12px;">
+      <table role="presentation" width="620" cellpadding="0" cellspacing="0" border="0" align="center" style="width:620px;max-width:620px;background-color:#ffffff;border:1px solid #dde6f0;">
+
+        <!-- Header -->
+        <tr>
+          <td valign="top" bgcolor="#1a3c6e" style="background-color:#1a3c6e;padding:18px 28px;">
+            <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px 0;letter-spacing:0.2px;font-family:Arial,Helvetica,sans-serif;mso-line-height-rule:exactly;">Project Reminder &#8211; Action Required</h1>
+            <p style="color:#a8c4e8;font-size:12px;margin:0;font-family:Arial,Helvetica,sans-serif;mso-line-height-rule:exactly;">KGRN Project Management</p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:22px 28px;">
+            <p style="margin:0 0 4px 0;color:#222222;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Dear <t t-out="object.project_manager_id.name or 'Manager'"/>,</p>
+            <p style="margin:0 0 18px 0;color:#555555;font-size:13px;font-family:Arial,Helvetica,sans-serif;">This is a reminder that the following project has an upcoming obligation in <strong>2 days</strong>. Please take the necessary action before the reminder date.</p>
+
+            <!-- Details table -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px 0;">
+              <tr>
+                <td colspan="2" valign="top" bgcolor="#1a3c6e" style="background-color:#1a3c6e;padding:9px 14px;">
+                  <span style="color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.2px;font-family:Arial,Helvetica,sans-serif;">Reminder Details</span>
+                </td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Project</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.project_id.name or '&#8212;'"/></td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Customer</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.customer_id.name or '&#8212;'"/></td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Sale Order</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.sale_order_id.name or '&#8212;'"/></td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Reminder Type</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.reminder_type.replace('_', ' ').title() if object.reminder_type else '&#8212;'"/></td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Period</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.period_label or '&#8212;'"/></td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Reminder Date</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.reminder_date.strftime('%d-%b-%Y') if object.reminder_date else '&#8212;'"/></td>
+              </tr>
+              <t t-if="object.schedule_id.remarks">
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Remarks</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.schedule_id.remarks"/></td>
+              </tr>
+              </t>
+              <t t-if="not object.schedule_id.remarks">
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Remarks</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;">&#8212;</td>
+              </tr>
+              </t>
+            </table>
+
+            <p style="margin:0;color:#555555;font-size:13px;font-family:Arial,Helvetica,sans-serif;">Please log in to Odoo to take action on this reminder.</p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td valign="top" bgcolor="#1a3c6e" style="background-color:#1a3c6e;padding:12px 28px;text-align:center;">
+            <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;font-family:Arial,Helvetica,sans-serif;">This is an automated notification from the KGRN Project Management system.</p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+            </field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             Project Reminder – Due Today Notification
+        ══════════════════════════════════════════════════════════════════ -->
+        <record id="email_template_due_reminder" model="mail.template">
+            <field name="name">Project Reminder – Due Today Notification</field>
+            <field name="model_id" ref="model_project_reminder_line"/>
+            <field name="subject">Reminder Due Today - {{ object.project_id.name }} – {{ object.period_label }}</field>
+            <field name="email_from">{{ user.email_formatted }}</field>
+            <field name="email_to">{{ object.project_manager_id.email }}</field>
+            <field name="body_html" type="html">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr>
+    <td align="center" valign="top" style="padding:24px 12px;">
+      <table role="presentation" width="620" cellpadding="0" cellspacing="0" border="0" align="center" style="width:620px;max-width:620px;background-color:#ffffff;border:1px solid #dde6f0;">
+
+        <!-- Header -->
+        <tr>
+          <td valign="top" bgcolor="#b91c1c" style="background-color:#b91c1c;padding:18px 28px;">
+            <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px 0;letter-spacing:0.2px;font-family:Arial,Helvetica,sans-serif;mso-line-height-rule:exactly;">Project Reminder &#8211; Due Today</h1>
+            <p style="color:#fca5a5;font-size:12px;margin:0;font-family:Arial,Helvetica,sans-serif;mso-line-height-rule:exactly;">KGRN Project Management</p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:22px 28px;">
+            <p style="margin:0 0 4px 0;color:#222222;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Dear <t t-out="object.project_manager_id.name or 'Manager'"/>,</p>
+            <p style="margin:0 0 18px 0;color:#555555;font-size:13px;font-family:Arial,Helvetica,sans-serif;">This is a reminder that the following project has an obligation <strong>due today</strong>. Please take the necessary action immediately.</p>
+
+            <!-- Details table -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px 0;">
+              <tr>
+                <td colspan="2" valign="top" bgcolor="#b91c1c" style="background-color:#b91c1c;padding:9px 14px;">
+                  <span style="color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.2px;font-family:Arial,Helvetica,sans-serif;">Reminder Details</span>
+                </td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Project</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.project_id.name or '&#8212;'"/></td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Customer</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.customer_id.name or '&#8212;'"/></td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Sale Order</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.sale_order_id.name or '&#8212;'"/></td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Reminder Type</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.reminder_type.replace('_', ' ').title() if object.reminder_type else '&#8212;'"/></td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Period</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.period_label or '&#8212;'"/></td>
+              </tr>
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Reminder Date</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.reminder_date.strftime('%d-%b-%Y') if object.reminder_date else '&#8212;'"/></td>
+              </tr>
+              <t t-if="object.schedule_id.remarks">
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Remarks</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;"><t t-out="object.schedule_id.remarks"/></td>
+              </tr>
+              </t>
+              <t t-if="not object.schedule_id.remarks">
+              <tr>
+                <td width="38%" valign="top" bgcolor="#f0f5ff" style="background-color:#f0f5ff;width:38%;padding:8px 14px;color:#1a3c6e;font-weight:700;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Remarks</td>
+                <td valign="top" bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 14px;color:#333333;font-size:12px;font-family:Arial,Helvetica,sans-serif;">&#8212;</td>
+              </tr>
+              </t>
+            </table>
+
+            <p style="margin:0;color:#555555;font-size:13px;font-family:Arial,Helvetica,sans-serif;">Please log in to Odoo to take action on this reminder.</p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td valign="top" bgcolor="#1a3c6e" style="background-color:#1a3c6e;padding:12px 28px;text-align:center;">
+            <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;font-family:Arial,Helvetica,sans-serif;">This is an automated notification from the KGRN Project Management system.</p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+            </field>
+        </record>
+
+    </data>
+</odoo>

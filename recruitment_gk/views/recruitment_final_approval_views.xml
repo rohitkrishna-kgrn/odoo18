@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FORM VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_final_approval_form" model="ir.ui.view">
+        <field name="name">recruitment.final.approval.form</field>
+        <field name="model">recruitment.final.approval</field>
+        <field name="arch" type="xml">
+            <form string="Final Approval Details" class="rg_no_compose">
+                <header>
+                    <button name="action_notify_it_team"
+                            string="Notify IT Team" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'draft'"
+                            groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+                    <button name="action_view_it_onboarding"
+                            string="View IT Onboarding" type="object"
+                            class="btn-secondary"
+                            invisible="not it_onboarding_id"/>
+                    <button name="action_close"
+                            string="Close" type="object"
+                            class="btn-secondary"
+                            invisible="state not in ('it_notified', 'onboarding_ready')"
+                            groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,it_notified,onboarding_ready,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="candidate_id" readonly="1"/>
+                        </h1>
+                        <h3 class="text-muted">
+                            <field name="job_title" readonly="1"/>
+                        </h3>
+                    </div>
+                    <group>
+                        <group string="Candidate Details">
+                            <field name="request_id" readonly="1"/>
+                            <field name="department_id" readonly="1"/>
+                            <field name="candidate_email" readonly="1" widget="email"/>
+                        </group>
+                        <group string="Onboarding Details">
+                            <field name="onboarding_date"
+                                   readonly="state != 'draft'"/>
+                            <field name="reporting_manager_id"
+                                   readonly="state not in ('draft', 'it_notified')"
+                                   groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+                            <field name="joining_location"
+                                   readonly="state not in ('draft', 'it_notified')"
+                                   groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+                            <field name="system_preference"
+                                   readonly="state not in ('draft', 'it_notified')"
+                                   groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+                            <field name="it_onboarding_state" readonly="1"
+                                   invisible="not it_onboarding_id"
+                                   widget="badge"
+                                   decoration-warning="it_onboarding_state == 'pending'"
+                                   decoration-info="it_onboarding_state == 'in_progress'"
+                                   decoration-success="it_onboarding_state == 'completed'"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Approval Remarks">
+                            <field name="approval_remarks" nolabel="1"
+                                   colspan="2"
+                                   placeholder="Notes from HR / Management regarding this selection…"
+                                   readonly="state not in ('draft',)"/>
+                        </group>
+                        <group string="Offer Preparation Notes">
+                            <field name="offer_notes" nolabel="1"
+                                   colspan="2"
+                                   placeholder="Offer letter details, salary agreed, etc…"
+                                   readonly="state not in ('draft', 'it_notified')"/>
+                        </group>
+                    </group>
+
+                    <!-- IT Notified info banner -->
+                    <div invisible="state != 'it_notified'"
+                         class="alert alert-info mt-3" role="alert">
+                        <strong>IT team has been notified.</strong>
+                        The IT team is working on setting up the necessary accounts and assets for this candidate.
+                        Once all tasks are complete, they will notify the candidate at their personal email.
+                    </div>
+
+                    <!-- Onboarding ready success banner -->
+                    <div invisible="state != 'onboarding_ready'"
+                         class="alert alert-success mt-3" role="alert">
+                        <strong>&#10003; Onboarding setup is complete!</strong>
+                        The candidate has been notified at their personal email address.
+                        <strong>Offer preparation process can now begin.</strong>
+                    </div>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LIST VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_final_approval_list" model="ir.ui.view">
+        <field name="name">recruitment.final.approval.list</field>
+        <field name="model">recruitment.final.approval</field>
+        <field name="arch" type="xml">
+            <list string="Final Approvals"
+                  decoration-success="state == 'onboarding_ready'"
+                  decoration-info="state == 'it_notified'"
+                  decoration-muted="state == 'closed'">
+                <field name="candidate_id"/>
+                <field name="job_title"/>
+                <field name="department_id"/>
+                <field name="onboarding_date"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'it_notified'"
+                       decoration-success="state == 'onboarding_ready'"
+                       decoration-muted="state == 'closed'"/>
+                <field name="it_onboarding_state" widget="badge"
+                       decoration-warning="it_onboarding_state == 'pending'"
+                       decoration-info="it_onboarding_state == 'in_progress'"
+                       decoration-success="it_onboarding_state == 'completed'"
+                       optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_final_approval_search" model="ir.ui.view">
+        <field name="name">recruitment.final.approval.search</field>
+        <field name="model">recruitment.final.approval</field>
+        <field name="arch" type="xml">
+            <search string="Final Approvals">
+                <field name="candidate_id"/>
+                <field name="department_id"/>
+                <filter string="Draft" name="draft" domain="[('state','=','draft')]"/>
+                <filter string="IT Notified" name="it_notified" domain="[('state','=','it_notified')]"/>
+                <filter string="Onboarding Ready" name="onboarding_ready" domain="[('state','=','onboarding_ready')]"/>
+                <filter string="Closed" name="closed" domain="[('state','=','closed')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Department" name="grp_dept" context="{'group_by':'department_id'}"/>
+                    <filter string="Status" name="grp_state" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ACTION
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_recruitment_final_approval" model="ir.actions.act_window">
+        <field name="name">Final Approvals</field>
+        <field name="res_model">recruitment.final.approval</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_recruitment_final_approval_search"/>
+    </record>
+
+</odoo>

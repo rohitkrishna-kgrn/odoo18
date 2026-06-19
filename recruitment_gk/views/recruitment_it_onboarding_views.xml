@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         FORM VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_it_onboarding_form" model="ir.ui.view">
+        <field name="name">recruitment.it.onboarding.form</field>
+        <field name="model">recruitment.it.onboarding</field>
+        <field name="arch" type="xml">
+            <form string="IT Onboarding Checklist" class="rg_no_compose">
+                <header>
+                    <field name="is_it_team" invisible="1"/>
+                    <field name="all_tasks_done" invisible="1"/>
+
+                    <button name="action_mark_in_progress"
+                            string="Start" type="object"
+                            class="oe_highlight"
+                            invisible="state != 'pending' or not is_it_team"/>
+                    <button name="action_send_onboarding_ready"
+                            string="Send Onboarding Ready" type="object"
+                            class="oe_highlight"
+                            invisible="state == 'completed' or not all_tasks_done or not is_it_team"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,in_progress,completed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="candidate_id" readonly="1"/>
+                        </h1>
+                        <h3 class="text-muted">
+                            <field name="job_title" readonly="1"/>
+                        </h3>
+                    </div>
+                    <group>
+                        <group string="Candidate Info">
+                            <field name="department_id" readonly="1"/>
+                            <field name="onboarding_date" readonly="1"/>
+                            <field name="personal_email" readonly="1" widget="email"
+                                   string="Personal Email"/>
+                        </group>
+                        <group string="Completion Status">
+                            <field name="all_tasks_done" readonly="1" widget="boolean_toggle"/>
+                            <field name="notification_sent" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="IT Checklist" name="page_checklist">
+
+                            <!-- Hidden flags for step logic -->
+                            <field name="email_created" invisible="1"/>
+                            <field name="email_editing" invisible="1"/>
+                            <field name="odoo_account_created" invisible="1"/>
+                            <field name="odoo_editing" invisible="1"/>
+                            <field name="wave_account_created" invisible="1"/>
+                            <field name="wave_editing" invisible="1"/>
+                            <field name="laptop_arranged" invisible="1"/>
+                            <field name="hardware_editing" invisible="1"/>
+                            <field name="setup_docs_shared" invisible="1"/>
+                            <field name="docs_editing" invisible="1"/>
+
+                            <!-- Pending banner -->
+                            <div class="alert alert-info" invisible="state != 'pending'" role="alert">
+                                Click <strong>Start</strong> above to begin the IT onboarding checklist.
+                            </div>
+
+                            <!-- ─── Step 1: Email Account ──────────────────────────── -->
+                            <group string="1. Email Account" invisible="state == 'pending'">
+                                <field name="official_email"
+                                       string="Official Email Address"
+                                       placeholder="firstname.lastname@company.com"
+                                       readonly="not is_it_team or (email_created and not email_editing)"/>
+                                <field name="official_email_password"
+                                       string="Password"
+                                       widget="password"
+                                       invisible="not official_email"
+                                       readonly="not is_it_team or (email_created and not email_editing)"/>
+
+                                <!-- First-time complete: sends HR notification -->
+                                <button name="action_complete_email_account"
+                                        string="Complete &amp; Notify HR"
+                                        type="object"
+                                        class="btn-success"
+                                        invisible="not is_it_team or email_created"/>
+                                <!-- Save after edit: no re-notification -->
+                                <button name="action_complete_email_account"
+                                        string="Save Changes"
+                                        type="object"
+                                        class="btn-primary"
+                                        invisible="not is_it_team or not email_editing"/>
+                                <!-- Edit button: re-opens the step for editing -->
+                                <button name="action_edit_email_account"
+                                        string="Edit"
+                                        type="object"
+                                        class="btn-secondary"
+                                        invisible="not is_it_team or not email_created or email_editing"/>
+                                <div class="text-success fw-bold" invisible="not email_created or email_editing">
+                                    &#10003; Completed — HR notified to create Odoo access
+                                </div>
+                            </group>
+
+                            <!-- ─── Step 2: Odoo Account ───────────────────────────── -->
+                            <group string="2. Odoo Account" invisible="not email_created">
+                                <field name="odoo_username"
+                                       string="Odoo Username"
+                                       placeholder="Odoo login username"
+                                       readonly="not is_it_team or (odoo_account_created and not odoo_editing)"/>
+                                <field name="odoo_link"
+                                       string="Odoo Link"
+                                       placeholder="odoo.dubaiaudit.com"
+                                       invisible="not odoo_username"
+                                       readonly="not is_it_team or (odoo_account_created and not odoo_editing)"/>
+                                <field name="odoo_notes"
+                                       string="Notes"
+                                       readonly="not is_it_team or (odoo_account_created and not odoo_editing)"/>
+
+                                <button name="action_complete_odoo_account"
+                                        string="Mark as Complete"
+                                        type="object"
+                                        class="btn-success"
+                                        invisible="not is_it_team or odoo_account_created"/>
+                                <button name="action_complete_odoo_account"
+                                        string="Save Changes"
+                                        type="object"
+                                        class="btn-primary"
+                                        invisible="not is_it_team or not odoo_editing"/>
+                                <button name="action_edit_odoo_account"
+                                        string="Edit"
+                                        type="object"
+                                        class="btn-secondary"
+                                        invisible="not is_it_team or not odoo_account_created or odoo_editing"/>
+                                <div class="text-success fw-bold" invisible="not odoo_account_created or odoo_editing">
+                                    &#10003; Completed
+                                </div>
+                            </group>
+
+                            <!-- ─── Step 3: Wave Account ───────────────────────────── -->
+                            <group string="3. Wave Account" invisible="not odoo_account_created">
+                                <field name="wave_username"
+                                       string="Wave Username / ID"
+                                       placeholder="Wave username or employee ID"
+                                       readonly="not is_it_team or (wave_account_created and not wave_editing)"/>
+                                <field name="wave_password"
+                                       string="Password"
+                                       widget="password"
+                                       invisible="not wave_username"
+                                       readonly="not is_it_team or (wave_account_created and not wave_editing)"/>
+
+                                <button name="action_complete_wave_account"
+                                        string="Mark as Complete"
+                                        type="object"
+                                        class="btn-success"
+                                        invisible="not is_it_team or wave_account_created"/>
+                                <button name="action_complete_wave_account"
+                                        string="Save Changes"
+                                        type="object"
+                                        class="btn-primary"
+                                        invisible="not is_it_team or not wave_editing"/>
+                                <button name="action_edit_wave_account"
+                                        string="Edit"
+                                        type="object"
+                                        class="btn-secondary"
+                                        invisible="not is_it_team or not wave_account_created or wave_editing"/>
+                                <div class="text-success fw-bold" invisible="not wave_account_created or wave_editing">
+                                    &#10003; Completed
+                                </div>
+                            </group>
+
+                            <!-- ─── Step 4: Hardware &amp; IT Assets ──────────────── -->
+                            <group string="4. Hardware &amp; IT Assets" invisible="not odoo_account_created">
+                                <field name="hardware_preference"
+                                       string="Preferred Device"
+                                       readonly="not is_it_team or (laptop_arranged and not hardware_editing)"/>
+                                <field name="laptop_notes"
+                                       string="Asset Details / Notes"
+                                       placeholder="e.g. Dell Latitude – Asset Tag #A1234"
+                                       readonly="not is_it_team or (laptop_arranged and not hardware_editing)"/>
+
+                                <button name="action_complete_hardware"
+                                        string="Mark as Complete"
+                                        type="object"
+                                        class="btn-success"
+                                        invisible="not is_it_team or laptop_arranged"/>
+                                <button name="action_complete_hardware"
+                                        string="Save Changes"
+                                        type="object"
+                                        class="btn-primary"
+                                        invisible="not is_it_team or not hardware_editing"/>
+                                <button name="action_edit_hardware"
+                                        string="Edit"
+                                        type="object"
+                                        class="btn-secondary"
+                                        invisible="not is_it_team or not laptop_arranged or hardware_editing"/>
+                                <div class="text-success fw-bold" invisible="not laptop_arranged or hardware_editing">
+                                    &#10003; Completed
+                                </div>
+                            </group>
+
+                            <!-- ─── Step 5: Documentation ─────────────────────────── -->
+                            <group string="5. Documentation" invisible="not laptop_arranged">
+                                <field name="document_ids"
+                                       string="Upload Documentation Files"
+                                       widget="many2many_binary"
+                                       colspan="2"
+                                       readonly="not is_it_team or (setup_docs_shared and not docs_editing)"/>
+                                <field name="setup_docs_notes"
+                                       string="Documentation Notes"
+                                       placeholder="e.g. Software installation guide, company policy docs"
+                                       readonly="not is_it_team or (setup_docs_shared and not docs_editing)"/>
+
+                                <button name="action_complete_documentation"
+                                        string="Mark as Complete"
+                                        type="object"
+                                        class="btn-success"
+                                        invisible="not is_it_team or setup_docs_shared"/>
+                                <button name="action_complete_documentation"
+                                        string="Save Changes"
+                                        type="object"
+                                        class="btn-primary"
+                                        invisible="not is_it_team or not docs_editing"/>
+                                <button name="action_edit_documentation"
+                                        string="Edit"
+                                        type="object"
+                                        class="btn-secondary"
+                                        invisible="not is_it_team or not setup_docs_shared or docs_editing"/>
+                                <div class="text-success fw-bold" invisible="not setup_docs_shared or docs_editing">
+                                    &#10003; Completed — documentation will be attached to the candidate email
+                                </div>
+                            </group>
+
+                        </page>
+                        <page string="Notes" name="page_notes">
+                            <field name="it_notes"
+                                   placeholder="Additional IT notes or observations…"
+                                   nolabel="1"
+                                   readonly="not is_it_team"/>
+                        </page>
+                    </notebook>
+
+                    <!-- All done banner -->
+                    <div invisible="not all_tasks_done or state == 'completed' or not is_it_team"
+                         class="alert alert-success mt-3" role="alert">
+                        <strong>&#10003; All IT onboarding tasks are complete!</strong>
+                        Click <strong>"Send Onboarding Ready"</strong> to notify the candidate and reporting manager.
+                    </div>
+
+                    <!-- Completed banner -->
+                    <div invisible="state != 'completed'"
+                         class="alert alert-success mt-3" role="alert">
+                        <strong>&#10003; Onboarding setup notification has been sent.</strong>
+                        Offer preparation process can now begin.
+                    </div>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LIST VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_it_onboarding_list" model="ir.ui.view">
+        <field name="name">recruitment.it.onboarding.list</field>
+        <field name="model">recruitment.it.onboarding</field>
+        <field name="arch" type="xml">
+            <list string="IT Onboarding" create="false"
+                  decoration-success="state == 'completed'"
+                  decoration-info="state == 'in_progress'"
+                  decoration-warning="state == 'pending'">
+                <field name="candidate_id"/>
+                <field name="job_title"/>
+                <field name="department_id"/>
+                <field name="onboarding_date"/>
+                <field name="email_created" widget="boolean_toggle" readonly="1" string="Email"/>
+                <field name="odoo_account_created" widget="boolean_toggle" readonly="1" string="Odoo"/>
+                <field name="wave_account_created" widget="boolean_toggle" readonly="1" string="Wave"/>
+                <field name="laptop_arranged" widget="boolean_toggle" readonly="1" string="Hardware"/>
+                <field name="setup_docs_shared" widget="boolean_toggle" readonly="1" string="Docs"/>
+                <field name="all_tasks_done" widget="boolean_toggle" readonly="1" string="All Done"/>
+                <field name="notification_sent" widget="boolean_toggle" readonly="1" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state == 'pending'"
+                       decoration-info="state == 'in_progress'"
+                       decoration-success="state == 'completed'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_it_onboarding_search" model="ir.ui.view">
+        <field name="name">recruitment.it.onboarding.search</field>
+        <field name="model">recruitment.it.onboarding</field>
+        <field name="arch" type="xml">
+            <search string="IT Onboarding">
+                <field name="candidate_id"/>
+                <field name="department_id"/>
+                <filter string="Pending" name="pending"
+                        domain="[('state','=','pending')]"/>
+                <filter string="In Progress" name="in_progress"
+                        domain="[('state','=','in_progress')]"/>
+                <filter string="Completed" name="completed"
+                        domain="[('state','=','completed')]"/>
+                <separator/>
+                <filter string="All Tasks Done" name="all_done"
+                        domain="[('all_tasks_done','=',True)]"/>
+                <filter string="Notification Sent" name="notified"
+                        domain="[('notification_sent','=',True)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Department" name="grp_dept"
+                            context="{'group_by':'department_id'}"/>
+                    <filter string="Status" name="grp_state"
+                            context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ACTION
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_recruitment_it_onboarding" model="ir.actions.act_window">
+        <field name="name">IT Onboarding</field>
+        <field name="res_model">recruitment.it.onboarding</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_recruitment_it_onboarding_search"/>
+        <field name="context">{'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No IT onboarding records yet</p>
+            <p>IT onboarding checklists are created automatically when HR sets an onboarding date and notifies the IT team from a candidate's Final Approval record.</p>
+        </field>
+    </record>
+
+</odoo>

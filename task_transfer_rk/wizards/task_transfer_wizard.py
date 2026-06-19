@@ -1,5 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 
 class TaskTransferWizard(models.TransientModel):
@@ -65,7 +65,7 @@ class TaskTransferWizard(models.TransientModel):
     def action_transfer(self):
         self.ensure_one()
         if not self.env.user.has_group('task_transfer_rk.group_task_transfer_user'):
-            raise AccessError(_("You do not have the access rights to transfer tasks."))
+            raise UserError(_("You do not have the access rights to transfer tasks."))
         if not self.task_ids:
             raise ValidationError(_("Please select at least one task to transfer."))
         if not self.add_assignee_ids:

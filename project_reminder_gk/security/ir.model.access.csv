@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_project_reminder_schedule_manager,project.reminder.schedule Project Manager,model_project_reminder_schedule,project.group_project_manager,1,1,1,1
+access_project_reminder_schedule_user,project.reminder.schedule Project User,model_project_reminder_schedule,project.group_project_user,1,0,0,0
+access_project_reminder_line_manager,project.reminder.line Project Manager,model_project_reminder_line,project.group_project_manager,1,1,1,1
+access_project_reminder_line_user,project.reminder.line Project User,model_project_reminder_line,project.group_project_user,1,0,0,0
+access_project_reminder_wizard_user,project.reminder.wizard All Users,model_project_reminder_wizard,base.group_user,1,1,1,1
+access_project_reminder_wizard_line_user,project.reminder.wizard.line All Users,model_project_reminder_wizard_line,base.group_user,1,1,1,1

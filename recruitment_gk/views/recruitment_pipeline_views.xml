@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         KANBAN PIPELINE VIEW  (candidates grouped by stage)
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_pipeline_kanban" model="ir.ui.view">
+        <field name="name">recruitment.candidate.pipeline.kanban</field>
+        <field name="model">recruitment.candidate</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="stage_id"
+                    class="o_recruitment_pipeline_kanban"
+                    on_create="quick_create"
+                    quick_create_view="recruitment_gk.view_recruitment_candidate_quick_create">
+                <field name="name"/>
+                <field name="stage_id"/>
+                <field name="state"/>
+                <field name="request_id"/>
+                <field name="job_title"/>
+                <field name="department_id"/>
+                <field name="total_experience"/>
+                <field name="expected_salary"/>
+                <field name="priority"/>
+                <field name="color"/>
+                <field name="interview_count"/>
+                <progressbar field="state"
+                             colors='{"selected": "success", "rejected": "danger", "interview": "primary"}'/>
+                <templates>
+                    <t t-name="card" class="flex-row">
+                        <aside>
+                            <field name="priority" widget="priority"/>
+                        </aside>
+                        <main>
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title">
+                                        <field name="name"/>
+                                    </strong>
+                                    <small class="o_kanban_record_subtitle text-muted">
+                                        <field name="job_title"/>
+                                    </small>
+                                </div>
+                                <field name="state" widget="badge" class="ms-auto"
+                                       decoration-success="state == 'selected'"
+                                       decoration-danger="state == 'rejected'"
+                                       decoration-info="state == 'interview'"/>
+                            </div>
+                            <div class="o_kanban_record_body mt-1">
+                                <div invisible="not department_id">
+                                    <i class="fa fa-building-o me-1 text-muted"/>
+                                    <field name="department_id"/>
+                                </div>
+                                <div>
+                                    <i class="fa fa-briefcase me-1 text-muted"/>
+                                    <field name="total_experience"/> yrs exp
+                                </div>
+                                <div invisible="not interview_count">
+                                    <i class="fa fa-calendar me-1 text-muted"/>
+                                    <field name="interview_count"/> interview(s)
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_bottom mt-2">
+                                <small class="text-muted">
+                                    <field name="request_id"/>
+                                </small>
+                            </div>
+                        </main>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Quick-create form for pipeline kanban -->
+    <record id="view_recruitment_candidate_quick_create" model="ir.ui.view">
+        <field name="name">recruitment.candidate.quick.create</field>
+        <field name="model">recruitment.candidate</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="name" placeholder="Candidate Name…"/>
+                    <field name="request_id"/>
+                    <field name="email"/>
+                    <field name="phone"/>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ACTION – Interview Pipeline
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_recruitment_pipeline" model="ir.actions.act_window">
+        <field name="name">Interview Pipeline</field>
+        <field name="res_model">recruitment.candidate</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="recruitment_gk.view_recruitment_candidate_search"/>
+        <field name="context">{'search_default_pipeline_candidates': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Pipeline is empty</p>
+            <p>Candidates approved for interview will appear here, progressing through each round.</p>
+        </field>
+    </record>
+
+</odoo>

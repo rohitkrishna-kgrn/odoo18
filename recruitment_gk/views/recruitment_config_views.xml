@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         INTERVIEW CONFIGURATION FORM
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_interview_config_form" model="ir.ui.view">
+        <field name="name">recruitment.interview.config.form</field>
+        <field name="model">recruitment.interview.config</field>
+        <field name="arch" type="xml">
+            <form string="Interview Round Configuration">
+                <header>
+                    <button name="action_apply_config"
+                            string="Apply Configuration"
+                            type="object"
+                            class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Configuration Name…"/></h1>
+                    </div>
+                    <div class="alert alert-info" role="alert">
+                        <strong>How to use:</strong> Define your interview rounds below, then click
+                        <em>Apply Configuration</em> to update the Interview Pipeline stages.
+                        All existing interview-stage assignments will remain; only the stage
+                        definitions change.
+                    </div>
+                    <field name="round_ids">
+                        <list string="Interview Rounds" editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="name" placeholder="e.g. Technical Assessment"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         INTERVIEW CONFIGURATION LIST
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_interview_config_list" model="ir.ui.view">
+        <field name="name">recruitment.interview.config.list</field>
+        <field name="model">recruitment.interview.config</field>
+        <field name="arch" type="xml">
+            <list string="Interview Configurations">
+                <field name="name"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         PIPELINE STAGE LIST  (view / reorder stages)
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_recruitment_stage_list" model="ir.ui.view">
+        <field name="name">recruitment.stage.list</field>
+        <field name="model">recruitment.stage</field>
+        <field name="arch" type="xml">
+            <list string="Pipeline Stages" editable="top">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="stage_type"/>
+                <field name="round_number" optional="show"/>
+                <field name="fold"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_recruitment_stage_form" model="ir.ui.view">
+        <field name="name">recruitment.stage.form</field>
+        <field name="model">recruitment.stage</field>
+        <field name="arch" type="xml">
+            <form string="Pipeline Stage">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="sequence"/>
+                        <field name="stage_type"/>
+                        <field name="round_number"
+                               invisible="stage_type != 'interview'"/>
+                        <field name="fold"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ACTIONS
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_recruitment_interview_config" model="ir.actions.act_window">
+        <field name="name">Interview Round Configuration</field>
+        <field name="res_model">recruitment.interview.config</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_recruitment_stage" model="ir.actions.act_window">
+        <field name="name">Pipeline Stages</field>
+        <field name="res_model">recruitment.stage</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

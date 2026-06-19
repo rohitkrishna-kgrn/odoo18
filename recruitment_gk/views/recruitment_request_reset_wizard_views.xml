@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_recruitment_request_reset_wizard_form" model="ir.ui.view">
+        <field name="name">recruitment.request.reset.wizard.form</field>
+        <field name="model">recruitment.request.reset.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reset Request to New">
+                <sheet>
+                    <div class="oe_title">
+                        <h2>Reset Request to New</h2>
+                    </div>
+                    <group>
+                        <field name="request_id" readonly="1"/>
+                        <field name="remark"
+                               placeholder="Enter reason for resetting this request to New…"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm" string="Confirm Reset"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

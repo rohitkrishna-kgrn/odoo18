@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Root app menu ────────────────────────────────────────────────── -->
+    <menuitem id="menu_recruitment_root" name="Recruitment" sequence="85"
+              web_icon="recruitment_gk,static/description/icon.png"
+              groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_hiring_manager,recruitment_gk.group_recruitment_management,recruitment_gk.group_recruitment_it_team"/>
+
+    <!-- ── Dashboard ─────────────────────────────────────────────────────── -->
+    <menuitem id="menu_recruitment_dashboard" name="Dashboard"
+              parent="menu_recruitment_root"
+              action="recruitment_gk.action_server_recruitment_dashboard"
+              sequence="5"
+              groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+
+    <!-- ── Recruitment Requests ─────────────────────────────────────────── -->
+    <menuitem id="menu_recruitment_requests" name="Recruitment Requests" parent="menu_recruitment_root" action="recruitment_gk.action_recruitment_request" sequence="10" groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_hiring_manager,recruitment_gk.group_recruitment_management"/>
+
+    <!-- ── Candidates ───────────────────────────────────────────────────── -->
+    <menuitem id="menu_recruitment_candidates" name="Candidates" parent="menu_recruitment_root" action="recruitment_gk.action_recruitment_candidate" sequence="20" groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_hiring_manager,recruitment_gk.group_recruitment_management"/>
+
+    <!-- ── Interview Pipeline ───────────────────────────────────────────── -->
+    <menuitem id="menu_recruitment_pipeline" name="Interview Pipeline" parent="menu_recruitment_root" action="recruitment_gk.action_recruitment_pipeline" sequence="30" groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_hiring_manager,recruitment_gk.group_recruitment_management"/>
+
+    <!-- ── Reports ──────────────────────────────────────────────────────── -->
+    <menuitem id="menu_recruitment_reports" name="Reports" parent="menu_recruitment_root" sequence="40" groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+
+    <menuitem id="menu_report_recruitment_overview" name="Recruitment Overview" parent="menu_recruitment_reports" action="recruitment_gk.action_recruitment_request_report" sequence="10"/>
+
+    <menuitem id="menu_report_candidate_pipeline" name="Candidate Pipeline" parent="menu_recruitment_reports" action="recruitment_gk.action_recruitment_candidate_report" sequence="20"/>
+
+    <menuitem id="menu_report_interview" name="Interview Report" parent="menu_recruitment_reports" action="recruitment_gk.action_recruitment_interview_report" sequence="30"/>
+
+    <menuitem id="menu_report_manager_summary" name="Hiring Manager Summary" parent="menu_recruitment_reports" action="recruitment_gk.action_recruitment_manager_report" sequence="40"/>
+
+    <!-- ── IT Onboarding (IT Team + HR Admin + Management) ─────────────── -->
+    <menuitem id="menu_recruitment_it_onboarding" name="IT Onboarding"
+              parent="menu_recruitment_root"
+              action="recruitment_gk.action_recruitment_it_onboarding"
+              sequence="35"
+              groups="recruitment_gk.group_recruitment_it_team,recruitment_gk.group_recruitment_management,recruitment_gk.group_recruitment_hr_admin"/>
+
+    <!-- ── Configuration  (HR Admin only) ──────────────────────────────── -->
+    <menuitem id="menu_recruitment_configuration" name="Configuration" parent="menu_recruitment_root" sequence="50" groups="recruitment_gk.group_recruitment_hr_admin,recruitment_gk.group_recruitment_management"/>
+
+    <menuitem id="menu_config_departments" name="Departments" parent="menu_recruitment_configuration" action="recruitment_gk.action_recruitment_department" sequence="10"/>
+
+    <menuitem id="menu_config_interview_rounds" name="Interview Round Configuration" parent="menu_recruitment_configuration" action="recruitment_gk.action_recruitment_interview_config" sequence="20"/>
+
+    <menuitem id="menu_config_pipeline_stages" name="Pipeline Stages" parent="menu_recruitment_configuration" action="recruitment_gk.action_recruitment_stage" sequence="30"/>
+
+</odoo>

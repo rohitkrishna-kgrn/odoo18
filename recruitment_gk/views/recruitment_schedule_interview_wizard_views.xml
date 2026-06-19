@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_recruitment_schedule_interview_wizard_form" model="ir.ui.view">
+        <field name="name">recruitment.schedule.interview.wizard.form</field>
+        <field name="model">recruitment.schedule.interview.wizard</field>
+        <field name="arch" type="xml">
+            <!-- o_interview_config_no_drag: prevents the dialog from being dragged (CSS in recruitment_gk.css) -->
+            <form string="Interview Round Configuration" class="o_interview_config_no_drag">
+                <sheet>
+                    <div class="oe_title">
+                        <h2>Interview Round Configuration</h2>
+                        <h4 class="text-muted">
+                            Candidate: <field name="candidate_id" readonly="1" nolabel="1"/>
+                        </h4>
+                    </div>
+                    <p class="text-muted">
+                        Define the interview rounds for this candidate. Rounds are created in
+                        order. After confirmation, Round 1 will open for scheduling.
+                        Subsequent rounds unlock only after the previous round is completed.
+                    </p>
+                    <field name="round_line_ids">
+                        <list editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="name" string="Round Name" placeholder="e.g. Technical Round"/>
+                            <field name="stage_id" string="Stage"/>
+                        </list>
+                    </field>
+                </sheet>
+                <footer>
+                    <button name="action_confirm"
+                            string="Confirm"
+                            type="object"
+                            class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── project.reminder.schedule ─────────────────────────────────── -->
+
+    <record id="view_project_reminder_schedule_form" model="ir.ui.view">
+        <field name="name">project.reminder.schedule.form</field>
+        <field name="model">project.reminder.schedule</field>
+        <field name="arch" type="xml">
+            <form string="Project Reminder Schedule">
+                <header>
+                    <button name="action_schedule" type="object" string="Activate Schedule"
+                        class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                        invisible="state in ['completed', 'cancelled']"/>
+                    <button name="action_reset_draft" type="object" string="Reset to Draft"
+                        invisible="state != 'cancelled'"/>
+                    <field name="state" widget="statusbar"
+                        statusbar_visible="draft,scheduled,upcoming,notification_sent,completed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Project Information">
+                            <field name="project_id" options="{'no_create': True}"/>
+                            <field name="project_sale_order_id" invisible="1"/>
+                            <field name="sale_order_line_id"
+                                domain="[('order_id', '=', project_sale_order_id)]"
+                                options="{'no_create': True}"/>
+                            <field name="sale_order_id" readonly="1"/>
+                            <field name="customer_id" readonly="1"/>
+                            <field name="project_manager_id" readonly="1"/>
+                        </group>
+                        <group string="Engagement &amp; Reminder">
+                            <field name="engagement_start" readonly="1"/>
+                            <field name="engagement_end" readonly="1"/>
+                            <field name="reminder_type"/>
+                            <field name="yearly_frequency"
+                                invisible="reminder_type != 'yearly'"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="remarks" placeholder="Optional remarks or notes…"/>
+                    </group>
+                    <notebook>
+                        <page string="Reminder Lines" name="reminder_lines">
+                            <field name="line_ids" readonly="state in ['completed', 'cancelled']">
+                                <list editable="bottom" create="0" delete="0"
+                                    decoration-success="state == 'completed'"
+                                    decoration-warning="state == 'upcoming'"
+                                    decoration-primary="state == 'notification_sent'"
+                                    decoration-info="state == 'scheduled'"
+                                    decoration-muted="state == 'cancelled'">
+                                    <field name="period_label" readonly="1" string="Period"/>
+                                    <field name="reminder_date" required="1"/>
+                                    <field name="notification_date" readonly="1"
+                                        string="Notify On"/>
+                                    <field name="state" readonly="1" widget="badge"
+                                        decoration-success="state == 'completed'"
+                                        decoration-warning="state == 'upcoming'"
+                                        decoration-primary="state == 'notification_sent'"
+                                        decoration-info="state == 'scheduled'"
+                                        decoration-muted="state == 'cancelled'"/>
+                                    <field name="upcoming_mail_sent" readonly="1"
+                                        string="Upcoming Sent"/>
+                                    <field name="due_today_mail_sent" readonly="1"
+                                        string="Due Today Sent"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_project_reminder_schedule_list" model="ir.ui.view">
+        <field name="name">project.reminder.schedule.list</field>
+        <field name="model">project.reminder.schedule</field>
+        <field name="arch" type="xml">
+            <list string="Reminder Schedules"
+                decoration-success="state == 'completed'"
+                decoration-warning="state == 'upcoming'"
+                decoration-primary="state == 'notification_sent'"
+                decoration-info="state == 'scheduled'"
+                decoration-muted="state == 'cancelled'">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="customer_id"/>
+                <field name="sale_order_id"/>
+                <field name="reminder_type"/>
+                <field name="engagement_start"/>
+                <field name="engagement_end"/>
+                <field name="project_manager_id"/>
+                <field name="line_count" string="Lines"/>
+                <field name="state" widget="badge"
+                    decoration-success="state == 'completed'"
+                    decoration-warning="state == 'upcoming'"
+                    decoration-primary="state == 'notification_sent'"
+                    decoration-info="state == 'scheduled'"
+                    decoration-muted="state == 'cancelled'"/>
+                <field name="state_sequence" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_project_reminder_schedule_search" model="ir.ui.view">
+        <field name="name">project.reminder.schedule.search</field>
+        <field name="model">project.reminder.schedule</field>
+        <field name="arch" type="xml">
+            <search string="Reminder Schedules">
+                <field name="name" string="Schedule"/>
+                <field name="project_id"/>
+                <field name="customer_id"/>
+                <field name="sale_order_id"/>
+                <field name="project_manager_id"/>
+                <separator/>
+                <filter string="Draft" name="state_draft" domain="[('state','=','draft')]"/>
+                <filter string="Scheduled" name="state_scheduled" domain="[('state','=','scheduled')]"/>
+                <filter string="Upcoming" name="state_upcoming" domain="[('state','=','upcoming')]"/>
+                <filter string="Notification Sent" name="state_notification_sent" domain="[('state','=','notification_sent')]"/>
+                <filter string="Completed" name="state_completed" domain="[('state','=','completed')]"/>
+                <filter string="Cancelled" name="state_cancelled" domain="[('state','=','cancelled')]"/>
+                <separator/>
+                <filter string="Yearly" name="type_yearly" domain="[('reminder_type','=','yearly')]"/>
+                <filter string="Half-Yearly" name="type_half_yearly" domain="[('reminder_type','=','half_yearly')]"/>
+                <filter string="Quarterly" name="type_quarterly" domain="[('reminder_type','=','quarterly')]"/>
+                <filter string="Monthly" name="type_monthly" domain="[('reminder_type','=','monthly')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Project" name="group_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Reminder Type" name="group_type" context="{'group_by': 'reminder_type'}"/>
+                    <filter string="Project Manager" name="group_pm" context="{'group_by': 'project_manager_id'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_project_reminder_schedule" model="ir.actions.act_window">
+        <field name="name">Reminder Schedules</field>
+        <field name="res_model">project.reminder.schedule</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_project_reminder_schedule_search"/>
+    </record>
+
+    <!-- ── project.reminder.line ──────────────────────────────────────── -->
+
+    <record id="view_project_reminder_line_list" model="ir.ui.view">
+        <field name="name">project.reminder.line.list</field>
+        <field name="model">project.reminder.line</field>
+        <field name="arch" type="xml">
+            <list string="Reminder Lines"
+                decoration-success="state == 'completed'"
+                decoration-warning="state == 'upcoming'"
+                decoration-primary="state == 'notification_sent'"
+                decoration-info="state == 'scheduled'"
+                decoration-muted="state == 'cancelled'">
+                <field name="project_id"/>
+                <field name="customer_id"/>
+                <field name="sale_order_id"/>
+                <field name="reminder_type"/>
+                <field name="period_label"/>
+                <field name="reminder_date"/>
+                <field name="notification_date" string="Notify On"/>
+                <field name="project_manager_id"/>
+                <field name="upcoming_mail_sent" string="Upcoming Sent"/>
+                <field name="due_today_mail_sent" string="Due Today Sent"/>
+                <field name="state" widget="badge"
+                    decoration-success="state == 'completed'"
+                    decoration-warning="state == 'upcoming'"
+                    decoration-primary="state == 'notification_sent'"
+                    decoration-info="state == 'scheduled'"
+                    decoration-muted="state == 'cancelled'"/>
+                <field name="state_sequence" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_project_reminder_line_form" model="ir.ui.view">
+        <field name="name">project.reminder.line.form</field>
+        <field name="model">project.reminder.line</field>
+        <field name="arch" type="xml">
+            <form string="Reminder Line">
+                <header>
+                    <button name="action_complete" type="object"
+                        string="Mark Completed" class="btn-primary"
+                        invisible="state not in ['upcoming', 'notification_sent']"/>
+                    <button name="action_cancel_reminder" type="object"
+                        string="Cancel Reminder"
+                        invisible="state == 'cancelled'"/>
+                    <field name="state" widget="statusbar"
+                        statusbar_visible="draft,scheduled,upcoming,notification_sent,completed"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Project">
+                            <field name="project_id" readonly="1"/>
+                            <field name="customer_id" readonly="1"/>
+                            <field name="sale_order_id" readonly="1"/>
+                            <field name="sale_order_line_id" readonly="1"/>
+                            <field name="project_manager_id" readonly="1"/>
+                        </group>
+                        <group string="Reminder">
+                            <field name="reminder_type" readonly="1"/>
+                            <field name="period_label" readonly="1"/>
+                            <field name="reminder_date"/>
+                            <field name="notification_date" readonly="1"
+                                string="Upcoming Email Date"/>
+                        </group>
+                    </group>
+                    <group string="Email Notification Status">
+                        <field name="upcoming_mail_sent" readonly="1"
+                            string="Upcoming Reminder Sent"/>
+                        <field name="due_today_mail_sent" readonly="1"
+                            string="Due Today Reminder Sent"/>
+                    </group>
+                    <group>
+                        <field name="remarks" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_project_reminder_line_calendar" model="ir.ui.view">
+        <field name="name">project.reminder.line.calendar</field>
+        <field name="model">project.reminder.line</field>
+        <field name="arch" type="xml">
+            <calendar string="Reminders Calendar" date_start="reminder_date"
+                color="color" mode="month" quick_create="False">
+                <field name="project_id"/>
+                <field name="reminder_type"/>
+                <field name="period_label"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_project_reminder_line_search" model="ir.ui.view">
+        <field name="name">project.reminder.line.search</field>
+        <field name="model">project.reminder.line</field>
+        <field name="arch" type="xml">
+            <search string="Reminder Lines">
+                <field name="project_id"/>
+                <field name="customer_id"/>
+                <field name="sale_order_id"/>
+                <field name="project_manager_id"/>
+                <separator/>
+                <filter string="Draft" name="state_draft" domain="[('state','=','draft')]"/>
+                <filter string="Scheduled" name="state_scheduled" domain="[('state','=','scheduled')]"/>
+                <filter string="Upcoming" name="state_upcoming" domain="[('state','=','upcoming')]"/>
+                <filter string="Notification Sent" name="state_notification_sent" domain="[('state','=','notification_sent')]"/>
+                <filter string="Completed" name="state_completed" domain="[('state','=','completed')]"/>
+                <filter string="Cancelled" name="state_cancelled" domain="[('state','=','cancelled')]"/>
+                <separator/>
+                <filter string="Upcoming Mail Pending" name="upcoming_pending"
+                    domain="[('upcoming_mail_sent','=',False),('state','in',['scheduled','upcoming'])]"/>
+                <filter string="Due Today Mail Pending" name="due_today_pending"
+                    domain="[('due_today_mail_sent','=',False),('state','in',['scheduled','upcoming'])]"/>
+                <separator/>
+                <filter string="Yearly" name="type_yearly" domain="[('reminder_type','=','yearly')]"/>
+                <filter string="Half-Yearly" name="type_half_yearly" domain="[('reminder_type','=','half_yearly')]"/>
+                <filter string="Quarterly" name="type_quarterly" domain="[('reminder_type','=','quarterly')]"/>
+                <filter string="Monthly" name="type_monthly" domain="[('reminder_type','=','monthly')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Project" name="group_project" context="{'group_by': 'project_id'}"/>
+                    <filter string="Reminder Type" name="group_type" context="{'group_by': 'reminder_type'}"/>
+                    <filter string="Project Manager" name="group_pm" context="{'group_by': 'project_manager_id'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Month" name="group_month" context="{'group_by': 'reminder_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_project_reminder_line" model="ir.actions.act_window">
+        <field name="name">Reminder Lines</field>
+        <field name="res_model">project.reminder.line</field>
+        <field name="view_mode">list,calendar,form</field>
+        <field name="search_view_id" ref="view_project_reminder_line_search"/>
+    </record>
+
+</odoo>

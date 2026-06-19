@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_recruitment_candidate_send_hm_wizard_form" model="ir.ui.view">
+        <field name="name">recruitment.candidate.send.hm.wizard.form</field>
+        <field name="model">recruitment.candidate.send.hm.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Send to Hiring Manager">
+                <group>
+                    <field name="candidate_id" readonly="1"/>
+                    <field name="request_id" string="Hiring Manager Request"/>
+                    <field name="available_vacancies" readonly="1"
+                           invisible="not request_id"/>
+                </group>
+                <div class="alert alert-danger mb-0"
+                     invisible="not request_id or available_vacancies &gt; 0">
+                    <strong>No Available Vacancies:</strong>
+                    All vacancies for this request are already filled. Please choose a different request.
+                </div>
+                <footer>
+                    <button name="action_send" string="Send to HM"
+                            type="object" class="btn-primary"
+                            invisible="not request_id or available_vacancies &lt; 1"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

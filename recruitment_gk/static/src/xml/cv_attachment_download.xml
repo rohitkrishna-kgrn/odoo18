@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+    <!-- ── Popup file viewer dialog ──────────────────────────────────────────── -->
+    <t t-name="recruitment_gk.CvFileViewerDialog">
+        <Dialog title="props.name" size="'xl'" close="props.close">
+
+            <!-- Viewable inline: PDF or image -->
+            <t t-if="isViewable">
+                <iframe t-att-src="props.url"
+                        style="width:100%; height:78vh; border:none; display:block;"/>
+            </t>
+
+            <!-- Non-viewable file types (Word, Excel, etc.) -->
+            <t t-else="">
+                <div class="d-flex flex-column align-items-center justify-content-center py-5 text-center">
+                    <i class="fa fa-file-text-o fa-4x text-muted mb-3"/>
+                    <p class="text-muted mb-1">This file type cannot be previewed in the browser.</p>
+                    <p class="text-muted">Please download it to view the content.</p>
+                </div>
+            </t>
+
+            <!-- Footer: Download + Close -->
+            <t t-set-slot="footer">
+                <a t-attf-href="{{props.url}}?download=true"
+                   download=""
+                   class="btn btn-primary me-2">
+                    <i class="fa fa-download me-1"/>Download
+                </a>
+                <button class="btn btn-secondary"
+                        type="button"
+                        t-on-click="props.close">
+                    Close
+                </button>
+            </t>
+        </Dialog>
+    </t>
+
+    <!-- ── CV attachment field widget ────────────────────────────────────────── -->
+    <t t-name="recruitment_gk.CvAttachmentDownload">
+        <div t-attf-class="oe_fileupload {{props.className or ''}}" aria-atomic="true">
+
+            <!-- File rows -->
+            <div class="o_attachments">
+                <t t-foreach="files" t-as="file" t-key="file_index">
+                    <div class="o_attachment o_attachment_many2many d-flex align-items-center gap-2 mb-2 px-3 py-2 border rounded">
+                        <!-- Mimetype icon -->
+                        <span class="o_image flex-shrink-0"
+                              t-att-data-mimetype="file.mimetype"
+                              style="width:28px; height:28px; background-size:contain; background-repeat:no-repeat; background-position:center;"/>
+
+                        <!-- Filename – click to preview in popup -->
+                        <span class="flex-grow-1 text-truncate fw-semibold text-primary"
+                              style="cursor:pointer;"
+                              role="button"
+                              title="Click to preview"
+                              t-on-click="() => this.openFile(file)"
+                              t-esc="file.name"/>
+
+                        <!-- Download -->
+                        <a t-attf-href="/web/content/{{file.id}}?download=true"
+                           download=""
+                           class="btn btn-sm btn-link p-0 text-success flex-shrink-0"
+                           title="Download file"
+                           t-on-click.stop="">
+                            <i class="fa fa-download"/>
+                        </a>
+
+                        <!-- Delete — edit mode only -->
+                        <span t-if="!props.readonly"
+                              class="btn btn-sm btn-link p-0 text-danger flex-shrink-0"
+                              role="button"
+                              title="Remove"
+                              t-on-click.stop="() => this.onFileRemove(file.id)">
+                            <i class="fa fa-trash-o"/>
+                        </span>
+                    </div>
+                </t>
+            </div>
+
+            <!-- Upload — edit mode only -->
+            <div t-if="!props.readonly" class="oe_add mt-2">
+                <FileInput
+                    acceptedFileExtensions="props.acceptedFileExtensions"
+                    multiUpload="true"
+                    onUpload.bind="onFileUploaded"
+                    resModel="props.record.resModel"
+                    resId="props.record.resId or 0">
+                    <button class="btn btn-secondary btn-sm o_attach" type="button">
+                        <span class="fa fa-paperclip me-1"/>Upload a file
+                    </button>
+                </FileInput>
+            </div>
+
+            <!-- Empty state for readonly users with no attachments -->
+            <t t-if="props.readonly and !files.length">
+                <span class="text-muted fst-italic">No CV / Resume attached.</span>
+            </t>
+
+        </div>
+    </t>
+
+</templates>

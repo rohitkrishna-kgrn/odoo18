@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="recruitment_gk.FloatTimeAmPm">
+
+        <!-- ── Readonly: display as "1:30 PM" ─────────────────────────── -->
+        <t t-if="props.readonly">
+            <span class="o_field_char fw-semibold" t-esc="readonlyDisplay"/>
+        </t>
+
+        <!-- ── Editable: hour select + minute select + AM/PM select ──── -->
+        <t t-else="">
+            <div class="d-flex align-items-center gap-1 flex-wrap">
+                <!-- Hour 1–12 -->
+                <select class="form-select form-select-sm"
+                        style="width:4.2rem;"
+                        t-on-change="onHourChange">
+                    <t t-foreach="hours" t-as="h" t-key="h">
+                        <option t-att-value="h"
+                                t-att-selected="h === state.hour">
+                            <t t-esc="h"/>
+                        </option>
+                    </t>
+                </select>
+
+                <span class="fw-bold">:</span>
+
+                <!-- Minute 00–55 (5-min steps) -->
+                <select class="form-select form-select-sm"
+                        style="width:4.5rem;"
+                        t-on-change="onMinuteChange">
+                    <t t-foreach="minutes" t-as="m" t-key="m">
+                        <option t-att-value="m"
+                                t-att-selected="m === state.minute">
+                            <t t-esc="m"/>
+                        </option>
+                    </t>
+                </select>
+
+                <!-- AM / PM -->
+                <select class="form-select form-select-sm"
+                        style="width:4.8rem;"
+                        t-on-change="onPeriodChange">
+                    <option value="am"
+                            t-att-selected="state.period === 'am'">AM</option>
+                    <option value="pm"
+                            t-att-selected="state.period === 'pm'">PM</option>
+                </select>
+
+                <!-- IST equivalent (always visible) -->
+                <span class="ms-2 text-muted small">
+                    = <span class="fw-semibold text-dark" t-esc="istDisplay"/> IST
+                </span>
+            </div>
+        </t>
+
+    </t>
+
+</templates>

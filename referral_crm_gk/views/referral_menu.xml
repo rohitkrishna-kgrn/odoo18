@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Root application menu -->
+    <menuitem
+        id="menu_referral_root"
+        name="Referral"
+        sequence="95"
+        web_icon="referral_crm_gk,static/description/icon.png"
+        groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager"
+    />
+
+    <!-- Dashboard -->
+    <menuitem
+        id="menu_referral_dashboard"
+        name="Dashboard"
+        parent="menu_referral_root"
+        action="action_open_referral_dashboard"
+        sequence="1"
+        groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager"
+    />
+
+    <!-- Pipeline — server action applies role-based domain -->
+    <menuitem
+        id="menu_referral_pipeline"
+        name="Pipeline"
+        parent="menu_referral_root"
+        action="action_referral_pipeline_dispatch"
+        sequence="5"
+        groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager"
+    />
+
+    <!-- My Leads -->
+    <menuitem
+        id="menu_referral_my_leads"
+        name="My Leads"
+        parent="menu_referral_root"
+        action="action_referral_my_leads"
+        sequence="10"
+        groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager"
+    />
+
+    <!-- All Referrals — managers see all; users see only their assigned leads -->
+    <record id="menu_referral_all" model="ir.ui.menu">
+        <field name="name">All Referrals</field>
+        <field name="parent_id" ref="menu_referral_root"/>
+        <field name="action" ref="action_referral_all_dispatch"/>
+        <field name="sequence">15</field>
+        <field name="groups_id" eval="[(6, 0, [ref('referral_crm_gk.group_referral_user'), ref('referral_crm_gk.group_referral_manager')])]"/>
+    </record>
+
+    <!-- Referrers -->
+    <record id="menu_referral_referrers" model="ir.ui.menu">
+        <field name="name">Referrers</field>
+        <field name="parent_id" ref="menu_referral_root"/>
+        <field name="action" ref="action_referral_referrers"/>
+        <field name="sequence">20</field>
+        <field name="groups_id" eval="[(6, 0, [ref('referral_crm_gk.group_referral_user'), ref('referral_crm_gk.group_referral_manager')])]"/>
+    </record>
+
+    <!-- Commissions -->
+    <menuitem
+        id="menu_referral_commissions"
+        name="Commissions"
+        parent="menu_referral_root"
+        action="action_referral_commissions"
+        sequence="25"
+        groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager"
+    />
+
+    <!-- Configuration — manager only (record format with (6,0,[...]) forces full group replacement on upgrade) -->
+    <record id="menu_referral_config" model="ir.ui.menu">
+        <field name="name">Configuration</field>
+        <field name="parent_id" ref="menu_referral_root"/>
+        <field name="sequence">100</field>
+        <field name="groups_id" eval="[(6, 0, [ref('referral_crm_gk.group_referral_manager')])]"/>
+    </record>
+
+    <record id="menu_referral_config_settings" model="ir.ui.menu">
+        <field name="name">Settings</field>
+        <field name="parent_id" ref="menu_referral_config"/>
+        <field name="action" ref="action_referral_settings"/>
+        <field name="sequence">1</field>
+        <field name="groups_id" eval="[(6, 0, [ref('referral_crm_gk.group_referral_manager')])]"/>
+    </record>
+
+    <record id="menu_referral_config_stages" model="ir.ui.menu">
+        <field name="name">Pipeline Stages</field>
+        <field name="parent_id" ref="menu_referral_config"/>
+        <field name="action" ref="action_config_crm_stages"/>
+        <field name="sequence">5</field>
+        <field name="groups_id" eval="[(6, 0, [ref('referral_crm_gk.group_referral_manager')])]"/>
+    </record>
+
+    <record id="menu_referral_config_tags" model="ir.ui.menu">
+        <field name="name">Service Tags</field>
+        <field name="parent_id" ref="menu_referral_config"/>
+        <field name="action" ref="action_config_crm_tags"/>
+        <field name="sequence">10</field>
+        <field name="groups_id" eval="[(6, 0, [ref('referral_crm_gk.group_referral_manager')])]"/>
+    </record>
+
+</odoo>

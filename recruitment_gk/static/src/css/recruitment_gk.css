@@ -1,0 +1,17 @@
+/* Hide chatter compose form (Send message / Log note) in all recruitment views */
+.rg_no_compose .o-mail-Thread-actionButtons {
+    display: none !important;
+}
+.rg_no_compose .o-mail-Composer {
+    display: none !important;
+}
+
+/* Make the Interview Round Configuration wizard dialog non-draggable */
+.o_dialog:has(.o_interview_config_no_drag) .modal-header {
+    cursor: default !important;
+    pointer-events: none !important;
+}
+.o_dialog:has(.o_interview_config_no_drag) .modal-header .btn-close {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}

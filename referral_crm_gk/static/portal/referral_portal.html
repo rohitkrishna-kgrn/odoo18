@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KGRN – Business Referral Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #E86B2A;
+    --orange-deep: #C4531A;
+    --orange-light: #F4894E;
+    --orange-pale: #FEF0E7;
+    --orange-faint: #FDF6F1;
+    --white: #FFFFFF;
+    --off-white: #FAFAF8;
+    --text-dark: #1A1208;
+    --text-mid: #5C4A35;
+    --text-soft: #9A8470;
+    --border: #EBD9CC;
+    --success: #2E7D52;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--off-white);
+    color: var(--text-dark);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    height: 80px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 16px rgba(232,107,42,0.06);
+  }
+
+  .logo-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: linear-gradient(90deg, var(--orange) 0%, var(--orange-deep) 60%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+    text-shadow: none;
+  }
+
+  .logo-img {
+    height: 54px;
+    width: auto;
+    display: block;
+  }
+
+  .header-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-dark);
+    text-align: center;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+
+  .header-right {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* ── Hero Banner ── */
+  .hero {
+    background: linear-gradient(135deg, var(--orange) 0%, var(--orange-deep) 60%, #8B2E0A 100%);
+    padding: 56px 40px 52px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  .hero-eyebrow {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 5px 16px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700;
+    color: white;
+    line-height: 1.2;
+    margin-bottom: 14px;
+  }
+
+  .hero p {
+    color: rgba(255,255,255,0.82);
+    font-size: 15px;
+    font-weight: 300;
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── Layout ── */
+  .portal-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px 64px;
+  }
+
+  .portal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 700px) {
+    .portal-grid { grid-template-columns: 1fr; }
+    header { padding: 0 20px; }
+    .hero { padding: 40px 20px; }
+    .portal-wrap { padding: 32px 16px 48px; }
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--white);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.04);
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .card:nth-child(2) { animation-delay: 0.1s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .card-icon {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .card-icon.orange { background: var(--orange-pale); }
+  .card-icon.blue   { background: #EBF3FF; }
+
+  .card-icon svg { width: 18px; height: 18px; }
+
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+
+  .card-subtitle {
+    font-size: 12px;
+    color: var(--text-soft);
+    margin-top: 2px;
+  }
+
+  .card-body { padding: 24px; }
+
+  /* ── Form Fields ── */
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-mid);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+  }
+
+  label .req { color: var(--orange); margin-left: 2px; }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"] {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text-dark);
+    background: var(--white);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+
+  input:focus {
+    border-color: var(--orange-light);
+    box-shadow: 0 0 0 3px rgba(232,107,42,0.1);
+  }
+
+  input::placeholder { color: #C8B9AD; }
+
+  /* ── Services Checkboxes ── */
+  .services-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-mid);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .services-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .service-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: border-color 0.18s, background 0.18s;
+    user-select: none;
+  }
+
+  .service-item:hover {
+    border-color: var(--orange-light);
+    background: var(--orange-faint);
+  }
+
+  .service-item input[type="checkbox"] { display: none; }
+
+  .cb-box {
+    width: 17px; height: 17px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.18s, border-color 0.18s;
+  }
+
+  .service-item input:checked ~ .cb-box {
+    background: var(--orange);
+    border-color: var(--orange);
+  }
+
+  .cb-box svg { display: none; }
+  .service-item input:checked ~ .cb-box svg { display: block; }
+
+  .service-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-mid);
+    line-height: 1.3;
+  }
+
+  .service-item input:checked ~ .cb-box ~ .service-name { color: var(--orange-deep); }
+  .service-item:has(input:checked) { border-color: var(--orange-light); background: var(--orange-faint); }
+
+  /* ── Optional badge ── */
+  .optional-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-soft);
+    background: #F5EDE5;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-left: 6px;
+    text-transform: none;
+    letter-spacing: 0;
+    vertical-align: middle;
+  }
+
+  /* ── Submit Section ── */
+  .submit-wrap {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding-top: 8px;
+    animation: fadeUp 0.5s 0.2s ease both;
+  }
+
+  .submit-btn {
+    background: linear-gradient(135deg, var(--orange-light), var(--orange-deep));
+    color: white;
+    border: none;
+    padding: 15px 52px;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: transform 0.18s, box-shadow 0.18s, opacity 0.18s;
+    box-shadow: 0 4px 20px rgba(232,107,42,0.35);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(232,107,42,0.42);
+  }
+
+  .submit-btn:active { transform: translateY(0); }
+
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .submit-note {
+    font-size: 12px;
+    color: var(--text-soft);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .submit-note svg { width: 13px; height: 13px; color: var(--orange); }
+
+  /* ── Modal / Popup ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(26,18,8,0.55);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 48px 40px;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.16);
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+
+  .modal-icon {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, #E8F7EE, #C8EDD8);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+  }
+
+  .modal-icon svg { width: 36px; height: 36px; }
+
+  .modal h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  .modal p {
+    font-size: 14px;
+    color: var(--text-mid);
+    line-height: 1.65;
+    margin-bottom: 28px;
+  }
+
+  .modal-close {
+    background: var(--orange);
+    color: white;
+    border: none;
+    padding: 12px 36px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .modal-close:hover { background: var(--orange-deep); }
+
+  /* ── Divider ── */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    grid-column: 1 / -1;
+  }
+
+  .section-divider span {
+    font-family: 'Playfair Display', serif;
+    font-size: 13px;
+    color: var(--text-soft);
+    white-space: nowrap;
+  }
+
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Error state ── */
+  input.error { border-color: #E53E3E; }
+  .err-msg { font-size: 11px; color: #E53E3E; margin-top: 5px; }
+
+  /* ── Loading spinner ── */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .submit-btn.loading .btn-text { display: none; }
+  .submit-btn.loading .btn-icon { display: none; }
+  .submit-btn.loading .spinner { display: block; }
+
+  /* ── Odoo note ── */
+  .odoo-note {
+    grid-column: 1 / -1;
+    background: linear-gradient(to right, #FEF0E7, #FDF6F1);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--orange);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-mid);
+    line-height: 1.5;
+    animation: fadeUp 0.5s 0.25s ease both;
+  }
+
+  .odoo-note svg { width: 15px; height: 15px; color: var(--orange); flex-shrink: 0; margin-top: 1px; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo-wrap">
+    <img class="logo-img" src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAEsAfQDASIAAhEBAxEB/8QAHAABAAMBAQEBAQAAAAAAAAAAAAYHCAUBBAMC/8QAUhAAAQMCAgQICwYCBwYEBwAAAAECAwQFBhEHEhdVEyExNkFzdLIIFTI3UZGSk5Sx0hQiRWFxgxaBIzM1QnKz0SRSVoKhwUNTY8IlNDhUYmSi/8QAGwEBAAIDAQEAAAAAAAAAAAAAAAYHAwQFAgH/xAA5EQACAQICBgYKAgMBAQEBAAAAAQIDBAURBiExUnGREhU0gaGxExQWMjM1QVFTYXLBIoLRI/EkQv/aAAwDAQACEQMRAD8A2WAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADzo4j0gWljGddhHxelFSwTJVK/W4RV4tXVyyy/Ugm2e97sovW45txittb1HTm9Z2LPAb28pKrSjnF/svjMZlEbaL3uui9bhtove66L1uMPXtnveBtey2Jbnii98xmURtove66L1uG2i97rovW4+de2e94D2WxLc8UXvmMyiNtF73XRetw20XvddF63Dr2z3vAey2Jbnii98xmURtove66L1uG2i97rovW4de2e94D2WxLc8UXuCiNtF73XRetw20XvddF63Dr2z3vAey2Jbnii9kPSh10z3vddF63F12SrfXWikrJGox80LJHInImaZm3a39G6bVN55HOv8ACbmwSddZZn25ngI3pGv1RhvC891pYY5pY3NajZM8lzcidBt1KkacHOWxGlRpSrVFThteokuYzKI20XvddF63DbRe910Xrccrr2z3vA73stiW54ovfMZlEbaL3uui9bhtove66L1uPnXtnveA9lsS3PFF75jMojbRe910XrcNtF73XRetw69s97wHstiW54ovfMZlEbaL3uui9bhtove66L1uHXtnveA9lsS3PFF75jMojbRe910XrcNtF73XRetw69s97wHstiW54ovfMZlEbaL3uui9bhtove66L1uHXtnveA9lsS3PFF7gjOjjEFTiXDMV0qoI4ZHve3VZnkmSqnSSU6tOpGpBTjsZwa1KVGo6c9q1Hp4QjSti+swlR0U9JTQzrPIrXJIq8SImfFkV/tnve66L1uNG4xW3t6no5vWdSzwK9vKSq0o5riXxmMyiNtF73XRetw20XvddF63GDr2z3vA2vZbEtzxRe+YzKI20XvddF63DbRe910XrcOvbPe8B7LYlueKL3zGZRG2i97rovW4baL3uui9bh17Z73gPZbEtzxRe+YzKI20XvddF63DbRe910XrcOvbPe8B7LYlueKL3zGZRG2i97rovW4baL3uui9bh17Z73gPZbEtzxRe550lE7aL3uui9bi48K3CS7Ydt9yljbG+pp2Sua3kRXJnkbdriFG6bVN7Dn3+EXVglKvHL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" alt="KGRN Chartered Accountants" />
+  </div>
+  <h1>Business Referral Portal</h1>
+</header>
+
+<!-- ── Hero ── -->
+<div class="hero">
+  <div class="hero-eyebrow">Exclusive Client Programme</div>
+  <h1>Refer a Business,<br>Share the KGRN Advantage</h1>
+  <p>As a valued KGRN client, your referral carries weight. Help businesses across the UAE access world-class audit, accounting & advisory services.</p>
+</div>
+
+<!-- ── Portal Form ── -->
+<div class="portal-wrap">
+  <form id="referralForm" novalidate>
+    <div class="portal-grid">
+
+      <!-- Referrer Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#E86B2A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div>
+            <div class="card-title">Your Details</div>
+            <div class="card-subtitle">Existing KGRN client information</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="field">
+            <label>Full Name <span class="req">*</span></label>
+            <input type="text" id="rName" placeholder="e.g. Ahmed Al Mansoori" />
+            <div class="err-msg" id="rNameErr"></div>
+          </div>
+          <div class="field">
+            <label>Company / Organisation <span class="req">*</span></label>
+            <input type="text" id="rCompany" placeholder="e.g. Al Mansoori Trading LLC" />
+            <div class="err-msg" id="rCompanyErr"></div>
+          </div>
+          <div class="field">
+            <label>Email Address <span class="req">*</span></label>
+            <input type="email" id="rEmail" placeholder="ahmed@company.ae" />
+            <div class="err-msg" id="rEmailErr"></div>
+          </div>
+          <div class="field">
+            <label>Phone Number <span class="req">*</span></label>
+            <input type="tel" id="rPhone" placeholder="+971 50 000 0000" />
+            <div class="err-msg" id="rPhoneErr"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Referral Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#3B7DD8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div>
+            <div class="card-title">Referral Details</div>
+            <div class="card-subtitle">Business you're recommending to KGRN</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="field">
+            <label>Contact Name <span class="req">*</span></label>
+            <input type="text" id="refName" placeholder="e.g. Sara Hassan" />
+            <div class="err-msg" id="refNameErr"></div>
+          </div>
+          <div class="field">
+            <label>Company / Organisation <span class="req">*</span></label>
+            <input type="text" id="refCompany" placeholder="e.g. Hassan Group FZE" />
+            <div class="err-msg" id="refCompanyErr"></div>
+          </div>
+          <div class="field">
+            <label>Email Address <span class="req">*</span></label>
+            <input type="email" id="refEmail" placeholder="sara@hassangroup.ae" />
+            <div class="err-msg" id="refEmailErr"></div>
+          </div>
+          <div class="field">
+            <label>Phone Number <span class="req">*</span></label>
+            <input type="tel" id="refPhone" placeholder="+971 55 000 0000" />
+            <div class="err-msg" id="refPhoneErr"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Services Card (full width) -->
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+          <div class="card-icon orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#E86B2A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 11 12 14 22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+          </div>
+          <div>
+            <div class="card-title">Services of Interest <span class="optional-badge">Optional</span></div>
+            <div class="card-subtitle">Select all services the referral may be interested in (multiple allowed)</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="services-grid">
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Financial Statement Audit">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Financial Statement Audit</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Internal Audit">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Internal Audit</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="SOC Audit">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">SOC Audit</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Fraud Investigation">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Fraud Investigation</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Accounting & Bookkeeping">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Accounting & Bookkeeping</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Cloud Accounting">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Cloud Accounting</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Family Office Accounting">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Family Office Accounting</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Corporate Tax">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Corporate Tax</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="VAT">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">VAT</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="VAT Return Filing">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">VAT Return Filing</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Tax Agent Services">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Tax Agent Services</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Business Valuation">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Business Valuation</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="UBO Declaration">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">UBO Declaration</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Due Diligence">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Due Diligence</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Feasibility Study">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Feasibility Study</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Mainland Company Formation">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Mainland Company Formation</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="FreeZone Business Setup">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">FreeZone Business Setup</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Offshore Company Formation">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Offshore Company Formation</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Visa Services">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Visa Services</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Liquidation & Deregistration">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Liquidation & Deregistration</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Tax Residency Certificate">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Tax Residency Certificate</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="AML Compliance">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">AML Compliance</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Payroll Outsourcing">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Payroll Outsourcing</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Will Writing Services">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Will Writing Services</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Trademark Registration">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Trademark Registration</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Business Advisory">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Business Advisory</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="Financial Advisory">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">Financial Advisory</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="UAE E-Invoicing">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">UAE E-Invoicing</span>
+            </label>
+
+            <label class="service-item">
+              <input type="checkbox" name="services" value="ICV Certification">
+              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span class="service-name">ICV Certification</span>
+            </label>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Odoo sync note -->
+      <div class="odoo-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>Your referral will be automatically synced to <strong>KGRN's system</strong> and a member of our team will reach out to your referral within 2 business days. Your details will be logged as the referring contact.</span>
+      </div>
+
+      <!-- Submit -->
+      <div class="submit-wrap">
+        <button type="submit" class="submit-btn" id="submitBtn">
+          <span class="btn-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </span>
+          <span class="btn-text">Submit Referral</span>
+          <div class="spinner"></div>
+        </button>
+        <div class="submit-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Your data is handled securely in accordance with UAE data protection laws
+        </div>
+      </div>
+
+    </div>
+  </form>
+</div>
+
+<!-- ── Success Modal ── -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal">
+    <div class="modal-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#2E7D52" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h2>Referral Submitted!</h2>
+    <p>Your referral has been submitted and thank you for your trust in KGRN.<br><br>Our team will follow up with your referral within <strong>2 business days</strong>. We truly appreciate you helping grow the KGRN family.</p>
+    <button class="modal-close" id="modalClose">Back to Portal</button>
+  </div>
+</div>
+
+<script>
+// ── Validation helpers ──
+function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
+function isPhone(v) { return /^[\+\d\s\-\(\)]{7,20}$/.test(v.trim()); }
+
+function validateField(id, errId, check, msg) {
+  const el = document.getElementById(id);
+  const err = document.getElementById(errId);
+  if (!check(el.value)) {
+    el.classList.add('error');
+    err.textContent = msg;
+    return false;
+  }
+  el.classList.remove('error');
+  err.textContent = '';
+  return true;
+}
+
+function clearError(id, errId) {
+  document.getElementById(id).classList.remove('error');
+  document.getElementById(errId).textContent = '';
+}
+
+// Live clear on input
+['rName','rCompany','rEmail','rPhone','refName','refCompany','refEmail','refPhone'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const errId = id + 'Err';
+    if (document.getElementById(errId)) clearError(id, errId);
+  });
+});
+
+// ── Form Submit ──
+document.getElementById('referralForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const v = [
+    validateField('rName',    'rNameErr',    v => v.trim().length >= 2,  'Please enter your full name'),
+    validateField('rCompany', 'rCompanyErr', v => v.trim().length >= 2,  'Please enter your company name'),
+    validateField('rEmail',   'rEmailErr',   isEmail,                    'Please enter a valid email address'),
+    validateField('rPhone',   'rPhoneErr',   isPhone,                    'Please enter a valid phone number'),
+    validateField('refName',  'refNameErr',  v => v.trim().length >= 2,  'Please enter the referral\'s name'),
+    validateField('refCompany','refCompanyErr', v => v.trim().length >= 2, 'Please enter the referral\'s company'),
+    validateField('refEmail', 'refEmailErr', isEmail,                    'Please enter a valid email address'),
+    validateField('refPhone', 'refPhoneErr', isPhone,                    'Please enter a valid phone number'),
+  ];
+
+  if (v.includes(false)) return;
+
+  const services = [...document.querySelectorAll('input[name="services"]:checked')]
+                     .map(c => c.value);
+
+  const payload = {
+    referrer: {
+      name:    document.getElementById('rName').value.trim(),
+      company: document.getElementById('rCompany').value.trim(),
+      email:   document.getElementById('rEmail').value.trim(),
+      phone:   document.getElementById('rPhone').value.trim(),
+    },
+    referral: {
+      name:     document.getElementById('refName').value.trim(),
+      company:  document.getElementById('refCompany').value.trim(),
+      email:    document.getElementById('refEmail').value.trim(),
+      phone:    document.getElementById('refPhone').value.trim(),
+      services: services,
+    },
+    submitted_at: new Date().toISOString(),
+    source: 'KGRN Referral Portal'
+  };
+
+  console.log('Submitting to Odoo CRM:', payload);
+
+  // Loading state
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+
+  // ── Odoo Integration ──
+  try {
+    const res = await fetch('/kgrn/api/referral', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Submission failed. Please try again.');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    alert('Unable to submit referral:\n' + err.message);
+    return;
+  }
+
+  btn.disabled = false;
+  btn.classList.remove('loading');
+
+  // Show success modal
+  document.getElementById('successModal').classList.add('active');
+
+  // Reset form
+  document.getElementById('referralForm').reset();
+  document.querySelectorAll('.service-item').forEach(el => el.classList.remove('checked'));
+});
+
+// ── Modal close ──
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('successModal').classList.remove('active');
+});
+
+document.getElementById('successModal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('active');
+});
+</script>
+</body>
+</html>

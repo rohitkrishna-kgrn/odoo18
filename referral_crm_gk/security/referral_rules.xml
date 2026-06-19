@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Referral User: only sees leads where they are the salesperson -->
+    <record id="rule_referral_lead_user" model="ir.rule">
+        <field name="name">Referral Lead: User sees only assigned leads</field>
+        <field name="model_id" ref="crm.model_crm_lead"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(6, 0, [ref('referral_crm_gk.group_referral_user')])]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Referral Manager: sees all referral leads -->
+    <record id="rule_referral_lead_manager" model="ir.rule">
+        <field name="name">Referral Lead: Manager sees all</field>
+        <field name="model_id" ref="crm.model_crm_lead"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(6, 0, [ref('referral_crm_gk.group_referral_manager')])]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- Referral User: can see all referrers (lead access is restricted separately) -->
+    <record id="rule_referral_referrer_user" model="ir.rule">
+        <field name="name">Referral Referrer: User sees all referrers</field>
+        <field name="model_id" ref="model_referral_referrer"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('referral_crm_gk.group_referral_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Referral Manager: sees all referrers -->
+    <record id="rule_referral_referrer_manager" model="ir.rule">
+        <field name="name">Referral Referrer: Manager sees all</field>
+        <field name="model_id" ref="model_referral_referrer"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('referral_crm_gk.group_referral_manager'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Reminders sub-menu under Project ──────────────────────────── -->
+
+    <menuitem
+        id="menu_project_reminders_root"
+        name="Reminders"
+        parent="project.menu_main_pm"
+        sequence="90"
+        groups="project.group_project_user"
+    />
+
+    <menuitem
+        id="menu_project_reminder_lines"
+        name="Reminder Lines"
+        parent="menu_project_reminders_root"
+        action="action_project_reminder_line"
+        sequence="10"
+        groups="project.group_project_user"
+    />
+
+    <menuitem
+        id="menu_project_reminder_schedules"
+        name="Reminder Schedules"
+        parent="menu_project_reminders_root"
+        action="action_project_reminder_schedule"
+        sequence="20"
+        groups="project.group_project_manager"
+    />
+
+</odoo>

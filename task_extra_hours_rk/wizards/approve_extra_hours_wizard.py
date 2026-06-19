@@ -1,5 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import AccessError
+from odoo.exceptions import UserError
 
 
 class ApproveExtraHoursWizard(models.TransientModel):
@@ -16,7 +16,7 @@ class ApproveExtraHoursWizard(models.TransientModel):
         self.ensure_one()
         record = self.record_id
         if not record.is_approver:
-            raise AccessError(_("You are not authorized to approve this request."))
+            raise UserError(_("You are not authorized to approve this request."))
         record.sudo().write({'extra_hours': self.extra_hours})
         record.action_approve()
 
@@ -24,5 +24,5 @@ class ApproveExtraHoursWizard(models.TransientModel):
         self.ensure_one()
         record = self.record_id
         if not record.is_approver:
-            raise AccessError(_("You are not authorized to reject this request."))
+            raise UserError(_("You are not authorized to reject this request."))
         record.action_reject()

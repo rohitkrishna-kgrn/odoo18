@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_referral_referrer_user,referral.referrer user,model_referral_referrer,referral_crm_gk.group_referral_user,1,1,1,1
+access_referral_referrer_manager,referral.referrer manager,model_referral_referrer,referral_crm_gk.group_referral_manager,1,1,1,1
+access_referral_dashboard_user,referral.dashboard user,model_referral_dashboard,referral_crm_gk.group_referral_user,1,1,1,1
+access_referral_dashboard_manager,referral.dashboard manager,model_referral_dashboard,referral_crm_gk.group_referral_manager,1,1,1,1
+access_referral_config_manager,referral.config manager,model_referral_config,referral_crm_gk.group_referral_manager,1,1,1,1
+access_referral_commission_user,referral.commission user,model_referral_commission,referral_crm_gk.group_referral_user,1,0,0,0
+access_referral_commission_manager,referral.commission manager,model_referral_commission,referral_crm_gk.group_referral_manager,1,1,1,1
+access_sale_order_referral_user,sale.order referral user,sale.model_sale_order,referral_crm_gk.group_referral_user,1,1,1,0
+access_sale_order_referral_manager,sale.order referral manager,sale.model_sale_order,referral_crm_gk.group_referral_manager,1,1,1,1
