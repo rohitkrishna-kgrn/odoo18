@@ -17,8 +17,10 @@
                       filter_domain="[('deadline', '&gt;=', self)]"/>
                 <field name="deadline" string="Deadline To"
                       filter_domain="[('deadline', '&lt;=', self)]"/>
-                <filter string="Created Date" name="filter_create_date"
-                        date="project_create_date"/>
+                <field name="project_create_date" string="Created From"
+                       filter_domain="[('project_create_date', '&gt;=', self)]"/>
+                <field name="project_create_date" string="Created To"
+                       filter_domain="[('project_create_date', '&lt;=', self)]"/>
                 <filter string="Overdue"      name="overdue"      domain="[('days_overdue', '&gt;', 0)]"/>
                 <filter string="Completed"    name="completed"    domain="[('is_completed', '=', True)]"/>
                 <filter string="In Progress"  name="in_progress"  domain="[('is_completed', '=', False)]"/>
