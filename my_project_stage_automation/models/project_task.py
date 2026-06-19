@@ -22,6 +22,10 @@ class ProjectTask(models.Model):
         domain=[('move_type', '=', 'out_invoice')],
     )
     user_id = fields.Many2one('res.users', string='Assigned to')
+    state_additional = fields.Selection(
+        selection_add=[('on_hold', 'On Hold')],
+        ondelete={'on_hold': 'set default'},
+    )
     auto_invoice = fields.Boolean(string='Auto Invoice', store=True, readonly=True)
     sale_line_id = fields.Many2one('sale.order.line', string='Sales Order Line')
 
@@ -81,6 +85,29 @@ class ProjectTask(models.Model):
                     logger.info("[TASK] SO '%s' set to OPENED", sale_order.name)
             else:
                 logger.warning("[TASK] No SO found with name '%s'", self.project_id.sale_order_name)
+        return True
+
+    def action_on_hold(self):
+        self.ensure_one()
+        if self.state_additional != 'in_progress':
+            raise UserError("Only an 'In Progress' task can be put On Hold.")
+
+        on_hold_stage = self.env['project.task.type'].sudo().search(
+            [('name', '=', 'On Hold')], limit=1
+        )
+        if not on_hold_stage:
+            raise UserError("The 'On Hold' stage for the task is not defined.")
+        self.write({'stage_id': on_hold_stage.id, 'state_additional': 'on_hold'})
+
+        # If any task in the project is On Hold, the project goes On Hold too.
+        if self.project_id:
+            on_hold_project_stage = self.env['project.project.stage'].search(
+                [('name', '=', 'On Hold')], limit=1
+            )
+            if not on_hold_project_stage:
+                raise UserError("The 'On Hold' stage for the project is not defined.")
+            self.project_id.write({'stage_id': on_hold_project_stage.id})
+
         return True
 
     def action_send_for_approval(self):

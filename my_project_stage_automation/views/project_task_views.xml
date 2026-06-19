@@ -13,10 +13,17 @@
                             string="In Progress" 
                             type="object" 
                             class="oe_highlight"
-                            invisible="state_additional != 'new'"
+                            invisible="state_additional not in ('new', 'on_hold')"
                             />
-                    
-                    <button name="action_send_for_approval" 
+
+                    <button name="action_on_hold"
+                            string="On Hold"
+                            type="object"
+                            class="btn-warning"
+                            invisible="state_additional != 'in_progress'"
+                            />
+
+                    <button name="action_send_for_approval"
                             string="Send for Approval" 
                             type="object" 
                             class="oe_highlight"
