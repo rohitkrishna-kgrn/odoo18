@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Date range picker component -->
+    <t t-name="mis_report_kgrn.MisDateRangeFilter">
+        <div class="o_mis_date_range_filter">
+            <div class="o_mis_date_range_title">Created Date Range</div>
+            <div class="o_mis_date_range_row">
+                <label class="o_mis_date_range_label">From</label>
+                <input type="date"
+                       class="o_input o_mis_date_input"
+                       t-att-value="state.dateFrom"
+                       t-on-change="onFromChange"/>
+            </div>
+            <div class="o_mis_date_range_row">
+                <label class="o_mis_date_range_label">To</label>
+                <input type="date"
+                       class="o_input o_mis_date_input"
+                       t-att-value="state.dateTo"
+                       t-on-change="onToChange"/>
+            </div>
+            <div class="o_mis_date_range_actions">
+                <button class="btn btn-primary btn-sm" t-on-click="onApply">Apply</button>
+                <button class="btn btn-secondary btn-sm" t-on-click="onClear">Clear</button>
+            </div>
+        </div>
+    </t>
+
+    <!-- Inject into FilterMenu after "Add Custom Filter" -->
+    <t t-inherit="web.FilterMenu" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('o_add_custom_filter_menu')]" position="after">
+            <MisDateRangeFilter t-if="isMisModel"/>
+        </xpath>
+    </t>
+
+</templates>

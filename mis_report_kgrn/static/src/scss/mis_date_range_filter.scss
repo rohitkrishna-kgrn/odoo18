@@ -1,0 +1,48 @@
+.o_mis_date_range_filter {
+    padding: 8px 12px;
+    border-top: 1px solid var(--o-list-group-border-color, #dee2e6);
+    margin-top: 4px;
+
+    .o_mis_date_range_title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--o-gray-500, #6c757d);
+        margin-bottom: 6px;
+        letter-spacing: 0.5px;
+    }
+
+    .o_mis_date_range_row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .o_mis_date_range_label {
+        width: 28px;
+        font-size: 12px;
+        color: var(--o-gray-600, #495057);
+        flex-shrink: 0;
+        margin-bottom: 0;
+    }
+
+    .o_mis_date_input {
+        flex: 1;
+        font-size: 12px;
+        padding: 3px 6px;
+        height: 28px;
+    }
+
+    .o_mis_date_range_actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 4px;
+
+        .btn {
+            flex: 1;
+            font-size: 12px;
+            padding: 3px 8px;
+        }
+    }
+}
