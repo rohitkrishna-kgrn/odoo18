@@ -18,6 +18,7 @@ class MisProjectWise(models.Model):
     so_number = fields.Char(string='SO Number', readonly=True)
     salesperson_id = fields.Many2one('res.users', string='Salesperson', readonly=True)
     sale_order_line_id = fields.Many2one('sale.order.line', string='SO Line', readonly=True)
+    customer_id = fields.Many2one('res.partner', string='Customer', readonly=True)
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     # ── Qty ───────────────────────────────────────────────────────────────
@@ -109,6 +110,7 @@ class MisProjectWise(models.Model):
                     so.id                                                    AS sale_order_id,
                     so.name                                                  AS so_number,
                     so.user_id                                               AS salesperson_id,
+                    so.partner_id                                            AS customer_id,
                     sol.id                                                   AS sale_order_line_id,
                     sol.product_uom_qty,
                     sol.qty_delivered,

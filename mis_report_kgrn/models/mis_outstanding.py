@@ -17,6 +17,7 @@ class MisOutstandingLine(models.Model):
     sale_order_id = fields.Many2one('sale.order', string='Sale Order', readonly=True)
     so_number = fields.Char(string='SO Number', readonly=True)
     salesperson_id = fields.Many2one('res.users', string='Salesperson', readonly=True)
+    customer_id = fields.Many2one('res.partner', string='Customer', readonly=True)
     currency_id = fields.Many2one('res.currency', string='Currency', readonly=True)
 
     # ── Project value ─────────────────────────────────────────────────────
@@ -178,6 +179,7 @@ class MisOutstandingLine(models.Model):
                     so.id                                                           AS sale_order_id,
                     so.name                                                         AS so_number,
                     so.user_id                                                      AS salesperson_id,
+                    so.partner_id                                                   AS customer_id,
                     COALESCE(ps.project_value_ex_vat,  0)                          AS project_value_ex_vat,
                     COALESCE(ps.project_value_inc_vat, 0)                          AS project_value_inc_vat,
                     so.amount_untaxed                                               AS so_total_ex_vat,

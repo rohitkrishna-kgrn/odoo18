@@ -8,10 +8,15 @@
             <search string="Outstanding Report">
                 <field name="project_name"       string="Project"/>
                 <field name="so_number"          string="SO Number"/>
+                <field name="customer_id"        string="Customer"/>
                 <field name="project_manager_id" string="Project Manager"/>
                 <field name="salesperson_id"     string="Salesperson"/>
                 <field name="department_id"      string="Department"/>
                 <field name="company_id"         string="Company"/>
+                <field name="deadline" string="Deadline From"
+                      filter_domain="[('deadline', '&gt;=', self)]"/>
+                <field name="deadline" string="Deadline To"
+                      filter_domain="[('deadline', '&lt;=', self)]"/>
                 <filter string="Overdue"         name="overdue"      domain="[('days_overdue', '&gt;', 0)]"/>
                 <filter string="Pending Tasks"   name="has_pending"  domain="[('tasks_pending', '&gt;', 0)]"/>
                 <filter string="Completed"       name="completed"    domain="[('is_completed', '=', True)]"/>
@@ -20,6 +25,7 @@
                     <filter string="Company"        name="group_company"     context="{'group_by': 'company_id'}"/>
                     <filter string="Department"     name="group_department"  context="{'group_by': 'department_id'}"/>
                     <filter string="Project Manager" name="group_manager"    context="{'group_by': 'project_manager_id'}"/>
+                    <filter string="Customer"       name="group_customer"    context="{'group_by': 'customer_id'}"/>
                     <filter string="Salesperson"    name="group_salesperson" context="{'group_by': 'salesperson_id'}"/>
                 </group>
             </search>
@@ -39,6 +45,7 @@
                 <field name="department_id"      optional="show"/>
                 <field name="project_manager_id" optional="show" widget="many2one"/>
                 <field name="project_id"         string="Project"    optional="show" widget="many2one"/>
+                <field name="customer_id"        string="Customer"   optional="show" widget="many2one"/>
                 <field name="sale_order_id"      string="SO"         optional="show" widget="many2one"/>
                 <field name="salesperson_id"     optional="show"     widget="many2one"/>
 
