@@ -3,3 +3,6 @@ access_crm_web_lead_sales_manager,crm.web.lead sales manager,model_crm_web_lead,
 access_crm_web_lead_allocate_wizard,crm.web.lead.allocate.wizard all,model_crm_web_lead_allocate_wizard,base.group_user,1,1,1,1
 access_crm_web_lead_api_info,crm.web.lead.api.info all,model_crm_web_lead_api_info,base.group_user,1,1,1,1
 access_crm_web_lead_field_map,crm.web.lead.field.map sales manager,model_crm_web_lead_field_map,sales_team.group_sale_manager,1,1,1,1
+access_crm_external_lead_mgr,crm.external.lead sales manager,model_crm_external_lead,sales_team.group_sale_manager,1,1,1,1
+access_crm_external_lead_assign_wizard,crm.external.lead.assign.wizard mgr,model_crm_external_lead_assign_wizard,sales_team.group_sale_manager,1,1,1,1
+access_crm_external_lead_api_info,crm.external.lead.api.info mgr,model_crm_external_lead_api_info,sales_team.group_sale_manager,1,1,1,1

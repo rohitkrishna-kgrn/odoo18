@@ -10,6 +10,8 @@
         'views/field_map_views.xml',
         'views/web_lead_views.xml',
         'views/web_lead_menus.xml',
+        'views/external_lead_views.xml',
+        'views/external_lead_menus.xml',
         'data/field_map_defaults.xml',
     ],
     'installable': True,
