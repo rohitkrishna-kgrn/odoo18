@@ -395,10 +395,10 @@ class RecruitmentInterviewRound(models.Model):
         ).sorted('round_order')[:1]
 
         hr_admins = self._group_users('group_recruitment_hr_admin')
-        hiring_managers = self._group_users('group_recruitment_hiring_manager')
+        request_hm = self.request_id.user_id
         self._send_template_email(
             'email_template_interview_passed', self,
-            extra_recipients=(hr_admins | hiring_managers),
+            extra_recipients=(hr_admins | request_hm),
         )
 
         if next_round:
