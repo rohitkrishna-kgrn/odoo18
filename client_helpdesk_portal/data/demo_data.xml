@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="demo_ticket_001" model="client.helpdesk.ticket">
+            <field name="client_name">Ahmed Al-Rashid</field>
+            <field name="company_name">Al-Rashid Trading LLC</field>
+            <field name="email">ahmed@alrashid.ae</field>
+            <field name="phone">+971 50 123 4567</field>
+            <field name="request_type">issue</field>
+            <field name="subject">Unable to access invoice module</field>
+            <field name="description">&lt;p&gt;I cannot access the invoice module after the recent update. The page shows a 404 error.&lt;/p&gt;</field>
+            <field name="priority">2</field>
+            <field name="stage_id" ref="stage_in_progress"/>
+        </record>
+
+        <record id="demo_ticket_002" model="client.helpdesk.ticket">
+            <field name="client_name">Sara Mathew</field>
+            <field name="company_name">Gulf Consulting Group</field>
+            <field name="email">sara@gulfconsulting.com</field>
+            <field name="phone">+971 55 987 6543</field>
+            <field name="request_type">complaint</field>
+            <field name="subject">Delayed response to previous support request</field>
+            <field name="description">&lt;p&gt;We submitted a request 5 days ago and have not received any response yet. This is unacceptable for a critical business issue.&lt;/p&gt;</field>
+            <field name="priority">2</field>
+            <field name="stage_id" ref="stage_under_review"/>
+        </record>
+
+        <record id="demo_ticket_003" model="client.helpdesk.ticket">
+            <field name="client_name">Michael Thompson</field>
+            <field name="company_name"></field>
+            <field name="email">michael.t@gmail.com</field>
+            <field name="phone">+44 7700 900123</field>
+            <field name="request_type">other</field>
+            <field name="subject">Request for additional user license</field>
+            <field name="description">&lt;p&gt;We would like to purchase 3 additional user licenses for our team expansion.&lt;/p&gt;</field>
+            <field name="priority">0</field>
+            <field name="stage_id" ref="stage_new"/>
+        </record>
+
+        <record id="demo_ticket_004" model="client.helpdesk.ticket">
+            <field name="client_name">Fatima Al-Dosari</field>
+            <field name="company_name">Dosari Enterprises</field>
+            <field name="email">fatima@dosarient.com</field>
+            <field name="phone">+973 3300 5566</field>
+            <field name="request_type">issue</field>
+            <field name="subject">Bank reconciliation report showing incorrect balances</field>
+            <field name="description">&lt;p&gt;The bank reconciliation report is showing incorrect closing balances for March 2025. The difference is AED 15,000.&lt;/p&gt;</field>
+            <field name="priority">2</field>
+            <field name="stage_id" ref="stage_resolved"/>
+        </record>
+
+        <record id="demo_ticket_005" model="client.helpdesk.ticket">
+            <field name="client_name">Raj Kumar</field>
+            <field name="company_name">TechSoft Solutions</field>
+            <field name="email">raj@techsoft.io</field>
+            <field name="phone">+91 98765 43210</field>
+            <field name="request_type">other</field>
+            <field name="subject">Training request for new staff members</field>
+            <field name="description">&lt;p&gt;We have 5 new employees who need onboarding training on the accounting and HR modules.&lt;/p&gt;</field>
+            <field name="priority">1</field>
+            <field name="stage_id" ref="stage_waiting"/>
+        </record>
+
+    </data>
+</odoo>

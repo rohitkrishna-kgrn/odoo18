@@ -216,7 +216,6 @@
                             <group string="Contact and Residential Details">
                                 <field name="ind_permanent_address"/>
                                 <field name="ind_uae_address"/>
-                                <field name="ind_city"/>
                                 <field name="ind_country"/>
                                 <field name="ind_mobile"/>
                                 <field name="ind_email"/>

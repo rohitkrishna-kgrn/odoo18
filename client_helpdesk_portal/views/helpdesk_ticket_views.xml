@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         KANBAN VIEW
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="view_helpdesk_ticket_kanban" model="ir.ui.view">
+        <field name="name">client.helpdesk.ticket.kanban</field>
+        <field name="model">client.helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <kanban
+                default_group_by="stage_id"
+                group_create="false"
+                quick_create="false"
+                records_draggable="false"
+                class="o_helpdesk_kanban"
+            >
+                <field name="ticket_number"/>
+                <field name="subject"/>
+                <field name="request_type"/>
+                <field name="request_type_label"/>
+                <field name="priority"/>
+                <field name="user_id"/>
+                <field name="stage_id"/>
+                <field name="kanban_state"/>
+                <field name="client_name"/>
+                <field name="email"/>
+
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <!-- Header: priority stars + kanban state -->
+                            <div class="o_kanban_record_top mb-0">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title text-primary">
+                                        <field name="ticket_number"/>
+                                    </strong>
+                                </div>
+                                <div class="o_kanban_manage_button_section">
+                                    <field name="priority" widget="priority"/>
+                                    <field name="kanban_state" widget="state_selection"/>
+                                </div>
+                            </div>
+
+                            <!-- Subject -->
+                            <div class="o_kanban_record_body">
+                                <div class="fw-bold text-truncate" t-att-title="record.subject.raw_value">
+                                    <field name="subject"/>
+                                </div>
+                                <div class="text-muted small mt-1">
+                                    <field name="client_name"/>
+                                    <t t-if="record.request_type.raw_value">
+                                        &#160;·&#160;
+                                        <field name="request_type_label"/>
+                                    </t>
+                                </div>
+                            </div>
+
+                            <!-- Footer: avatar + assignee -->
+                            <div class="o_kanban_record_bottom">
+                                <div class="oe_kanban_bottom_left">
+                                    <field name="request_type" widget="badge"
+                                           decoration-info="request_type == 'issue'"
+                                           decoration-warning="request_type == 'complaint'"
+                                           decoration-success="request_type == 'other'"/>
+                                </div>
+                                <div class="oe_kanban_bottom_right">
+                                    <field name="user_id" widget="many2one_avatar_user"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         LIST VIEW
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="view_helpdesk_ticket_list" model="ir.ui.view">
+        <field name="name">client.helpdesk.ticket.list</field>
+        <field name="model">client.helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <list string="Helpdesk Tickets" default_order="id desc"
+                  decoration-muted="is_closed == True">
+                <field name="ticket_number" string="Ticket #" optional="show"/>
+                <field name="client_name" string="Client" optional="show"/>
+                <field name="company_name" string="Company" optional="hide"/>
+                <field name="subject" string="Subject" optional="show"/>
+                <field name="request_type" string="Type" optional="show"
+                       widget="badge"
+                       decoration-info="request_type == 'issue'"
+                       decoration-warning="request_type == 'complaint'"
+                       decoration-success="request_type == 'other'"/>
+                <field name="priority" string="Priority" widget="priority" optional="show"/>
+                <field name="stage_id" string="Stage" optional="show"/>
+                <field name="user_id" string="Assigned To" widget="many2one_avatar_user" optional="show"/>
+                <field name="created_date" string="Created" optional="show"/>
+                <field name="last_updated" string="Updated" optional="hide"/>
+                <field name="is_closed" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         FORM VIEW
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="view_helpdesk_ticket_form" model="ir.ui.view">
+        <field name="name">client.helpdesk.ticket.form</field>
+        <field name="model">client.helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <form string="Helpdesk Ticket">
+                <header>
+                    <field name="stage_name" invisible="1"/>
+                    <!-- New → Under Review -->
+                    <button name="action_set_under_review" string="Under Review"
+                            type="object" class="btn-secondary"
+                            invisible="stage_name != 'New'"/>
+                    <!-- Under Review → In Progress -->
+                    <button name="action_set_in_progress" string="In Progress"
+                            type="object" class="btn-secondary"
+                            invisible="stage_name not in ('Under Review', 'Waiting for Client')"/>
+                    <!-- In Progress → Waiting for Client -->
+                    <button name="action_set_waiting" string="Waiting for Client"
+                            type="object" class="btn-secondary"
+                            invisible="stage_name != 'In Progress'"/>
+                    <!-- Waiting for Client → Resolved -->
+                    <button name="action_set_resolved" string="Resolved"
+                            type="object" class="btn-primary"
+                            invisible="stage_name != 'Waiting for Client'"/>
+                    <!-- Close Ticket (available in any non-terminal stage) -->
+                    <button name="action_set_closed" string="Close Ticket"
+                            type="object" class="btn-secondary"
+                            invisible="stage_name not in ('New', 'Under Review', 'In Progress', 'Waiting for Client')"/>
+                    <field name="stage_id" widget="statusbar"
+                           statusbar_visible="New,Under Review,In Progress,Resolved,Closed"/>
+                </header>
+
+                <sheet>
+                    <field name="attachment_count" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_portal_attachments" type="object"
+                                class="oe_stat_button" icon="fa-paperclip">
+                            <field name="attachment_count" widget="statinfo"
+                                   string="Attachment(s)"/>
+                        </button>
+                    </div>
+
+                    <!-- Title row -->
+                    <div class="oe_title">
+                        <h1>
+                            <field name="ticket_number" readonly="1"/>
+                        </h1>
+                        <h2>
+                            <field name="subject" placeholder="Subject…" required="1"/>
+                        </h2>
+                    </div>
+
+                    <group>
+                        <!-- Client Information -->
+                        <group string="Client Information">
+                            <field name="client_name"/>
+                            <field name="company_name"/>
+                            <field name="email" widget="email"/>
+                            <field name="phone" widget="phone"/>
+                            <field name="reference_number"/>
+                        </group>
+                        <!-- Ticket Details -->
+                        <group string="Ticket Details">
+                            <field name="request_type"/>
+                            <field name="priority" widget="priority"/>
+                            <field name="user_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="created_date" readonly="1"/>
+                            <field name="last_updated" readonly="1"/>
+                            <field name="closed_date" readonly="1"
+                                   invisible="not is_closed"/>
+                        </group>
+                    </group>
+
+                    <!-- Description -->
+                    <notebook>
+                        <page string="Description" name="description">
+                            <field name="description" widget="html"
+                                   options="{'resizable': false}"
+                                   placeholder="Describe the issue or request…"/>
+                        </page>
+                        <page string="Attachments" name="attachments">
+                            <field name="attachment_ids" widget="many2many_binary"
+                                   string="Client Attachments" readonly="1"/>
+                        </page>
+                        <page string="Internal Notes" name="internal_notes">
+                            <field name="internal_notes" widget="html"
+                                   placeholder="Internal notes visible only to helpdesk team…"/>
+                        </page>
+                    </notebook>
+                </sheet>
+
+                <!-- Chatter -->
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="view_helpdesk_ticket_search" model="ir.ui.view">
+        <field name="name">client.helpdesk.ticket.search</field>
+        <field name="model">client.helpdesk.ticket</field>
+        <field name="arch" type="xml">
+            <search string="Search Tickets">
+                <field name="ticket_number" string="Ticket #"/>
+                <field name="subject"/>
+                <field name="client_name"/>
+                <field name="company_name"/>
+                <field name="email"/>
+                <field name="user_id" string="Assigned To"/>
+
+                <filter name="filter_new" string="New"
+                        domain="[('stage_id.name', '=', 'New')]"/>
+                <filter name="filter_open" string="Open"
+                        domain="[('is_closed', '=', False)]"/>
+                <filter name="filter_closed" string="Closed"
+                        domain="[('is_closed', '=', True)]"/>
+                <filter name="filter_my_tickets" string="My Tickets"
+                        domain="[('user_id', '=', uid)]"/>
+                <filter name="filter_unassigned" string="Unassigned"
+                        domain="[('user_id', '=', False)]"/>
+
+                <separator/>
+
+                <filter name="filter_issue" string="Issues"
+                        domain="[('request_type', '=', 'issue')]"/>
+                <filter name="filter_complaint" string="Complaints"
+                        domain="[('request_type', '=', 'complaint')]"/>
+                <filter name="filter_other" string="General Requests"
+                        domain="[('request_type', '=', 'other')]"/>
+
+                <separator/>
+
+                <filter name="filter_high_priority" string="High Priority"
+                        domain="[('priority', '=', '2')]"/>
+
+                <separator/>
+
+                <filter name="filter_today" string="Created Today"
+                        domain="[('created_date', '&gt;=', (context_today()).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_week" string="Created This Week"
+                        domain="[('created_date', '&gt;=', (context_today() - relativedelta(weeks=1)).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_month" string="Created This Month"
+                        domain="[('created_date', '&gt;=', (context_today() - relativedelta(months=1)).strftime('%Y-%m-%d'))]"/>
+
+                <group expand="0" string="Group By">
+                    <filter name="group_stage" string="Stage" context="{'group_by': 'stage_id'}"/>
+                    <filter name="group_type" string="Request Type" context="{'group_by': 'request_type'}"/>
+                    <filter name="group_priority" string="Priority" context="{'group_by': 'priority'}"/>
+                    <filter name="group_user" string="Assigned To" context="{'group_by': 'user_id'}"/>
+                    <filter name="group_date" string="Created Date" context="{'group_by': 'created_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         ACTION
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="action_helpdesk_ticket" model="ir.actions.act_window">
+        <field name="name">All Tickets</field>
+        <field name="res_model">client.helpdesk.ticket</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_filter_open': 1}</field>
+        <field name="search_view_id" ref="view_helpdesk_ticket_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No tickets yet.</p>
+            <p>Tickets submitted from the public portal will appear here.</p>
+        </field>
+    </record>
+
+    <record id="action_helpdesk_my_tickets" model="ir.actions.act_window">
+        <field name="name">My Tickets</field>
+        <field name="res_model">client.helpdesk.ticket</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_filter_my_tickets': 1, 'search_default_filter_open': 1}</field>
+        <field name="search_view_id" ref="view_helpdesk_ticket_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No tickets assigned to you.</p>
+        </field>
+    </record>
+
+</odoo>

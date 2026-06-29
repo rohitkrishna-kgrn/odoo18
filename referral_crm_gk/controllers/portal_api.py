@@ -46,13 +46,21 @@ class ReferralPortalAPI(http.Controller):
                 status=422,
             )
 
+        _no_mail_ctx = {
+            'mail_create_nosubscribe': True,
+            'mail_create_nolog': True,
+            'mail_auto_subscribe_no_notify': True,
+        }
+
         # Find or create referrer by email (case-insensitive)
         referrer_email = referrer_data.get('email', '').strip().lower()
         referrer = request.env['referral.referrer'].sudo().search(
             [('email', '=ilike', referrer_email)], limit=1
         )
         if not referrer:
-            referrer = request.env['referral.referrer'].sudo().create({
+            referrer = request.env['referral.referrer'].sudo().with_context(
+                **_no_mail_ctx
+            ).create({
                 'name': referrer_data.get('name', ''),
                 'company': referrer_data.get('company', ''),
                 'email': referrer_email,
@@ -66,9 +74,10 @@ class ReferralPortalAPI(http.Controller):
             if tag:
                 tag_ids.append(tag.id)
 
-        # Find the first non-converted, non-lost stage by sequence (= "New")
+        # Find the first referral stage that is not converted/lost (= "New")
         new_stage = request.env['crm.stage'].sudo().search(
             [
+                ('x_is_referral_stage', '=', True),
                 ('x_is_referral_converted', '=', False),
                 ('x_is_referral_lost', '=', False),
             ],
@@ -106,7 +115,9 @@ class ReferralPortalAPI(http.Controller):
             lead_vals['stage_id'] = new_stage.id
 
         try:
-            lead = request.env['crm.lead'].sudo().create(lead_vals)
+            lead = request.env['crm.lead'].sudo().with_context(
+                **_no_mail_ctx
+            ).create(lead_vals)
         except Exception:
             _logger.exception('Failed to create referral lead from portal')
             return request.make_json_response(

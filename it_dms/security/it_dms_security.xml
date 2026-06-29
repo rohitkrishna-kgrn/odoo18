@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <record id="module_category_it_dms" model="ir.module.category">
+            <field name="name">IT Document Management</field>
+            <field name="description">Manage IT department documents, folders, and files.</field>
+            <field name="sequence">100</field>
+        </record>
+
+        <!-- Viewer: Can view and download documents only -->
+        <record id="group_it_dms_viewer" model="res.groups">
+            <field name="name">IT DMS Viewer</field>
+            <field name="category_id" ref="module_category_it_dms"/>
+            <field name="comment">Can view and download IT documents. Cannot create, edit, or delete.</field>
+        </record>
+
+        <!-- Engineer: Can create and manage own documents -->
+        <record id="group_it_dms_engineer" model="res.groups">
+            <field name="name">IT DMS Engineer</field>
+            <field name="category_id" ref="module_category_it_dms"/>
+            <field name="implied_ids" eval="[(4, ref('group_it_dms_viewer'))]"/>
+            <field name="comment">Can create documents, edit own documents, and upload versions.</field>
+        </record>
+
+        <!-- Administrator: Full access to all IT DMS features -->
+        <record id="group_it_dms_admin" model="res.groups">
+            <field name="name">IT DMS Administrator</field>
+            <field name="category_id" ref="module_category_it_dms"/>
+            <field name="implied_ids" eval="[(4, ref('group_it_dms_engineer'))]"/>
+            <field name="comment">Full administrative access including categories, folders, tags, and all documents.</field>
+        </record>
+
+    </data>
+</odoo>

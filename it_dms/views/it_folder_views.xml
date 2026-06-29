@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ==================== WIZARD: Add Existing Documents to Folder ==================== -->
+    <record id="view_it_folder_add_document_form" model="ir.ui.view">
+        <field name="name">it.folder.add.document.form</field>
+        <field name="model">it.folder.add.document</field>
+        <field name="arch" type="xml">
+            <form string="Add Documents to Folder">
+                <sheet>
+                    <div class="alert alert-info d-flex align-items-start mb-3" role="alert">
+                        <i class="fa fa-folder-open fa-lg me-3 mt-1 text-info"/>
+                        <div>
+                            <strong>Adding documents to folder:</strong>
+                            <field name="folder_id" readonly="1" nolabel="1"
+                                class="ms-1 fw-bold"/>
+                            <div class="small mt-1">
+                                Search and select existing documents below.
+                                Only documents not already in this folder are shown.
+                                Click <strong>Add to Folder</strong> to confirm.
+                            </div>
+                        </div>
+                    </div>
+                    <field name="document_ids" nolabel="1"
+                           domain="['|', ('folder_id', '=', False), ('folder_id', '!=', folder_id)]">
+                        <list string="Select Documents" create="false">
+                            <field name="document_code" string="Code" optional="show"/>
+                            <field name="name" string="Document Name"/>
+                            <field name="document_type" string="Type"/>
+                            <field name="folder_id" string="Current Folder"/>
+                            <field name="status" string="Status"
+                                decoration-success="status == 'active'"
+                                decoration-warning="status == 'draft'"
+                                decoration-muted="status == 'archived'"/>
+                            <field name="owner_id" string="Owner"
+                                widget="many2one_avatar_user" optional="show"/>
+                        </list>
+                    </field>
+                </sheet>
+                <footer>
+                    <button name="action_confirm" type="object"
+                        string="Add to Folder" class="btn btn-primary"/>
+                    <button string="Cancel" class="btn btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ==================== FOLDER EXPLORER KANBAN ==================== -->
+    <record id="view_it_folder_explorer_kanban" model="ir.ui.view">
+        <field name="name">it.folder.explorer.kanban</field>
+        <field name="model">it.folder</field>
+        <field name="arch" type="xml">
+            <kanban quick_create="false">
+                <field name="name"/>
+                <field name="complete_name"/>
+                <field name="document_count"/>
+                <field name="subfolder_count"/>
+                <templates>
+                    <t t-name="card" class="oe_kanban_card oe_kanban_global_click h-100 border-0"
+                        style="border-radius:12px !important; box-shadow:0 2px 10px rgba(0,0,0,0.09) !important; overflow:hidden; min-height:160px;">
+
+                        <!-- Coloured accent bar at top -->
+                        <div style="height:5px; background:linear-gradient(90deg,#f4a029,#f7c56b);"/>
+
+                        <div class="d-flex flex-column align-items-center justify-content-center p-3"
+                            style="min-height:155px;">
+                            <!-- Folder icon -->
+                            <div style="font-size:56px; color:#f4a029; filter:drop-shadow(0 3px 6px rgba(244,160,41,0.30)); line-height:1;">
+                                <i class="fa fa-folder"/>
+                            </div>
+                            <!-- Folder name -->
+                            <div class="fw-bold text-dark text-center mt-2 text-truncate w-100"
+                                style="font-size:0.95rem;" t-att-title="record.name.value">
+                                <t t-esc="record.name.value"/>
+                            </div>
+                            <!-- Badges -->
+                            <div class="mt-2 d-flex gap-2 flex-wrap justify-content-center">
+                                <span style="background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:20px;padding:2px 10px;font-size:0.73rem;">
+                                    <i class="fa fa-file-text me-1"/>
+                                    <t t-esc="record.document_count.value"/> doc(s)
+                                </span>
+                                <t t-if="record.subfolder_count.raw_value > 0">
+                                    <span style="background:#cff4fc;color:#087990;border:1px solid #0dcaf0;border-radius:20px;padding:2px 10px;font-size:0.73rem;">
+                                        <i class="fa fa-folder-open me-1"/>
+                                        <t t-esc="record.subfolder_count.value"/> sub
+                                    </span>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ==================== FOLDER EXPLORER FORM (drill-down) ==================== -->
+    <record id="view_it_folder_explorer_form" model="ir.ui.view">
+        <field name="name">it.folder.explorer.form</field>
+        <field name="model">it.folder</field>
+        <field name="arch" type="xml">
+            <form string="Folder">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_documents"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-file-text-o">
+                            <field name="document_count" widget="statinfo" string="Documents"/>
+                        </button>
+                        <button class="oe_stat_button" icon="fa-folder-open">
+                            <field name="subfolder_count" widget="statinfo" string="Sub-Folders"/>
+                        </button>
+                    </div>
+
+                    <!-- Folder title with icon and breadcrumb path -->
+                    <div class="oe_title">
+                        <div class="d-flex align-items-center mb-1">
+                            <span style="font-size:36px; color:#f4a029;" class="me-2">
+                                <i class="fa fa-folder-open"/>
+                            </span>
+                            <h1 class="mb-0">
+                                <field name="name" placeholder="Folder Name"/>
+                            </h1>
+                        </div>
+                        <div class="text-muted small">
+                            <i class="fa fa-sitemap me-1"/>
+                            <field name="complete_name" readonly="1"/>
+                        </div>
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="description" placeholder="Optional description..."/>
+                        </group>
+                        <group>
+                            <field name="active"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+
+                        <!-- Sub-Folders tab — editable inline; Open button navigates into sub-folder -->
+                        <page string="Sub-Folders" name="subfolders">
+                            <field name="child_ids" nolabel="1">
+                                <list string="Sub-Folders" editable="bottom">
+                                    <field name="name" string="Folder Name"/>
+                                    <field name="description" string="Description"/>
+                                    <field name="document_count" string="Documents" readonly="1"/>
+                                    <field name="subfolder_count" string="Sub-Folders" readonly="1"/>
+                                    <button name="action_open_self"
+                                        type="object"
+                                        icon="fa-folder-open"
+                                        title="Open this sub-folder"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Documents tab — New Document opens the full form; Add Existing links saved docs -->
+                        <page string="Documents" name="documents">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="text-muted small">
+                                    <i class="fa fa-info-circle me-1"/>
+                                    Documents in this folder. Use
+                                    <strong>New Document</strong> to create one here, or
+                                    <strong>Add Existing</strong> to link a saved document.
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button name="action_create_document_here"
+                                        type="object"
+                                        string="New Document"
+                                        class="btn btn-success btn-sm"
+                                        icon="fa-plus"
+                                        groups="it_dms.group_it_dms_engineer,it_dms.group_it_dms_admin"/>
+                                    <button name="action_add_existing_documents"
+                                        type="object"
+                                        string="Add Existing"
+                                        class="btn btn-primary btn-sm"
+                                        icon="fa-link"
+                                        groups="it_dms.group_it_dms_engineer,it_dms.group_it_dms_admin"/>
+                                </div>
+                            </div>
+                            <field name="document_ids" nolabel="1">
+                                <list string="Documents"
+                                    create="false"
+                                    delete="false"
+                                    decoration-success="status == 'active'"
+                                    decoration-warning="status == 'draft'"
+                                    decoration-muted="status == 'archived'">
+                                    <field name="document_code" string="Code" optional="show"/>
+                                    <field name="name" string="Document Name"/>
+                                    <field name="document_type" string="Type"/>
+                                    <field name="status" string="Status"/>
+                                    <field name="owner_id" string="Owner"
+                                        widget="many2one_avatar_user" optional="show"/>
+                                    <field name="version" string="Ver." optional="show"/>
+                                    <field name="write_date" string="Last Updated" optional="show"/>
+                                    <field name="attachment_file" column_invisible="1"/>
+                                    <button name="action_download_file"
+                                        type="object"
+                                        icon="fa-download"
+                                        title="Download File"
+                                        invisible="not attachment_file"/>
+                                    <button name="action_remove_from_folder"
+                                        type="object"
+                                        icon="fa-times-circle"
+                                        title="Remove from this Folder"
+                                        class="text-danger"
+                                        confirm="Remove this document from the folder? The document will not be deleted."
+                                        groups="it_dms.group_it_dms_engineer,it_dms.group_it_dms_admin"/>
+                                </list>
+                            </field>
+                        </page>
+
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ==================== ADMIN LIST VIEW ==================== -->
+    <record id="view_it_folder_list" model="ir.ui.view">
+        <field name="name">it.folder.list</field>
+        <field name="model">it.folder</field>
+        <field name="arch" type="xml">
+            <list string="IT Document Folders">
+                <field name="complete_name" string="Folder Path"/>
+                <field name="parent_id" string="Parent Folder" optional="show"/>
+                <field name="description"/>
+                <field name="document_count" string="Documents"/>
+                <field name="subfolder_count" string="Sub-Folders"/>
+                <field name="active" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ==================== ADMIN FORM VIEW ==================== -->
+    <record id="view_it_folder_form" model="ir.ui.view">
+        <field name="name">it.folder.form</field>
+        <field name="model">it.folder</field>
+        <field name="arch" type="xml">
+            <form string="IT Folder">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_documents"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-file-text-o">
+                            <field name="document_count" widget="statinfo" string="Documents"/>
+                        </button>
+                        <button name="toggle_active"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-archive">
+                            <field name="active" widget="boolean_button"
+                                options='{"terminology": "archive"}'/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Folder Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="parent_id" placeholder="Select parent folder..."/>
+                            <field name="complete_name" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <group string="Description">
+                        <field name="description" nolabel="1" placeholder="Folder description..."/>
+                    </group>
+                    <notebook>
+                        <page string="Sub-Folders">
+                            <field name="child_ids">
+                                <list string="Sub Folders" editable="bottom">
+                                    <field name="name"/>
+                                    <field name="description"/>
+                                    <field name="document_count" string="Documents" readonly="1"/>
+                                    <field name="subfolder_count" string="Sub-Folders" readonly="1"/>
+                                    <button name="action_open_self"
+                                        type="object"
+                                        icon="fa-folder-open"
+                                        title="Open this sub-folder"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ==================== SEARCH VIEW ==================== -->
+    <record id="view_it_folder_search" model="ir.ui.view">
+        <field name="name">it.folder.search</field>
+        <field name="model">it.folder</field>
+        <field name="arch" type="xml">
+            <search string="Search Folders">
+                <field name="name" string="Folder Name"/>
+                <field name="parent_id" string="Parent Folder"/>
+                <filter string="Top-Level Folders" name="top_level"
+                    domain="[('parent_id', '=', False)]"/>
+                <filter string="Sub-Folders" name="sub_folders"
+                    domain="[('parent_id', '!=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Parent Folder" name="group_parent"
+                        context="{'group_by': 'parent_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ==================== FOLDERS (File Explorer) ACTION ==================== -->
+    <record id="action_it_file_explorer" model="ir.actions.act_window">
+        <field name="name">Folders</field>
+        <field name="res_model">it.folder</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('parent_id', '=', False)]</field>
+        <field name="search_view_id" ref="view_it_folder_search"/>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_it_folder_explorer_kanban')}),
+            (0, 0, {'view_mode': 'list',   'view_id': ref('view_it_folder_list')}),
+            (0, 0, {'view_mode': 'form',   'view_id': ref('view_it_folder_explorer_form')}),
+        ]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No folders yet — create your first one!
+            </p>
+            <p>
+                Organise your IT documents into folders. Create top-level folders here,
+                then add sub-folders and link documents inside each one.
+            </p>
+        </field>
+    </record>
+
+    <!-- ==================== ADMIN FOLDER ACTION ==================== -->
+    <record id="action_it_folder" model="ir.actions.act_window">
+        <field name="name">Folders</field>
+        <field name="res_model">it.folder</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first folder!</p>
+        </field>
+    </record>
+
+</odoo>

@@ -7,7 +7,7 @@
         name="Referral"
         sequence="95"
         web_icon="referral_crm_gk,static/description/icon.png"
-        groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager"
+        groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager,referral_crm_gk.group_referral_accounts"
     />
 
     <!-- Dashboard -->
@@ -20,7 +20,7 @@
         groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager"
     />
 
-    <!-- Pipeline — server action applies role-based domain -->
+    <!-- Pipeline — server action applies role-based domain, defaults to Kanban view -->
     <menuitem
         id="menu_referral_pipeline"
         name="Pipeline"
@@ -65,10 +65,34 @@
         parent="menu_referral_root"
         action="action_referral_commissions"
         sequence="25"
-        groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager"
+        groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager,referral_crm_gk.group_referral_accounts"
     />
 
-    <!-- Configuration — manager only (record format with (6,0,[...]) forces full group replacement on upgrade) -->
+    <!-- Reports — manager and accounts -->
+    <record id="menu_referral_reports" model="ir.ui.menu">
+        <field name="name">Reports</field>
+        <field name="parent_id" ref="menu_referral_root"/>
+        <field name="sequence">30</field>
+        <field name="groups_id" eval="[(6, 0, [ref('referral_crm_gk.group_referral_manager'), ref('referral_crm_gk.group_referral_accounts')])]"/>
+    </record>
+
+    <record id="menu_referral_reports_commission" model="ir.ui.menu">
+        <field name="name">Commission Report</field>
+        <field name="parent_id" ref="menu_referral_reports"/>
+        <field name="action" ref="action_referral_commission_report"/>
+        <field name="sequence">1</field>
+        <field name="groups_id" eval="[(6, 0, [ref('referral_crm_gk.group_referral_manager'), ref('referral_crm_gk.group_referral_accounts')])]"/>
+    </record>
+
+    <record id="menu_referral_reports_summary" model="ir.ui.menu">
+        <field name="name">Referral Summary</field>
+        <field name="parent_id" ref="menu_referral_reports"/>
+        <field name="action" ref="action_referral_summary_report"/>
+        <field name="sequence">5</field>
+        <field name="groups_id" eval="[(6, 0, [ref('referral_crm_gk.group_referral_manager'), ref('referral_crm_gk.group_referral_accounts')])]"/>
+    </record>
+
+    <!-- Configuration — manager only -->
     <record id="menu_referral_config" model="ir.ui.menu">
         <field name="name">Configuration</field>
         <field name="parent_id" ref="menu_referral_root"/>

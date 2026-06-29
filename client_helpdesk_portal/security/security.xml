@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Category: noupdate=0 so visible=False is applied on every upgrade -->
+    <data noupdate="0">
+        <record id="module_category_helpdesk_portal" model="ir.module.category">
+            <field name="name">Client Helpdesk</field>
+            <field name="description">Manage client support tickets</field>
+            <field name="sequence">50</field>
+            <field name="visible" eval="False"/>
+        </record>
+    </data>
+
+    <!-- Groups: noupdate=1 so user assignments are not reset on upgrade -->
+    <data noupdate="1">
+
+        <!-- Helpdesk Agent group -->
+        <record id="group_helpdesk_agent" model="res.groups">
+            <field name="name">Helpdesk Agent</field>
+            <field name="category_id" ref="module_category_helpdesk_portal"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">Can view and manage assigned tickets, update stages, add notes.</field>
+        </record>
+
+        <!-- Helpdesk Manager group (implies Agent, which implies base.group_user) -->
+        <record id="group_helpdesk_manager" model="res.groups">
+            <field name="name">Helpdesk Manager</field>
+            <field name="category_id" ref="module_category_helpdesk_portal"/>
+            <field name="implied_ids" eval="[(4, ref('group_helpdesk_agent'))]"/>
+            <field name="comment">Full access to all tickets, stages configuration, assignments, and reporting.</field>
+            <field name="users" eval="[(4, ref('base.user_admin'))]"/>
+        </record>
+
+    </data>
+</odoo>

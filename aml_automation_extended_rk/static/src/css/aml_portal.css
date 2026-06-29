@@ -226,6 +226,11 @@
     border-color: var(--danger);
     box-shadow: 0 0 0 3px rgba(198,40,40,.10);
 }
+/* Generic error highlight used for radio groups, checkbox grids, country pickers */
+.aml-field-error {
+    outline: 2px solid var(--danger) !important;
+    border-radius: 4px;
+}
 .aml-field textarea { resize: vertical; min-height: 72px; }
 
 /* ---- Radio Groups ---- */

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Dashboard singleton record - always available at a fixed ID -->
+        <record id="it_dashboard_main" model="it.dashboard">
+            <field name="name">IT DMS Dashboard</field>
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,24 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_it_document_admin,it.document admin,model_it_document,it_dms.group_it_dms_admin,1,1,1,1
+access_it_document_engineer,it.document engineer,model_it_document,it_dms.group_it_dms_engineer,1,1,1,1
+access_it_document_viewer,it.document viewer,model_it_document,it_dms.group_it_dms_viewer,1,0,0,0
+access_it_folder_admin,it.folder admin,model_it_folder,it_dms.group_it_dms_admin,1,1,1,1
+access_it_folder_engineer,it.folder engineer,model_it_folder,it_dms.group_it_dms_engineer,1,0,0,0
+access_it_folder_viewer,it.folder viewer,model_it_folder,it_dms.group_it_dms_viewer,1,0,0,0
+access_it_category_admin,it.category admin,model_it_category,it_dms.group_it_dms_admin,1,1,1,1
+access_it_category_engineer,it.category engineer,model_it_category,it_dms.group_it_dms_engineer,1,0,0,0
+access_it_category_viewer,it.category viewer,model_it_category,it_dms.group_it_dms_viewer,1,0,0,0
+access_it_tag_admin,it.tag admin,model_it_tag,it_dms.group_it_dms_admin,1,1,1,1
+access_it_tag_engineer,it.tag engineer,model_it_tag,it_dms.group_it_dms_engineer,1,0,0,0
+access_it_tag_viewer,it.tag viewer,model_it_tag,it_dms.group_it_dms_viewer,1,0,0,0
+access_it_document_version_admin,it.document.version admin,model_it_document_version,it_dms.group_it_dms_admin,1,1,1,1
+access_it_document_version_engineer,it.document.version engineer,model_it_document_version,it_dms.group_it_dms_engineer,1,1,1,0
+access_it_document_version_viewer,it.document.version viewer,model_it_document_version,it_dms.group_it_dms_viewer,1,0,0,0
+access_it_dashboard_admin,it.dashboard admin,model_it_dashboard,it_dms.group_it_dms_admin,1,1,1,1
+access_it_dashboard_engineer,it.dashboard engineer,model_it_dashboard,it_dms.group_it_dms_engineer,1,0,0,0
+access_it_dashboard_viewer,it.dashboard viewer,model_it_dashboard,it_dms.group_it_dms_viewer,1,0,0,0
+access_it_document_line_admin,it.document.line admin,model_it_document_line,it_dms.group_it_dms_admin,1,1,1,1
+access_it_document_line_engineer,it.document.line engineer,model_it_document_line,it_dms.group_it_dms_engineer,1,1,1,1
+access_it_document_line_viewer,it.document.line viewer,model_it_document_line,it_dms.group_it_dms_viewer,1,0,0,0
+access_it_folder_add_document_admin,it.folder.add.document admin,model_it_folder_add_document,it_dms.group_it_dms_admin,1,1,1,1
+access_it_folder_add_document_engineer,it.folder.add.document engineer,model_it_folder_add_document,it_dms.group_it_dms_engineer,1,1,1,1

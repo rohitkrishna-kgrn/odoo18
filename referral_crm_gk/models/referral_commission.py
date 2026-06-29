@@ -1,4 +1,9 @@
+import logging
+
 from odoo import api, fields, models
+from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 
 class ReferralCommission(models.Model):
@@ -13,6 +18,15 @@ class ReferralCommission(models.Model):
     lead_id = fields.Many2one(
         'crm.lead', string='Referral Lead',
         required=True, ondelete='cascade', readonly=True,
+    )
+
+    # Invoice (sourced from the linked lead)
+    invoice_id = fields.Many2one(
+        'account.move',
+        related='lead_id.x_invoice_id',
+        string='Invoice',
+        store=True,
+        readonly=True,
     )
 
     # Referrer (from lead)
@@ -51,14 +65,85 @@ class ReferralCommission(models.Model):
         related='lead_id.x_commission_amount', string='Commission Amount (AED)', store=True, digits=(16, 2),
     )
 
-    # Payment
+    # Invoice display fields
+    invoice_number = fields.Char(
+        related='invoice_id.name', string='Invoice Number', readonly=True,
+    )
+    invoice_date = fields.Date(
+        related='invoice_id.invoice_date', string='Invoice Date', readonly=True,
+    )
+    invoice_amount_total = fields.Monetary(
+        related='invoice_id.amount_total', string='Invoice Total (AED)',
+        readonly=True, currency_field='currency_id',
+    )
+    invoice_amount_residual = fields.Monetary(
+        related='invoice_id.amount_residual', string='Outstanding (AED)',
+        readonly=True, currency_field='currency_id',
+    )
+    invoice_payment_state = fields.Selection(
+        related='invoice_id.payment_state', string='Invoice Payment Status', readonly=True,
+    )
+
+    # Payment status — computed from invoice when linked; manual otherwise
     state = fields.Selection([
-        ('pending', 'Pending'),
-        ('paid', 'Paid'),
-    ], string='Status', default='pending', tracking=True)
+        ('pending', 'Not Paid'),
+        ('partial', 'Partially Paid'),
+        ('paid', 'Fully Paid'),
+    ], string='Status',
+       compute='_compute_state_from_invoice',
+       inverse='_set_state',
+       store=True,
+       default='pending',
+       tracking=True,
+    )
+
+    # Amount paid to referrer — manual field; view enforces readonly when invoice is linked
+    amount_paid = fields.Float(
+        string='Amount Paid (AED)', digits=(16, 2), default=0.0, tracking=True,
+    )
+    remaining_balance = fields.Float(
+        compute='_compute_remaining_balance', store=True,
+        string='Remaining Balance (AED)', digits=(16, 2),
+    )
     paid_date = fields.Date(string='Paid On', tracking=True)
     payment_ref = fields.Char(string='Payment Reference', tracking=True)
     notes = fields.Text(string='Notes')
+
+    _INVOICE_STATE_MAP = {
+        'not_paid': 'pending',
+        'partial': 'partial',
+        'in_payment': 'partial',
+        'paid': 'paid',
+        'reversed': 'pending',
+        'invoicing_legacy': 'pending',
+    }
+
+    @api.depends('invoice_id', 'invoice_id.payment_state',
+                 'lead_id.x_payment_status', 'commission_amount', 'amount_paid')
+    def _compute_state_from_invoice(self):
+        for rec in self:
+            if rec.invoice_id:
+                # Invoice linked → always driven by accounting
+                rec.state = self._INVOICE_STATE_MAP.get(
+                    rec.invoice_id.payment_state, 'pending'
+                )
+            elif (rec.amount_paid or 0.0) >= (rec.commission_amount or 0.0) > 0:
+                # Manual commission fully paid
+                rec.state = 'paid'
+            elif (rec.amount_paid or 0.0) > 0:
+                # Manual commission partially paid
+                rec.state = 'partial'
+            else:
+                rec.state = 'pending'
+
+    def _set_state(self):
+        # Allows manual writes for commissions without a linked invoice.
+        pass
+
+    @api.depends('commission_amount', 'amount_paid')
+    def _compute_remaining_balance(self):
+        for rec in self:
+            rec.remaining_balance = max(0.0, (rec.commission_amount or 0.0) - (rec.amount_paid or 0.0))
 
     @api.depends('lead_id.x_referral_ref', 'lead_id.x_referral_company')
     def _compute_name(self):
@@ -70,19 +155,31 @@ class ReferralCommission(models.Model):
             else:
                 rec.name = 'New Commission'
 
-    def _send_notification_email(self, subject, body_html, partner_ids):
-        """Send a notification email via mail.mail (no chatter, no user signature)."""
-        if not partner_ids:
+    def _send_template_email(self, template_xml_id, extra_recipients=None):
+        template = self.env.ref(
+            f'referral_crm_gk.{template_xml_id}', raise_if_not_found=False
+        )
+        if not template:
+            _logger.warning('referral_crm_gk: template %s not found', template_xml_id)
             return
-        self.env['mail.mail'].sudo().create({
-            'subject': subject,
-            'body_html': body_html,
-            'recipient_ids': [(6, 0, partner_ids)],
-            'auto_delete': True,
-        }).send()
+        partners = extra_recipients.filtered('email') if extra_recipients else self.env['res.partner'].browse()
+        if not partners:
+            _logger.warning(
+                'referral_crm_gk: no email recipients for template %s', template_xml_id
+            )
+            return
+        template.send_mail(
+            self.id,
+            force_send=True,
+            raise_exception=False,
+            email_values={
+                'recipient_ids': [(4, p.id) for p in partners],
+                'email_to': '',
+                'auto_delete': False,
+            },
+        )
 
     def _get_referral_manager_partners(self):
-        """Return partner records for all active referral managers who have an email."""
         group = self.env.ref('referral_crm_gk.group_referral_manager', raise_if_not_found=False)
         if not group:
             return self.env['res.partner'].browse()
@@ -93,71 +190,43 @@ class ReferralCommission(models.Model):
         return managers.mapped('partner_id').filtered('email')
 
     def _notify_commission_paid(self):
-        """Email managers and the salesperson when a commission is marked paid."""
         self.ensure_one()
         recipients = self._get_referral_manager_partners()
         if self.lead_id.user_id and self.lead_id.user_id.partner_id.email:
             recipients |= self.lead_id.user_id.partner_id
         if not recipients:
             return
-        referrer_label = self.referrer_id.name if self.referrer_id else '—'
-        if self.referrer_company:
-            referrer_label += f' ({self.referrer_company})'
-        salesperson = self.lead_id.user_id.name if self.lead_id.user_id else '—'
-        body = f"""
-            <p>A referral commission has been marked as paid.</p>
-            <table style="border-collapse:collapse;width:100%;max-width:520px;font-size:14px">
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold;width:170px">Commission Ref</td>
-                    <td style="padding:6px 10px">{self.name or '—'}</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Referrer</td>
-                    <td style="padding:6px 10px">{referrer_label}</td>
-                </tr>
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold">Referred Company</td>
-                    <td style="padding:6px 10px">{self.referral_company or '—'}</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Deal Value</td>
-                    <td style="padding:6px 10px">AED {self.deal_value:,.2f}</td>
-                </tr>
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold">Commission Amount</td>
-                    <td style="padding:6px 10px">
-                        AED {self.commission_amount:,.2f} ({self.referrer_commission_rate:.1f}%)
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Paid On</td>
-                    <td style="padding:6px 10px">{self.paid_date or '—'}</td>
-                </tr>
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold">Payment Reference</td>
-                    <td style="padding:6px 10px">{self.payment_ref or '—'}</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Salesperson</td>
-                    <td style="padding:6px 10px">{salesperson}</td>
-                </tr>
-            </table>
-        """
-        self._send_notification_email(
-            subject=f'Commission Paid: {self.name}',
-            body_html=body,
-            partner_ids=recipients.ids,
-        )
+        self._send_template_email('email_template_commission_paid', extra_recipients=recipients)
 
     def action_mark_paid(self):
         self.ensure_one()
-        self.write({
-            'state': 'paid',
-            'paid_date': fields.Date.today(),
-        })
-        if self.lead_id:
-            self.lead_id.x_payment_status = 'full'
-        self._notify_commission_paid()
+        if self.invoice_id:
+            raise UserError(
+                "This commission is linked to invoice %s.\n\n"
+                "Payment status is automatically synchronised from the Accounting module. "
+                "Please record payments against the invoice to update the commission status."
+                % (self.invoice_number or self.invoice_id.id)
+            )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Record Payment',
+            'res_model': 'referral.payment.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_commission_id': self.id,
+            },
+        }
+
+    def action_open_invoice(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.move',
+            'res_id': self.invoice_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
 
     def action_view_referral(self):
         self.ensure_one()

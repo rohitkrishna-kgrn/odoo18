@@ -78,6 +78,8 @@ const amlForm = (function () {
     let docLines = [];
     let dirRowCounter = 0;
     let shRowCounter = 0;
+    let dirDocStatus = {};  // { rowId: Set<docType> } – tracks mandatory doc uploads per director row
+    let shDocStatus = {};   // { rowId: Set<docType> } – tracks mandatory doc uploads per shareholder row
     let supplierCountries = [];
     let customerCountries = [];
 
@@ -103,9 +105,11 @@ const amlForm = (function () {
             docLines = JSON.parse(document.getElementById('aml-doc-lines-data').textContent || '[]');
         } catch(e) { docLines = []; }
 
-        // Render pre-loaded rows
+        // Render pre-loaded rows (add one default empty row if none exist)
         if (directorRows.length) directorRows.forEach(d => addDirectorRow(d));
+        else addDirectorRow();
         if (shareholderRows.length) shareholderRows.forEach(s => addShareholderRow(s));
+        else addShareholderRow();
 
         // Render document upload list
         renderDocList();
@@ -225,7 +229,7 @@ const amlForm = (function () {
         if (getPageId(idx) === 'page-6') {
             buildReview();
             const signedOnEl = document.getElementById('signed_on');
-            if (signedOnEl && !signedOnEl.value) {
+            if (signedOnEl) {
                 signedOnEl.value = new Date().toISOString().split('T')[0];
             }
         }
@@ -237,38 +241,140 @@ const amlForm = (function () {
     }
 
     function validateCurrentPage() {
-        const pageEl = document.getElementById(getPageId(currentPage));
+        const pageId = getPageId(currentPage);
+        const pageEl = document.getElementById(pageId);
         if (!pageEl) return true;
-        let valid = true;
-        // Clear previous validation state
-        pageEl.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
 
-        // Check required inputs
+        let valid = true;
+        let firstInvalidEl = null;
+
+        // ---- Clear all previous error marks ----
+        pageEl.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+        pageEl.querySelectorAll('.aml-field-error').forEach(el => el.classList.remove('aml-field-error'));
+
+        // ---- Helper: mark an element as invalid and track first ----
+        function markInvalid(el) {
+            if (!firstInvalidEl) firstInvalidEl = el;
+            valid = false;
+        }
+
+        // ---- Check all [required] inputs ----
+        const seenRadioNames = new Set();
         pageEl.querySelectorAll('[required]').forEach(el => {
             if (el.type === 'radio') {
-                // Check if any radio with same name is checked
-                const name = el.name;
-                const anyChecked = pageEl.querySelector(`input[name="${name}"]:checked`);
+                if (seenRadioNames.has(el.name)) return; // check each group once
+                seenRadioNames.add(el.name);
+                const anyChecked = pageEl.querySelector(`input[name="${el.name}"]:checked`);
                 if (!anyChecked) {
-                    // Mark all radios in group
-                    pageEl.querySelectorAll(`input[name="${name}"]`).forEach(r => r.parentElement.style.outline = '2px solid #c62828');
-                    valid = false;
+                    // Highlight all labels in the group
+                    pageEl.querySelectorAll(`input[name="${el.name}"]`).forEach(r => r.parentElement.classList.add('aml-field-error'));
+                    markInvalid(pageEl.querySelector(`input[name="${el.name}"]`).parentElement);
                 }
             } else if (el.tagName === 'SELECT') {
-                if (!el.value) { el.classList.add('invalid'); valid = false; }
-            } else {
-                if (!el.value.trim()) { el.classList.add('invalid'); valid = false; }
+                if (!el.value) { el.classList.add('invalid'); markInvalid(el); }
+            } else if (el.type !== 'hidden') {
+                if (!el.value.trim()) { el.classList.add('invalid'); markInvalid(el); }
             }
         });
 
-        if (!valid) {
-            const firstInvalid = pageEl.querySelector('.invalid, input[style*="outline"]');
-            if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            showToast('Please fill in all required fields.', 'error');
+        // ---- Entity form: channel checkboxes + country pickers ----
+        if (pageId === 'page-1-entity') {
+            const CHANNELS = ['ent_channel_cash','ent_channel_wire','ent_channel_cheque','ent_channel_credit','ent_channel_crypto','ent_channel_debit'];
+            const anyChannel = CHANNELS.some(n => { const cb = pageEl.querySelector(`input[name="${n}"]`); return cb && cb.checked; });
+            if (!anyChannel) {
+                const grid = pageEl.querySelector('.aml-checkbox-grid');
+                if (grid) { grid.classList.add('aml-field-error'); markInvalid(grid); }
+            }
+            const suppVal = document.getElementById('ent_top5_suppliers_val');
+            if (!suppVal || !suppVal.value.trim()) {
+                const pickers = pageEl.querySelectorAll('.aml-country-picker');
+                if (pickers[0]) { pickers[0].classList.add('aml-field-error'); markInvalid(pickers[0]); }
+            }
+            const custVal = document.getElementById('ent_top5_customers_val');
+            if (!custVal || !custVal.value.trim()) {
+                const pickers = pageEl.querySelectorAll('.aml-country-picker');
+                if (pickers[1]) { pickers[1].classList.add('aml-field-error'); markInvalid(pickers[1]); }
+            }
         }
 
-        // Mandatory document upload check on page-5
-        if (valid && getPageId(currentPage) === 'page-5') {
+        if (!valid) {
+            if (firstInvalidEl) firstInvalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            showToast('Please fill in all required fields before proceeding.', 'error');
+            return false;
+        }
+
+        // ---- Mandatory director documents (page-3) ----
+        if (pageId === 'page-3') {
+            const tbody = document.getElementById('directors-tbody');
+            const dirRowCount = tbody ? tbody.querySelectorAll('tr.dir-main-row').length : 0;
+            if (dirRowCount === 0) {
+                showToast('Please add at least one Director / Manager before proceeding.', 'error');
+                return false;
+            }
+            const missingDirDocs = [];
+            const MANDATORY_DIR_DOCS = { passport: 'Passport Copy', proof_of_residence: 'Proof of Residence', emirates_id: 'Emirates ID' };
+            let firstDocEl = null;
+            if (tbody) {
+                tbody.querySelectorAll('tr.dir-main-row').forEach(tr => {
+                    const rowId = tr.dataset.rowId;
+                    const nameInput = tr.querySelector('[name="dir_full_name"]');
+                    const rowName = (nameInput && nameInput.value.trim()) || ('Director #' + rowId);
+                    const uploaded = dirDocStatus[rowId] || new Set();
+                    Object.entries(MANDATORY_DIR_DOCS).forEach(([dt, label]) => {
+                        if (!uploaded.has(dt)) {
+                            missingDirDocs.push(rowName + ' – ' + label);
+                            const wrapEl = document.getElementById('dir-doc-wrap-' + rowId + '-' + dt);
+                            if (wrapEl) { wrapEl.classList.add('aml-field-error'); if (!firstDocEl) firstDocEl = wrapEl; }
+                        }
+                    });
+                });
+            }
+            if (missingDirDocs.length > 0) {
+                showToast('Please upload mandatory documents for directors: ' + missingDirDocs.join(', '), 'error');
+                if (firstDocEl) firstDocEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+        }
+
+        // ---- Shareholders (page-4) ----
+        if (pageId === 'page-4') {
+            const tbody = document.getElementById('shareholders-tbody');
+            const shRowCount = tbody ? tbody.querySelectorAll('tr.sh-main-row').length : 0;
+            if (shRowCount === 0) {
+                showToast('Please add at least one Shareholder before proceeding.', 'error');
+                return false;
+            }
+            const IND_DOCS  = { passport: 'Passport Copy', proof_of_residence: 'Proof of Residence', emirates_id: 'Emirates ID' };
+            const CORP_DOCS = { trade_license: 'Trade License', memorandum: 'Memorandum of Association / Articles of Association' };
+            const missingShDocs = [];
+            let firstShDocEl = null;
+            if (tbody) {
+                tbody.querySelectorAll('tr.sh-main-row').forEach(tr => {
+                    const rowId = tr.dataset.rowId;
+                    const nameInput = tr.querySelector('[name="sh_name"]');
+                    const typeInput = tr.querySelector('[name="sh_type"]');
+                    const rowName = (nameInput && nameInput.value.trim()) || ('Shareholder #' + rowId);
+                    const shType = typeInput ? typeInput.value : '';
+                    const uploaded = shDocStatus[rowId] || new Set();
+                    const requiredDocs = shType === 'individual' ? IND_DOCS : shType === 'corporate' ? CORP_DOCS : {};
+                    Object.entries(requiredDocs).forEach(([dt, label]) => {
+                        if (!uploaded.has(dt)) {
+                            missingShDocs.push(rowName + ' – ' + label);
+                            const wrapEl = document.getElementById('sh-doc-wrap-' + rowId + '-' + dt);
+                            if (wrapEl) { wrapEl.classList.add('aml-field-error'); if (!firstShDocEl) firstShDocEl = wrapEl; }
+                        }
+                    });
+                });
+            }
+            if (missingShDocs.length > 0) {
+                showToast('Please upload mandatory documents for shareholders: ' + missingShDocs.join(', '), 'error');
+                if (firstShDocEl) firstShDocEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+        }
+
+        // ---- Mandatory document upload (page-5) ----
+        if (pageId === 'page-5') {
             const ANY_ONE_KEYS = ['cert_incumbency'];
             const missing = docLines.filter(doc => {
                 if (!doc.is_mandatory) return false;
@@ -277,15 +383,14 @@ const amlForm = (function () {
                 return el && !el.classList.contains('uploaded');
             });
             if (missing.length > 0) {
-                const names = missing.map(d => d.doc_name).join(', ');
-                showToast('Please upload all mandatory documents before proceeding: ' + names, 'error');
+                showToast('Please upload all mandatory documents before proceeding: ' + missing.map(d => d.doc_name).join(', '), 'error');
                 const firstMissing = document.getElementById('doc-item-' + missing[0].id);
                 if (firstMissing) firstMissing.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return false;
             }
         }
 
-        return valid;
+        return true;
     }
 
     async function nextPage() {
@@ -392,10 +497,11 @@ const amlForm = (function () {
         tbody.appendChild(tr);
 
         // Document upload sub-row
+        dirDocStatus[rowId] = dirDocStatus[rowId] || new Set();
         const dtLabels = { passport: 'Passport Copy', proof_of_residence: 'Proof of Residence', emirates_id: 'Emirates ID' };
         const docsHtml = ['passport', 'proof_of_residence', 'emirates_id'].map(dt => `
-            <div style="display:flex;flex-direction:column;gap:4px;min-width:140px;">
-                <span style="font-size:11px;color:#555;font-weight:600;">${dtLabels[dt]}</span>
+            <div id="dir-doc-wrap-${rowId}-${dt}" style="display:flex;flex-direction:column;gap:4px;min-width:140px;border-radius:4px;padding:2px;">
+                <span style="font-size:11px;color:#555;font-weight:600;">${dtLabels[dt]} <span style="color:#c62828;">*</span></span>
                 <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:500;color:#1565c0;">
                     &#128206; Upload
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none;"
@@ -478,6 +584,10 @@ const amlForm = (function () {
             const result = await resp.json();
             if (result.success) {
                 if (statusEl) statusEl.textContent = '✔ ' + result.filename;
+                if (!dirDocStatus[rowId]) dirDocStatus[rowId] = new Set();
+                dirDocStatus[rowId].add(docType);
+                const wrapEl = document.getElementById('dir-doc-wrap-' + rowId + '-' + docType);
+                if (wrapEl) wrapEl.classList.remove('aml-field-error');
             } else {
                 if (statusEl) statusEl.textContent = 'Failed';
                 showToast('Upload failed: ' + (result.error || ''), 'error');
@@ -491,8 +601,8 @@ const amlForm = (function () {
     // ---- Shareholders Table ----
     function _buildShDocItem(rowId, dt, label) {
         return `
-            <div style="display:flex;flex-direction:column;gap:4px;min-width:160px;">
-                <span style="font-size:11px;color:#555;font-weight:600;">${label}</span>
+            <div id="sh-doc-wrap-${rowId}-${dt}" style="display:flex;flex-direction:column;gap:4px;min-width:160px;border-radius:4px;padding:2px;">
+                <span style="font-size:11px;color:#555;font-weight:600;">${label} <span style="color:#c62828;">*</span></span>
                 <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:500;color:#1565c0;">
                     &#128206; Upload
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none;"
@@ -554,6 +664,7 @@ const amlForm = (function () {
             <td><button type="button" class="del-row-btn" onclick="amlForm.removeShareholderRow('${rowId}')">✕</button></td>
         `;
         tbody.appendChild(tr);
+        shDocStatus[rowId] = shDocStatus[rowId] || new Set();
 
         const docsTr = document.createElement('tr');
         docsTr.className = 'sh-docs-row';
@@ -571,12 +682,14 @@ const amlForm = (function () {
     function updateShareholderDocs(rowId, shType) {
         const el = document.getElementById('sh-docs-content-' + rowId);
         if (el) el.innerHTML = _buildShDocsContent(rowId, shType);
+        shDocStatus[rowId] = new Set(); // reset tracked uploads when type changes
     }
 
     function removeShareholderRow(rowId) {
         const tbody = document.getElementById('shareholders-tbody');
         if (!tbody) return;
         tbody.querySelectorAll('[data-row-id="' + rowId + '"]').forEach(tr => tr.remove());
+        delete shDocStatus[rowId];
         window.renumberRows('shareholders-tbody');
     }
 
@@ -607,6 +720,10 @@ const amlForm = (function () {
             const result = await resp.json();
             if (result.success) {
                 if (statusEl) statusEl.textContent = '✔ ' + result.filename;
+                if (!shDocStatus[rowId]) shDocStatus[rowId] = new Set();
+                shDocStatus[rowId].add(docType);
+                const wrapEl = document.getElementById('sh-doc-wrap-' + rowId + '-' + docType);
+                if (wrapEl) wrapEl.classList.remove('aml-field-error');
             } else {
                 if (statusEl) statusEl.textContent = 'Failed';
                 showToast('Upload failed: ' + (result.error || ''), 'error');
@@ -813,7 +930,6 @@ const amlForm = (function () {
                     'Valid Until': formData['ind_valid_until'],
                     'Permanent Address': formData['ind_permanent_address'],
                     'UAE Address': formData['ind_uae_address'],
-                    'City': formData['ind_city'],
                     'Country': formData['ind_country'],
                     'Mobile': formData['ind_mobile'],
                     'Email': formData['ind_email'],
@@ -836,7 +952,7 @@ const amlForm = (function () {
         sections.forEach(sec => {
             const rows = Object.entries(sec.fields)
                 .filter(([, v]) => v)
-                .map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(String(v))}</td></tr>`)
+                .map(([k, v]) => { const s = String(v); return `<tr><td>${esc(k)}</td><td>${esc(s.charAt(0).toUpperCase() + s.slice(1))}</td></tr>`; })
                 .join('');
             if (rows) {
                 html += `<div class="aml-review-section"><h4>${esc(sec.title)}</h4>
@@ -847,17 +963,17 @@ const amlForm = (function () {
         // Director count
         const dTbody = document.getElementById('directors-tbody');
         const dCount = dTbody ? dTbody.rows.length : 0;
-        if (dCount) html += `<div class="aml-review-section"><h4>Directors / Managers</h4><p>${dCount} record(s) entered.</p></div>`;
+        if (dCount) html += `<div class="aml-review-section"><h4>Directors / Managers</h4><p>${dCount} Record(s) entered.</p></div>`;
 
         // Shareholder count
         const sTbody = document.getElementById('shareholders-tbody');
         const sCount = sTbody ? sTbody.rows.length : 0;
-        if (sCount) html += `<div class="aml-review-section"><h4>Shareholders</h4><p>${sCount} record(s) entered.</p></div>`;
+        if (sCount) html += `<div class="aml-review-section"><h4>Shareholders</h4><p>${sCount} Record(s) entered.</p></div>`;
 
         // Documents
         const uploaded = docLines.filter(d => document.getElementById('doc-item-' + d.id) &&
             document.getElementById('doc-item-' + d.id).classList.contains('uploaded'));
-        html += `<div class="aml-review-section"><h4>Documents</h4><p>${uploaded.length} of ${docLines.length} document slot(s) uploaded.</p></div>`;
+        html += `<div class="aml-review-section"><h4>Documents</h4><p>${uploaded.length} of ${docLines.length} Document slot(s) uploaded.</p></div>`;
 
         container.innerHTML = html || '<p class="text-muted">No data to review.</p>';
     }

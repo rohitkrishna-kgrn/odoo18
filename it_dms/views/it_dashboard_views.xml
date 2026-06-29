@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_it_dashboard_form" model="ir.ui.view">
+        <field name="name">it.dashboard.form</field>
+        <field name="model">it.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="IT DMS Dashboard" create="false" delete="false">
+                <sheet>
+
+                    <!-- ── Header ── -->
+                    <div class="row mb-4">
+                        <div class="col-12 text-center">
+                            <h2>
+                                <i class="fa fa-hdd-o me-2 text-primary"/>
+                                IT Document Management System
+                            </h2>
+                            <p class="text-muted mb-0">Centralised IT Documentation Repository</p>
+                        </div>
+                    </div>
+
+                    <!-- ── Row 1: Folder / Subfolder / Document counts ── -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="card border-warning h-100 text-center">
+                                <div class="card-body">
+                                    <div style="font-size:40px; color:#f4a029;">
+                                        <i class="fa fa-folder"/>
+                                    </div>
+                                    <h2 class="text-warning fw-bold">
+                                        <field name="total_folders" readonly="1"/>
+                                    </h2>
+                                    <p class="card-text fw-semibold mb-2">Top-Level Folders</p>
+                                    <button name="action_open_folders" type="object"
+                                        string="Browse Folders"
+                                        class="btn btn-sm btn-outline-warning"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-info h-100 text-center">
+                                <div class="card-body">
+                                    <div style="font-size:40px; color:#0dcaf0;">
+                                        <i class="fa fa-folder-open"/>
+                                    </div>
+                                    <h2 class="text-info fw-bold">
+                                        <field name="total_subfolders" readonly="1"/>
+                                    </h2>
+                                    <p class="card-text fw-semibold mb-2">Sub-Folders</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-primary h-100 text-center">
+                                <div class="card-body">
+                                    <div style="font-size:40px; color:#0d6efd;">
+                                        <i class="fa fa-file-text"/>
+                                    </div>
+                                    <h2 class="text-primary fw-bold">
+                                        <field name="total_documents" readonly="1"/>
+                                    </h2>
+                                    <p class="card-text fw-semibold mb-2">Total Documents</p>
+                                    <button name="action_open_all_documents" type="object"
+                                        string="All Documents"
+                                        class="btn btn-sm btn-outline-primary"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Row 2: Document Status counts ── -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="card border-success text-center py-2">
+                                <div class="card-body py-2">
+                                    <h3 class="text-success fw-bold mb-0">
+                                        <field name="active_documents" readonly="1"/>
+                                    </h3>
+                                    <small class="text-muted">Active</small>
+                                    <div class="mt-1">
+                                        <button name="action_open_active_documents" type="object"
+                                            string="View" class="btn btn-sm btn-outline-success"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-warning text-center py-2">
+                                <div class="card-body py-2">
+                                    <h3 class="text-warning fw-bold mb-0">
+                                        <field name="draft_documents" readonly="1"/>
+                                    </h3>
+                                    <small class="text-muted">Draft</small>
+                                    <div class="mt-1">
+                                        <button name="action_open_draft_documents" type="object"
+                                            string="View" class="btn btn-sm btn-outline-warning"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-secondary text-center py-2">
+                                <div class="card-body py-2">
+                                    <h3 class="text-secondary fw-bold mb-0">
+                                        <field name="archived_documents" readonly="1"/>
+                                    </h3>
+                                    <small class="text-muted">Archived</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Recently Uploaded Documents ── -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-2">
+                            <i class="fa fa-clock-o me-1 text-primary"/> Recently Uploaded Documents
+                        </h5>
+                        <field name="recent_document_ids" readonly="1" nolabel="1">
+                            <list string="Recent Documents" create="false" delete="false">
+                                <field name="document_code" string="Code"/>
+                                <field name="name" string="Document"/>
+                                <field name="folder_id" string="Folder"/>
+                                <field name="document_type" string="Type"/>
+                                <field name="status" string="Status"
+                                    decoration-success="status == 'active'"
+                                    decoration-warning="status == 'draft'"
+                                    decoration-muted="status == 'archived'"/>
+                                <field name="owner_id" string="Owner"
+                                    widget="many2one_avatar_user"/>
+                                <field name="create_date" string="Uploaded On"/>
+                            </list>
+                        </field>
+                    </div>
+
+                    <!-- ── Documents by Folder ── -->
+                    <div>
+                        <h5 class="fw-bold mb-2">
+                            <i class="fa fa-folder me-1 text-warning"/> Documents by Folder
+                        </h5>
+                        <field name="folder_stat_ids" readonly="1" nolabel="1">
+                            <list string="Folders" create="false" delete="false">
+                                <field name="complete_name" string="Folder"/>
+                                <field name="document_count" string="Documents"/>
+                                <field name="subfolder_count" string="Sub-Folders"/>
+                            </list>
+                        </field>
+                    </div>
+
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_it_dashboard" model="ir.actions.act_window">
+        <field name="name">IT DMS Dashboard</field>
+        <field name="res_model">it.dashboard</field>
+        <field name="view_mode">form</field>
+        <field name="res_id" ref="it_dms.it_dashboard_main"/>
+        <field name="target">main</field>
+        <field name="context">{'form_view_initial_mode': 'readonly'}</field>
+    </record>
+
+</odoo>

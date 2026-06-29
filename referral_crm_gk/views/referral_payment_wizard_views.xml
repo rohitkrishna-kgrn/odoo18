@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_referral_payment_wizard_form" model="ir.ui.view">
+        <field name="name">referral.payment.wizard.form</field>
+        <field name="model">referral.payment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Record Commission Payment">
+                <sheet>
+                    <div class="alert alert-info d-flex align-items-start gap-2 mb-3">
+                        <i class="fa fa-info-circle mt-1 flex-shrink-0"/>
+                        <div>
+                            <strong><field name="commission_name" readonly="1" nolabel="1"/></strong>
+                            — Total Commission:
+                            <strong>AED <field name="commission_amount" readonly="1" nolabel="1"
+                                               widget="float" options="{'digits': [16, 2]}"/></strong>
+                            <span invisible="amount_paid_so_far == 0">
+                                &#160;· Already Paid:
+                                <strong>AED <field name="amount_paid_so_far" readonly="1" nolabel="1"
+                                                   widget="float" options="{'digits': [16, 2]}"/></strong>
+                            </span>
+                        </div>
+                    </div>
+
+                    <group>
+                        <group string="Payment Details">
+                            <field name="payment_type" widget="radio"/>
+                            <field name="amount_being_paid"
+                                   string="Amount Being Paid (AED)"
+                                   invisible="payment_type == 'full'"
+                                   required="payment_type == 'partial'"/>
+                            <field name="remaining_balance" readonly="1"
+                                   string="Remaining Balance (AED)"
+                                   invisible="amount_paid_so_far == 0"/>
+                            <field name="payment_ref" placeholder="e.g. CHQ-0012 or TRF-20240601"/>
+                            <field name="paid_date"/>
+                        </group>
+                    </group>
+
+                    <group string="Notes" invisible="payment_type == 'full'">
+                        <field name="notes" nolabel="1" widget="text"
+                               placeholder="Optional: add payment notes or cheque details…"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm" type="object"
+                            string="Confirm Payment" class="btn btn-primary"/>
+                    <button string="Cancel" class="btn btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

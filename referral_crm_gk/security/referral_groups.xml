@@ -20,4 +20,10 @@
         <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
     </record>
 
+    <record id="group_referral_accounts" model="res.groups">
+        <field name="name">Accounts</field>
+        <field name="category_id" ref="referral_crm_gk.module_category_referral"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
 </odoo>

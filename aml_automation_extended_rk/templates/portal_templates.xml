@@ -134,75 +134,94 @@
                 <section class="aml-page active" id="page-0">
                     <div class="aml-page-header">
                         <h2>General Instructions</h2>
-                        <p class="aml-page-subtitle">Please read carefully before proceeding</p>
+                        <p class="aml-page-subtitle">Please read carefully before completing and submitting the KYC form and supporting documents.</p>
                     </div>
                     <div class="aml-instructions-content">
                         <div class="aml-instruction-item">
                             <span class="inst-num">1</span>
                             <div>
-                                <strong>Purpose of the Request</strong>
-                                <p>As part of our regulatory obligations under UAE AML/CFT requirements
-                                applicable to DNFBPs, we are required="required" to obtain and verify customer due
-                                diligence (KYC) information before commencement of the engagement.
-                                This process helps us verify the legal existence of the entity/individual,
-                                identify shareholders, directors, managers, and UBOs, understand the nature
-                                of business activities, and comply with sanctions screening and AML regulations.</p>
+                                <strong>Why we require this information</strong>
+                                <p>As a professional services firm, we are classified as a Designated Non-Financial Business and Profession (DNFBP) under the UAE's Anti-Money Laundering and Countering the Financing of Terrorism (AML/CFT) framework, governed by:</p>
+                                <ul style="color:var(--muted);font-size:13px;margin:8px 0 0 16px;padding:0;line-height:1.7;">
+                                    <li>Federal Decree by Law No. (10) of 2025 Concerning Combatting Money Laundering, Terrorism Financing and Proliferation Financing</li>
+                                    <li>Cabinet Resolution No. (134) of 2025 on the Implementing Regulations</li>
+                                    <li>Directives issued by the UAE Ministry of Economy applicable to DNFBPs</li>
+                                </ul>
+                                <p style="margin-top:8px;">Under these obligations, we are legally required to conduct Customer Due Diligence (CDD) and Know Your Customer (KYC) procedures prior to commencing any engagement. This is not a procedural formality — it is a mandatory legal requirement that applies to all clients regardless of the nature or size of the engagement.</p>
+                                <p style="margin-top:6px;">Non-compliance on our part may result in regulatory sanctions, financial penalties, and reputational consequences for our firm.</p>
                             </div>
                         </div>
                         <div class="aml-instruction-item">
                             <span class="inst-num">2</span>
                             <div>
-                                <strong>Complete All Applicable Sections</strong>
-                                <p>Please fill in all relevant sections of the KYC form carefully.</p>
+                                <strong>Who Should Complete This Form</strong>
+                                <p>If you are a natural person (individual), complete the Individual KYC section yourself.</p>
+                                <p style="margin-top:6px;">If you are a legal person (company, partnership, trust, foundation, or other legal arrangement), the form must be completed by an authorized signatory or director on behalf of the entity, supported by a board resolution or equivalent mandate where applicable.</p>
                             </div>
                         </div>
                         <div class="aml-instruction-item">
                             <span class="inst-num">3</span>
                             <div>
-                                <strong>Submit Supporting Documents</strong>
-                                <p>Please provide clear and valid supporting documents along with the completed form.</p>
+                                <strong>Read all sections before completing the form</strong>
+                                <p>Please review the entire form carefully before entering any information. This will help you understand what is required and gather all necessary supporting documents in advance, avoiding delays in the onboarding process.</p>
                             </div>
                         </div>
                         <div class="aml-instruction-item">
                             <span class="inst-num">4</span>
                             <div>
-                                <strong>Accuracy of Information</strong>
-                                <p>Please ensure all information provided is complete, accurate, and consistent
-                                with supporting documents. Any mismatch may result in additional queries
-                                and delays.</p>
+                                <strong>Complete all applicable sections</strong>
+                                <p>All sections relevant to your Entity/Individual type must be completed in full. For sections that are genuinely not applicable to your circumstances, please write "N/A" rather than leaving them blank. Incomplete submissions will be returned for revision and may delay commencement of the engagement.</p>
                             </div>
                         </div>
                         <div class="aml-instruction-item">
                             <span class="inst-num">5</span>
                             <div>
-                                <strong>Mandatory Fields</strong>
-                                <p>Fields marked with <span class="req-star">*</span> are mandatory.
-                                Where a field is not applicable, please mention "N/A".</p>
+                                <strong>Mandatory fields</strong>
+                                <p>Fields marked with <span class="req-star">*</span> are mandatory and must not be left blank. Failure to complete mandatory fields will result in the form being deemed incomplete and returned for correction.</p>
                             </div>
                         </div>
                         <div class="aml-instruction-item">
                             <span class="inst-num">6</span>
                             <div>
-                                <strong>Review Before Submission</strong>
-                                <p>Verify that all sections are completed, all required="required" documents are attached,
-                                ownership percentages total 100%, names match legal documents, and the
-                                authorised signatory has reviewed the form.</p>
+                                <strong>Submit valid supporting documents</strong>
+                                <p>Please provide clear, legible, and currently valid copies of all required supporting documents alongside the completed form. Documents must not be expired. Scanned copies should be of sufficient resolution to be readable. Where certified copies are required, this will be indicated in the form.</p>
+                                <p style="margin-top:8px;"><strong style="font-size:13px;color:var(--muted);font-weight:600;">Proof of identity (POI)</strong> – In case of individual shareholder/Director/Manager/Authorised Signatory is latest passport copy, latest National ID or any government issued identity card.</p>
+                                <p style="margin-top:6px;"><strong style="font-size:13px;color:var(--muted);font-weight:600;">Proof of residence (POR)</strong> – Utility bills (internet, telephone, electricity, water bill, mobile), bank statements, Ejari (tenancy) agreement, municipal tax bills paid, maintenance bills, title deed of property. It should be from last 3 months and named in the concerned individual. For UAE National, Family Book can be provided.</p>
                             </div>
                         </div>
                         <div class="aml-instruction-item">
                             <span class="inst-num">7</span>
                             <div>
-                                <strong>Sign and Return</strong>
-                                <p>The KYC form must be signed by an authorised signatory / director /
-                                shareholder / manager, as applicable.</p>
+                                <strong>Ensure accuracy and consistency of information</strong>
+                                <p>All information provided must be complete, accurate, and fully consistent with the supporting documents submitted. Discrepancies between the information stated on the form and the supporting documentation — including name spellings, addresses, or ownership percentages — will require clarification and may cause significant delays.</p>
                             </div>
                         </div>
                         <div class="aml-instruction-item">
                             <span class="inst-num">8</span>
                             <div>
-                                <strong>Additional Clarification</strong>
-                                <p>Our AML/KYC team may request further information after initial review
-                                depending on the risk assessment and regulatory requirements.</p>
+                                <strong>Review before submission</strong>
+                                <p>Before submitting, please confirm the following: all sections have been completed; all required documents are attached; ownership percentages across all shareholders total 100%; names on the form match those on legal documents exactly; and the authorised signatory has reviewed and approved the form.</p>
+                            </div>
+                        </div>
+                        <div class="aml-instruction-item">
+                            <span class="inst-num">9</span>
+                            <div>
+                                <strong>Authorised signatory sign-off</strong>
+                                <p>The completed KYC form must be signed and dated by an authorised signatory, director, shareholder, or manager, as applicable to your entity structure. Electronic signatures are acceptable provided they are from a recognised and verifiable platform. Unsigned forms will not be processed.</p>
+                            </div>
+                        </div>
+                        <div class="aml-instruction-item">
+                            <span class="inst-num">10</span>
+                            <div>
+                                <strong>Further information may be requested</strong>
+                                <p>Our AML/KYC Compliance team conducts an initial review of all submitted forms. Depending on the outcome of the risk assessment and applicable regulatory requirements, additional information, clarifications, or enhanced due diligence documentation may be requested. Your prompt response to any such requests will be appreciated.</p>
+                            </div>
+                        </div>
+                        <div class="aml-instruction-item">
+                            <span class="inst-num">11</span>
+                            <div>
+                                <strong>Confidentiality</strong>
+                                <p>All information and documents collected through this process are handled in strict accordance with applicable UAE data protection and confidentiality obligations. They will be used exclusively for AML/CFT compliance purposes and retained in line with the regulatory record-keeping requirements under Federal Decree by Law No. (10) of 2025 Concerning Combatting Money Laundering, Terrorism Financing and Proliferation Financing.</p>
                             </div>
                         </div>
                     </div>
@@ -590,21 +609,13 @@
                             <div class="aml-q">
                                 <div class="aml-q-num">12</div>
                                 <div class="aml-q-body">
-                                    <span class="aml-q-label">What is your city? <span class="req-star">*</span></span>
-                                    <input type="text" name="ind_city" required="required" placeholder="e.g. Dubai"/>
-                                </div>
-                            </div>
-
-                            <div class="aml-q">
-                                <div class="aml-q-num">13</div>
-                                <div class="aml-q-body">
                                     <span class="aml-q-label">What is your country of residence? <span class="req-star">*</span></span>
                                     <input type="text" name="ind_country" required="required" placeholder="e.g. United Arab Emirates"/>
                                 </div>
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">14</div>
+                                <div class="aml-q-num">13</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">What is your mobile / telephone number? <span class="req-star">*</span></span>
                                     <input type="tel" name="ind_mobile" required="required" placeholder="+971 XX XXX XXXX"/>
@@ -612,7 +623,7 @@
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">15</div>
+                                <div class="aml-q-num">14</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">What is your email address? <span class="req-star">*</span></span>
                                     <input type="email" name="ind_email" required="required" placeholder="example@email.com"/>
@@ -620,7 +631,7 @@
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">16</div>
+                                <div class="aml-q-num">15</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">What type of proof of address are you providing? <span class="req-star">*</span></span>
                                     <select name="ind_proof_address_type" required="required"
@@ -641,90 +652,10 @@
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">17</div>
+                                <div class="aml-q-num">16</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">What is the document date of your proof of address? <span class="req-star">*</span></span>
                                     <input type="date" name="ind_document_date" required="required"/>
-                                </div>
-                            </div>
-
-                            <!-- Identification and Verification -->
-                            <div class="aml-q-divider" style="margin-top:12px;">Identification and Verification</div>
-
-                            <div class="aml-q">
-                                <div class="aml-q-num">18</div>
-                                <div class="aml-q-body">
-                                    <span class="aml-q-label">Have you attached your Emirates ID (Front &amp; Back)? <span class="req-star">*</span></span>
-                                    <div class="aml-radio-group">
-                                        <label><input type="radio" name="ind_emirates_id_attached" value="yes" required="required"/> Yes</label>
-                                        <label><input type="radio" name="ind_emirates_id_attached" value="no"/> No</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="aml-q">
-                                <div class="aml-q-num">19</div>
-                                <div class="aml-q-body">
-                                    <span class="aml-q-label">Have you attached your Passport (Photo page + Visa Page)? <span class="req-star">*</span></span>
-                                    <div class="aml-radio-group">
-                                        <label><input type="radio" name="ind_passport_attached" value="yes" required="required"/> Yes</label>
-                                        <label><input type="radio" name="ind_passport_attached" value="no"/> No</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="aml-q">
-                                <div class="aml-q-num">20</div>
-                                <div class="aml-q-body">
-                                    <span class="aml-q-label">Have you attached your Proof of Address? <span class="req-star">*</span></span>
-                                    <div class="aml-radio-group">
-                                        <label><input type="radio" name="ind_proof_address_attached" value="yes" required="required"/> Yes</label>
-                                        <label><input type="radio" name="ind_proof_address_attached" value="no"/> No</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="aml-q">
-                                <div class="aml-q-num">21</div>
-                                <div class="aml-q-body">
-                                    <span class="aml-q-label">Have you attached any other Government-Issued ID? <span class="req-star">*</span></span>
-                                    <div class="aml-radio-group">
-                                        <label><input type="radio" name="ind_other_id_attached" value="yes" required="required"/> Yes</label>
-                                        <label><input type="radio" name="ind_other_id_attached" value="no"/> No</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="aml-q">
-                                <div class="aml-q-num">22</div>
-                                <div class="aml-q-body">
-                                    <span class="aml-q-label">Has the ID been verified via Portal / Smart Pass / UAE Pass? <span class="req-star">*</span></span>
-                                    <div class="aml-radio-group">
-                                        <label><input type="radio" name="ind_verified_portal" value="yes" required="required"/> Yes</label>
-                                        <label><input type="radio" name="ind_verified_portal" value="no"/> No</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="aml-q">
-                                <div class="aml-q-num">23</div>
-                                <div class="aml-q-body">
-                                    <span class="aml-q-label">Has the ID been verified physically by staff? <span class="req-star">*</span></span>
-                                    <div class="aml-radio-group">
-                                        <label><input type="radio" name="ind_verified_physically" value="yes" required="required"/> Yes</label>
-                                        <label><input type="radio" name="ind_verified_physically" value="no"/> No</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="aml-q">
-                                <div class="aml-q-num">24</div>
-                                <div class="aml-q-body">
-                                    <span class="aml-q-label">Has Video KYC been completed? <span class="req-star">*</span></span>
-                                    <div class="aml-radio-group">
-                                        <label><input type="radio" name="ind_video_kyc" value="yes" required="required"/> Yes</label>
-                                        <label><input type="radio" name="ind_video_kyc" value="no"/> No</label>
-                                    </div>
                                 </div>
                             </div>
 
@@ -732,7 +663,7 @@
                             <div class="aml-q-divider" style="margin-top:12px;">Nature of Relationship</div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">25</div>
+                                <div class="aml-q-num">17</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">What is the purpose of this account / relationship? <span class="req-star">*</span></span>
                                     <select name="ind_purpose_of_relationship" required="required"
@@ -756,7 +687,7 @@
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">26</div>
+                                <div class="aml-q-num">18</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">What is the expected nature of transactions? <span class="req-star">*</span></span>
                                     <textarea name="ind_expected_transactions" rows="2" required="required" placeholder="Describe the expected transactions"></textarea>
@@ -764,7 +695,7 @@
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">27</div>
+                                <div class="aml-q-num">19</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">What is the expected monthly turnover / transaction value? <span class="req-star">*</span></span>
                                     <input type="text" name="ind_monthly_turnover" required="required" placeholder="e.g. AED 50,000"/>
@@ -772,7 +703,7 @@
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">28</div>
+                                <div class="aml-q-num">20</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">What is the source of your funds / income? <span class="req-star">*</span></span>
                                     <textarea name="ind_source_of_funds" rows="2" required="required" placeholder="e.g. Salary, Business income, Investments"></textarea>
@@ -780,7 +711,7 @@
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">29</div>
+                                <div class="aml-q-num">21</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">Whether the individual holds shares on behalf of another person? (Nominee shareholder) <span class="req-star">*</span></span>
                                     <div class="aml-radio-group">
@@ -791,7 +722,7 @@
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">30</div>
+                                <div class="aml-q-num">22</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">Does the individual belong to a high-risk jurisdiction? (Iran, DPRK - North Korea, Myanmar) <span class="req-star">*</span></span>
                                     <div class="aml-radio-group">
@@ -802,7 +733,7 @@
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">31</div>
+                                <div class="aml-q-num">23</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">What is the anticipated origin of funds (Country / Entity)? <span class="req-star">*</span></span>
                                     <textarea name="ind_anticipated_origin" rows="2" required="required" placeholder="Country or entity from which funds are expected"></textarea>
@@ -810,7 +741,7 @@
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">32</div>
+                                <div class="aml-q-num">24</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">Is the individual a citizen of more than one country? <span class="req-star">*</span></span>
                                     <div class="aml-radio-group">
@@ -830,7 +761,7 @@
                             </div>
 
                             <div class="aml-q">
-                                <div class="aml-q-num">33</div>
+                                <div class="aml-q-num">25</div>
                                 <div class="aml-q-body">
                                     <span class="aml-q-label">Is the individual a high net worth individual (net worth ≥ USD 15m)? <span class="req-star">*</span></span>
                                     <div class="aml-radio-group">
@@ -1177,7 +1108,7 @@
                             </div>
                             <div class="aml-field">
                                 <label>Signed On <span class="req-star">*</span></label>
-                                <input type="date" id="signed_on" required="required"/>
+                                <input type="date" id="signed_on" required="required" readonly="readonly" style="background:#f5f5f5;cursor:not-allowed;"/>
                             </div>
                         </div>
 

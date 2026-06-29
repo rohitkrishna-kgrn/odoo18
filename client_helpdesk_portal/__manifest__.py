@@ -1,0 +1,35 @@
+{
+    'name': 'Client Helpdesk Portal',
+    'version': '18.0.1.0.0',
+    'category': 'Services/Helpdesk',
+    'summary': 'Public client submission portal with helpdesk ticket workflow and reporting',
+    'author': 'KGRN',
+    'icon': '/client_helpdesk_portal/static/description/icon.png',
+    'depends': ['base', 'mail', 'website', 'contacts'],
+    'data': [
+        'security/security.xml',
+        'security/record_rules.xml',
+        'security/ir.model.access.csv',
+        'data/helpdesk_sequence.xml',
+        'data/helpdesk_stages.xml',
+        'data/mail_templates.xml',
+        'views/helpdesk_stage_views.xml',
+        'views/helpdesk_ticket_views.xml',
+        'views/helpdesk_close_wizard_views.xml',
+        'views/helpdesk_report_views.xml',
+        'views/portal_templates.xml',
+        'views/menu.xml',
+    ],
+    'demo': [
+        'data/demo_data.xml',
+    ],
+    'assets': {
+        'web.assets_frontend': [
+            'client_helpdesk_portal/static/src/css/helpdesk_portal.css',
+            'client_helpdesk_portal/static/src/js/helpdesk_portal.js',
+        ],
+    },
+    'installable': True,
+    'application': True,
+    'license': 'LGPL-3',
+}

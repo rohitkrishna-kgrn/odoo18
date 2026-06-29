@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="email_template_customer_form" model="mail.template">
+        <field name="name">Contact: KGRN Customer Information Form Request</field>
+        <field name="model_id" ref="contact_extended_rk.model_contact_form_token"/>
+        <field name="subject">Action Required: Please Update Your Contact Information</field>
+        <field name="email_from">{{ user.email_formatted }}</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="lang">{{ object.partner_id.lang }}</field>
+        <field name="auto_delete" eval="True"/>
+        <field name="body_html" type="html">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table width="620" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background:#ffffff;border-radius:8px;border:1px solid #dde6f0;">
+
+      <!-- Logo -->
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:12px 24px;" align="right">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
+      </td></tr>
+
+      <!-- Header -->
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">Customer Information Update Request</h1>
+        <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Contacts System</p>
+      </td></tr>
+
+      <!-- Body -->
+      <tr><td style="padding:24px 28px;">
+        <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear <t t-out="object.partner_id.name or 'Customer'"/>,</p>
+        <p style="margin:0 0 24px;color:#555;font-size:13px;">
+          We would like to update your contact information in our records.<br/>
+          Please click the button below to review and complete your details.
+        </p>
+
+        <!-- Single CTA Button -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+          <tr><td align="center">
+            <a t-att-href="'%s/customer-form/%s' % ((object.base_url or env['ir.config_parameter'].sudo().get_param('web.base.url', '')).rstrip('/'), object.token)"
+               style="display:inline-block;background:#1a3c6e;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:5px;letter-spacing:0.3px;border:0;">
+              KGRN Customer Information Form
+            </a>
+          </td></tr>
+        </table>
+
+        <!-- Info table -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Form Details</th></tr>
+          <tr>
+            <td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Contact Name</td>
+            <td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.partner_id.name or '—'"/></td>
+          </tr>
+          <tr>
+            <td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Link Expires</td>
+            <td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.expiry_date.strftime('%d %b %Y') if object.expiry_date else '7 days'"/></td>
+          </tr>
+        </table>
+
+        <p style="color:#999;font-size:12px;margin:0;">
+          If you did not expect this email, please ignore it. The link will expire automatically.
+        </p>
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:12px 28px;text-align:center;">
+        <p style="color:#a8c4e8;font-size:12px;margin:0;line-height:1.5;">
+          This is an automated notification from the KGRN Contacts system. Please do not reply to this email.
+        </p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+        </field>
+    </record>
+
+</odoo>

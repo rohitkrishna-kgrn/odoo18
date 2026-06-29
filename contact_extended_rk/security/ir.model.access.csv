@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_contact_form_token_user,contact.form.token access for internal users,model_contact_form_token,base.group_user,1,1,1,1
+access_contact_email_all_wizard_admin,contact.email.all.wizard access for admin,model_contact_email_all_wizard,base.group_system,1,1,1,1

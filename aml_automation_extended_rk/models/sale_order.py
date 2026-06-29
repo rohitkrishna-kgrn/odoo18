@@ -52,10 +52,10 @@ class SaleOrder(models.Model):
                 ('cert_incorporation', 30), ('vat_corp_tax', 40), ('moa', 50),
                 ('cert_incumbency', 60),
                 ('board_resolution', 70), ('share_certificates', 80), ('org_chart', 90),
-                ('utility_bills', 100), ('lease_agreement', 110), ('business_profile', 120),
-                ('authorized_signatories', 130), ('family_book', 140),
-                ('residing_together_declaration', 150),
-                ('related_party_licenses', 160),
+                ('lease_agreement', 100), ('business_profile', 110),
+                ('authorized_signatories', 120), ('family_book', 130),
+                ('residing_together_declaration', 140),
+                ('related_party_licenses', 150),
             ]
         for doc_key, seq in pi_docs:
             self.env['aml.request.document'].sudo().create({

@@ -13,6 +13,8 @@
                 <field name="salesperson_id"     string="Salesperson"/>
                 <field name="department_id"      string="Department"/>
                 <field name="company_id"         string="Company"/>
+                <field name="last_invoice_date" string="Invoice Date From" filter_domain="[('last_invoice_date', '&gt;=', self)]"/>
+                <field name="last_invoice_date" string="Invoice Date To"   filter_domain="[('last_invoice_date', '&lt;=', self)]"/>
                 <field name="deadline" string="Deadline From"
                       filter_domain="[('deadline', '&gt;=', self)]"/>
                 <field name="deadline" string="Deadline To"
@@ -25,6 +27,9 @@
                 <filter string="Created Date" name="filter_create_date" date="project_create_date"/>
                 <filter string="Completed"    name="completed"    domain="[('is_completed', '=', True)]"/>
                 <filter string="In Progress"  name="in_progress"  domain="[('is_completed', '=', False)]"/>
+                <separator/>
+                <filter string="Invoice Date" name="filter_invoice_date" date="last_invoice_date"/>
+                <filter string="Deadline"     name="filter_deadline"     date="deadline"/>
                 <group expand="1" string="Group By">
                     <filter string="Company"        name="group_company"     context="{'group_by': 'company_id'}"/>
                     <filter string="Department"     name="group_department"  context="{'group_by': 'department_id'}"/>

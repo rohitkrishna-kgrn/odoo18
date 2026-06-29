@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_it_tag_list" model="ir.ui.view">
+        <field name="name">it.tag.list</field>
+        <field name="model">it.tag</field>
+        <field name="arch" type="xml">
+            <list string="IT Document Tags" editable="top">
+                <field name="name"/>
+                <field name="color" widget="color_picker"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_it_tag_form" model="ir.ui.view">
+        <field name="name">it.tag.form</field>
+        <field name="model">it.tag</field>
+        <field name="arch" type="xml">
+            <form string="IT Document Tag">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Production, Critical, Linux..."/>
+                        </h1>
+                    </div>
+                    <group>
+                        <field name="color" widget="color_picker"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_it_tag" model="ir.actions.act_window">
+        <field name="name">Tags</field>
+        <field name="res_model">it.tag</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first document tag!
+            </p>
+            <p>
+                Tags allow flexible labeling of documents.
+                Examples: Production, Development, Critical, Linux, Windows, Firewall.
+            </p>
+        </field>
+    </record>
+
+</odoo>

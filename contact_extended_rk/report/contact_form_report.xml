@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════
+         Report Action
+    ═══════════════════════════════════════════════════════ -->
+    <record id="action_report_customer_form" model="ir.actions.report">
+        <field name="name">KGRN Customer Information Form</field>
+        <field name="model">contact.form.token</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">contact_extended_rk.report_customer_form_doc</field>
+        <field name="report_file">contact_extended_rk.report_customer_form_doc</field>
+        <field name="print_report_name">'KGRN_Customer_Form_%s' % (object.partner_id.name or 'Submission').replace(' ', '_')</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════
+         PDF Report Template
+    ═══════════════════════════════════════════════════════ -->
+    <template id="report_customer_form_doc">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#333;">
+
+                        <!-- KGRN Branded Sub-Header -->
+                        <table width="100%" cellpadding="0" cellspacing="0"
+                               style="border-collapse:collapse;margin-bottom:18px;">
+                            <tr>
+                                <td style="background:#1a3c6e;padding:14px 20px;">
+                                    <h2 style="color:#ffffff;font-size:15px;font-weight:700;margin:0 0 2px;">
+                                        <t t-if="doc.partner_id.is_company">Entity</t>
+                                        <t t-else="">Individual</t>
+                                        Information Form
+                                    </h2>
+                                    <p style="color:#a8c4e8;font-size:10px;margin:0;">
+                                        KGRN Chartered Accountants &#8226; Contacts System
+                                    </p>
+                                </td>
+                                <td style="background:#1a3c6e;padding:14px 20px;text-align:right;vertical-align:middle;">
+                                    <span style="background:#27ae60;color:#fff;padding:4px 12px;border-radius:12px;font-size:10px;font-weight:700;">
+                                        <t t-if="doc.state == 'submitted'">&#10003; SUBMITTED</t>
+                                        <t t-else="">PENDING</t>
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Submission Details -->
+                        <table width="100%" cellpadding="0" cellspacing="0"
+                               style="border-collapse:collapse;border:1px solid #c5d7f0;margin-bottom:16px;">
+                            <tr>
+                                <th colspan="2"
+                                    style="background:#1a3c6e;color:#fff;padding:8px 12px;font-size:11px;text-align:left;letter-spacing:0.2px;">
+                                    Submission Details
+                                </th>
+                            </tr>
+                            <tr>
+                                <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;width:35%;border-bottom:1px solid #dde6f0;font-size:11px;">Contact Name</td>
+                                <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.name or '—'"/></td>
+                            </tr>
+                            <tr>
+                                <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">Contact Type</td>
+                                <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;">
+                                    <t t-if="doc.partner_id.is_company">Entity / Company</t>
+                                    <t t-else="">Individual</t>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">Submitted On</td>
+                                <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;">
+                                    <t t-out="doc.submitted_date.strftime('%d %b %Y %H:%M') if doc.submitted_date else '—'"/> UTC
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;font-size:11px;">Form Reference</td>
+                                <td style="padding:7px 12px;color:#777;font-size:10px;font-family:monospace;"><t t-out="doc.token"/></td>
+                            </tr>
+                        </table>
+
+                        <!-- ─── INDIVIDUAL FIELDS ─── -->
+                        <t t-if="not doc.partner_id.is_company">
+
+                            <table width="100%" cellpadding="0" cellspacing="0"
+                                   style="border-collapse:collapse;border:1px solid #c5d7f0;margin-bottom:16px;">
+                                <tr>
+                                    <th colspan="2" style="background:#1a3c6e;color:#fff;padding:8px 12px;font-size:11px;text-align:left;letter-spacing:0.2px;">
+                                        Personal Information
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;width:35%;border-bottom:1px solid #dde6f0;font-size:11px;">Full Name</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.name or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">Email</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.email or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">Phone</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.phone or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">Mobile</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.mobile or '—'"/></td>
+                                </tr>
+                            </table>
+
+                            <table width="100%" cellpadding="0" cellspacing="0"
+                                   style="border-collapse:collapse;border:1px solid #c5d7f0;margin-bottom:16px;">
+                                <tr>
+                                    <th colspan="2" style="background:#1a3c6e;color:#fff;padding:8px 12px;font-size:11px;text-align:left;letter-spacing:0.2px;">
+                                        Address
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;width:35%;border-bottom:1px solid #dde6f0;font-size:11px;">Street</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;">
+                                        <t t-out="doc.partner_id.street or '—'"/>
+                                        <t t-if="doc.partner_id.street2">, <t t-out="doc.partner_id.street2"/></t>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">City</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.city or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">ZIP / Postal Code</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.zip or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;font-size:11px;">Country</td>
+                                    <td style="padding:7px 12px;color:#333;font-size:11px;"><t t-out="doc.partner_id.country_id.name or '—'"/></td>
+                                </tr>
+                            </table>
+
+                            <table width="100%" cellpadding="0" cellspacing="0"
+                                   style="border-collapse:collapse;border:1px solid #c5d7f0;margin-bottom:16px;">
+                                <tr>
+                                    <th colspan="2" style="background:#1a3c6e;color:#fff;padding:8px 12px;font-size:11px;text-align:left;letter-spacing:0.2px;">
+                                        Identification Details
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;width:35%;border-bottom:1px solid #dde6f0;font-size:11px;">Emirates ID</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.emirates_id or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;font-size:11px;">Passport Number</td>
+                                    <td style="padding:7px 12px;color:#333;font-size:11px;"><t t-out="doc.partner_id.passport_number or '—'"/></td>
+                                </tr>
+                            </table>
+
+                        </t>
+
+                        <!-- ─── ENTITY / COMPANY FIELDS ─── -->
+                        <t t-if="doc.partner_id.is_company">
+
+                            <table width="100%" cellpadding="0" cellspacing="0"
+                                   style="border-collapse:collapse;border:1px solid #c5d7f0;margin-bottom:16px;">
+                                <tr>
+                                    <th colspan="2" style="background:#1a3c6e;color:#fff;padding:8px 12px;font-size:11px;text-align:left;letter-spacing:0.2px;">
+                                        Company Information
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;width:35%;border-bottom:1px solid #dde6f0;font-size:11px;">Company Name</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.name or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">Email</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.email or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">Phone</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.phone or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">VAT / TRN Number</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.vat or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;font-size:11px;">Company License No.</td>
+                                    <td style="padding:7px 12px;color:#333;font-size:11px;"><t t-out="doc.partner_id.company_license_no or '—'"/></td>
+                                </tr>
+                            </table>
+
+                            <table width="100%" cellpadding="0" cellspacing="0"
+                                   style="border-collapse:collapse;border:1px solid #c5d7f0;margin-bottom:16px;">
+                                <tr>
+                                    <th colspan="2" style="background:#1a3c6e;color:#fff;padding:8px 12px;font-size:11px;text-align:left;letter-spacing:0.2px;">
+                                        Registered Address
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;width:35%;border-bottom:1px solid #dde6f0;font-size:11px;">Street</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;">
+                                        <t t-out="doc.partner_id.street or '—'"/>
+                                        <t t-if="doc.partner_id.street2">, <t t-out="doc.partner_id.street2"/></t>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">City</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.city or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;border-bottom:1px solid #dde6f0;font-size:11px;">ZIP / Postal Code</td>
+                                    <td style="padding:7px 12px;border-bottom:1px solid #dde6f0;color:#333;font-size:11px;"><t t-out="doc.partner_id.zip or '—'"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:7px 12px;background:#f0f5ff;color:#1a3c6e;font-weight:700;font-size:11px;">Country</td>
+                                    <td style="padding:7px 12px;color:#333;font-size:11px;"><t t-out="doc.partner_id.country_id.name or '—'"/></td>
+                                </tr>
+                            </table>
+
+                        </t>
+
+                        <!-- Footer note -->
+                        <div style="margin-top:24px;padding:10px 14px;background:#f0f5ff;border:1px solid #c5d7f0;border-radius:4px;font-size:10px;color:#666;text-align:center;">
+                            This document was automatically generated by the KGRN Contacts System.
+                            &#8226; Generated on
+                            <t t-out="doc.submitted_date.strftime('%d %b %Y') if doc.submitted_date else ''"/>
+                            &#8226; Reference: <t t-out="doc.token"/>
+                        </div>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

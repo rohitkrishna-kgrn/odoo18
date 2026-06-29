@@ -1,0 +1,12 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ticket_manager,client.helpdesk.ticket manager,model_client_helpdesk_ticket,client_helpdesk_portal.group_helpdesk_manager,1,1,1,1
+access_ticket_agent,client.helpdesk.ticket agent,model_client_helpdesk_ticket,client_helpdesk_portal.group_helpdesk_agent,1,1,0,0
+access_ticket_public,client.helpdesk.ticket public,model_client_helpdesk_ticket,base.group_public,0,0,1,0
+access_ticket_portal,client.helpdesk.ticket portal user,model_client_helpdesk_ticket,base.group_portal,0,0,1,0
+access_stage_manager,client.helpdesk.stage manager,model_client_helpdesk_stage,client_helpdesk_portal.group_helpdesk_manager,1,1,1,1
+access_stage_agent,client.helpdesk.stage agent,model_client_helpdesk_stage,client_helpdesk_portal.group_helpdesk_agent,1,0,0,0
+access_stage_public,client.helpdesk.stage public,model_client_helpdesk_stage,base.group_public,1,0,0,0
+access_attachment_manager,ir.attachment helpdesk manager,base.model_ir_attachment,client_helpdesk_portal.group_helpdesk_manager,1,1,1,1
+access_attachment_agent,ir.attachment helpdesk agent,base.model_ir_attachment,client_helpdesk_portal.group_helpdesk_agent,1,1,1,0
+access_close_wizard_manager,client.helpdesk.close.wizard manager,model_client_helpdesk_close_wizard,client_helpdesk_portal.group_helpdesk_manager,1,1,1,1
+access_close_wizard_agent,client.helpdesk.close.wizard agent,model_client_helpdesk_close_wizard,client_helpdesk_portal.group_helpdesk_agent,1,1,1,1

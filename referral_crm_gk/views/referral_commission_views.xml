@@ -8,7 +8,7 @@
         <field name="name">referral.commission.list</field>
         <field name="model">referral.commission</field>
         <field name="arch" type="xml">
-            <list string="Commissions" default_order="create_date desc">
+            <list string="Commissions" default_order="create_date desc" delete="false">
                 <field name="name" string="Reference"/>
                 <field name="referrer_id" string="Referrer"/>
                 <field name="referrer_company" string="Referrer Company" optional="show"/>
@@ -24,8 +24,17 @@
                 <field name="referrer_commission_rate" string="Rate (%)" widget="float"/>
                 <field name="commission_amount" string="Commission (AED)"
                        widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="amount_paid" string="Paid (AED)"
+                       widget="monetary" options="{'currency_field': 'currency_id'}"
+                       optional="show"/>
+                <field name="remaining_balance" string="Remaining (AED)"
+                       widget="monetary" options="{'currency_field': 'currency_id'}"
+                       optional="show"/>
+                <field name="invoice_id" optional="show" string="Invoice"
+                       options="{'no_open': False}"/>
                 <field name="state" widget="badge"
-                       decoration-warning="state == 'pending'"
+                       decoration-danger="state == 'pending'"
+                       decoration-warning="state == 'partial'"
                        decoration-success="state == 'paid'"/>
                 <field name="paid_date" string="Paid On" optional="show"/>
             </list>
@@ -39,12 +48,18 @@
         <field name="name">referral.commission.form</field>
         <field name="model">referral.commission</field>
         <field name="arch" type="xml">
-            <form string="Commission">
+            <form string="Commission" delete="false">
                 <header>
+                    <!-- Mark as Paid: only available for manual commissions (no invoice) -->
                     <button name="action_mark_paid" type="object"
                             string="Mark as Paid" class="btn btn-primary"
-                            invisible="state == 'paid'"/>
-                    <field name="state" widget="statusbar" statusbar_visible="pending,paid"/>
+                            invisible="state == 'paid' or invoice_id"
+                            groups="referral_crm_gk.group_referral_manager,referral_crm_gk.group_referral_accounts"/>
+                    <button name="action_open_invoice" type="object"
+                            string="View Invoice" class="btn btn-secondary"
+                            invisible="not invoice_id"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,partial,paid"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -54,6 +69,29 @@
                                 <span class="o_stat_text">View Referral</span>
                             </div>
                         </button>
+                        <button type="object" name="action_open_invoice"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="not invoice_id">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="invoice_number" readonly="1" nolabel="1"/>
+                                </span>
+                                <span class="o_stat_text">Invoice</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Accounting sync banner (visible when invoice linked) -->
+                    <div class="alert alert-info d-flex align-items-start gap-2 mb-3"
+                         invisible="not invoice_id">
+                        <i class="fa fa-link mt-1"/>
+                        <div>
+                            <strong>Automatically Synced from Accounting</strong>
+                            <div class="mt-1 text-muted">
+                                Payment status and commission tracking are controlled by the
+                                linked invoice. No manual edits are required.
+                            </div>
+                        </div>
                     </div>
 
                     <div class="oe_title">
@@ -85,13 +123,45 @@
                         </group>
                     </group>
 
+                    <!-- Invoice payment details (only when invoice is linked) -->
+                    <group string="Invoice Payment Details" invisible="not invoice_id">
+                        <group>
+                            <field name="invoice_id" readonly="1"
+                                   options="{'no_open': False}" string="Invoice"/>
+                            <field name="invoice_number" readonly="1"/>
+                            <field name="invoice_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="invoice_amount_total" readonly="1"
+                                   widget="monetary" options="{'currency_field': 'currency_id'}"
+                                   string="Invoice Total (AED)"/>
+                            <field name="invoice_amount_residual" readonly="1"
+                                   widget="monetary" options="{'currency_field': 'currency_id'}"
+                                   string="Outstanding (AED)"/>
+                            <field name="invoice_payment_state" readonly="1"
+                                   widget="badge"
+                                   decoration-danger="invoice_payment_state == 'not_paid'"
+                                   decoration-warning="invoice_payment_state == 'partial' or invoice_payment_state == 'in_payment'"
+                                   decoration-success="invoice_payment_state == 'paid'"
+                                   string="Invoice Payment Status"/>
+                        </group>
+                    </group>
+
                     <group>
                         <group string="Commission">
                             <field name="commission_amount" readonly="1"
                                    widget="monetary" options="{'currency_field': 'currency_id'}"
-                                   string="Commission Amount (AED)"/>
+                                   string="Total Commission (AED)"/>
+                            <field name="amount_paid"
+                                   readonly="invoice_id"
+                                   widget="monetary" options="{'currency_field': 'currency_id'}"
+                                   string="Amount Paid to Referrer (AED)"/>
+                            <field name="remaining_balance" readonly="1"
+                                   widget="monetary" options="{'currency_field': 'currency_id'}"
+                                   string="Remaining Balance (AED)"
+                                   invisible="state == 'paid'"/>
                         </group>
-                        <group string="Payment" invisible="state == 'pending'">
+                        <group string="Payment" invisible="invoice_id or state == 'pending'">
                             <field name="paid_date"/>
                             <field name="payment_ref" placeholder="Cheque / Transfer Ref…"/>
                         </group>
@@ -119,10 +189,15 @@
                 <field name="referrer_id" string="Referrer"/>
                 <field name="referral_company" string="Referred Company"/>
                 <field name="partner_name" string="Contact"/>
-                <filter string="Pending" name="state_pending" domain="[('state', '=', 'pending')]"/>
-                <filter string="Paid" name="state_paid" domain="[('state', '=', 'paid')]"/>
+                <filter string="Not Paid" name="state_pending" domain="[('state', '=', 'pending')]"/>
+                <filter string="Partially Paid" name="state_partial" domain="[('state', '=', 'partial')]"/>
+                <filter string="Fully Paid" name="state_paid" domain="[('state', '=', 'paid')]"/>
+                <separator/>
+                <filter string="Invoice Linked" name="has_invoice" domain="[('invoice_id', '!=', False)]"/>
+                <filter string="No Invoice" name="no_invoice" domain="[('invoice_id', '=', False)]"/>
                 <group expand="0" string="Group By">
                     <filter string="Referrer" name="group_referrer" context="{'group_by': 'referrer_id'}"/>
+                    <filter string="Tier" name="group_tier" context="{'group_by': 'referrer_tier'}"/>
                     <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
                 </group>
             </search>
@@ -130,7 +205,40 @@
     </record>
 
     <!-- ══════════════════════════════════════════════════════
-         Commission — Window action (replaces old crm.lead-based action)
+         Commission — Pivot view (for Reports)
+    ══════════════════════════════════════════════════════════ -->
+    <record id="view_referral_commission_pivot" model="ir.ui.view">
+        <field name="name">referral.commission.pivot</field>
+        <field name="model">referral.commission</field>
+        <field name="arch" type="xml">
+            <pivot string="Commission Report" disable_linking="False">
+                <field name="referrer_id" type="row"/>
+                <field name="referrer_tier" type="col"/>
+                <field name="commission_amount" type="measure"/>
+                <field name="amount_paid" type="measure"/>
+                <field name="remaining_balance" type="measure"/>
+                <field name="deal_value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════
+         Commission — Graph view (for Reports)
+    ══════════════════════════════════════════════════════════ -->
+    <record id="view_referral_commission_graph" model="ir.ui.view">
+        <field name="name">referral.commission.graph</field>
+        <field name="model">referral.commission</field>
+        <field name="arch" type="xml">
+            <graph string="Commission Report" type="bar">
+                <field name="referrer_id"/>
+                <field name="commission_amount" type="measure"/>
+                <field name="amount_paid" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════
+         Commission — Window action (main list)
     ══════════════════════════════════════════════════════════ -->
     <record id="action_referral_commissions" model="ir.actions.act_window">
         <field name="name">Commissions</field>
@@ -149,6 +257,45 @@
                 No commissions yet — they are created automatically when a referral lead
                 reaches the Converted stage.
             </p>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════
+         Commission — Report action (pivot + graph)
+    ══════════════════════════════════════════════════════════ -->
+    <record id="action_referral_commission_report" model="ir.actions.act_window">
+        <field name="name">Commission Report</field>
+        <field name="res_model">referral.commission</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="domain">[]</field>
+        <field name="context">{}</field>
+        <field name="search_view_id" ref="view_referral_commission_search"/>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('view_referral_commission_pivot')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('view_referral_commission_graph')}),
+            (0, 0, {'view_mode': 'list',  'view_id': ref('view_referral_commission_list')}),
+        ]"/>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════
+         Referral Summary report action (list of all referrals)
+    ══════════════════════════════════════════════════════════ -->
+    <record id="action_referral_summary_report" model="ir.actions.server">
+        <field name="name">Referral Summary</field>
+        <field name="model_id" ref="crm.model_crm_lead"/>
+        <field name="state">code</field>
+        <field name="code">
+list_view   = env.ref('referral_crm_gk.view_referral_lead_list').id
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Referral Summary',
+    'res_model': 'crm.lead',
+    'view_mode': 'list,kanban,form',
+    'views': [(list_view, 'list'), (False, 'kanban'), (False, 'form')],
+    'domain': [('x_is_referral', '=', True)],
+    'context': {'default_x_is_referral': True},
+}
         </field>
     </record>
 

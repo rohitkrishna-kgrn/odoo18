@@ -1,6 +1,9 @@
+import logging
 import re
 
 from odoo import api, fields, models
+
+_logger = logging.getLogger(__name__)
 
 
 class CrmLead(models.Model):
@@ -24,11 +27,60 @@ class CrmLead(models.Model):
         copy=False,
         readonly=True,
     )
+    # ── Invoice integration ────────────────────────────────────────────────
+    x_invoice_id = fields.Many2one(
+        'account.move',
+        string='Linked Invoice',
+        domain=[('move_type', '=', 'out_invoice')],
+        copy=False,
+        readonly=True,
+        ondelete='set null',
+        index=True,
+    )
+    x_invoice_number = fields.Char(
+        related='x_invoice_id.name',
+        string='Invoice Number',
+        readonly=True,
+    )
+    x_invoice_date = fields.Date(
+        related='x_invoice_id.invoice_date',
+        string='Invoice Date',
+        readonly=True,
+    )
+    x_invoice_amount_total = fields.Monetary(
+        related='x_invoice_id.amount_total',
+        string='Invoice Total (AED)',
+        readonly=True,
+        currency_field='company_currency',
+    )
+    x_invoice_amount_residual = fields.Monetary(
+        related='x_invoice_id.amount_residual',
+        string='Outstanding Amount (AED)',
+        readonly=True,
+        currency_field='company_currency',
+    )
+    x_invoice_payment_state = fields.Selection(
+        related='x_invoice_id.payment_state',
+        string='Invoice Payment Status',
+        readonly=True,
+    )
+    x_invoice_attachment_ids = fields.Many2many(
+        'ir.attachment',
+        compute='_compute_invoice_attachments',
+        string='Invoice Documents',
+    )
+
+    # Commission payment status — computed from invoice when linked; manual otherwise
     x_payment_status = fields.Selection([
-        ('pending', 'Pending'),
+        ('pending', 'Not Paid'),
         ('partial', 'Partially Paid'),
-        ('full', 'Full'),
-    ], string='Payment Status', default='pending')
+        ('full', 'Fully Paid'),
+    ], string='Commission Payment Status',
+       compute='_compute_payment_status',
+       inverse='_set_payment_status',
+       store=True,
+       readonly=False,
+    )
 
     x_sale_order_id = fields.Many2one(
         'sale.order',
@@ -92,6 +144,16 @@ class CrmLead(models.Model):
         string='Stage Name',
         readonly=True,
     )
+    x_stage_is_converted = fields.Boolean(
+        related='stage_id.x_is_referral_converted',
+        string='Stage Is Converted',
+        readonly=True,
+    )
+    x_stage_is_lost = fields.Boolean(
+        related='stage_id.x_is_referral_lost',
+        string='Stage Is Lost',
+        readonly=True,
+    )
     x_commission_id = fields.Many2one(
         'referral.commission',
         compute='_compute_commission_id',
@@ -132,21 +194,107 @@ class CrmLead(models.Model):
         for rec in self:
             rec.x_commission_id = commission_map.get(rec.id)
 
+    _INVOICE_PAYMENT_STATE_MAP = {
+        'not_paid': 'pending',
+        'partial': 'partial',
+        'in_payment': 'partial',
+        'paid': 'full',
+        'reversed': 'pending',
+        'invoicing_legacy': 'pending',
+    }
+
+    @api.depends('x_invoice_id', 'x_invoice_id.payment_state')
+    def _compute_payment_status(self):
+        for rec in self:
+            if rec.x_invoice_id:
+                rec.x_payment_status = self._INVOICE_PAYMENT_STATE_MAP.get(
+                    rec.x_invoice_id.payment_state, 'pending'
+                )
+            else:
+                rec.x_payment_status = 'pending'
+
+    def _set_payment_status(self):
+        # Allows manual writes for leads without a linked invoice.
+        # When an invoice is linked the compute overrides any manual value.
+        pass
+
+    @api.depends('x_invoice_id')
+    def _compute_invoice_attachments(self):
+        Attachment = self.env['ir.attachment'].sudo()
+        for rec in self:
+            if not rec.x_invoice_id:
+                rec.x_invoice_attachment_ids = Attachment.browse()
+                continue
+            # Attachments on the invoice itself
+            invoice_attachment_ids = Attachment.search([
+                ('res_model', '=', 'account.move'),
+                ('res_id', '=', rec.x_invoice_id.id),
+            ])
+            # Attachments on reconciled payment journal entries
+            try:
+                rcv_lines = rec.x_invoice_id.line_ids.filtered(
+                    lambda l: l.account_id.account_type in (
+                        'asset_receivable', 'liability_payable'
+                    ) and l.reconciled
+                )
+                payment_move_ids = (
+                    rcv_lines.mapped('matched_debit_ids.debit_move_id.id')
+                    + rcv_lines.mapped('matched_credit_ids.credit_move_id.id')
+                )
+                if payment_move_ids:
+                    payment_attachment_ids = Attachment.search([
+                        ('res_model', '=', 'account.move'),
+                        ('res_id', 'in', payment_move_ids),
+                    ])
+                    rec.x_invoice_attachment_ids = invoice_attachment_ids | payment_attachment_ids
+                else:
+                    rec.x_invoice_attachment_ids = invoice_attachment_ids
+            except Exception:
+                rec.x_invoice_attachment_ids = invoice_attachment_ids
+
+    # ── Invoice actions ───────────────────────────────────────────────────
+
+    def action_open_invoice(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.move',
+            'res_id': self.x_invoice_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+
     # ── Email notifications ────────────────────────────────────────────────
 
-    def _send_notification_email(self, subject, body_html, partner_ids):
-        """Send a notification email via mail.mail (no chatter, no user signature)."""
-        if not partner_ids:
+    def _send_template_email(self, template_xml_id, extra_recipients=None, email_to=None):
+        template = self.env.ref(
+            f'referral_crm_gk.{template_xml_id}', raise_if_not_found=False
+        )
+        if not template:
+            _logger.warning('referral_crm_gk: template %s not found', template_xml_id)
             return
-        self.env['mail.mail'].sudo().create({
-            'subject': subject,
-            'body_html': body_html,
-            'recipient_ids': [(6, 0, partner_ids)],
-            'auto_delete': True,
-        }).send()
+        email_values = {'auto_delete': False}
+        if email_to:
+            email_values.update({'email_to': email_to, 'recipient_ids': []})
+        elif extra_recipients:
+            partners = extra_recipients.filtered('email')
+            if not partners:
+                _logger.warning(
+                    'referral_crm_gk: no email recipients for template %s', template_xml_id
+                )
+                return
+            email_values.update({
+                'recipient_ids': [(4, p.id) for p in partners],
+                'email_to': '',
+            })
+        template.send_mail(
+            self.id,
+            force_send=True,
+            raise_exception=False,
+            email_values=email_values,
+        )
 
     def _get_referral_manager_partners(self):
-        """Return partner records for all active referral managers who have an email."""
         group = self.env.ref('referral_crm_gk.group_referral_manager', raise_if_not_found=False)
         if not group:
             return self.env['res.partner'].browse()
@@ -157,148 +305,35 @@ class CrmLead(models.Model):
         return managers.mapped('partner_id').filtered('email')
 
     def _notify_managers_new_referral(self):
-        """Email managers when a new referral is submitted."""
         self.ensure_one()
         manager_partners = self._get_referral_manager_partners()
         if not manager_partners:
             return
-        referrer = self.x_referrer_id
-        referrer_label = referrer.name if referrer else '—'
-        if referrer and referrer.company:
-            referrer_label += f' ({referrer.company})'
-        body = f"""
-            <p>A new referral has been submitted and requires your attention.</p>
-            <table style="border-collapse:collapse;width:100%;max-width:520px;font-size:14px">
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold;width:170px">Reference</td>
-                    <td style="padding:6px 10px">{self.x_referral_ref or '—'}</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Referrer</td>
-                    <td style="padding:6px 10px">{referrer_label}</td>
-                </tr>
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold">Referrer Email</td>
-                    <td style="padding:6px 10px">{referrer.email if referrer else '—'}</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Referrer Phone</td>
-                    <td style="padding:6px 10px">{referrer.phone if referrer else '—'}</td>
-                </tr>
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold">Referred Contact</td>
-                    <td style="padding:6px 10px">{self.partner_name or '—'}</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Referred Company</td>
-                    <td style="padding:6px 10px">{self.x_referral_company or '—'}</td>
-                </tr>
-            </table>
-            <p style="margin-top:12px">Please review and assign to a salesperson.</p>
-        """
-        self._send_notification_email(
-            subject=f'New Referral Submitted: {self.x_referral_ref or self.name}',
-            body_html=body,
-            partner_ids=manager_partners.ids,
+        self._send_template_email(
+            'email_template_referral_new_manager', extra_recipients=manager_partners
         )
 
     def _notify_salesperson_assigned(self):
-        """Email the salesperson when they are assigned to a referral."""
         self.ensure_one()
         if not self.user_id or not self.user_id.partner_id.email:
             return
-        referrer = self.x_referrer_id
-        referrer_label = referrer.name if referrer else '—'
-        if referrer and referrer.company:
-            referrer_label += f' ({referrer.company})'
-        body = f"""
-            <p>Dear {self.user_id.name},</p>
-            <p>A referral has been assigned to you. Please follow up promptly.</p>
-            <table style="border-collapse:collapse;width:100%;max-width:520px;font-size:14px">
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold;width:170px">Reference</td>
-                    <td style="padding:6px 10px">{self.x_referral_ref or '—'}</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Referred Contact</td>
-                    <td style="padding:6px 10px">{self.partner_name or '—'}</td>
-                </tr>
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold">Referred Company</td>
-                    <td style="padding:6px 10px">{self.x_referral_company or '—'}</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Referrer</td>
-                    <td style="padding:6px 10px">{referrer_label}</td>
-                </tr>
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold">Referrer Phone</td>
-                    <td style="padding:6px 10px">{referrer.phone if referrer else '—'}</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Referrer Email</td>
-                    <td style="padding:6px 10px">{referrer.email if referrer else '—'}</td>
-                </tr>
-            </table>
-        """
-        self._send_notification_email(
-            subject=f'Referral Assigned to You: {self.x_referral_ref or self.name}',
-            body_html=body,
-            partner_ids=[self.user_id.partner_id.id],
+        self._send_template_email(
+            'email_template_referral_salesperson',
+            extra_recipients=self.user_id.partner_id,
         )
 
     def _notify_managers_converted(self):
-        """Email managers when a referral is moved to the Converted stage."""
         self.ensure_one()
         manager_partners = self._get_referral_manager_partners()
         if not manager_partners:
             return
-        referrer = self.x_referrer_id
-        referrer_label = referrer.name if referrer else '—'
-        if referrer and referrer.company:
-            referrer_label += f' ({referrer.company})'
-        body = f"""
-            <p>A referral has been successfully converted to a client.</p>
-            <table style="border-collapse:collapse;width:100%;max-width:520px;font-size:14px">
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold;width:170px">Reference</td>
-                    <td style="padding:6px 10px">{self.x_referral_ref or '—'}</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Referred Company</td>
-                    <td style="padding:6px 10px">{self.x_referral_company or '—'}</td>
-                </tr>
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold">Referrer</td>
-                    <td style="padding:6px 10px">{referrer_label}</td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Deal Value</td>
-                    <td style="padding:6px 10px">AED {self.x_deal_value:,.2f}</td>
-                </tr>
-                <tr style="background:#f5f5f5">
-                    <td style="padding:6px 10px;font-weight:bold">Commission</td>
-                    <td style="padding:6px 10px">
-                        AED {self.x_commission_amount:,.2f} ({self.x_commission_rate:.1f}%)
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding:6px 10px;font-weight:bold">Salesperson</td>
-                    <td style="padding:6px 10px">{self.user_id.name if self.user_id else '—'}</td>
-                </tr>
-            </table>
-            <p style="margin-top:12px">A commission record has been automatically created.</p>
-        """
-        self._send_notification_email(
-            subject=f'Referral Converted: {self.x_referral_ref or self.name}',
-            body_html=body,
-            partner_ids=manager_partners.ids,
+        self._send_template_email(
+            'email_template_referral_converted', extra_recipients=manager_partners
         )
 
     # ── ORM overrides ─────────────────────────────────────────────────────
 
     def write(self, vals):
-        # Capture old salesperson before write to detect real changes
         old_user_ids = {}
         if 'user_id' in vals:
             old_user_ids = {
@@ -309,14 +344,12 @@ class CrmLead(models.Model):
 
         result = super().write(vals)
 
-        # Notify new salesperson when assignment changes
         if 'user_id' in vals:
             for rec in self:
                 if (rec.x_is_referral and rec.user_id
                         and rec.user_id.id != old_user_ids.get(rec.id)):
                     rec.sudo()._notify_salesperson_assigned()
 
-        # Auto-create commission and notify managers on first conversion
         if 'stage_id' in vals:
             Commission = self.env['referral.commission'].sudo()
             for rec in self:
@@ -330,9 +363,34 @@ class CrmLead(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         default_manager = self._get_default_referral_manager()
+        first_referral_stage = None
+        referral_stage_ids = None  # cached set of valid referral stage IDs
         for vals in vals_list:
-            if vals.get('x_is_referral') and not vals.get('user_id') and default_manager:
-                vals['user_id'] = default_manager.id
+            if vals.get('x_is_referral'):
+                if not vals.get('user_id') and default_manager:
+                    vals['user_id'] = default_manager.id
+                # Ensure the stage is actually a referral stage.
+                # Odoo's model default resolves stage_id before create() runs and may
+                # pick a non-referral stage (first global CRM stage by sequence).
+                if referral_stage_ids is None:
+                    referral_stage_ids = set(
+                        self.env['crm.stage'].search(
+                            [('x_is_referral_stage', '=', True)]
+                        ).ids
+                    )
+                if vals.get('stage_id') not in referral_stage_ids:
+                    if first_referral_stage is None:
+                        first_referral_stage = self.env['crm.stage'].search(
+                            [
+                                ('x_is_referral_stage', '=', True),
+                                ('x_is_referral_converted', '=', False),
+                                ('x_is_referral_lost', '=', False),
+                            ],
+                            order='sequence asc',
+                            limit=1,
+                        )
+                    if first_referral_stage:
+                        vals['stage_id'] = first_referral_stage.id
         records = super().create(vals_list)
         for rec in records:
             if rec.x_is_referral:
@@ -342,7 +400,6 @@ class CrmLead(models.Model):
                     partner = rec._find_or_create_referral_partner()
                     if partner:
                         rec.partner_id = partner.id
-        # Notify managers of every new referral (portal or backend)
         for rec in records:
             if rec.x_is_referral:
                 rec.sudo()._notify_managers_new_referral()
@@ -364,7 +421,6 @@ class CrmLead(models.Model):
 
     @api.model
     def _get_default_referral_manager(self):
-        """Return the first active, non-system user in group_referral_manager."""
         group = self.env.ref('referral_crm_gk.group_referral_manager', raise_if_not_found=False)
         if not group:
             return self.env['res.users'].browse()
@@ -376,19 +432,32 @@ class CrmLead(models.Model):
 
     def _find_or_create_referral_partner(self):
         self.ensure_one()
+        Partner = self.env['res.partner']
+
+        # 1. Deduplicate by email — any existing partner with this email wins,
+        #    regardless of company name supplied in the form.
+        if self.email_from:
+            partner = Partner.search(
+                [('email', '=ilike', self.email_from)], limit=1
+            )
+            if partner:
+                return partner
+
+        # 2. Fall back to company-name match.
         company_name = self.x_referral_company
         if not company_name and self.name:
             m = re.search(r'\(([^)]+)\)\s*$', self.name)
             if m:
                 company_name = m.group(1)
         if not company_name:
-            return self.env['res.partner'].browse()
-        partner = self.env['res.partner'].search(
+            return Partner.browse()
+
+        partner = Partner.search(
             [('name', '=ilike', company_name), ('is_company', '=', True)],
             limit=1,
         )
         if not partner:
-            partner = self.env['res.partner'].create({
+            partner = Partner.create({
                 'name': company_name,
                 'is_company': True,
             })
@@ -450,6 +519,37 @@ class CrmLead(models.Model):
             'client_order_ref': self.x_referral_ref or self.name,
         })
         self.x_sale_order_id = so.id
+
+        # Auto-create order lines from referral service tags
+        if self.tag_ids:
+            ProductProduct = self.env['product.product'].sudo()
+            order_lines = []
+            today = fields.Date.today()
+            line_manager_id = (self.user_id or self.env.user).id
+            for tag in self.tag_ids:
+                product = ProductProduct.search(
+                    [('name', '=', tag.name), ('type', '=', 'service')], limit=1
+                )
+                if not product:
+                    product = ProductProduct.create({
+                        'name': tag.name,
+                        'type': 'service',
+                        'invoice_policy': 'order',
+                    })
+                order_lines.append((0, 0, {
+                    'product_id': product.id,
+                    'product_uom_qty': 1,
+                    'price_unit': 0.0,
+                    'name': tag.name,
+                    'manager_id': line_manager_id,
+                    'engagement_start': today,
+                    'engagement_end': today,
+                    'deadline': today,
+                    'estimated_hours': product.sudo().product_tmpl_id.estimated_hours or 0.0,
+                }))
+            if order_lines:
+                so.sudo().write({'order_line': order_lines})
+
         stage = self._get_referral_stage('In Progress')
         if stage:
             self.stage_id = stage.id

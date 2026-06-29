@@ -242,21 +242,43 @@
 
   input::placeholder { color: #C8B9AD; }
 
-  /* ── Services Checkboxes ── */
-  .services-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-mid);
-    letter-spacing: 0.4px;
+  /* ── Services — Category-based layout ── */
+  .service-category { margin-bottom: 20px; }
+  .service-category:last-child { margin-bottom: 0; }
+
+  .category-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-soft);
+    letter-spacing: 1px;
     text-transform: uppercase;
-    margin-bottom: 10px;
-    display: block;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--border);
   }
 
-  .services-grid {
+  /* Desktop: 3-column grid per category */
+  .category-items {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
+  }
+
+  /* Mobile: horizontal scroll per category row */
+  @media (max-width: 600px) {
+    .category-items {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 8px;
+      padding-bottom: 6px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .category-items::-webkit-scrollbar { height: 4px; }
+    .category-items::-webkit-scrollbar-track { background: transparent; }
+    .category-items::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   }
 
   .service-item {
@@ -269,6 +291,10 @@
     cursor: pointer;
     transition: border-color 0.18s, background 0.18s;
     user-select: none;
+  }
+
+  @media (max-width: 600px) {
+    .service-item { flex-shrink: 0; min-width: 148px; }
   }
 
   .service-item:hover {
@@ -620,182 +646,82 @@
           </div>
         </div>
         <div class="card-body">
-          <div class="services-grid">
+          <!-- Audit & Assurance -->
+          <div class="service-category">
+            <div class="category-label">Audit &amp; Assurance</div>
+            <div class="category-items">
+              <label class="service-item"><input type="checkbox" name="services" value="Financial Statement Audit"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Financial Statement Audit</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Internal Audit"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Internal Audit</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="SOC Audit"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">SOC Audit</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Fraud Investigation"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Fraud Investigation</span></label>
+            </div>
+          </div>
 
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Financial Statement Audit">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Financial Statement Audit</span>
-            </label>
+          <!-- Accounting & Finance -->
+          <div class="service-category">
+            <div class="category-label">Accounting &amp; Finance</div>
+            <div class="category-items">
+              <label class="service-item"><input type="checkbox" name="services" value="Accounting & Bookkeeping"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Accounting &amp; Bookkeeping</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Cloud Accounting"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Cloud Accounting</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Family Office Accounting"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Family Office Accounting</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Payroll Outsourcing"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Payroll Outsourcing</span></label>
+            </div>
+          </div>
 
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Internal Audit">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Internal Audit</span>
-            </label>
+          <!-- Tax Services -->
+          <div class="service-category">
+            <div class="category-label">Tax Services</div>
+            <div class="category-items">
+              <label class="service-item"><input type="checkbox" name="services" value="Corporate Tax"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Corporate Tax</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="VAT"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">VAT</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="VAT Return Filing"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">VAT Return Filing</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Tax Agent Services"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Tax Agent Services</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Tax Residency Certificate"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Tax Residency Certificate</span></label>
+            </div>
+          </div>
 
-            <label class="service-item">
-              <input type="checkbox" name="services" value="SOC Audit">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">SOC Audit</span>
-            </label>
+          <!-- Advisory & Compliance -->
+          <div class="service-category">
+            <div class="category-label">Advisory &amp; Compliance</div>
+            <div class="category-items">
+              <label class="service-item"><input type="checkbox" name="services" value="Business Valuation"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Business Valuation</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="UBO Declaration"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">UBO Declaration</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Due Diligence"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Due Diligence</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Feasibility Study"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Feasibility Study</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Business Advisory"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Business Advisory</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Financial Advisory"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Financial Advisory</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="AML Compliance"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">AML Compliance</span></label>
+            </div>
+          </div>
 
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Fraud Investigation">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Fraud Investigation</span>
-            </label>
+          <!-- Business Setup -->
+          <div class="service-category">
+            <div class="category-label">Business Setup</div>
+            <div class="category-items">
+              <label class="service-item"><input type="checkbox" name="services" value="Mainland Company Formation"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Mainland Company Formation</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="FreeZone Business Setup"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">FreeZone Business Setup</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Offshore Company Formation"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Offshore Company Formation</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Visa Services"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Visa Services</span></label>
+            </div>
+          </div>
 
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Accounting & Bookkeeping">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Accounting & Bookkeeping</span>
-            </label>
+          <!-- Corporate Services -->
+          <div class="service-category">
+            <div class="category-label">Corporate Services</div>
+            <div class="category-items">
+              <label class="service-item"><input type="checkbox" name="services" value="Liquidation & Deregistration"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Liquidation &amp; Deregistration</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Will Writing Services"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Will Writing Services</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="Trademark Registration"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">Trademark Registration</span></label>
+            </div>
+          </div>
 
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Cloud Accounting">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Cloud Accounting</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Family Office Accounting">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Family Office Accounting</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Corporate Tax">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Corporate Tax</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="VAT">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">VAT</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="VAT Return Filing">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">VAT Return Filing</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Tax Agent Services">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Tax Agent Services</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Business Valuation">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Business Valuation</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="UBO Declaration">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">UBO Declaration</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Due Diligence">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Due Diligence</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Feasibility Study">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Feasibility Study</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Mainland Company Formation">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Mainland Company Formation</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="FreeZone Business Setup">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">FreeZone Business Setup</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Offshore Company Formation">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Offshore Company Formation</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Visa Services">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Visa Services</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Liquidation & Deregistration">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Liquidation & Deregistration</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Tax Residency Certificate">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Tax Residency Certificate</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="AML Compliance">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">AML Compliance</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Payroll Outsourcing">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Payroll Outsourcing</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Will Writing Services">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Will Writing Services</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Trademark Registration">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Trademark Registration</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Business Advisory">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Business Advisory</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="Financial Advisory">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">Financial Advisory</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="UAE E-Invoicing">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">UAE E-Invoicing</span>
-            </label>
-
-            <label class="service-item">
-              <input type="checkbox" name="services" value="ICV Certification">
-              <span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span class="service-name">ICV Certification</span>
-            </label>
-
+          <!-- Technology -->
+          <div class="service-category">
+            <div class="category-label">Technology</div>
+            <div class="category-items">
+              <label class="service-item"><input type="checkbox" name="services" value="UAE E-Invoicing"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">UAE E-Invoicing</span></label>
+              <label class="service-item"><input type="checkbox" name="services" value="ICV Certification"><span class="cb-box"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span><span class="service-name">ICV Certification</span></label>
+            </div>
           </div>
         </div>
       </div>
@@ -846,6 +772,32 @@
 function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
 function isPhone(v) { return /^[\+\d\s\-\(\)]{7,20}$/.test(v.trim()); }
 
+const REQUIRED_FIELDS = [
+  { id: 'rName',      check: v => v.trim().length >= 2 },
+  { id: 'rCompany',   check: v => v.trim().length >= 2 },
+  { id: 'rEmail',     check: isEmail },
+  { id: 'rPhone',     check: isPhone },
+  { id: 'refName',    check: v => v.trim().length >= 2 },
+  { id: 'refCompany', check: v => v.trim().length >= 2 },
+  { id: 'refEmail',   check: isEmail },
+  { id: 'refPhone',   check: isPhone },
+];
+
+function updateSubmitBtn() {
+  const allValid = REQUIRED_FIELDS.every(f => f.check(document.getElementById(f.id).value));
+  document.getElementById('submitBtn').disabled = !allValid;
+}
+
+// Disable on load; enable once all 8 required fields are valid
+document.getElementById('submitBtn').disabled = true;
+REQUIRED_FIELDS.forEach(f => {
+  document.getElementById(f.id).addEventListener('input', () => {
+    const errEl = document.getElementById(f.id + 'Err');
+    if (errEl) { document.getElementById(f.id).classList.remove('error'); errEl.textContent = ''; }
+    updateSubmitBtn();
+  });
+});
+
 function validateField(id, errId, check, msg) {
   const el = document.getElementById(id);
   const err = document.getElementById(errId);
@@ -863,14 +815,6 @@ function clearError(id, errId) {
   document.getElementById(id).classList.remove('error');
   document.getElementById(errId).textContent = '';
 }
-
-// Live clear on input
-['rName','rCompany','rEmail','rPhone','refName','refCompany','refEmail','refPhone'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    const errId = id + 'Err';
-    if (document.getElementById(errId)) clearError(id, errId);
-  });
-});
 
 // ── Form Submit ──
 document.getElementById('referralForm').addEventListener('submit', async function(e) {
@@ -944,6 +888,7 @@ document.getElementById('referralForm').addEventListener('submit', async functio
   // Reset form
   document.getElementById('referralForm').reset();
   document.querySelectorAll('.service-item').forEach(el => el.classList.remove('checked'));
+  updateSubmitBtn();
 });
 
 // ── Modal close ──

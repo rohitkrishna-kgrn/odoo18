@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_helpdesk_close_wizard_form" model="ir.ui.view">
+        <field name="name">client.helpdesk.close.wizard.form</field>
+        <field name="model">client.helpdesk.close.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Ticket Action">
+                <field name="ticket_id" invisible="1"/>
+                <field name="action_type" invisible="1"/>
+
+                <group string="Ticket Details">
+                    <field name="ticket_number" readonly="1"/>
+                    <field name="subject" readonly="1"/>
+                </group>
+
+                <group>
+                    <group string="Resolved Remarks" invisible="action_type != 'resolve'">
+                        <field name="reason" widget="text" nolabel="1"
+                               style="min-height:120px;"
+                               placeholder="Please add your remarks for resolving this ticket…"
+                               invisible="action_type != 'resolve'"/>
+                    </group>
+                    <group string="Close Reason" invisible="action_type != 'close'">
+                        <field name="reason" widget="text" nolabel="1"
+                               style="min-height:120px;"
+                               placeholder="Please describe why this ticket is being closed…"
+                               invisible="action_type != 'close'"/>
+                    </group>
+                </group>
+
+                <footer>
+                    <button name="action_confirm" string="Mark as Resolved"
+                            type="object" class="btn-primary"
+                            invisible="action_type != 'resolve'"/>
+                    <button name="action_confirm" string="Close Ticket"
+                            type="object" class="btn-danger"
+                            invisible="action_type != 'close'"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

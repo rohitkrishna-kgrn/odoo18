@@ -1,0 +1,580 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data noupdate="0">
+
+<!-- ══════════════════════════════════════════════════════════
+     NOTE: In Odoo 18, mail.template body_html uses QWeb rendering
+     (render_engine='qweb' on the field definition).
+     Use <t t-out="..."/> for values and <t t-if="..."> for conditionals.
+     subject / email_from / email_to are fields.Char and still use Jinja2.
+══════════════════════════════════════════════════════════ -->
+
+<!-- ══════════════════════════════════════════════════════════
+     1. CLIENT ACKNOWLEDGEMENT — sent when ticket is created
+══════════════════════════════════════════════════════════ -->
+<record id="mail_template_ticket_acknowledgement" model="mail.template">
+    <field name="name">Helpdesk: Ticket Acknowledgement to Client</field>
+    <field name="model_id" ref="model_client_helpdesk_ticket"/>
+    <field name="subject">[#{{ object.ticket_number }}] Support Request Received – {{ object.subject }}</field>
+    <field name="email_from">{{ object.company_id.email or 'noreply@kgrnaudit.com' }}</field>
+    <field name="email_to">{{ object.email }}</field>
+    <field name="body_html"><![CDATA[
+<div style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;">
+<tr><td align="center" style="padding:24px 12px;">
+<table width="620" cellpadding="0" cellspacing="0"
+       style="background:#ffffff;border:1px solid #dde2e8;border-radius:10px;overflow:hidden;">
+
+  <tr>
+    <td style="background:#003366;padding:28px 30px;text-align:center;">
+      <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+           alt="KGRN Chartered Accountants" width="90" height="90"
+           style="display:block;margin:0 auto 12px;"/>
+      <p style="margin:0;color:#ffffff;font-size:13px;letter-spacing:1px;text-transform:uppercase;opacity:.8;">
+        Support Center
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:32px 36px 24px;">
+      <h2 style="margin:0 0 8px;color:#003366;font-size:22px;font-weight:700;">
+        Thank you, <t t-out="object.client_name"/>!
+      </h2>
+      <p style="margin:0 0 24px;color:#555555;font-size:14px;line-height:1.6;">
+        We have received your support request and our team will review it shortly.
+        Your ticket reference is shown below — please keep it for any follow-up.
+      </p>
+
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="background:#f0f6ff;border-left:5px solid #0057b8;border-radius:6px;margin-bottom:24px;">
+        <tr>
+          <td style="padding:14px 18px;font-size:14px;color:#333333;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Ticket Number:</span>
+            <strong style="color:#003366;"><t t-out="object.ticket_number"/></strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:14px 18px;font-size:14px;color:#333333;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Subject:</span>
+            <t t-out="object.subject"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:14px 18px;font-size:14px;color:#333333;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Request Type:</span>
+            <t t-out="object.request_type_label"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:14px 18px;font-size:14px;color:#333333;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Priority:</span>
+            <t t-out="object.priority_label"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:14px 18px;font-size:14px;color:#333333;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Submitted On:</span>
+            <t t-out="object.created_date.strftime('%d %b %Y at %H:%M') if object.created_date else ''"/> UTC
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0;color:#666666;font-size:13px;line-height:1.6;">
+        Our support team typically responds within <strong>1&#8211;2 business days</strong>.
+        If you need to follow up, please quote your ticket number
+        <strong style="color:#003366;"><t t-out="object.ticket_number"/></strong>.
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="background:#f5f7fa;padding:16px 36px;text-align:center;border-top:1px solid #e8ecf0;">
+      <p style="margin:0;font-size:12px;color:#999999;">
+        &copy; <t t-out="object.company_id.name"/> &nbsp;|&nbsp;
+        <a t-att-href="'mailto:' + (object.company_id.email or 'support@kgrnaudit.com')"
+           style="color:#0057b8;text-decoration:none;">
+          <t t-out="object.company_id.email or 'support@kgrnaudit.com'"/>
+        </a>
+        <t t-if="object.company_id.phone">&nbsp;|&nbsp;<t t-out="object.company_id.phone"/></t>
+      </p>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</div>
+    ]]></field>
+    <field name="auto_delete" eval="True"/>
+</record>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     2. NEW TICKET ALERT — sent to Helpdesk Managers
+══════════════════════════════════════════════════════════ -->
+<record id="mail_template_new_ticket_manager" model="mail.template">
+    <field name="name">Helpdesk: New Ticket Alert to Manager</field>
+    <field name="model_id" ref="model_client_helpdesk_ticket"/>
+    <field name="subject">[New Ticket #{{ object.ticket_number }}] {{ object.subject }}</field>
+    <field name="email_from">{{ object.company_id.email or 'noreply@kgrnaudit.com' }}</field>
+    <field name="email_to">{{ object.company_id.email or 'support@kgrnaudit.com' }}</field>
+    <field name="body_html"><![CDATA[
+<div style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;">
+<tr><td align="center" style="padding:24px 12px;">
+<table width="620" cellpadding="0" cellspacing="0"
+       style="background:#ffffff;border:1px solid #dde2e8;border-radius:10px;overflow:hidden;">
+
+  <tr>
+    <td style="background:#003366;padding:28px 30px;text-align:center;">
+      <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+           alt="KGRN" width="90" height="90" style="display:block;margin:0 auto 12px;"/>
+      <p style="margin:0;color:#ffffff;font-size:13px;letter-spacing:1px;text-transform:uppercase;opacity:.8;">
+        New Support Request
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:32px 36px 24px;">
+      <h2 style="margin:0 0 8px;color:#003366;font-size:20px;font-weight:700;">
+        New Ticket Submitted
+      </h2>
+      <p style="margin:0 0 24px;color:#555555;font-size:14px;line-height:1.6;">
+        A new support request has been submitted via the client portal and requires attention.
+      </p>
+
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="background:#f0f6ff;border-left:5px solid #0057b8;border-radius:6px;margin-bottom:24px;">
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Ticket #:</span>
+            <strong style="color:#003366;"><t t-out="object.ticket_number"/></strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Subject:</span>
+            <t t-out="object.subject"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Client Name:</span>
+            <t t-out="object.client_name"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Company:</span>
+            <t t-out="object.company_name or '—'"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Email:</span>
+            <t t-out="object.email"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Phone:</span>
+            <t t-out="object.phone"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Request Type:</span>
+            <t t-out="object.request_type_label"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Priority:</span>
+            <t t-out="object.priority_label"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Submitted On:</span>
+            <t t-out="object.created_date.strftime('%d %b %Y at %H:%M') if object.created_date else ''"/> UTC
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0;color:#666666;font-size:13px;">
+        Please review and assign this ticket in the helpdesk module at the earliest.
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="background:#f5f7fa;padding:16px 36px;text-align:center;border-top:1px solid #e8ecf0;">
+      <p style="margin:0;font-size:12px;color:#999999;">
+        &copy; <t t-out="object.company_id.name"/> &nbsp;|&nbsp;
+        <a t-att-href="'mailto:' + (object.company_id.email or 'support@kgrnaudit.com')"
+           style="color:#0057b8;text-decoration:none;">
+          <t t-out="object.company_id.email or 'support@kgrnaudit.com'"/>
+        </a>
+      </p>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</div>
+    ]]></field>
+    <field name="auto_delete" eval="True"/>
+</record>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     3. AGENT ASSIGNMENT — sent to the assigned agent/user
+══════════════════════════════════════════════════════════ -->
+<record id="mail_template_agent_assignment" model="mail.template">
+    <field name="name">Helpdesk: Ticket Assigned to Agent</field>
+    <field name="model_id" ref="model_client_helpdesk_ticket"/>
+    <field name="subject">[Assigned #{{ object.ticket_number }}] {{ object.subject }}</field>
+    <field name="email_from">{{ object.company_id.email or 'noreply@kgrnaudit.com' }}</field>
+    <field name="email_to">{{ object.user_id.email }}</field>
+    <field name="body_html"><![CDATA[
+<div style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;">
+<tr><td align="center" style="padding:24px 12px;">
+<table width="620" cellpadding="0" cellspacing="0"
+       style="background:#ffffff;border:1px solid #dde2e8;border-radius:10px;overflow:hidden;">
+
+  <tr>
+    <td style="background:#003366;padding:28px 30px;text-align:center;">
+      <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+           alt="KGRN" width="90" height="90" style="display:block;margin:0 auto 12px;"/>
+      <p style="margin:0;color:#ffffff;font-size:13px;letter-spacing:1px;text-transform:uppercase;opacity:.8;">
+        Ticket Assignment
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:32px 36px 24px;">
+      <h2 style="margin:0 0 8px;color:#003366;font-size:20px;font-weight:700;">
+        Hello <t t-out="object.user_id.name"/>,
+      </h2>
+      <p style="margin:0 0 24px;color:#555555;font-size:14px;line-height:1.6;">
+        Ticket <strong>#<t t-out="object.ticket_number"/></strong> has been assigned to you.
+        Please review the details below and take the appropriate action.
+      </p>
+
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="background:#f0f6ff;border-left:5px solid #0057b8;border-radius:6px;margin-bottom:24px;">
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Ticket #:</span>
+            <strong style="color:#003366;"><t t-out="object.ticket_number"/></strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Subject:</span>
+            <t t-out="object.subject"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Client:</span>
+            <t t-out="object.client_name"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Request Type:</span>
+            <t t-out="object.request_type_label"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Priority:</span>
+            <t t-out="object.priority_label"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Current Stage:</span>
+            <t t-out="object.stage_id.name or '—'"/>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0;color:#666666;font-size:13px;">
+        Please log into the helpdesk module to review and progress this ticket.
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="background:#f5f7fa;padding:16px 36px;text-align:center;border-top:1px solid #e8ecf0;">
+      <p style="margin:0;font-size:12px;color:#999999;">
+        &copy; <t t-out="object.company_id.name"/> &nbsp;|&nbsp;
+        <a t-att-href="'mailto:' + (object.company_id.email or 'support@kgrnaudit.com')"
+           style="color:#0057b8;text-decoration:none;">
+          <t t-out="object.company_id.email or 'support@kgrnaudit.com'"/>
+        </a>
+      </p>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</div>
+    ]]></field>
+    <field name="auto_delete" eval="True"/>
+</record>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     4. STAGE UPDATE — sent to client on every stage change
+══════════════════════════════════════════════════════════ -->
+<record id="mail_template_stage_update_client" model="mail.template">
+    <field name="name">Helpdesk: Ticket Status Update to Client</field>
+    <field name="model_id" ref="model_client_helpdesk_ticket"/>
+    <field name="subject">[#{{ object.ticket_number }}] Your ticket status has been updated – {{ object.stage_id.name }}</field>
+    <field name="email_from">{{ object.company_id.email or 'noreply@kgrnaudit.com' }}</field>
+    <field name="email_to">{{ object.email }}</field>
+    <field name="body_html"><![CDATA[
+<div style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;">
+<tr><td align="center" style="padding:24px 12px;">
+<table width="620" cellpadding="0" cellspacing="0"
+       style="background:#ffffff;border:1px solid #dde2e8;border-radius:10px;overflow:hidden;">
+
+  <tr>
+    <td style="background:#003366;padding:28px 30px;text-align:center;">
+      <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+           alt="KGRN" width="90" height="90" style="display:block;margin:0 auto 12px;"/>
+      <p style="margin:0;color:#ffffff;font-size:13px;letter-spacing:1px;text-transform:uppercase;opacity:.8;">
+        Ticket Status Update
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:32px 36px 24px;">
+      <h2 style="margin:0 0 8px;color:#003366;font-size:20px;font-weight:700;">
+        Hello <t t-out="object.client_name"/>,
+      </h2>
+
+      <!-- Stage-specific message -->
+      <t t-if="object.stage_id.name == 'Under Review'">
+        <p style="margin:0 0 20px;color:#555555;font-size:14px;line-height:1.6;">
+          Your support ticket <strong>#<t t-out="object.ticket_number"/></strong> is now
+          <strong style="color:#0057b8;">Under Review</strong>. Our team is assessing your
+          request and will begin working on it shortly.
+        </p>
+      </t>
+      <t t-elif="object.stage_id.name == 'In Progress'">
+        <p style="margin:0 0 20px;color:#555555;font-size:14px;line-height:1.6;">
+          Good news! Your support ticket <strong>#<t t-out="object.ticket_number"/></strong>
+          is now <strong style="color:#16a34a;">In Progress</strong>. Our team is actively
+          working on your request.
+        </p>
+      </t>
+      <t t-elif="object.stage_id.name == 'Waiting for Client'">
+        <p style="margin:0 0 20px;color:#555555;font-size:14px;line-height:1.6;">
+          We need your attention for ticket <strong>#<t t-out="object.ticket_number"/></strong>.
+          The ticket is <strong style="color:#d97706;">Waiting for your Response</strong>.
+          Please reply to this email or contact our support team with the required information.
+        </p>
+      </t>
+      <t t-elif="object.stage_id.name == 'Resolved'">
+        <p style="margin:0 0 20px;color:#555555;font-size:14px;line-height:1.6;">
+          We are pleased to inform you that ticket <strong>#<t t-out="object.ticket_number"/></strong>
+          has been <strong style="color:#16a34a;">Resolved</strong>. We hope this has addressed
+          your concern satisfactorily.
+        </p>
+      </t>
+      <t t-elif="object.stage_id.name == 'Closed'">
+        <p style="margin:0 0 20px;color:#555555;font-size:14px;line-height:1.6;">
+          Your support ticket <strong>#<t t-out="object.ticket_number"/></strong> has been
+          <strong style="color:#6b7280;">Closed</strong>. Thank you for reaching out to us.
+        </p>
+      </t>
+      <t t-else="">
+        <p style="margin:0 0 20px;color:#555555;font-size:14px;line-height:1.6;">
+          Your support ticket <strong>#<t t-out="object.ticket_number"/></strong> status has
+          been updated to <strong style="color:#003366;"><t t-out="object.stage_id.name"/></strong>.
+        </p>
+      </t>
+
+      <!-- Ticket summary -->
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="background:#f0f6ff;border-left:5px solid #0057b8;border-radius:6px;margin-bottom:24px;">
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Ticket #:</span>
+            <strong style="color:#003366;"><t t-out="object.ticket_number"/></strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Subject:</span>
+            <t t-out="object.subject"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Current Status:</span>
+            <t t-out="object.stage_id.name"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Updated On:</span>
+            <t t-out="object.last_updated.strftime('%d %b %Y at %H:%M') if object.last_updated else ''"/> UTC
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0;color:#666666;font-size:13px;line-height:1.6;">
+        For any queries, please reply to this email and quote ticket number
+        <strong style="color:#003366;"><t t-out="object.ticket_number"/></strong>.
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="background:#f5f7fa;padding:16px 36px;text-align:center;border-top:1px solid #e8ecf0;">
+      <p style="margin:0;font-size:12px;color:#999999;">
+        &copy; <t t-out="object.company_id.name"/> &nbsp;|&nbsp;
+        <a t-att-href="'mailto:' + (object.company_id.email or 'support@kgrnaudit.com')"
+           style="color:#0057b8;text-decoration:none;">
+          <t t-out="object.company_id.email or 'support@kgrnaudit.com'"/>
+        </a>
+        <t t-if="object.company_id.phone">&nbsp;|&nbsp;<t t-out="object.company_id.phone"/></t>
+      </p>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</div>
+    ]]></field>
+    <field name="auto_delete" eval="True"/>
+</record>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     5. MANAGER ASSIGNMENT ALERT — sent to managers when a
+        ticket is assigned / re-assigned to a user
+══════════════════════════════════════════════════════════ -->
+<record id="mail_template_manager_on_assignment" model="mail.template">
+    <field name="name">Helpdesk: Ticket Assignment Alert to Manager</field>
+    <field name="model_id" ref="model_client_helpdesk_ticket"/>
+    <field name="subject">[Ticket #{{ object.ticket_number }} Assigned] {{ object.subject }}</field>
+    <field name="email_from">{{ object.company_id.email or 'noreply@kgrnaudit.com' }}</field>
+    <field name="email_to">{{ object.company_id.email or 'support@kgrnaudit.com' }}</field>
+    <field name="body_html"><![CDATA[
+<div style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;">
+<tr><td align="center" style="padding:24px 12px;">
+<table width="620" cellpadding="0" cellspacing="0"
+       style="background:#ffffff;border:1px solid #dde2e8;border-radius:10px;overflow:hidden;">
+
+  <tr>
+    <td style="background:#003366;padding:28px 30px;text-align:center;">
+      <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+           alt="KGRN" width="90" height="90" style="display:block;margin:0 auto 12px;"/>
+      <p style="margin:0;color:#ffffff;font-size:13px;letter-spacing:1px;text-transform:uppercase;opacity:.8;">
+        Ticket Assignment Update
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:32px 36px 24px;">
+      <h2 style="margin:0 0 8px;color:#003366;font-size:20px;font-weight:700;">
+        Ticket Assigned to <t t-out="object.user_id.name"/>
+      </h2>
+      <p style="margin:0 0 24px;color:#555555;font-size:14px;line-height:1.6;">
+        Ticket <strong>#<t t-out="object.ticket_number"/></strong> has been
+        assigned to <strong><t t-out="object.user_id.name"/></strong>.
+        Please find the ticket details below.
+      </p>
+
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="background:#f0f6ff;border-left:5px solid #0057b8;border-radius:6px;margin-bottom:24px;">
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Ticket #:</span>
+            <strong style="color:#003366;"><t t-out="object.ticket_number"/></strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Subject:</span>
+            <t t-out="object.subject"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Client:</span>
+            <t t-out="object.client_name"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Assigned To:</span>
+            <strong><t t-out="object.user_id.name"/></strong>
+            (<t t-out="object.user_id.email or '—'"/>)
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Request Type:</span>
+            <t t-out="object.request_type_label"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;border-bottom:1px solid #dde8f7;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Priority:</span>
+            <t t-out="object.priority_label"/>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 18px;font-size:14px;">
+            <span style="display:inline-block;min-width:160px;font-weight:600;color:#004080;">Current Stage:</span>
+            <t t-out="object.stage_id.name or '—'"/>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0;color:#666666;font-size:13px;">
+        Please ensure the ticket is progressed in a timely manner.
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="background:#f5f7fa;padding:16px 36px;text-align:center;border-top:1px solid #e8ecf0;">
+      <p style="margin:0;font-size:12px;color:#999999;">
+        &copy; <t t-out="object.company_id.name"/> &nbsp;|&nbsp;
+        <a t-att-href="'mailto:' + (object.company_id.email or 'support@kgrnaudit.com')"
+           style="color:#0057b8;text-decoration:none;">
+          <t t-out="object.company_id.email or 'support@kgrnaudit.com'"/>
+        </a>
+      </p>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</div>
+    ]]></field>
+    <field name="auto_delete" eval="True"/>
+</record>
+
+</data>
+</odoo>

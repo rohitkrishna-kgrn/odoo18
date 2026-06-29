@@ -59,8 +59,7 @@ class AmlRequestDocument(models.Model):
         ('board_resolution', 'Board Resolution authorizing appointment of auditor'),
         ('share_certificates', 'Share certificates'),
         ('org_chart', 'Organizational / Group Chart up to UBO'),
-        ('utility_bills', 'Utility bills (electricity, telephone, internet bills)'),
-        ('lease_agreement', 'Lease agreement'),
+        ('lease_agreement', 'Lease agreement of entity'),
         ('business_profile', 'Business profile / Description of business activities'),
         ('authorized_signatories', 'List of authorized signatories'),
         ('family_book', 'Family book issued by UAE Government (UAE National)'),
@@ -77,8 +76,8 @@ class AmlRequestDocument(models.Model):
     PI_MANDATORY = {
         # Entity mandatory
         'trade_license', 'vat_corp_tax', 'moa',
-        'org_chart', 'utility_bills', 'lease_agreement',
-        'business_profile', 'family_book',
+        'org_chart', 'lease_agreement',
+        'business_profile',
         # Individual mandatory
         'ind_passport_copy', 'ind_proof_residence',
     }

@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- QWeb PDF template for Aged Receivable with Project Manager grouping -->
+    <template id="aged_receivable_pm">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <t t-set="data_report_margin_top"    t-value="12"/>
+                <t t-set="data_report_header_spacing" t-value="9"/>
+                <t t-set="data_report_dpi"           t-value="110"/>
+                <div class="page">
+
+                    <!-- Title -->
+                    <h3><center><b><span t-esc="report_name"/></b></center></h3>
+                    <br/>
+
+                    <!-- Filter summary -->
+                    <div class="filters">
+                        <table class="table table-sm table-reports">
+                            <thead style="background:#808080;color:#fff;">
+                                <tr>
+                                    <th>Date Range</th>
+                                    <th>Project Manager</th>
+                                    <th>Partner</th>
+                                    <th>Group By</th>
+                                </tr>
+                            </thead>
+                            <tbody style="font-size:11px;">
+                                <tr>
+                                    <th>
+                                        <t t-if="filters.get('start_date')">
+                                            <t t-out="filters['start_date']"/> –
+                                        </t>
+                                        <t t-if="filters.get('end_date')">
+                                            <t t-out="filters['end_date']"/>
+                                        </t>
+                                    </th>
+                                    <th>
+                                        <t t-foreach="filters.get('pm', [])"
+                                           t-as="sel_pm" t-key="pm_index">
+                                            <t t-out="sel_pm.get('name', '')"/><t t-if="not sel_pm_last">, </t>
+                                        </t>
+                                        <t t-if="not filters.get('pm')">All</t>
+                                    </th>
+                                    <th>
+                                        <t t-foreach="filters.get('partner', [])"
+                                           t-as="sel_p" t-key="p_index">
+                                            <t t-out="sel_p.get('display_name', '')"/><t t-if="not sel_p_last">, </t>
+                                        </t>
+                                        <t t-if="not filters.get('partner')">All</t>
+                                    </th>
+                                    <th>
+                                        <t t-if="filters.get('group_by_pm')">Project Manager</t>
+                                        <t t-else="">None</t>
+                                    </th>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <br/>
+
+                    <!-- ════════════════════════════════
+                         PM-GROUPED MODE
+                    ════════════════════════════════ -->
+                    <t t-if="grouped">
+                        <t t-foreach="pm_list" t-as="pm_name" t-key="pm_idx">
+
+                            <!-- PM header -->
+                            <div style="background:#4472C4;color:#fff;padding:6px 10px;margin-top:12px;font-weight:bold;font-size:12px;">
+                                Project Manager: <t t-esc="pm_name"/>
+                            </div>
+
+                            <t t-set="pdata" t-value="pm_data.get(pm_name, {})"/>
+
+                            <table class="table table-sm table-reports">
+                                <thead style="background:#808080;color:#fff;">
+                                    <tr>
+                                        <th style="width:16%" colspan="6"/>
+                                        <th style="width:8%">Invoice Date</th>
+                                        <th style="width:8%">Amt Currency</th>
+                                        <th style="width:6%">Currency</th>
+                                        <th style="width:8%">Account</th>
+                                        <th style="width:8%">Expected Date</th>
+                                        <th style="width:7%">At Date</th>
+                                        <th style="width:7%">1-30</th>
+                                        <th style="width:7%">31-60</th>
+                                        <th style="width:7%">61-90</th>
+                                        <th style="width:7%">91-120</th>
+                                        <th style="width:7%">Older</th>
+                                        <th style="width:7%">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="pdata.get('partner_list', [])"
+                                       t-as="partner_name" t-key="partner_idx">
+
+                                        <t t-set="ptotal"
+                                           t-value="pdata.get('partner_totals', {}).get(partner_name, {})"/>
+
+                                        <!-- Partner summary row -->
+                                        <tr style="background:#D3D3D3;">
+                                            <th colspan="6"
+                                                style="border-left:thin solid #dee2e6;">
+                                                <span class="fw-bolder"><t t-esc="partner_name"/></span>
+                                            </th>
+                                            <th style="border:0;"/><th style="border:0;"/><th style="border:0;"/>
+                                            <th style="border:0;"/><th style="border:0;"/>
+                                            <th style="font-size:11px;font-weight:100;">
+                                                <t t-if="ptotal.get('diff0_sum')" t-esc="ptotal.get('currency_id')"/>
+                                                <t t-if="ptotal.get('diff0_sum')" t-esc="ptotal.get('diff0_sum_display')"/>
+                                            </th>
+                                            <th style="font-size:11px;font-weight:100;">
+                                                <t t-if="ptotal.get('diff1_sum')" t-esc="ptotal.get('currency_id')"/>
+                                                <t t-if="ptotal.get('diff1_sum')" t-esc="ptotal.get('diff1_sum_display')"/>
+                                            </th>
+                                            <th style="font-size:11px;font-weight:100;">
+                                                <t t-if="ptotal.get('diff2_sum')" t-esc="ptotal.get('currency_id')"/>
+                                                <t t-if="ptotal.get('diff2_sum')" t-esc="ptotal.get('diff2_sum_display')"/>
+                                            </th>
+                                            <th style="font-size:11px;font-weight:100;">
+                                                <t t-if="ptotal.get('diff3_sum')" t-esc="ptotal.get('currency_id')"/>
+                                                <t t-if="ptotal.get('diff3_sum')" t-esc="ptotal.get('diff3_sum_display')"/>
+                                            </th>
+                                            <th style="font-size:11px;font-weight:100;">
+                                                <t t-if="ptotal.get('diff4_sum')" t-esc="ptotal.get('currency_id')"/>
+                                                <t t-if="ptotal.get('diff4_sum')" t-esc="ptotal.get('diff4_sum_display')"/>
+                                            </th>
+                                            <th style="font-size:11px;font-weight:100;">
+                                                <t t-if="ptotal.get('diff5_sum')" t-esc="ptotal.get('currency_id')"/>
+                                                <t t-if="ptotal.get('diff5_sum')" t-esc="ptotal.get('diff5_sum_display')"/>
+                                            </th>
+                                            <th style="font-size:11px;font-weight:100;border-right:thin solid #dee2e6;">
+                                                <span class="fw-bolder">
+                                                    <t t-if="ptotal.get('debit_sum')" t-esc="ptotal.get('currency_id')"/>
+                                                    <t t-if="ptotal.get('debit_sum')" t-esc="ptotal.get('debit_sum_display')"/>
+                                                </span>
+                                            </th>
+                                        </tr>
+
+                                        <!-- Individual lines -->
+                                        <t t-foreach="pdata.get('partner_data', {}).get(partner_name, [])"
+                                           t-as="vl" t-key="vl_index">
+                                            <tr style="font-size:11px;font-weight:100;">
+                                                <th colspan="6">
+                                                    <t t-esc="vl.get('move_name', '')"/>
+                                                    <t t-esc="vl.get('name', '')"/>
+                                                </th>
+                                                <th><t t-esc="vl.get('date', '')"/></th>
+                                                <th><t t-esc="vl.get('amount_currency', '')"/></th>
+                                                <th><t t-esc="vl.get('currency_id', ['',''])[1] if isinstance(vl.get('currency_id'), (list,tuple)) else ''"/></th>
+                                                <th><t t-esc="vl.get('account_id', ['',''])[1] if isinstance(vl.get('account_id'), (list,tuple)) else ''"/></th>
+                                                <th><t t-if="vl.get('date_maturity')" t-esc="vl['date_maturity']"/></th>
+                                                <th><t t-if="vl.get('diff0')" t-esc="ptotal.get('currency_id')"/><t t-if="vl.get('diff0')" t-esc="vl['diff0']"/></th>
+                                                <th><t t-if="vl.get('diff1')" t-esc="ptotal.get('currency_id')"/><t t-if="vl.get('diff1')" t-esc="vl['diff1']"/></th>
+                                                <th><t t-if="vl.get('diff2')" t-esc="ptotal.get('currency_id')"/><t t-if="vl.get('diff2')" t-esc="vl['diff2']"/></th>
+                                                <th><t t-if="vl.get('diff3')" t-esc="ptotal.get('currency_id')"/><t t-if="vl.get('diff3')" t-esc="vl['diff3']"/></th>
+                                                <th><t t-if="vl.get('diff4')" t-esc="ptotal.get('currency_id')"/><t t-if="vl.get('diff4')" t-esc="vl['diff4']"/></th>
+                                                <th><t t-if="vl.get('diff5')" t-esc="ptotal.get('currency_id')"/><t t-if="vl.get('diff5')" t-esc="vl['diff5']"/></th>
+                                                <th/>
+                                            </tr>
+                                        </t>
+                                    </t>
+                                </tbody>
+                            </table>
+
+                            <!-- PM subtotal -->
+                            <t t-set="pmt" t-value="pm_totals.get(pm_name, {})"/>
+                            <table class="table table-sm" style="margin-bottom:16px;">
+                                <tbody>
+                                    <tr style="background:#cce5ff;font-weight:bold;font-size:11px;">
+                                        <th style="width:60%;">Subtotal – <t t-esc="pm_name"/></th>
+                                        <th style="width:7%"><t t-out="pmt.get('currency_id','')"/><t t-out="pmt.get('diff0_sum_display','')"/></th>
+                                        <th style="width:7%"><t t-out="pmt.get('currency_id','')"/><t t-out="pmt.get('diff1_sum_display','')"/></th>
+                                        <th style="width:7%"><t t-out="pmt.get('currency_id','')"/><t t-out="pmt.get('diff2_sum_display','')"/></th>
+                                        <th style="width:7%"><t t-out="pmt.get('currency_id','')"/><t t-out="pmt.get('diff3_sum_display','')"/></th>
+                                        <th style="width:7%"><t t-out="pmt.get('currency_id','')"/><t t-out="pmt.get('diff4_sum_display','')"/></th>
+                                        <th style="width:7%"><t t-out="pmt.get('currency_id','')"/><t t-out="pmt.get('diff5_sum_display','')"/></th>
+                                        <th style="width:7%"><t t-out="pmt.get('currency_id','')"/><t t-out="pmt.get('debit_sum_display','')"/></th>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+
+                        <!-- Grand total (grouped mode) -->
+                        <t t-set="gt" t-value="pm_grand_total or {}"/>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr style="background:#808080;color:#fff;font-weight:bold;font-size:11px;">
+                                    <th style="width:60%;">Grand Total</th>
+                                    <th style="width:7%"><t t-out="gt.get('currency_id','')"/><t t-out="gt.get('diff0_sum_display','')"/></th>
+                                    <th style="width:7%"><t t-out="gt.get('currency_id','')"/><t t-out="gt.get('diff1_sum_display','')"/></th>
+                                    <th style="width:7%"><t t-out="gt.get('currency_id','')"/><t t-out="gt.get('diff2_sum_display','')"/></th>
+                                    <th style="width:7%"><t t-out="gt.get('currency_id','')"/><t t-out="gt.get('diff3_sum_display','')"/></th>
+                                    <th style="width:7%"><t t-out="gt.get('currency_id','')"/><t t-out="gt.get('diff4_sum_display','')"/></th>
+                                    <th style="width:7%"><t t-out="gt.get('currency_id','')"/><t t-out="gt.get('diff5_sum_display','')"/></th>
+                                    <th style="width:7%"><t t-out="gt.get('currency_id','')"/><t t-out="gt.get('debit_sum_display','')"/></th>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </t>
+
+                    <!-- ════════════════════════════════
+                         FLAT (PARTNER) MODE
+                    ════════════════════════════════ -->
+                    <t t-if="not grouped">
+                        <t t-if="move_lines">
+                            <t t-foreach="move_lines" t-as="move_line" t-key="partner_index">
+                                <table class="table table-sm table-reports">
+                                    <thead style="background:#808080;color:#fff;">
+                                        <tr>
+                                            <th style="width:10%" colspan="6"/>
+                                            <th style="width:10%">Invoice Date</th>
+                                            <th style="width:10%">Amount Currency</th>
+                                            <th style="width:10%">Currency</th>
+                                            <th style="width:10%">Account</th>
+                                            <th style="width:10%">Expected Date</th>
+                                            <th style="width:10%">At Date</th>
+                                            <th style="width:10%">1-30</th>
+                                            <th style="width:10%">31-60</th>
+                                            <th style="width:10%">61-90</th>
+                                            <th style="width:10%">91-120</th>
+                                            <th style="width:10%">Older</th>
+                                            <th style="width:10%">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="border-bottom" style="background:#D3D3D3;">
+                                            <th colspan="6" style="border:0;border-left:thin solid #dee2e6;">
+                                                <div><span class="fw-bolder"><t t-esc="move_line"/></span></div>
+                                            </th>
+                                            <th style="border:0;"/><th style="border:0;"/><th style="border:0;"/>
+                                            <th style="border:0;"/><th style="border:0;"/>
+                                            <th style="border:0;font-size:11px;font-weight:100;">
+                                                <t t-if="total[move_line]['diff0_sum']" t-esc="total[move_line]['currency_id']"/>
+                                                <t t-if="total[move_line]['diff0_sum']" t-esc="total[move_line]['diff0_sum_display']"/>
+                                            </th>
+                                            <th style="border:0;font-size:11px;font-weight:100;">
+                                                <t t-if="total[move_line]['diff1_sum']" t-esc="total[move_line]['currency_id']"/>
+                                                <t t-if="total[move_line]['diff1_sum']" t-esc="total[move_line]['diff1_sum_display']"/>
+                                            </th>
+                                            <th style="border:0;font-size:11px;font-weight:100;">
+                                                <t t-if="total[move_line]['diff2_sum']" t-esc="total[move_line]['currency_id']"/>
+                                                <t t-if="total[move_line]['diff2_sum']" t-esc="total[move_line]['diff2_sum_display']"/>
+                                            </th>
+                                            <th style="border:0;font-size:11px;font-weight:100;">
+                                                <t t-if="total[move_line]['diff3_sum']" t-esc="total[move_line]['currency_id']"/>
+                                                <t t-if="total[move_line]['diff3_sum']" t-esc="total[move_line]['diff3_sum_display']"/>
+                                            </th>
+                                            <th style="border:0;font-size:11px;font-weight:100;">
+                                                <t t-if="total[move_line]['diff4_sum']" t-esc="total[move_line]['currency_id']"/>
+                                                <t t-if="total[move_line]['diff4_sum']" t-esc="total[move_line]['diff4_sum_display']"/>
+                                            </th>
+                                            <th style="border:0;font-size:11px;font-weight:100;">
+                                                <t t-if="total[move_line]['diff5_sum']" t-esc="total[move_line]['currency_id']"/>
+                                                <t t-if="total[move_line]['diff5_sum']" t-esc="total[move_line]['diff5_sum_display']"/>
+                                            </th>
+                                            <th style="border:0;border-right:thin solid #dee2e6;font-size:11px;">
+                                                <span class="fw-bolder">
+                                                    <t t-if="total[move_line]['debit_sum']" t-esc="total[move_line]['currency_id']"/>
+                                                    <t t-if="total[move_line]['debit_sum']" t-esc="total[move_line]['debit_sum_display']"/>
+                                                </span>
+                                            </th>
+                                        </tr>
+
+                                        <t t-foreach="data[move_line]" t-as="valuelist"
+                                           t-key="valuelist_index">
+                                            <tr class="border-bottom" style="font-size:11px;font-weight:100;">
+                                                <th colspan="6">
+                                                    <t t-esc="valuelist['move_name']"/>
+                                                    <t t-esc="valuelist['name']"/>
+                                                </th>
+                                                <th><t t-esc="valuelist['date']"/></th>
+                                                <th><t t-esc="valuelist['amount_currency']"/></th>
+                                                <th><t t-esc="valuelist['currency_id'][1]"/></th>
+                                                <th><t t-esc="valuelist['account_id'][1]"/></th>
+                                                <th><t t-if="valuelist['date_maturity']" t-esc="valuelist['date_maturity']"/></th>
+                                                <th><t t-if="valuelist['diff0']" t-esc="total[move_line]['currency_id']"/><t t-if="valuelist['diff0']" t-esc="valuelist['diff0']"/></th>
+                                                <th><t t-if="valuelist['diff1']" t-esc="total[move_line]['currency_id']"/><t t-if="valuelist['diff1']" t-esc="valuelist['diff1']"/></th>
+                                                <th><t t-if="valuelist['diff2']" t-esc="total[move_line]['currency_id']"/><t t-if="valuelist['diff2']" t-esc="valuelist['diff2']"/></th>
+                                                <th><t t-if="valuelist['diff3']" t-esc="total[move_line]['currency_id']"/><t t-if="valuelist['diff3']" t-esc="valuelist['diff3']"/></th>
+                                                <th><t t-if="valuelist['diff4']" t-esc="total[move_line]['currency_id']"/><t t-if="valuelist['diff4']" t-esc="valuelist['diff4']"/></th>
+                                                <th><t t-if="valuelist['diff5']" t-esc="total[move_line]['currency_id']"/><t t-if="valuelist['diff5']" t-esc="valuelist['diff5']"/></th>
+                                                <th/>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </t>
+                        </t>
+
+                        <!-- Grand total (flat mode) -->
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <th style="width:60%;">Total</th>
+                                    <th style="width:10%"><t t-out="grand_total['currency']"/><t t-out="grand_total['diff0_sum_display']"/></th>
+                                    <th style="width:10%"><t t-out="grand_total['currency']"/><t t-out="grand_total['diff1_sum_display']"/></th>
+                                    <th style="width:10%"><t t-out="grand_total['currency']"/><t t-out="grand_total['diff2_sum_display']"/></th>
+                                    <th style="width:10%"><t t-out="grand_total['currency']"/><t t-out="grand_total['diff3_sum_display']"/></th>
+                                    <th style="width:10%"><t t-out="grand_total['currency']"/><t t-out="grand_total['diff4_sum_display']"/></th>
+                                    <th style="width:10%"><t t-out="grand_total['currency']"/><t t-out="grand_total['diff5_sum_display']"/></th>
+                                    <th style="width:10%"><t t-out="grand_total['currency']"/><t t-out="grand_total['total_debit_display']"/></th>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </t>
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- PDF report action (invoked from JS via report_name) -->
+    <record id="report_aged_receivable_pm" model="ir.actions.report">
+        <field name="name">Aged Receivable (PM)</field>
+        <field name="model">age.receivable.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">dynamic_accounts_report.aged_receivable_pm</field>
+        <field name="report_file">dynamic_accounts_report.aged_receivable_pm</field>
+        <field name="print_report_name">'Aged Receivable PM'</field>
+    </record>
+</odoo>

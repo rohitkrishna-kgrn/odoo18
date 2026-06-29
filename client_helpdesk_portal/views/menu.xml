@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Root application menu -->
+    <menuitem
+        id="menu_helpdesk_root"
+        name="Client Helpdesk"
+        sequence="85"
+        web_icon="client_helpdesk_portal,static/description/icon.png"
+        groups="client_helpdesk_portal.group_helpdesk_agent,client_helpdesk_portal.group_helpdesk_manager"/>
+
+    <!-- ── Tickets ──────────────────────────────────────────────────── -->
+    <menuitem
+        id="menu_helpdesk_tickets"
+        name="Tickets"
+        parent="menu_helpdesk_root"
+        sequence="10"
+        groups="client_helpdesk_portal.group_helpdesk_agent,client_helpdesk_portal.group_helpdesk_manager"/>
+
+    <menuitem
+        id="menu_helpdesk_all_tickets"
+        name="All Tickets"
+        parent="menu_helpdesk_tickets"
+        action="action_helpdesk_ticket"
+        sequence="10"
+        groups="client_helpdesk_portal.group_helpdesk_manager"/>
+
+    <menuitem
+        id="menu_helpdesk_my_tickets"
+        name="My Tickets"
+        parent="menu_helpdesk_tickets"
+        action="action_helpdesk_my_tickets"
+        sequence="20"
+        groups="client_helpdesk_portal.group_helpdesk_agent,client_helpdesk_portal.group_helpdesk_manager"/>
+
+    <!-- ── Reporting ────────────────────────────────────────────────── -->
+    <menuitem
+        id="menu_helpdesk_reporting"
+        name="Reporting"
+        parent="menu_helpdesk_root"
+        sequence="20"
+        groups="client_helpdesk_portal.group_helpdesk_manager"/>
+
+    <menuitem
+        id="menu_helpdesk_overview"
+        name="Overview"
+        parent="menu_helpdesk_reporting"
+        action="action_helpdesk_dashboard"
+        sequence="10"
+        groups="client_helpdesk_portal.group_helpdesk_manager"/>
+
+    <menuitem
+        id="menu_helpdesk_analysis"
+        name="Ticket Analysis"
+        parent="menu_helpdesk_reporting"
+        action="action_helpdesk_report"
+        sequence="20"
+        groups="client_helpdesk_portal.group_helpdesk_manager"/>
+
+    <!-- ── Configuration ────────────────────────────────────────────── -->
+    <menuitem
+        id="menu_helpdesk_config"
+        name="Configuration"
+        parent="menu_helpdesk_root"
+        sequence="30"
+        groups="client_helpdesk_portal.group_helpdesk_manager"/>
+
+    <menuitem
+        id="menu_helpdesk_stages"
+        name="Stages"
+        parent="menu_helpdesk_config"
+        action="action_helpdesk_stage"
+        sequence="10"
+        groups="client_helpdesk_portal.group_helpdesk_manager"/>
+
+</odoo>

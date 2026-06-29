@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+<!-- Public customer information form — no portal/website dependency.
+     All partner data is pre-extracted in the controller as plain Python
+     types so QWeb never calls ORM methods directly. -->
+
+<template id="template_customer_form" name="KGRN Customer Information Form">
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>KGRN Customer Information Form</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{background:#eef2f7;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#333;padding:24px 12px;}
+        .card{max-width:720px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #dde6f0;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;}
+        .logo-row{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid #eef2f7;}
+        .logo-row img{height:50px;width:auto;}
+        .banner{background:#1a3c6e;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;}
+        .banner h2{color:#fff;font-size:17px;font-weight:700;margin:0 0 3px;}
+        .banner p{color:#a8c4e8;font-size:11px;margin:0;}
+        .exp{background:rgba(255,255,255,.15);border-radius:4px;padding:6px 14px;text-align:center;white-space:nowrap;}
+        .exp p{color:#fff;font-size:10px;margin:0 0 2px;}
+        .exp span{color:#a8c4e8;font-size:11px;font-weight:700;}
+        .sec{padding:18px 28px 0;}
+        .sec-lbl{font-size:12px;font-weight:700;color:#1a3c6e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+        table.cur{width:100%;border-collapse:collapse;border:1px solid #dde6f0;margin-bottom:18px;font-size:12px;}
+        table.cur td{padding:7px 14px;border-bottom:1px solid #dde6f0;vertical-align:top;}
+        table.cur td:first-child{background:#f0f5ff;color:#1a3c6e;font-weight:700;width:36%;white-space:nowrap;}
+        table.cur tr:last-child td{border-bottom:0;}
+        .div{margin:18px 28px 0;border-top:2px dashed #c5d7f0;}
+        .fsec{padding:18px 28px 28px;}
+        .sh{font-size:11px;font-weight:700;color:#fff;background:#1a3c6e;padding:7px 12px;margin:0 0 12px;}
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
+        .full{grid-column:1/-1;}
+        label{display:block;font-size:11px;font-weight:700;color:#1a3c6e;margin-bottom:4px;}
+        input,select{width:100%;padding:8px 10px;border:1px solid #c5d7f0;border-radius:4px;font-size:12px;color:#333;background:#fff;}
+        input:focus,select:focus{outline:2px solid #a8c4e8;border-color:#1a3c6e;}
+        .req{color:#c0392b;}
+        .hint{font-size:12px;color:#777;margin:0 0 18px;}
+        .srow{text-align:right;padding-top:12px;border-top:1px solid #eef2f7;}
+        .sbtn{background:#1a3c6e;color:#fff;font-size:13px;font-weight:700;padding:12px 36px;border:0;border-radius:5px;cursor:pointer;}
+        .sbtn:hover{background:#14305a;}
+        .foot{background:#f0f5ff;padding:10px 28px;border-top:1px solid #dde6f0;text-align:center;}
+        .foot p{color:#888;font-size:11px;margin:0;}
+    </style>
+</head>
+<body>
+<div class="card">
+
+    <div class="logo-row">
+        <img src="/recruitment_gk/static/img/kgrn_logo.png" alt="KGRN"/>
+        <span style="font-size:11px;color:#999;">Contacts System</span>
+    </div>
+
+    <div class="banner">
+        <div>
+            <h2>
+                <t t-if="is_company">Entity Information Form</t>
+                <t t-else="">Individual Information Form</t>
+            </h2>
+            <p>KGRN Chartered Accountants</p>
+        </div>
+        <div class="exp">
+            <p>Expires</p>
+            <span><t t-out="expiry_str"/></span>
+        </div>
+    </div>
+
+    <!-- ── Current info on file ── -->
+    <t t-if="has_partner">
+    <div class="sec">
+        <p class="sec-lbl">Your Current Information on File</p>
+
+        <t t-if="not is_company">
+        <table class="cur">
+            <tr t-if="p.get('name')"><td>Full Name</td><td><t t-out="p.get('name')"/></td></tr>
+            <tr t-if="p.get('company_name')"><td>Company Name</td><td><t t-out="p.get('company_name')"/></td></tr>
+            <tr t-if="p.get('function')"><td>Job Position</td><td><t t-out="p.get('function')"/></td></tr>
+            <tr t-if="p.get('email')"><td>Email</td><td><t t-out="p.get('email')"/></td></tr>
+            <tr t-if="p.get('phone')"><td>Phone</td><td><t t-out="p.get('phone')"/></td></tr>
+            <tr t-if="p.get('mobile')"><td>Mobile</td><td><t t-out="p.get('mobile')"/></td></tr>
+            <tr t-if="p.get('website')"><td>Website</td><td><t t-out="p.get('website')"/></td></tr>
+            <tr t-if="p.get('street') or p.get('city') or p.get('country_name')">
+                <td>Address</td>
+                <td>
+                    <t t-out="p.get('street') or ''"/>
+                    <t t-if="p.get('city')">, <t t-out="p.get('city')"/></t>
+                    <t t-if="p.get('country_name')">, <t t-out="p.get('country_name')"/></t>
+                </td>
+            </tr>
+            <tr t-if="p.get('emirates_id')"><td>Emirates ID</td><td><t t-out="p.get('emirates_id')"/></td></tr>
+            <tr t-if="p.get('passport_number')"><td>Passport Number</td><td><t t-out="p.get('passport_number')"/></td></tr>
+            <tr t-if="p.get('vat')"><td>VAT / TRN</td><td><t t-out="p.get('vat')"/></td></tr>
+            <tr t-if="p.get('company_license_no')"><td>Company License No.</td><td><t t-out="p.get('company_license_no')"/></td></tr>
+        </table>
+        </t>
+
+        <t t-if="is_company">
+        <table class="cur">
+            <tr t-if="p.get('name')"><td>Company Name</td><td><t t-out="p.get('name')"/></td></tr>
+            <tr t-if="p.get('email')"><td>Email</td><td><t t-out="p.get('email')"/></td></tr>
+            <tr t-if="p.get('phone')"><td>Phone</td><td><t t-out="p.get('phone')"/></td></tr>
+            <tr t-if="p.get('mobile')"><td>Mobile</td><td><t t-out="p.get('mobile')"/></td></tr>
+            <tr t-if="p.get('website')"><td>Website</td><td><t t-out="p.get('website')"/></td></tr>
+            <tr t-if="p.get('vat')"><td>VAT / TRN</td><td><t t-out="p.get('vat')"/></td></tr>
+            <tr t-if="p.get('company_license_no')"><td>Company License No.</td><td><t t-out="p.get('company_license_no')"/></td></tr>
+            <tr t-if="p.get('emirates_id')"><td>Emirates ID</td><td><t t-out="p.get('emirates_id')"/></td></tr>
+            <tr t-if="p.get('passport_number')"><td>Passport Number</td><td><t t-out="p.get('passport_number')"/></td></tr>
+            <tr t-if="p.get('street') or p.get('city') or p.get('state_name') or p.get('country_name')">
+                <td>Address</td>
+                <td>
+                    <t t-out="p.get('street') or ''"/>
+                    <t t-if="p.get('city')">, <t t-out="p.get('city')"/></t>
+                    <t t-if="p.get('state_name')">, <t t-out="p.get('state_name')"/></t>
+                    <t t-if="p.get('country_name')">, <t t-out="p.get('country_name')"/></t>
+                </td>
+            </tr>
+        </table>
+        </t>
+    </div>
+    </t>
+
+    <div class="div"></div>
+
+    <!-- ── Editable form ── -->
+    <div class="fsec">
+        <p class="sec-lbl">Please Update / Confirm Your Details</p>
+        <p class="hint">All fields are required <span class="req">*</span></p>
+
+        <form t-att-action="form_action" method="post">
+
+            <!-- ═ INDIVIDUAL ═ -->
+            <t t-if="not is_company">
+
+                <p class="sh">Personal Details</p>
+                <div class="grid">
+                    <div class="full">
+                        <label>Full Name <span class="req">*</span></label>
+                        <input type="text" name="name" required="required" t-att-value="p.get('name', '')"/>
+                    </div>
+                    <div>
+                        <label>Company Name <span class="req">*</span></label>
+                        <input type="text" name="company_name" required="required" t-att-value="p.get('company_name', '')"/>
+                    </div>
+                    <div>
+                        <label>Job Position <span class="req">*</span></label>
+                        <input type="text" name="function" required="required" t-att-value="p.get('function', '')"/>
+                    </div>
+                </div>
+
+                <p class="sh">Contact Details</p>
+                <div class="grid">
+                    <div>
+                        <label>Email <span class="req">*</span></label>
+                        <input type="text" name="email" required="required" t-att-value="p.get('email', '')"/>
+                    </div>
+                    <div>
+                        <label>Phone <span class="req">*</span></label>
+                        <input type="text" name="phone" required="required" t-att-value="p.get('phone', '')"/>
+                    </div>
+                    <div>
+                        <label>Mobile <span class="req">*</span></label>
+                        <input type="text" name="mobile" required="required" t-att-value="p.get('mobile', '')"/>
+                    </div>
+                    <div>
+                        <label>Website <span class="req">*</span></label>
+                        <input type="text" name="website" required="required" t-att-value="p.get('website', '')"/>
+                    </div>
+                </div>
+
+                <p class="sh">Address</p>
+                <div class="grid">
+                    <div class="full">
+                        <label>Street Address <span class="req">*</span></label>
+                        <input type="text" name="street" required="required" t-att-value="p.get('street', '')"/>
+                    </div>
+                    <div class="full">
+                        <label>Street Address Line 2 <span class="req">*</span></label>
+                        <input type="text" name="street2" required="required" t-att-value="p.get('street2', '')"/>
+                    </div>
+                    <div>
+                        <label>City <span class="req">*</span></label>
+                        <input type="text" name="city" required="required" t-att-value="p.get('city', '')"/>
+                    </div>
+                    <div>
+                        <label>ZIP / Postal Code <span class="req">*</span></label>
+                        <input type="text" name="zip" required="required" t-att-value="p.get('zip', '')"/>
+                    </div>
+                    <div class="full">
+                        <label>Country <span class="req">*</span></label>
+                        <select name="country_id" required="required">
+                            <option value="">Select Country</option>
+                            <t t-foreach="country_list" t-as="c">
+                                <option t-att-value="c['id']" t-att-selected="c['selected'] and 'selected'">
+                                    <t t-out="c['name']"/>
+                                </option>
+                            </t>
+                        </select>
+                    </div>
+                </div>
+
+                <p class="sh">Identification Details</p>
+                <div class="grid" style="margin-bottom:22px;">
+                    <div>
+                        <label>Emirates ID <span class="req">*</span></label>
+                        <input type="text" name="emirates_id" required="required" t-att-value="p.get('emirates_id', '')"/>
+                    </div>
+                    <div>
+                        <label>Passport Number <span class="req">*</span></label>
+                        <input type="text" name="passport_number" required="required" t-att-value="p.get('passport_number', '')"/>
+                    </div>
+                    <div>
+                        <label>VAT / TRN Number <span class="req">*</span></label>
+                        <input type="text" name="vat" required="required" t-att-value="p.get('vat', '')"/>
+                    </div>
+                    <div>
+                        <label>Company License Number <span class="req">*</span></label>
+                        <input type="text" name="company_license_no" required="required" t-att-value="p.get('company_license_no', '')"/>
+                    </div>
+                </div>
+
+            </t>
+            <t t-else=""><!-- ENTITY -->
+
+                <p class="sh">Company Details</p>
+                <div class="grid">
+                    <div class="full">
+                        <label>Company Name <span class="req">*</span></label>
+                        <input type="text" name="name" required="required" t-att-value="p.get('name', '')"/>
+                    </div>
+                    <div>
+                        <label>Email <span class="req">*</span></label>
+                        <input type="text" name="email" required="required" t-att-value="p.get('email', '')"/>
+                    </div>
+                    <div>
+                        <label>Phone <span class="req">*</span></label>
+                        <input type="text" name="phone" required="required" t-att-value="p.get('phone', '')"/>
+                    </div>
+                    <div>
+                        <label>Mobile <span class="req">*</span></label>
+                        <input type="text" name="mobile" required="required" t-att-value="p.get('mobile', '')"/>
+                    </div>
+                    <div>
+                        <label>Website <span class="req">*</span></label>
+                        <input type="text" name="website" required="required" t-att-value="p.get('website', '')"/>
+                    </div>
+                    <div>
+                        <label>VAT / TRN Number <span class="req">*</span></label>
+                        <input type="text" name="vat" required="required" t-att-value="p.get('vat', '')"/>
+                    </div>
+                    <div class="full">
+                        <label>Company License Number <span class="req">*</span></label>
+                        <input type="text" name="company_license_no" required="required" t-att-value="p.get('company_license_no', '')"/>
+                    </div>
+                </div>
+
+                <p class="sh">Registered Address</p>
+                <div class="grid">
+                    <div class="full">
+                        <label>Street Address <span class="req">*</span></label>
+                        <input type="text" name="street" required="required" t-att-value="p.get('street', '')"/>
+                    </div>
+                    <div class="full">
+                        <label>Street Address Line 2 <span class="req">*</span></label>
+                        <input type="text" name="street2" required="required" t-att-value="p.get('street2', '')"/>
+                    </div>
+                    <div>
+                        <label>City <span class="req">*</span></label>
+                        <input type="text" name="city" required="required" t-att-value="p.get('city', '')"/>
+                    </div>
+                    <div>
+                        <label>State / Emirate <span class="req">*</span></label>
+                        <t t-if="state_list">
+                            <select name="state_id" required="required">
+                                <option value="">Select State</option>
+                                <t t-foreach="state_list" t-as="s">
+                                    <option t-att-value="s['id']" t-att-selected="s['selected'] and 'selected'">
+                                        <t t-out="s['name']"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </t>
+                        <t t-else="">
+                            <input type="text" name="state_id" required="required" value="" placeholder="Select country first"/>
+                        </t>
+                    </div>
+                    <div>
+                        <label>ZIP / Postal Code <span class="req">*</span></label>
+                        <input type="text" name="zip" required="required" t-att-value="p.get('zip', '')"/>
+                    </div>
+                    <div>
+                        <label>Country <span class="req">*</span></label>
+                        <select name="country_id" required="required">
+                            <option value="">Select Country</option>
+                            <t t-foreach="country_list" t-as="c">
+                                <option t-att-value="c['id']" t-att-selected="c['selected'] and 'selected'">
+                                    <t t-out="c['name']"/>
+                                </option>
+                            </t>
+                        </select>
+                    </div>
+                </div>
+
+                <p class="sh">Identification Details</p>
+                <div class="grid" style="margin-bottom:22px;">
+                    <div>
+                        <label>Emirates ID <span class="req">*</span></label>
+                        <input type="text" name="emirates_id" required="required" t-att-value="p.get('emirates_id', '')"/>
+                    </div>
+                    <div>
+                        <label>Passport Number <span class="req">*</span></label>
+                        <input type="text" name="passport_number" required="required" t-att-value="p.get('passport_number', '')"/>
+                    </div>
+                </div>
+
+            </t>
+
+            <div class="srow">
+                <button type="submit" class="sbtn">Submit Information</button>
+            </div>
+
+        </form>
+    </div>
+
+    <div class="foot">
+        <p>KGRN Chartered Accountants &#8226; This form is securely linked to your account.</p>
+    </div>
+
+</div>
+</body>
+</html>
+</template>
+
+
+<!-- ═══════ Success ═══════ -->
+<template id="template_form_success" name="KGRN Form - Success">
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Form Submitted</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{background:#eef2f7;font-family:Arial,Helvetica,sans-serif;padding:40px 12px;}
+        .card{max-width:520px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #dde6f0;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;}
+        .lr{padding:12px 24px;text-align:right;border-bottom:1px solid #eef2f7;}
+        .lr img{height:50px;width:auto;}
+        .bn{background:#1a3c6e;padding:16px 28px;}
+        .bn h2{color:#fff;font-size:17px;font-weight:700;margin:0 0 3px;}
+        .bn p{color:#a8c4e8;font-size:11px;margin:0;}
+        .body{padding:36px 28px;text-align:center;}
+        .ico{width:64px;height:64px;background:#27ae60;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:18px;}
+        .ico span{color:#fff;font-size:28px;line-height:1;}
+        h3{color:#1a3c6e;font-size:16px;font-weight:700;margin:0 0 10px;}
+        .ft{background:#f0f5ff;padding:10px 28px;border-top:1px solid #dde6f0;text-align:center;}
+        .ft p{color:#888;font-size:11px;margin:0;}
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="lr"><img src="/recruitment_gk/static/img/kgrn_logo.png" alt="KGRN"/></div>
+    <div class="bn">
+        <h2>Form Submitted Successfully</h2>
+        <p>KGRN Chartered Accountants &#8226; Contacts System</p>
+    </div>
+    <div class="body">
+        <div class="ico"><span>&#10003;</span></div>
+        <h3>Thank You!</h3>
+        <p style="color:#333;font-size:13px;margin:0 0 8px;">
+            <t t-if="partner_name">Thank you, <strong><t t-out="partner_name"/></strong>.</t>
+            <t t-else="">Thank you for submitting your information.</t>
+        </p>
+        <p style="color:#777;font-size:12px;">Your contact record has been updated. Our team will review it shortly.</p>
+    </div>
+    <div class="ft"><p>KGRN Chartered Accountants &#8226; Contacts System</p></div>
+</div>
+</body>
+</html>
+</template>
+
+
+<!-- ═══════ Invalid / Expired ═══════ -->
+<template id="template_form_invalid" name="KGRN Form - Invalid">
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Link Unavailable</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{background:#eef2f7;font-family:Arial,Helvetica,sans-serif;padding:40px 12px;}
+        .card{max-width:520px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #dde6f0;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;}
+        .lr{padding:12px 24px;text-align:right;border-bottom:1px solid #eef2f7;}
+        .lr img{height:50px;width:auto;}
+        .bn{background:#1a3c6e;padding:16px 28px;}
+        .bn h2{color:#fff;font-size:17px;font-weight:700;margin:0 0 3px;}
+        .bn p{color:#a8c4e8;font-size:11px;margin:0;}
+        .body{padding:36px 28px;text-align:center;}
+        .ico{width:64px;height:64px;background:#e74c3c;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:18px;}
+        .ico span{color:#fff;font-size:28px;line-height:1;}
+        h3{color:#c0392b;font-size:16px;font-weight:700;margin:0 0 10px;}
+        .ft{background:#f0f5ff;padding:10px 28px;border-top:1px solid #dde6f0;text-align:center;}
+        .ft p{color:#888;font-size:11px;margin:0;}
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="lr"><img src="/recruitment_gk/static/img/kgrn_logo.png" alt="KGRN"/></div>
+    <div class="bn">
+        <h2>Link Unavailable</h2>
+        <p>KGRN Chartered Accountants &#8226; Contacts System</p>
+    </div>
+    <div class="body">
+        <div class="ico"><span>&#9888;</span></div>
+        <h3>This Link is No Longer Valid</h3>
+        <p style="color:#555;font-size:13px;margin:0 0 8px;">
+            <t t-out="message or 'This form link is invalid or has expired.'"/>
+        </p>
+        <p style="color:#999;font-size:12px;">Please contact KGRN to request a new form link.</p>
+    </div>
+    <div class="ft"><p>KGRN Chartered Accountants &#8226; Contacts System</p></div>
+</div>
+</body>
+</html>
+</template>
+
+</odoo>

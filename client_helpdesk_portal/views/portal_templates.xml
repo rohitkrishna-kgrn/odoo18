@@ -1,0 +1,795 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     PUBLIC SUBMISSION FORM
+══════════════════════════════════════════════════════════════════════ -->
+<template id="helpdesk_submission_form" name="Client Helpdesk – Submit a Request">
+<t t-call="website.layout">
+<t t-set="title">Submit a Support Request</t>
+<!-- Fix 1: Hide the website header (login / nav / contact bar) -->
+<t t-set="no_header" t-value="True"/>
+<t t-set="no_footer" t-value="True"/>
+
+<div class="o_helpdesk_portal">
+
+    <!-- ── Hero ──────────────────────────────────────────────────────── -->
+    <section class="hd-hero">
+        <div class="hd-hero-bg-pattern"></div>
+        <div class="container position-relative">
+            <div class="row justify-content-center text-center py-5">
+                <div class="col-lg-7">
+                    <div class="hd-hero-logo mb-4">
+                        <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+                             alt="KGRN Chartered Accountants" class="hd-logo-img"/>
+                    </div>
+                    <div class="hd-hero-badge mb-3">
+                        <i class="fa fa-headphones me-2"/>Support Center
+                    </div>
+                    <h1 class="hd-hero-title mb-3">How can we help you?</h1>
+                    <p class="hd-hero-subtitle mb-0">
+                        Describe your issue and our team will respond within 1–2 business days.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Form Body ─────────────────────────────────────────────────── -->
+    <section class="hd-form-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-9 col-lg-10">
+
+                    <!-- General error banner -->
+                    <t t-if="error.get('general')">
+                        <div class="alert hd-alert-danger mb-4" role="alert">
+                            <i class="fa fa-exclamation-circle me-2"/>
+                            <t t-esc="error['general']"/>
+                        </div>
+                    </t>
+
+                    <form id="hd-portal-form" method="POST" action="/helpdesk/submit/post"
+                          enctype="multipart/form-data" novalidate="">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                        <!-- ─────────────────────────────────────────────
+                             STEP 1 — REQUEST TYPE
+                        ───────────────────────────────────────────────── -->
+                        <div class="hd-card mb-4">
+                            <div class="hd-card-header">
+                                <div class="hd-step-badge">1</div>
+                                <div>
+                                    <h5 class="hd-card-title mb-0">What type of request is this?</h5>
+                                    <small class="text-muted">Choose the option that best describes your need</small>
+                                </div>
+                            </div>
+                            <div class="hd-card-body">
+
+                                <!-- Type error -->
+                                <div id="hd-type-error" class="hd-field-error mb-3"
+                                     t-att-style="'display:flex' if error.get('request_type') else 'display:none'">
+                                    <i class="fa fa-exclamation-circle me-1"/>
+                                    <t t-esc="error.get('request_type', 'Please select a request type.')"/>
+                                </div>
+
+                                <!-- Fix 2: Visual type cards — JS makes them clickable -->
+                                <div class="hd-type-grid">
+
+                                    <div class="hd-type-card"
+                                         data-value="issue"
+                                         t-att-class="'hd-type-card active' if form_data.get('request_type') == 'issue' else 'hd-type-card'">
+                                        <div class="hd-type-icon-wrap hd-type-issue">
+                                            <i class="fa fa-wrench"/>
+                                        </div>
+                                        <div class="hd-type-body">
+                                            <div class="hd-type-name">Technical Issue</div>
+                                            <div class="hd-type-desc">Bug, error, or system problem</div>
+                                        </div>
+                                        <div class="hd-type-check"><i class="fa fa-check-circle"/></div>
+                                    </div>
+
+                                    <div class="hd-type-card"
+                                         data-value="complaint"
+                                         t-att-class="'hd-type-card active' if form_data.get('request_type') == 'complaint' else 'hd-type-card'">
+                                        <div class="hd-type-icon-wrap hd-type-complaint">
+                                            <i class="fa fa-exclamation-triangle"/>
+                                        </div>
+                                        <div class="hd-type-body">
+                                            <div class="hd-type-name">Complaint</div>
+                                            <div class="hd-type-desc">Service dissatisfaction or escalation</div>
+                                        </div>
+                                        <div class="hd-type-check"><i class="fa fa-check-circle"/></div>
+                                    </div>
+
+                                    <div class="hd-type-card"
+                                         data-value="other"
+                                         t-att-class="'hd-type-card active' if form_data.get('request_type') == 'other' else 'hd-type-card'">
+                                        <div class="hd-type-icon-wrap hd-type-other">
+                                            <i class="fa fa-comments"/>
+                                        </div>
+                                        <div class="hd-type-body">
+                                            <div class="hd-type-name">General Request</div>
+                                            <div class="hd-type-desc">Inquiry, advice, or other support</div>
+                                        </div>
+                                        <div class="hd-type-check"><i class="fa fa-check-circle"/></div>
+                                    </div>
+
+                                </div>
+
+                                <!-- Hidden field updated by JS -->
+                                <input type="hidden" id="request_type_hidden" name="request_type"
+                                       t-att-value="form_data.get('request_type', '')"/>
+
+                            </div>
+                        </div>
+
+                        <!-- ─────────────────────────────────────────────
+                             STEP 2 — CONTACT INFORMATION
+                        ───────────────────────────────────────────────── -->
+                        <div class="hd-card mb-4">
+                            <div class="hd-card-header">
+                                <div class="hd-step-badge">2</div>
+                                <div>
+                                    <h5 class="hd-card-title mb-0">Your Contact Information</h5>
+                                    <small class="text-muted">Fields marked <span class="text-danger">*</span> are required</small>
+                                </div>
+                            </div>
+                            <div class="hd-card-body">
+                                <div class="row g-3">
+
+                                    <!-- Client Name -->
+                                    <div class="col-md-6">
+                                        <div class="hd-field-wrap">
+                                            <label for="client_name" class="hd-label">
+                                                <i class="fa fa-user-o hd-label-icon"/>
+                                                Full Name <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text" id="client_name" name="client_name"
+                                                   t-att-class="'hd-input is-invalid' if error.get('client_name') else 'hd-input'"
+                                                   t-att-value="form_data.get('client_name', '')"
+                                                   placeholder="e.g. Ahmed Al-Rashid"
+                                                   autocomplete="name" required="required"/>
+                                            <t t-if="error.get('client_name')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['client_name']"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                    <!-- Company Name -->
+                                    <div class="col-md-6">
+                                        <div class="hd-field-wrap">
+                                            <label for="company_name" class="hd-label">
+                                                <i class="fa fa-building-o hd-label-icon"/>
+                                                Company Name
+                                                <span class="hd-optional">(optional)</span>
+                                            </label>
+                                            <input type="text" id="company_name" name="company_name"
+                                                   class="hd-input"
+                                                   t-att-value="form_data.get('company_name', '')"
+                                                   placeholder="Your organisation"
+                                                   autocomplete="organization"/>
+                                        </div>
+                                    </div>
+
+                                    <!-- Email -->
+                                    <div class="col-md-6">
+                                        <div class="hd-field-wrap">
+                                            <label for="email" class="hd-label">
+                                                <i class="fa fa-envelope-o hd-label-icon"/>
+                                                Email Address <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="email" id="email" name="email"
+                                                   t-att-class="'hd-input is-invalid' if error.get('email') else 'hd-input'"
+                                                   t-att-value="form_data.get('email', '')"
+                                                   placeholder="you@example.com"
+                                                   autocomplete="email" required="required"/>
+                                            <t t-if="error.get('email')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['email']"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                    <!-- Phone -->
+                                    <div class="col-md-6">
+                                        <div class="hd-field-wrap">
+                                            <label for="phone" class="hd-label">
+                                                <i class="fa fa-phone hd-label-icon"/>
+                                                Phone Number <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="tel" id="phone" name="phone"
+                                                   t-att-class="'hd-input is-invalid' if error.get('phone') else 'hd-input'"
+                                                   t-att-value="form_data.get('phone', '')"
+                                                   placeholder="+971 50 000 0000"
+                                                   autocomplete="tel" required="required"/>
+                                            <t t-if="error.get('phone')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['phone']"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                    <!-- Reference Number -->
+                                    <div class="col-md-6">
+                                        <div class="hd-field-wrap">
+                                            <label for="reference_number" class="hd-label">
+                                                <i class="fa fa-hashtag hd-label-icon"/>
+                                                Reference / Customer ID
+                                                <span class="hd-optional">(optional)</span>
+                                            </label>
+                                            <input type="text" id="reference_number" name="reference_number"
+                                                   class="hd-input"
+                                                   t-att-value="form_data.get('reference_number', '')"
+                                                   placeholder="Your account or reference number"/>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ─────────────────────────────────────────────
+                             STEP 3 — REQUEST DETAILS
+                        ───────────────────────────────────────────────── -->
+                        <div class="hd-card mb-4">
+                            <div class="hd-card-header">
+                                <div class="hd-step-badge">3</div>
+                                <div>
+                                    <h5 class="hd-card-title mb-0">Request Details</h5>
+                                    <small class="text-muted">Tell us more so we can help you faster</small>
+                                </div>
+                            </div>
+                            <div class="hd-card-body">
+                                <div class="row g-4">
+
+                                    <!-- Fix 2: Priority selector — JS toggles active class -->
+                                    <div class="col-12">
+                                        <label class="hd-label mb-2">
+                                            <i class="fa fa-flag hd-label-icon"/>
+                                            Priority Level
+                                        </label>
+                                        <div class="hd-priority-grid">
+
+                                            <label class="hd-priority-card hd-priority-low"
+                                                   t-att-class="'hd-priority-card hd-priority-low active' if form_data.get('priority', '0') == '0' else 'hd-priority-card hd-priority-low'">
+                                                <input type="radio" name="priority" value="0"
+                                                       t-att-checked="'checked' if form_data.get('priority', '0') == '0' else None"/>
+                                                <div class="hd-priority-dot"></div>
+                                                <div class="hd-priority-info">
+                                                    <div class="hd-priority-name">Low</div>
+                                                    <div class="hd-priority-hint">General inquiry</div>
+                                                </div>
+                                            </label>
+
+                                            <label class="hd-priority-card hd-priority-medium"
+                                                   t-att-class="'hd-priority-card hd-priority-medium active' if form_data.get('priority') == '1' else 'hd-priority-card hd-priority-medium'">
+                                                <input type="radio" name="priority" value="1"
+                                                       t-att-checked="'checked' if form_data.get('priority') == '1' else None"/>
+                                                <div class="hd-priority-dot"></div>
+                                                <div class="hd-priority-info">
+                                                    <div class="hd-priority-name">Medium</div>
+                                                    <div class="hd-priority-hint">Affects work flow</div>
+                                                </div>
+                                            </label>
+
+                                            <label class="hd-priority-card hd-priority-high"
+                                                   t-att-class="'hd-priority-card hd-priority-high active' if form_data.get('priority') == '2' else 'hd-priority-card hd-priority-high'">
+                                                <input type="radio" name="priority" value="2"
+                                                       t-att-checked="'checked' if form_data.get('priority') == '2' else None"/>
+                                                <div class="hd-priority-dot"></div>
+                                                <div class="hd-priority-info">
+                                                    <div class="hd-priority-name">High</div>
+                                                    <div class="hd-priority-hint">Business critical</div>
+                                                </div>
+                                            </label>
+
+                                        </div>
+                                    </div>
+
+                                    <!-- Subject -->
+                                    <div class="col-12">
+                                        <div class="hd-field-wrap">
+                                            <label for="subject" class="hd-label">
+                                                <i class="fa fa-tag hd-label-icon"/>
+                                                Subject <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text" id="subject" name="subject"
+                                                   t-att-class="'hd-input is-invalid' if error.get('subject') else 'hd-input'"
+                                                   t-att-value="form_data.get('subject', '')"
+                                                   placeholder="One-line summary of your request"
+                                                   maxlength="200" required="required"/>
+                                            <t t-if="error.get('subject')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['subject']"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                    <!-- Description -->
+                                    <div class="col-12">
+                                        <div class="hd-field-wrap">
+                                            <div class="d-flex justify-content-between align-items-baseline mb-1">
+                                                <label for="description" class="hd-label mb-0">
+                                                    <i class="fa fa-align-left hd-label-icon"/>
+                                                    Description <span class="text-danger">*</span>
+                                                </label>
+                                                <span id="hd-char-counter" class="hd-char-counter">0 / 2000</span>
+                                            </div>
+                                            <textarea id="description" name="description" rows="6"
+                                                      t-att-class="'hd-textarea is-invalid' if error.get('description') else 'hd-textarea'"
+                                                      placeholder="Please describe your issue or request in as much detail as possible…"
+                                                      maxlength="2000" required="required"><t t-esc="form_data.get('description', '')"/></textarea>
+                                            <t t-if="error.get('description')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['description']"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                    <!-- Fix 3: Attachment with file preview -->
+                                    <div class="col-12">
+                                        <label class="hd-label mb-2">
+                                            <i class="fa fa-paperclip hd-label-icon"/>
+                                            Attachment
+                                            <span class="hd-optional">(optional – max 10 MB)</span>
+                                        </label>
+
+                                        <div id="hd-dropzone" class="hd-dropzone"
+                                             t-att-class="'hd-dropzone is-invalid' if error.get('attachment') else 'hd-dropzone'">
+                                            <div class="hd-dropzone-idle" id="hd-dropzone-idle">
+                                                <div class="hd-dropzone-icon-wrap">
+                                                    <i class="fa fa-cloud-upload"/>
+                                                </div>
+                                                <p class="hd-dropzone-text mb-1">
+                                                    Drag &amp; drop a file here, or
+                                                    <span class="hd-dropzone-link">click to browse</span>
+                                                </p>
+                                                <p class="hd-dropzone-hint mb-0">
+                                                    PDF, Word, Excel, image files accepted
+                                                </p>
+                                            </div>
+                                            <!-- Fix 3: File preview area — shown by JS when file chosen -->
+                                            <div class="hd-file-preview" id="hd-file-preview" style="display:none;"></div>
+                                            <input type="file" id="attachment" name="attachment"
+                                                   class="hd-dropzone-input" multiple="multiple"
+                                                   accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.webp"/>
+                                        </div>
+
+                                        <t t-if="error.get('attachment')">
+                                            <div class="hd-field-error mt-1">
+                                                <i class="fa fa-exclamation-circle me-1"/>
+                                                <t t-esc="error['attachment']"/>
+                                            </div>
+                                        </t>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit row -->
+                        <div class="hd-submit-row">
+                            <div class="hd-privacy-note">
+                                <i class="fa fa-lock me-2"/>
+                                Your information is kept confidential and used only to process this request.
+                            </div>
+                            <button type="submit" id="hd-submit-btn" class="hd-submit-btn">
+                                <span class="hd-submit-label">
+                                    <i class="fa fa-paper-plane me-2"/>Submit Request
+                                </span>
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     INLINE JAVASCRIPT — type cards, priority, attachment preview, submit
+══════════════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+    'use strict';
+
+    /* ── helpers ────────────────────────────────────────────────────── */
+    function fmt(bytes) {
+        if (bytes &lt; 1024) return bytes + ' B';
+        if (bytes &lt; 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function fileIcon(name) {
+        var ext = (name.split('.').pop() || '').toLowerCase();
+        var map = {
+            pdf: 'fa-file-pdf-o',
+            doc: 'fa-file-word-o', docx: 'fa-file-word-o',
+            xls: 'fa-file-excel-o', xlsx: 'fa-file-excel-o',
+            txt: 'fa-file-text-o',
+            jpg: 'fa-file-image-o', jpeg: 'fa-file-image-o',
+            png: 'fa-file-image-o', gif: 'fa-file-image-o', webp: 'fa-file-image-o'
+        };
+        return 'fa ' + (map[ext] || 'fa-file-o');
+    }
+
+    /* ── Request type cards ──────────────────────────────────────────── */
+    var typeCards  = document.querySelectorAll('.hd-type-card');
+    var typeHidden = document.getElementById('request_type_hidden');
+    var typeError  = document.getElementById('hd-type-error');
+
+    typeCards.forEach(function (card) {
+        card.addEventListener('click', function () {
+            typeCards.forEach(function (c) { c.classList.remove('active'); });
+            card.classList.add('active');
+            typeHidden.value = card.getAttribute('data-value');
+            if (typeError) typeError.style.display = 'none';
+        });
+    });
+
+    /* ── Priority radio labels ───────────────────────────────────────── */
+    var priorityLabels = document.querySelectorAll('.hd-priority-card');
+    priorityLabels.forEach(function (label) {
+        label.addEventListener('click', function () {
+            priorityLabels.forEach(function (l) { l.classList.remove('active'); });
+            label.classList.add('active');
+        });
+    });
+
+    /* ── Multiple-file attachment preview ───────────────────────────── */
+    var fileInput   = document.getElementById('attachment');
+    var dropzone    = document.getElementById('hd-dropzone');
+    var idleArea    = document.getElementById('hd-dropzone-idle');
+    var previewArea = document.getElementById('hd-file-preview');
+
+    /* DataTransfer keeps track of chosen files so we can remove individually */
+    var chosenFiles = new DataTransfer();
+
+    function syncInputFiles() {
+        fileInput.files = chosenFiles.files;
+    }
+
+    function renderPreviews() {
+        previewArea.innerHTML = '';
+
+        if (chosenFiles.files.length === 0) {
+            previewArea.style.display = 'none';
+            idleArea.style.display   = 'flex';
+            dropzone.classList.remove('has-file');
+            return;
+        }
+
+        idleArea.style.display   = 'none';
+        previewArea.style.display = 'block';
+        dropzone.classList.add('has-file');
+
+        /* "Add more files" button shown at the top of the preview area */
+        var addMoreBtn = document.createElement('div');
+        addMoreBtn.className = 'hd-add-more-wrap';
+        addMoreBtn.innerHTML = [
+            '&lt;button type="button" class="hd-add-more-btn" id="hd-add-more-btn"&gt;',
+            '  &lt;i class="fa fa-plus-circle me-1"&gt;&lt;/i&gt; Add another file',
+            '&lt;/button&gt;',
+            '&lt;span class="hd-file-count"&gt;' + chosenFiles.files.length + ' file(s) selected&lt;/span&gt;'
+        ].join('');
+        previewArea.appendChild(addMoreBtn);
+
+        document.getElementById('hd-add-more-btn').addEventListener('click', function (e) {
+            e.stopPropagation();
+            /* Create a temporary hidden input to open browser picker */
+            var tmp = document.createElement('input');
+            tmp.type = 'file';
+            tmp.multiple = true;
+            tmp.accept   = fileInput.accept;
+            tmp.style.display = 'none';
+            document.body.appendChild(tmp);
+            tmp.addEventListener('change', function () {
+                Array.from(tmp.files).forEach(function (f) {
+                    /* Avoid exact duplicates (same name + size) */
+                    var dup = false;
+                    Array.from(chosenFiles.files).forEach(function (existing) {
+                        if (existing.name === f.name &amp;&amp; existing.size === f.size) dup = true;
+                    });
+                    if (!dup) chosenFiles.items.add(f);
+                });
+                syncInputFiles();
+                renderPreviews();
+                document.body.removeChild(tmp);
+            });
+            tmp.click();
+        });
+
+        /* One row per file */
+        Array.from(chosenFiles.files).forEach(function (file, idx) {
+            var row = document.createElement('div');
+            row.className = 'hd-file-item';
+            row.innerHTML = [
+                '&lt;i class="' + fileIcon(file.name) + ' hd-file-icon"&gt;&lt;/i&gt;',
+                '&lt;div class="hd-file-info"&gt;',
+                '  &lt;span class="hd-file-name"&gt;' + file.name + '&lt;/span&gt;',
+                '  &lt;span class="hd-file-size"&gt;' + fmt(file.size) + '&lt;/span&gt;',
+                '&lt;/div&gt;',
+                '&lt;button type="button" class="hd-file-remove" data-idx="' + idx + '" title="Remove"&gt;',
+                '  &lt;i class="fa fa-times"&gt;&lt;/i&gt;',
+                '&lt;/button&gt;'
+            ].join('');
+            previewArea.appendChild(row);
+        });
+
+        /* Remove individual file */
+        previewArea.querySelectorAll('.hd-file-remove').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var removeIdx = parseInt(btn.getAttribute('data-idx'), 10);
+                var newDT = new DataTransfer();
+                Array.from(chosenFiles.files).forEach(function (f, i) {
+                    if (i !== removeIdx) newDT.items.add(f);
+                });
+                chosenFiles = newDT;
+                syncInputFiles();
+                renderPreviews();
+            });
+        });
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            Array.from(fileInput.files).forEach(function (f) {
+                var dup = false;
+                Array.from(chosenFiles.files).forEach(function (existing) {
+                    if (existing.name === f.name &amp;&amp; existing.size === f.size) dup = true;
+                });
+                if (!dup) chosenFiles.items.add(f);
+            });
+            syncInputFiles();
+            renderPreviews();
+        });
+
+        /* Drag-and-drop */
+        dropzone.addEventListener('dragover',  function (e) { e.preventDefault(); dropzone.classList.add('dragover'); });
+        dropzone.addEventListener('dragleave', function ()  { dropzone.classList.remove('dragover'); });
+        dropzone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            Array.from(e.dataTransfer.files).forEach(function (f) {
+                var dup = false;
+                Array.from(chosenFiles.files).forEach(function (existing) {
+                    if (existing.name === f.name &amp;&amp; existing.size === f.size) dup = true;
+                });
+                if (!dup) chosenFiles.items.add(f);
+            });
+            syncInputFiles();
+            renderPreviews();
+        });
+    }
+
+    /* ── Character counter ───────────────────────────────────────────── */
+    var textarea = document.getElementById('description');
+    var counter  = document.getElementById('hd-char-counter');
+    if (textarea &amp;&amp; counter) {
+        function updateCounter() {
+            var len = textarea.value.length;
+            counter.textContent = len + ' / 2000';
+            counter.classList.toggle('warn', len &gt; 1800 &amp;&amp; len &lt;= 2000);
+            counter.classList.toggle('over', len &gt; 2000);
+        }
+        textarea.addEventListener('input', updateCounter);
+        updateCounter();
+    }
+
+    /* ── Submit spinner ──────────────────────────────────────────────── */
+    var form      = document.getElementById('hd-portal-form');
+    var submitBtn = document.getElementById('hd-submit-btn');
+    if (form &amp;&amp; submitBtn) {
+        form.addEventListener('submit', function () {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '&lt;span class="spinner-border me-2"&gt;&lt;/span&gt;Submitting…';
+        });
+    }
+
+    /* ── Prevent bfcache from restoring filled form on back-navigation ── */
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) {
+            /* Page was served from the browser's back-forward cache.
+               Reload so the server always returns a fresh empty form. */
+            window.location.reload();
+        }
+    });
+
+})();
+</script>
+
+</t>
+</template>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SUCCESS PAGE — confirmation only, no redirect
+══════════════════════════════════════════════════════════════════════ -->
+<template id="helpdesk_submission_success" name="Client Helpdesk – Request Submitted">
+<t t-call="website.layout">
+<t t-set="title">Request Submitted Successfully</t>
+<t t-set="no_header" t-value="True"/>
+<t t-set="no_footer" t-value="True"/>
+
+<div class="o_helpdesk_portal">
+
+    <!-- Hero -->
+    <section class="hd-hero hd-hero-success">
+        <div class="hd-hero-bg-pattern"></div>
+        <div class="container position-relative">
+            <div class="row justify-content-center text-center py-5">
+                <div class="col-lg-7">
+                    <div class="hd-hero-logo mb-4">
+                        <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+                             alt="KGRN Chartered Accountants" class="hd-logo-img"/>
+                    </div>
+                    <div class="hd-hero-badge mb-3">
+                        <i class="fa fa-check me-2"/>Request Received
+                    </div>
+                    <h1 class="hd-hero-title mb-3">We've got your request!</h1>
+                    <p class="hd-hero-subtitle mb-0">
+                        Our support team will review it and get back to you shortly.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="hd-form-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-7 col-lg-9">
+
+                    <!-- Animated checkmark card -->
+                    <div class="hd-card hd-success-card mb-4 text-center">
+                        <div class="hd-card-body py-5">
+                            <div class="hd-check-anim mx-auto mb-4">
+                                <svg viewBox="0 0 52 52" class="hd-check-svg">
+                                    <circle class="hd-check-circle" cx="26" cy="26" r="25" fill="none"/>
+                                    <path class="hd-check-mark" fill="none" d="M14 27 l7 8 l17-17"/>
+                                </svg>
+                            </div>
+                            <h3 class="fw-bold mb-1">
+                                Thank you, <t t-esc="client_name"/>!
+                            </h3>
+                            <p class="text-muted mb-0">
+                                A confirmation email has been sent to
+                                <strong><t t-esc="email"/></strong>.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Ticket summary -->
+                    <div class="hd-card mb-4">
+                        <div class="hd-card-header">
+                            <div class="hd-step-badge">
+                                <i class="fa fa-ticket"/>
+                            </div>
+                            <div>
+                                <h5 class="hd-card-title mb-0">Your Ticket Details</h5>
+                                <small class="text-muted">Keep this number for your reference</small>
+                            </div>
+                            <div class="ms-auto">
+                                <span class="hd-ticket-badge">
+                                    <t t-esc="ticket_number"/>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="hd-card-body">
+                            <div class="hd-summary-grid">
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Ticket Number</span>
+                                    <span class="hd-summary-value fw-bold text-primary">
+                                        <t t-esc="ticket_number"/>
+                                    </span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Subject</span>
+                                    <span class="hd-summary-value"><t t-esc="subject"/></span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Submitted On</span>
+                                    <span class="hd-summary-value">
+                                        <t t-if="created_date">
+                                            <t t-esc="created_date.strftime('%d %b %Y at %H:%M')"/> UTC
+                                        </t>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- What happens next -->
+                    <div class="hd-card mb-4">
+                        <div class="hd-card-header">
+                            <div class="hd-step-badge">
+                                <i class="fa fa-list-ol"/>
+                            </div>
+                            <div>
+                                <h5 class="hd-card-title mb-0">What happens next?</h5>
+                            </div>
+                        </div>
+                        <div class="hd-card-body">
+                            <div class="hd-timeline">
+                                <div class="hd-timeline-item hd-tl-done">
+                                    <div class="hd-tl-dot"><i class="fa fa-check"/></div>
+                                    <div class="hd-tl-content">
+                                        <div class="hd-tl-title">Request submitted</div>
+                                        <div class="hd-tl-desc">Your ticket has been created and logged in our system.</div>
+                                    </div>
+                                </div>
+                                <div class="hd-timeline-item">
+                                    <div class="hd-tl-dot"><i class="fa fa-search"/></div>
+                                    <div class="hd-tl-content">
+                                        <div class="hd-tl-title">Under review</div>
+                                        <div class="hd-tl-desc">A support agent will review your request and may reach out for more information.</div>
+                                    </div>
+                                </div>
+                                <div class="hd-timeline-item">
+                                    <div class="hd-tl-dot"><i class="fa fa-cogs"/></div>
+                                    <div class="hd-tl-content">
+                                        <div class="hd-tl-title">In progress</div>
+                                        <div class="hd-tl-desc">Our team works on resolving your issue and will keep you updated.</div>
+                                    </div>
+                                </div>
+                                <div class="hd-timeline-item">
+                                    <div class="hd-tl-dot"><i class="fa fa-check-circle"/></div>
+                                    <div class="hd-tl-content">
+                                        <div class="hd-tl-title">Resolved</div>
+                                        <div class="hd-tl-desc">You will receive an email when your ticket is resolved.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex flex-wrap gap-3 justify-content-center mb-5">
+                        <a href="/helpdesk/submit" class="hd-btn-outline-primary">
+                            <i class="fa fa-plus me-2"/>Submit Another Request
+                        </a>
+<button type="button" class="hd-btn-outline-secondary" onclick="window.print()">
+                            <i class="fa fa-print me-2"/>Print This Page
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script>
+(function () {
+    /* Replace the current history entry so the back button has nowhere to go
+       back to within this flow. Any attempt to navigate back just pushes the
+       same URL again, keeping the user on this success page. */
+    history.replaceState(null, '', location.href);
+    history.pushState(null, '', location.href);
+
+    window.addEventListener('popstate', function () {
+        history.pushState(null, '', location.href);
+    });
+})();
+</script>
+
+</t>
+</template>
+
+</odoo>

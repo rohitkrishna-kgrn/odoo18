@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Report Action -->
+    <record id="action_report_it_document" model="ir.actions.report">
+        <field name="name">IT Document</field>
+        <field name="model">it.document</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">it_dms.report_it_document_template</field>
+        <field name="report_file">it_dms.report_it_document_template</field>
+        <field name="print_report_name">'IT Document - %s' % (object.document_code)</field>
+        <field name="binding_model_id" ref="model_it_document"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- QWeb Report Template -->
+    <template id="report_it_document_template">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <!-- Report Header -->
+                        <div class="row mb-4">
+                            <div class="col-12 text-center">
+                                <h2>IT Document</h2>
+                                <h3 class="text-muted">
+                                    <t t-esc="doc.document_code"/>
+                                </h3>
+                            </div>
+                        </div>
+
+                        <hr/>
+
+                        <!-- Document Title -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <h4><t t-esc="doc.name"/></h4>
+                            </div>
+                        </div>
+
+                        <!-- Document Details Table -->
+                        <table class="table table-bordered table-sm">
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold" style="width:30%">Document Code</td>
+                                    <td><t t-esc="doc.document_code"/></td>
+                                    <td class="fw-bold" style="width:30%">Version</td>
+                                    <td><t t-esc="doc.version"/></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Document Type</td>
+                                    <td><t t-esc="doc.document_type"/></td>
+                                    <td class="fw-bold">Status</td>
+                                    <td><t t-esc="doc.status"/></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Category</td>
+                                    <td>
+                                        <t t-if="doc.category_id">
+                                            <t t-esc="doc.category_id.name"/>
+                                        </t>
+                                    </td>
+                                    <td class="fw-bold">Folder</td>
+                                    <td>
+                                        <t t-if="doc.folder_id">
+                                            <t t-esc="doc.folder_id.complete_name"/>
+                                        </t>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Owner</td>
+                                    <td>
+                                        <t t-if="doc.owner_id">
+                                            <t t-esc="doc.owner_id.name"/>
+                                        </t>
+                                    </td>
+                                    <td class="fw-bold">Last Modified</td>
+                                    <td>
+                                        <t t-esc="doc.write_date"
+                                            t-options="{'widget': 'datetime'}"/>
+                                    </td>
+                                </tr>
+                                <tr t-if="doc.tag_ids">
+                                    <td class="fw-bold">Tags</td>
+                                    <td colspan="3">
+                                        <t t-foreach="doc.tag_ids" t-as="tag">
+                                            <span class="badge bg-secondary me-1">
+                                                <t t-esc="tag.name"/>
+                                            </span>
+                                        </t>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- Description -->
+                        <t t-if="doc.description">
+                            <div class="mt-3">
+                                <h5>Description</h5>
+                                <p><t t-esc="doc.description"/></p>
+                            </div>
+                        </t>
+
+                        <!-- Attachment Info -->
+                        <t t-if="doc.attachment_filename">
+                            <div class="mt-3">
+                                <h5>Attached File</h5>
+                                <p><t t-esc="doc.attachment_filename"/></p>
+                            </div>
+                        </t>
+
+                        <!-- Version History -->
+                        <t t-if="doc.version_ids">
+                            <div class="mt-4">
+                                <h5>Version History</h5>
+                                <table class="table table-bordered table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Version</th>
+                                            <th>Uploaded By</th>
+                                            <th>Upload Date</th>
+                                            <th>File</th>
+                                            <th>Comments</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="doc.version_ids" t-as="ver">
+                                            <td><t t-esc="ver.version_number"/></td>
+                                            <td>
+                                                <t t-if="ver.uploaded_by">
+                                                    <t t-esc="ver.uploaded_by.name"/>
+                                                </t>
+                                            </td>
+                                            <td>
+                                                <t t-esc="ver.upload_date"
+                                                    t-options="{'widget': 'datetime'}"/>
+                                            </td>
+                                            <td><t t-esc="ver.attachment_filename or ''"/></td>
+                                            <td><t t-esc="ver.comments or ''"/></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </t>
+
+                        <!-- Notes -->
+                        <t t-if="doc.notes">
+                            <div class="mt-3">
+                                <h5>Notes</h5>
+                                <div t-out="doc.notes"/>
+                            </div>
+                        </t>
+
+                        <!-- Footer -->
+                        <div class="mt-5 text-muted" style="font-size: 9px;">
+                            <hr/>
+                            <p>
+                                Generated from IT Document Management System |
+                                Document Code: <t t-esc="doc.document_code"/> |
+                                Version: <t t-esc="doc.version"/>
+                            </p>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

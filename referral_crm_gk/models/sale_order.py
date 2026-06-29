@@ -10,6 +10,19 @@ class SaleOrder(models.Model):
         index=True,
     )
 
+    def _create_invoices(self, grouped=False, final=False, date=None):
+        moves = super()._create_invoices(grouped=grouped, final=final, date=date)
+        for order in self:
+            lead = order.x_referral_lead_id
+            if not lead or not lead.x_is_referral or lead.x_invoice_id:
+                continue
+            invoices = order.invoice_ids.filtered(
+                lambda m: m.move_type == 'out_invoice' and m.state != 'cancel'
+            )
+            if invoices:
+                lead.sudo().x_invoice_id = invoices[0].id
+        return moves
+
     def action_approve_order(self):
         res = super().action_approve_order()
         for order in self:

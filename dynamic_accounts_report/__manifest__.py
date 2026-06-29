@@ -32,7 +32,7 @@
     'company': 'Cybrosys Techno Solutions',
     'maintainer': 'Cybrosys Techno Solutions',
     'website': "https://www.cybrosys.com",
-    'depends': ['account'],
+    'depends': ['account', 'project', 'project_extended_rk'],
     'data': [
         'security/ir.model.access.csv',
         'views/accounting_report_views.xml',
@@ -46,6 +46,7 @@
         'report/aged_payable_templates.xml',
         'report/aged_receivable_templates.xml',
         'report/tax_report_templates.xml',
+        'report/aged_receivable_pm_templates.xml',
     ],
     'assets': {
         'web.assets_backend': [

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!--
+            IT DMS Engineer record rules:
+            - Can READ all documents (no read rule = global access)
+            - Can WRITE / DELETE only own documents
+        -->
+        <record id="rule_it_document_engineer_write_own" model="ir.rule">
+            <field name="name">IT DMS Engineer: Write/Delete Own Documents Only</field>
+            <field name="model_id" ref="model_it_document"/>
+            <field name="groups" eval="[(4, ref('it_dms.group_it_dms_engineer'))]"/>
+            <field name="domain_force">[('owner_id', '=', user.id)]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">1</field>
+        </record>
+
+        <!--
+            IT DMS Viewer record rules:
+            - Can only READ all documents (access CSV handles no write/delete)
+        -->
+        <record id="rule_it_document_viewer_read_all" model="ir.rule">
+            <field name="name">IT DMS Viewer: Read All Documents</field>
+            <field name="model_id" ref="model_it_document"/>
+            <field name="groups" eval="[(4, ref('it_dms.group_it_dms_viewer'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <!--
+            IT DMS Engineer: Can upload versions only to own documents
+        -->
+        <record id="rule_it_document_version_engineer_own" model="ir.rule">
+            <field name="name">IT DMS Engineer: Manage Versions of Own Documents</field>
+            <field name="model_id" ref="model_it_document_version"/>
+            <field name="groups" eval="[(4, ref('it_dms.group_it_dms_engineer'))]"/>
+            <field name="domain_force">[('document_id.owner_id', '=', user.id)]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <!--
+            IT DMS Attachment access rules:
+            Overrides the Helpdesk "Manager full access" restriction on ir.attachment
+            so that IT DMS users can upload and manage file attachments.
+        -->
+        <record id="rule_it_dms_viewer_attachment" model="ir.rule">
+            <field name="name">IT DMS Viewer: Read Attachments</field>
+            <field name="model_id" ref="base.model_ir_attachment"/>
+            <field name="groups" eval="[(4, ref('it_dms.group_it_dms_viewer'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="rule_it_dms_engineer_attachment" model="ir.rule">
+            <field name="name">IT DMS Engineer: Full Attachment Access</field>
+            <field name="model_id" ref="base.model_ir_attachment"/>
+            <field name="groups" eval="[(4, ref('it_dms.group_it_dms_engineer'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">1</field>
+        </record>
+
+    </data>
+</odoo>

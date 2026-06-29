@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ==================== ROOT MENU ==================== -->
+    <menuitem
+        id="menu_it_dms_root"
+        name="IT Documents"
+        sequence="90"
+        web_icon="it_dms,static/description/icon.png"
+        groups="it_dms.group_it_dms_viewer"/>
+
+    <!-- ==================== 1. DASHBOARD (landing page) ==================== -->
+    <menuitem
+        id="menu_it_dms_dashboard"
+        name="Dashboard"
+        parent="menu_it_dms_root"
+        action="action_it_dashboard"
+        sequence="1"
+        groups="it_dms.group_it_dms_viewer"/>
+
+    <!-- ==================== 2. FOLDERS ==================== -->
+    <menuitem
+        id="menu_it_dms_explorer"
+        name="Folders"
+        parent="menu_it_dms_root"
+        action="action_it_file_explorer"
+        sequence="2"
+        groups="it_dms.group_it_dms_viewer"/>
+
+    <!-- ==================== 3. DOCUMENTS ==================== -->
+    <menuitem
+        id="menu_it_dms_documents"
+        name="Documents"
+        parent="menu_it_dms_root"
+        action="action_it_document"
+        sequence="3"
+        groups="it_dms.group_it_dms_viewer"/>
+
+    <!-- ==================== 4. REPORTS ==================== -->
+    <menuitem
+        id="menu_it_dms_reports"
+        name="Reports"
+        parent="menu_it_dms_root"
+        sequence="4"
+        groups="it_dms.group_it_dms_viewer"/>
+
+    <menuitem
+        id="menu_it_dms_report_analysis"
+        name="Document Analysis"
+        parent="menu_it_dms_reports"
+        action="action_it_document_report"
+        sequence="1"
+        groups="it_dms.group_it_dms_viewer"/>
+
+    <!-- ==================== 5. CONFIGURATION ==================== -->
+    <menuitem
+        id="menu_it_dms_config"
+        name="Configuration"
+        parent="menu_it_dms_root"
+        sequence="10"
+        groups="it_dms.group_it_dms_admin"/>
+
+    <menuitem
+        id="menu_it_dms_config_folders"
+        name="Folders"
+        parent="menu_it_dms_config"
+        action="action_it_folder"
+        sequence="1"
+        groups="it_dms.group_it_dms_admin"/>
+
+    <menuitem
+        id="menu_it_dms_config_categories"
+        name="Categories"
+        parent="menu_it_dms_config"
+        action="action_it_category"
+        sequence="2"
+        groups="it_dms.group_it_dms_admin"/>
+
+    <menuitem
+        id="menu_it_dms_config_tags"
+        name="Tags"
+        parent="menu_it_dms_config"
+        action="action_it_tag"
+        sequence="3"
+        groups="it_dms.group_it_dms_admin"/>
+
+</odoo>
