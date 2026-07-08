@@ -1,6 +1,6 @@
 {
     'name': 'Referral',
-    'version': '18.0.2.0.4',
+    'version': '18.0.2.0.8',
     'category': 'Sales/CRM',
     'summary': 'Referral portal integration with tier-based commission tracking',
     'author': 'KGRN Chartered Accountants',

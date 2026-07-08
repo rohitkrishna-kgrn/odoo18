@@ -140,7 +140,7 @@
         <record id="email_template_commission_paid" model="mail.template">
             <field name="name">Referral: Commission Payment Recorded</field>
             <field name="model_id" ref="referral_crm_gk.model_referral_commission"/>
-            <field name="subject">Commission {{ 'Full Payment' if object.state == 'paid' else 'Partial Payment' }}: {{ object.name }}</field>
+            <field name="subject">Commission Paid: {{ object.name }}</field>
             <field name="email_from">{{ user.email_formatted }}</field>
             <field name="body_html" type="html">
 <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef2f7" style="background:#eef2f7;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
@@ -150,23 +150,20 @@
         <img src="/recruitment_gk/static/img/kgrn_logo.png" width="125" height="50" alt="KGRN Chartered Accountants" style="display:block;border:0;outline:none;" border="0"/>
       </td></tr>
       <tr><td bgcolor="#1a3c6e" style="background:#1a3c6e;padding:18px 28px;">
-        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">Commission Payment Recorded</h1>
+        <h1 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 3px;letter-spacing:0.2px;">Commission Paid to Referrer</h1>
         <p style="color:#a8c4e8;font-size:12px;margin:0;">KGRN Referral System</p>
       </td></tr>
       <tr><td style="padding:22px 28px;">
         <p style="margin:0 0 4px;color:#222;font-size:14px;">Dear Team,</p>
-        <p style="margin:0 0 18px;color:#555;font-size:13px;">A referral commission payment has been recorded (<t t-if="object.state == 'paid'">Full Payment</t><t t-else="">Partial Payment</t>).</p>
+        <p style="margin:0 0 18px;color:#555;font-size:13px;">A referral commission has been marked as paid to the referrer.</p>
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid #c5d7f0;margin:0 0 18px;">
-          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Payment Details</th></tr>
+          <tr><th colspan="2" bgcolor="#1a3c6e" style="background:#1a3c6e;color:#fff;padding:9px 14px;font-size:12px;text-align:left;letter-spacing:0.2px;">Commission Payment Details</th></tr>
           <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;width:38%;background:#f0f5ff;font-size:12px;">Commission Ref</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.name or '—'"/></td></tr>
           <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Referrer</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.referrer_id.name or '—'"/><t t-if="object.referrer_company"> (<t t-out="object.referrer_company"/>)</t></td></tr>
           <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Referred Company</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.referral_company or '—'"/></td></tr>
-          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Total Commission</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;">AED <t t-out="'{:,.2f}'.format(object.commission_amount or 0.0)"/> (<t t-out="'{:.1f}'.format(object.referrer_commission_rate or 0.0)"/>%)</td></tr>
-          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Amount Paid</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;">AED <t t-out="'{:,.2f}'.format(object.amount_paid or 0.0)"/></td></tr>
-          <t t-if="object.state != 'paid'">
-          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Remaining Balance</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;">AED <t t-out="'{:,.2f}'.format(object.remaining_balance or 0.0)"/></td></tr>
-          </t>
-          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Payment Status</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-if="object.state == 'paid'">Full Payment</t><t t-else="">Partial Payment</t></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Commission to Pay (Excl. VAT)</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;">AED <t t-out="'{:,.2f}'.format(object.commission_amount or 0.0)"/> (<t t-out="'{:.1f}'.format(object.referrer_commission_rate or 0.0)"/>%)</td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Amount Paid to Referrer</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;">AED <t t-out="'{:,.2f}'.format(object.amount_paid or 0.0)"/></td></tr>
+          <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Commission Status</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;">Paid</td></tr>
           <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Paid On</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.paid_date or '—'"/></td></tr>
           <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Payment Reference</td><td style="padding:8px 14px;border-bottom:1px solid #dde6f0;color:#333;font-size:12px;"><t t-out="object.payment_ref or '—'"/></td></tr>
           <tr><td bgcolor="#f0f5ff" style="padding:8px 14px;color:#1a3c6e;font-weight:700;background:#f0f5ff;font-size:12px;">Salesperson</td><td style="padding:8px 14px;color:#333;font-size:12px;"><t t-out="object.lead_id.user_id.name or '—'"/></td></tr>

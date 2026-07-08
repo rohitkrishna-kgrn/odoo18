@@ -20,7 +20,7 @@ class ReferralCommission(models.Model):
         required=True, ondelete='cascade', readonly=True,
     )
 
-    # Invoice (sourced from the linked lead)
+    # Invoice (informational only — does NOT drive commission payment status)
     invoice_id = fields.Many2one(
         'account.move',
         related='lead_id.x_invoice_id',
@@ -28,8 +28,27 @@ class ReferralCommission(models.Model):
         store=True,
         readonly=True,
     )
+    invoice_number = fields.Char(
+        related='invoice_id.name', string='Invoice Number', readonly=True,
+    )
+    invoice_date = fields.Date(
+        related='invoice_id.invoice_date', string='Invoice Date', readonly=True,
+    )
+    invoice_amount_total = fields.Monetary(
+        related='invoice_id.amount_total', string='Invoice Total (AED)',
+        readonly=True, currency_field='currency_id',
+    )
+    invoice_amount_residual = fields.Monetary(
+        related='invoice_id.amount_residual', string='Outstanding (AED)',
+        readonly=True, currency_field='currency_id',
+    )
+    invoice_payment_state = fields.Selection(
+        related='invoice_id.payment_state',
+        string='Invoice Payment Status',
+        readonly=True,
+    )
 
-    # Referrer (from lead)
+    # ── Referrer ─────────────────────────────────────────────────────────
     referrer_id = fields.Many2one(
         'referral.referrer', related='lead_id.x_referrer_id',
         string='Referrer', store=True,
@@ -46,7 +65,7 @@ class ReferralCommission(models.Model):
         related='lead_id.x_commission_rate', string='Commission Rate (%)', store=True, digits=(5, 2),
     )
 
-    # Referral (from lead)
+    # ── Referral ──────────────────────────────────────────────────────────
     referral_company = fields.Char(
         related='lead_id.x_referral_company', string='Referred Company', store=True,
     )
@@ -57,93 +76,51 @@ class ReferralCommission(models.Model):
         'res.currency', related='lead_id.company_currency', string='Currency',
     )
 
-    # Deal values (live from lead/sale order)
+    # ── Deal values ───────────────────────────────────────────────────────
     deal_value = fields.Float(
         related='lead_id.x_deal_value', string='Deal Value (AED)', store=True, digits=(16, 2),
     )
     commission_amount = fields.Float(
-        related='lead_id.x_commission_amount', string='Commission Amount (AED)', store=True, digits=(16, 2),
+        related='lead_id.x_commission_amount',
+        string='Commission Amount (AED)', store=True, digits=(16, 2),
     )
 
-    # Invoice display fields
-    invoice_number = fields.Char(
-        related='invoice_id.name', string='Invoice Number', readonly=True,
-    )
-    invoice_date = fields.Date(
-        related='invoice_id.invoice_date', string='Invoice Date', readonly=True,
-    )
-    invoice_amount_total = fields.Monetary(
-        related='invoice_id.amount_total', string='Invoice Total (AED)',
-        readonly=True, currency_field='currency_id',
-    )
-    invoice_amount_residual = fields.Monetary(
-        related='invoice_id.amount_residual', string='Outstanding (AED)',
-        readonly=True, currency_field='currency_id',
-    )
-    invoice_payment_state = fields.Selection(
-        related='invoice_id.payment_state', string='Invoice Payment Status', readonly=True,
-    )
-
-    # Payment status — computed from invoice when linked; manual otherwise
-    state = fields.Selection([
-        ('pending', 'Not Paid'),
-        ('partial', 'Partially Paid'),
-        ('paid', 'Fully Paid'),
-    ], string='Status',
-       compute='_compute_state_from_invoice',
-       inverse='_set_state',
-       store=True,
-       default='pending',
+    # ── Commission Payment Status (INDEPENDENT from invoice) ─────────────
+    # This field tracks whether the company has paid the commission to the referrer.
+    # It is NEVER driven by the accounting invoice — it is only changed by the
+    # "Commission Paid" button or the migration script.
+    commission_payment_status = fields.Selection([
+        ('unpaid', 'Unpaid'),
+        ('paid', 'Paid'),
+    ], string='Commission Payment Status',
+       default='unpaid',
+       readonly=True,
        tracking=True,
+       copy=False,
     )
 
-    # Amount paid to referrer — manual field; view enforces readonly when invoice is linked
+    # Amount paid to referrer — auto-filled when "Commission Paid" is clicked
     amount_paid = fields.Float(
-        string='Amount Paid (AED)', digits=(16, 2), default=0.0, tracking=True,
+        string='Amount Paid to Referrer (AED)', digits=(16, 2),
+        default=0.0, tracking=True, readonly=True,
     )
     remaining_balance = fields.Float(
         compute='_compute_remaining_balance', store=True,
         string='Remaining Balance (AED)', digits=(16, 2),
     )
-    paid_date = fields.Date(string='Paid On', tracking=True)
+    paid_date = fields.Date(string='Commission Paid Date', tracking=True, readonly=True)
     payment_ref = fields.Char(string='Payment Reference', tracking=True)
     notes = fields.Text(string='Notes')
 
-    _INVOICE_STATE_MAP = {
-        'not_paid': 'pending',
-        'partial': 'partial',
-        'in_payment': 'partial',
-        'paid': 'paid',
-        'reversed': 'pending',
-        'invoicing_legacy': 'pending',
-    }
-
-    @api.depends('invoice_id', 'invoice_id.payment_state',
-                 'lead_id.x_payment_status', 'commission_amount', 'amount_paid')
-    def _compute_state_from_invoice(self):
-        for rec in self:
-            if rec.invoice_id:
-                # Invoice linked → always driven by accounting
-                rec.state = self._INVOICE_STATE_MAP.get(
-                    rec.invoice_id.payment_state, 'pending'
-                )
-            elif (rec.amount_paid or 0.0) >= (rec.commission_amount or 0.0) > 0:
-                # Manual commission fully paid
-                rec.state = 'paid'
-            elif (rec.amount_paid or 0.0) > 0:
-                # Manual commission partially paid
-                rec.state = 'partial'
-            else:
-                rec.state = 'pending'
-
-    def _set_state(self):
-        # Allows manual writes for commissions without a linked invoice.
-        pass
+    # ── Compute methods ───────────────────────────────────────────────────
 
     @api.depends('commission_amount', 'amount_paid')
     def _compute_remaining_balance(self):
         for rec in self:
-            rec.remaining_balance = max(0.0, (rec.commission_amount or 0.0) - (rec.amount_paid or 0.0))
+            rec.remaining_balance = max(
+                0.0,
+                (rec.commission_amount or 0.0) - (rec.amount_paid or 0.0)
+            )
 
     @api.depends('lead_id.x_referral_ref', 'lead_id.x_referral_company')
     def _compute_name(self):
@@ -155,6 +132,57 @@ class ReferralCommission(models.Model):
             else:
                 rec.name = 'New Commission'
 
+    # ── Commission Paid action ────────────────────────────────────────────
+
+    def action_mark_commission_paid(self):
+        """Mark this commission as paid to the referrer.
+
+        Sets commission_payment_status → 'paid', auto-fills amount_paid
+        with the full commission amount, and stamps today as paid_date.
+        """
+        self.ensure_one()
+        if self.commission_payment_status == 'paid':
+            raise UserError(
+                "Commission %s has already been marked as paid. "
+                "No further action is required." % self.name
+            )
+        if not self.commission_amount:
+            raise UserError(
+                "The commission amount is zero. "
+                "Please ensure the deal value and commission rate are set."
+            )
+        self.write({
+            'commission_payment_status': 'paid',
+            'amount_paid': self.commission_amount,
+            'paid_date': fields.Date.today(),
+        })
+        self._notify_commission_paid()
+        return True
+
+    # ── Navigation actions ────────────────────────────────────────────────
+
+    def action_open_invoice(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.move',
+            'res_id': self.invoice_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+
+    def action_view_referral(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'crm.lead',
+            'res_id': self.lead_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+
+    # ── Email notifications ───────────────────────────────────────────────
+
     def _send_template_email(self, template_xml_id, extra_recipients=None):
         template = self.env.ref(
             f'referral_crm_gk.{template_xml_id}', raise_if_not_found=False
@@ -162,7 +190,11 @@ class ReferralCommission(models.Model):
         if not template:
             _logger.warning('referral_crm_gk: template %s not found', template_xml_id)
             return
-        partners = extra_recipients.filtered('email') if extra_recipients else self.env['res.partner'].browse()
+        partners = (
+            extra_recipients.filtered('email')
+            if extra_recipients
+            else self.env['res.partner'].browse()
+        )
         if not partners:
             _logger.warning(
                 'referral_crm_gk: no email recipients for template %s', template_xml_id
@@ -197,43 +229,3 @@ class ReferralCommission(models.Model):
         if not recipients:
             return
         self._send_template_email('email_template_commission_paid', extra_recipients=recipients)
-
-    def action_mark_paid(self):
-        self.ensure_one()
-        if self.invoice_id:
-            raise UserError(
-                "This commission is linked to invoice %s.\n\n"
-                "Payment status is automatically synchronised from the Accounting module. "
-                "Please record payments against the invoice to update the commission status."
-                % (self.invoice_number or self.invoice_id.id)
-            )
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Record Payment',
-            'res_model': 'referral.payment.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {
-                'default_commission_id': self.id,
-            },
-        }
-
-    def action_open_invoice(self):
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'account.move',
-            'res_id': self.invoice_id.id,
-            'view_mode': 'form',
-            'target': 'current',
-        }
-
-    def action_view_referral(self):
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'crm.lead',
-            'res_id': self.lead_id.id,
-            'view_mode': 'form',
-            'target': 'current',
-        }
