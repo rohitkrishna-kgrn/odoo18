@@ -144,6 +144,9 @@ class AmlPortalController(http.Controller):
             'ind_dual_citizenship': s(aml.ind_dual_citizenship),
             'ind_dual_citizenship_detail': s(aml.ind_dual_citizenship_detail),
             'ind_high_net_worth': s(aml.ind_high_net_worth),
+            'ind_bank_name': s(aml.ind_bank_name),
+            'ind_bank_branch_address': s(aml.ind_bank_branch_address),
+            'ind_iban': s(aml.ind_iban),
             # UBO
             'ubo_full_name': s(aml.ubo_full_name),
             'ubo_gender': s(aml.ubo_gender),
@@ -296,9 +299,8 @@ class AmlPortalController(http.Controller):
             return json.dumps({'error': 'Missing file'})
 
         doc_type_labels = {
-            'passport': 'Passport Copy',
-            'proof_of_residence': 'Proof of Residence',
-            'emirates_id': 'Emirates ID',
+            'passport': 'Passport Copy/Emirates ID/any government issued identity with compulsory condition',
+            'proof_of_residence': 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
         }
         doc_label = doc_type_labels.get(doc_type, doc_type or 'Document')
         name_prefix = 'Director %s - %s - %s' % (dir_index or '', dir_name or '', doc_label)
@@ -328,9 +330,8 @@ class AmlPortalController(http.Controller):
             return json.dumps({'error': 'Missing file'})
 
         doc_type_labels = {
-            'passport': 'Passport Copy',
-            'proof_of_residence': 'Proof of Residence',
-            'emirates_id': 'Emirates ID',
+            'passport': 'Passport Copy/Emirates ID/any government issued identity with compulsory condition',
+            'proof_of_residence': 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
             'trade_license': 'Trade License',
             'memorandum': 'Memorandum of Association / Articles of Association',
         }

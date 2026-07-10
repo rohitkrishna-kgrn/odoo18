@@ -771,6 +771,33 @@
                                 </div>
                             </div>
 
+                            <!-- Bank Details -->
+                            <div class="aml-q-divider" style="margin-top:12px;">Bank Details</div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">26</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Bank Name <span class="req-star">*</span></span>
+                                    <input type="text" name="ind_bank_name" required="required" placeholder="Enter bank name"/>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">27</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">Bank Branch Address <span class="req-star">*</span></span>
+                                    <textarea name="ind_bank_branch_address" rows="2" required="required" placeholder="Enter bank branch address"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="aml-q">
+                                <div class="aml-q-num">28</div>
+                                <div class="aml-q-body">
+                                    <span class="aml-q-label">IBAN / Account Number <span class="req-star">*</span></span>
+                                    <input type="text" name="ind_iban" required="required" placeholder="Enter IBAN / account number"/>
+                                </div>
+                            </div>
+
                         </div><!-- end .aml-qform -->
                     </div><!-- end .aml-form-section -->
 
@@ -1001,7 +1028,7 @@
                                         <th>#</th>
                                         <th>Shareholder Name <span class="req-star">*</span></th>
                                         <th>Nationality <span class="req-star">*</span></th>
-                                        <th>Type <span class="req-star">*</span></th>
+                                        <th style="min-width:140px;">Type <span class="req-star">*</span></th>
                                         <th>Passport No. / Corporate Registration No. <span class="req-star">*</span></th>
                                         <th>Share Class <span class="req-star">*</span></th>
                                         <th>No. of Shares <span class="req-star">*</span></th>

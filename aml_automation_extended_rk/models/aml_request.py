@@ -172,6 +172,9 @@ class AmlRequest(models.Model):
     ind_dual_citizenship = fields.Selection([('yes', 'Yes'), ('no', 'No')], string='Citizen of More Than One Country')
     ind_dual_citizenship_detail = fields.Text(string='Dual / Multiple Citizenship Details')
     ind_high_net_worth = fields.Selection([('yes', 'Yes'), ('no', 'No')], string='High Net Worth Individual (≥ USD 15m)')
+    ind_bank_name = fields.Char(string='Bank Name')
+    ind_bank_branch_address = fields.Text(string='Bank Branch Address')
+    ind_iban = fields.Char(string='IBAN / Account Number')
 
     # =========================================================================
     # UBO Fields
@@ -484,6 +487,7 @@ class AmlRequest(models.Model):
             'ind_monthly_turnover', 'ind_source_of_funds', 'ind_hold_shares_behalf',
             'ind_high_risk_jurisdiction', 'ind_anticipated_origin',
             'ind_dual_citizenship', 'ind_dual_citizenship_detail', 'ind_high_net_worth',
+            'ind_bank_name', 'ind_bank_branch_address', 'ind_iban',
         ],
         'ubo': [
             'ubo_full_name', 'ubo_gender', 'ubo_nationality', 'ubo_date_of_birth',

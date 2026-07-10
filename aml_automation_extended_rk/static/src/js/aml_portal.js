@@ -312,7 +312,10 @@ const amlForm = (function () {
                 return false;
             }
             const missingDirDocs = [];
-            const MANDATORY_DIR_DOCS = { passport: 'Passport Copy', proof_of_residence: 'Proof of Residence', emirates_id: 'Emirates ID' };
+            const MANDATORY_DIR_DOCS = {
+                passport: 'Passport Copy/Emirates ID/any government issued identity with compulsory condition',
+                proof_of_residence: 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
+            };
             let firstDocEl = null;
             if (tbody) {
                 tbody.querySelectorAll('tr.dir-main-row').forEach(tr => {
@@ -344,7 +347,10 @@ const amlForm = (function () {
                 showToast('Please add at least one Shareholder before proceeding.', 'error');
                 return false;
             }
-            const IND_DOCS  = { passport: 'Passport Copy', proof_of_residence: 'Proof of Residence', emirates_id: 'Emirates ID' };
+            const IND_DOCS  = {
+                passport: 'Passport Copy/Emirates ID/any government issued identity with compulsory condition',
+                proof_of_residence: 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
+            };
             const CORP_DOCS = { trade_license: 'Trade License', memorandum: 'Memorandum of Association / Articles of Association' };
             const missingShDocs = [];
             let firstShDocEl = null;
@@ -498,10 +504,19 @@ const amlForm = (function () {
 
         // Document upload sub-row
         dirDocStatus[rowId] = dirDocStatus[rowId] || new Set();
-        const dtLabels = { passport: 'Passport Copy', proof_of_residence: 'Proof of Residence', emirates_id: 'Emirates ID' };
-        const docsHtml = ['passport', 'proof_of_residence', 'emirates_id'].map(dt => `
-            <div id="dir-doc-wrap-${rowId}-${dt}" style="display:flex;flex-direction:column;gap:4px;min-width:140px;border-radius:4px;padding:2px;">
+        const dtLabels = {
+            passport: 'Passport Copy/Emirates ID/any government issued identity with compulsory condition',
+            proof_of_residence: 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
+        };
+        const dirSampleUrl = '/aml_automation_extended_rk/static/src/files/proof_of_residence_sample.pdf';
+        const docsHtml = ['passport', 'proof_of_residence'].map(dt => `
+            <div id="dir-doc-wrap-${rowId}-${dt}" style="display:flex;flex-direction:column;gap:4px;min-width:180px;max-width:280px;border-radius:4px;padding:2px;">
                 <span style="font-size:11px;color:#555;font-weight:600;">${dtLabels[dt]} <span style="color:#c62828;">*</span></span>
+                ${dt === 'proof_of_residence' ? `
+                <div style="margin:2px 0;padding-top:2px;border-top:1px dashed #ccc;">
+                    <a href="${dirSampleUrl}" download target="_blank" style="font-size:11px;font-weight:700;color:#1565c0;text-decoration:none;">⬇ Declaration of proof of residence Download</a>
+                    <p style="font-size:10px;color:#777;margin:2px 0 0;line-height:1.4;">Declaration of Proof of Residence is for applicants who do not have proof of residence in their own name and must be submitted along with a supporting document, issued within the last 3 months, showing the address of the respective individual.</p>
+                </div>` : ''}
                 <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:500;color:#1565c0;">
                     &#128206; Upload
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none;"
@@ -600,9 +615,16 @@ const amlForm = (function () {
 
     // ---- Shareholders Table ----
     function _buildShDocItem(rowId, dt, label) {
+        const shSampleUrl = '/aml_automation_extended_rk/static/src/files/proof_of_residence_sample.pdf';
+        const sampleBlock = dt === 'proof_of_residence' ? `
+            <div style="margin:2px 0;padding-top:2px;border-top:1px dashed #ccc;">
+                <a href="${shSampleUrl}" download target="_blank" style="font-size:11px;font-weight:700;color:#1565c0;text-decoration:none;">⬇ Declaration of proof of residence Download</a>
+                <p style="font-size:10px;color:#777;margin:2px 0 0;line-height:1.4;">Declaration of Proof of Residence is for applicants who do not have proof of residence in their own name and must be submitted along with a supporting document, issued within the last 3 months, showing the address of the respective individual.</p>
+            </div>` : '';
         return `
-            <div id="sh-doc-wrap-${rowId}-${dt}" style="display:flex;flex-direction:column;gap:4px;min-width:160px;border-radius:4px;padding:2px;">
+            <div id="sh-doc-wrap-${rowId}-${dt}" style="display:flex;flex-direction:column;gap:4px;min-width:180px;max-width:280px;border-radius:4px;padding:2px;">
                 <span style="font-size:11px;color:#555;font-weight:600;">${label} <span style="color:#c62828;">*</span></span>
+                ${sampleBlock}
                 <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:500;color:#1565c0;">
                     &#128206; Upload
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none;"
@@ -614,7 +636,10 @@ const amlForm = (function () {
     }
 
     function _buildShDocsContent(rowId, shType) {
-        const IND = { passport: 'Passport Copy', proof_of_residence: 'Proof of Residence', emirates_id: 'Emirates ID' };
+        const IND = {
+            passport: 'Passport Copy/Emirates ID/any government issued identity with compulsory condition',
+            proof_of_residence: 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
+        };
         const CORP = { trade_license: 'Trade License', memorandum: 'Memorandum of Association / Articles of Association' };
         let inner = '';
         if (shType === 'individual') {
@@ -643,8 +668,8 @@ const amlForm = (function () {
             <td>${idx}</td>
             <td><input type="text" name="sh_name" placeholder="Shareholder Name" required value="${esc(s.shareholder_name||'')}"/></td>
             <td><input type="text" name="sh_nationality" placeholder="Nationality" required value="${esc(s.nationality||'')}"/></td>
-            <td>
-                <select name="sh_type" required onchange="amlForm.updateShareholderDocs('${rowId}', this.value)">
+            <td style="min-width:140px;">
+                <select name="sh_type" required onchange="amlForm.updateShareholderDocs('${rowId}', this.value)" style="min-width:130px;">
                     <option value="">– Select –</option>
                     <option value="individual" ${shType==='individual'?'selected':''}>Individual</option>
                     <option value="corporate" ${shType==='corporate'?'selected':''}>Corporate</option>
@@ -774,7 +799,13 @@ const amlForm = (function () {
         };
         const ANY_ONE_KEYS = ['cert_incumbency'];
         const SAMPLE_DOCS = {
-            'ind_proof_residence': '/aml_automation_extended_rk/static/src/files/proof_of_residence_sample.pdf',
+            'ind_proof_residence': {
+                url: '/aml_automation_extended_rk/static/src/files/proof_of_residence_sample.pdf',
+            },
+            'residing_together_declaration': {
+                url: '/aml_automation_extended_rk/static/src/files/proof_of_residence_sample.pdf',
+                extraLabel: 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
+            },
         };
 
         docLines.forEach((doc, i) => {
@@ -786,11 +817,12 @@ const amlForm = (function () {
             const uploadedNamesHtml = doc.attachment_names && doc.attachment_names.length
                 ? `<div class="aml-doc-uploaded-names">✔ ${doc.attachment_names.join(', ')}</div>`
                 : '';
-            const sampleUrl = SAMPLE_DOCS[doc.doc_key];
-            const sampleBlockHtml = sampleUrl
+            const sampleCfg = SAMPLE_DOCS[doc.doc_key];
+            const sampleBlockHtml = sampleCfg
                 ? `<div class="aml-doc-sample-row">
-                    <a class="aml-doc-sample-link" href="${sampleUrl}" download target="_blank">⬇ Download Sample</a>
-                    <p class="aml-doc-sample-note">This document is for applicants who do not have proof of residence in their own name, and must be submitted along with a supporting document.</p>
+                    ${sampleCfg.extraLabel ? `<p class="aml-doc-sample-extra" style="font-size:12px;font-weight:600;color:#444;margin:0 0 6px;">${esc(sampleCfg.extraLabel)}</p>` : ''}
+                    <a class="aml-doc-sample-link" href="${sampleCfg.url}" download target="_blank">⬇ Declaration of proof of residence Download</a>
+                    <p class="aml-doc-sample-note">Declaration of Proof of Residence is for applicants who do not have proof of residence in their own name and must be submitted along with a supporting document, issued within the last 3 months, showing the address of the respective individual.</p>
                 </div>`
                 : '';
 
@@ -957,6 +989,9 @@ const amlForm = (function () {
                     'Anticipated Origin of Funds': formData['ind_anticipated_origin'],
                     'Dual Citizenship': formData['ind_dual_citizenship'],
                     'High Net Worth Individual': formData['ind_high_net_worth'],
+                    'Bank Name': formData['ind_bank_name'],
+                    'Bank Branch Address': formData['ind_bank_branch_address'],
+                    'IBAN / Account Number': formData['ind_iban'],
                 },
             });
         }

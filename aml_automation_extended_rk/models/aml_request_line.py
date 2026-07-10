@@ -67,7 +67,7 @@ class AmlRequestDocument(models.Model):
         ('related_party_licenses', 'License copies of related parties / parent companies (if applicable)'),
         # Individual documents
         ('ind_passport_copy', 'Passport Copy (Front & Back)'),
-        ('ind_proof_residence', 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement)'),
+        ('ind_proof_residence', 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals'),
         ('ind_visa', 'Visa'),
         ('ind_emirates_id_doc', 'Emirates ID'),
         ('ind_profile_cv', 'Profile Information / Resume / CV with Photograph'),

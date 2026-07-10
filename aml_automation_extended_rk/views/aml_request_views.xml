@@ -248,6 +248,11 @@
                                     invisible="ind_dual_citizenship != 'yes'"/>
                                 <field name="ind_high_net_worth"/>
                             </group>
+                            <group string="Bank Details">
+                                <field name="ind_bank_name"/>
+                                <field name="ind_bank_branch_address"/>
+                                <field name="ind_iban"/>
+                            </group>
                         </page>
 
                         <!-- ====================== UBO Tab ====================== -->
