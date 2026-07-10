@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Reusable single-field renderer.
+         Context in: `field` (schema dict), optional `fclass`.
+         ================================================================ -->
+    <template id="discovery_field" name="Discovery Field">
+        <t t-set="fclass" t-value="fclass or 'disc-field'"/>
+        <div t-att-class="fclass"
+             t-att-data-key="field['key']"
+             t-att-data-type="field['type']"
+             t-att-data-required="'1' if field.get('required') else '0'"
+             t-att-data-showif-field="field['show_if']['field'] if field.get('show_if') else None"
+             t-att-data-showif-values="'|'.join(field['show_if']['contains']) if field.get('show_if') else None">
+
+            <label t-if="field['type'] != 'checkbox_single'" class="disc-label">
+                <t t-esc="field['label']"/>
+                <span t-if="field.get('required')" class="disc-req">*</span>
+            </label>
+
+            <!-- Text-like inputs -->
+            <t t-if="field['type'] in ('text', 'email', 'phone', 'number')">
+                <input class="disc-input disc-value"
+                       t-att-type="{'text': 'text', 'email': 'email', 'phone': 'tel', 'number': 'number'}[field['type']]"
+                       t-att-min="field.get('min')"
+                       t-att-placeholder="field.get('placeholder') or ''"/>
+            </t>
+
+            <!-- Select -->
+            <t t-if="field['type'] == 'select'">
+                <select class="disc-input disc-value">
+                    <option value="">— Select —</option>
+                    <t t-foreach="field.get('options') or []" t-as="o">
+                        <option t-att-value="o['value']"><t t-esc="o['label']"/></option>
+                    </t>
+                </select>
+            </t>
+
+            <!-- Radio group -->
+            <t t-if="field['type'] == 'radio'">
+                <div class="disc-options disc-options-radio">
+                    <t t-foreach="field.get('options') or []" t-as="o">
+                        <label class="disc-choice">
+                            <input type="radio" class="disc-opt" t-att-value="o['value']"/>
+                            <span class="disc-choice-box"/>
+                            <span class="disc-choice-lbl"><t t-esc="o['label']"/></span>
+                        </label>
+                    </t>
+                </div>
+            </t>
+
+            <!-- Checkbox group (multi-select) -->
+            <t t-if="field['type'] == 'checkbox'">
+                <div class="disc-options disc-options-check">
+                    <t t-foreach="field.get('options') or []" t-as="o">
+                        <label class="disc-choice">
+                            <input type="checkbox" class="disc-opt" t-att-value="o['value']"/>
+                            <span class="disc-choice-box"/>
+                            <span class="disc-choice-lbl"><t t-esc="o['label']"/></span>
+                        </label>
+                    </t>
+                </div>
+            </t>
+
+            <!-- Single confirmation checkbox -->
+            <t t-if="field['type'] == 'checkbox_single'">
+                <label class="disc-choice disc-confirm">
+                    <input type="checkbox" class="disc-value disc-opt-single"/>
+                    <span class="disc-choice-box"/>
+                    <span class="disc-choice-lbl">
+                        <t t-esc="field['label']"/>
+                        <span t-if="field.get('required')" class="disc-req">*</span>
+                    </span>
+                </label>
+            </t>
+
+            <!-- Textarea -->
+            <t t-if="field['type'] == 'textarea'">
+                <textarea class="disc-input disc-value" rows="4"
+                          t-att-placeholder="field.get('placeholder') or ''"/>
+            </t>
+
+            <!-- Signature pad -->
+            <t t-if="field['type'] == 'signature'">
+                <div class="disc-sign-wrap">
+                    <canvas class="disc-sign-canvas"/>
+                    <div class="disc-sign-bar">
+                        <span class="disc-sign-hint">Draw your signature above</span>
+                        <button type="button" class="disc-sign-clear">Clear</button>
+                    </div>
+                    <input type="hidden" class="disc-value disc-sign-data"/>
+                </div>
+            </t>
+
+            <!-- Manual entry shown when the "Other" option is chosen -->
+            <t t-if="field.get('other')">
+                <input class="disc-input disc-other-input is-hidden"
+                       data-other="1" placeholder="Please specify"/>
+            </t>
+
+            <p t-if="field.get('help')" class="disc-help"><t t-esc="field['help']"/></p>
+            <div class="disc-field-error"/>
+        </div>
+    </template>
+
+    <!-- ================================================================
+         Shared page shell (head + branding) used by every page.
+         ================================================================ -->
+    <template id="discovery_shell" name="Discovery Shell">
+        <html t-att-lang="(request.env.context.get('lang') or 'en').replace('_', '-')">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <title>Client Discovery Form · <t t-esc="company.name"/></title>
+                <link rel="icon" type="image/png"
+                      t-att-href="logo_src or ('/web/image/res.company/%s/logo' % logo_company.id)"/>
+                <link rel="stylesheet" href="/web/static/lib/bootstrap/css/bootstrap.css"/>
+                <link rel="stylesheet" href="/crm_extended_rk/static/src/css/discovery_form.css"/>
+            </head>
+            <body class="disc-body">
+                <t t-out="0"/>
+            </body>
+        </html>
+    </template>
+
+    <!-- ================================================================
+         MAIN FORM PAGE
+         ================================================================ -->
+    <template id="discovery_form" name="Client Discovery Form">
+        <t t-call="crm_extended_rk.discovery_shell">
+            <div class="disc-shell">
+
+                <!-- Header / branding -->
+                <header class="disc-header">
+                    <div class="disc-brand">
+                        <div class="disc-logo-box">
+                            <img t-att-src="logo_src or ('/web/image/res.company/%s/logo' % company.id)"
+                                 t-att-alt="company.name" class="disc-logo"/>
+                        </div>
+                        <div class="disc-brand-text">
+                            <span class="disc-company"><t t-esc="company.name"/></span>
+                            <span class="disc-subtitle">Client Discovery Form</span>
+                        </div>
+                    </div>
+                    <div class="disc-header-meta">
+                        <span class="disc-ref">Ref: <t t-esc="lead.name"/></span>
+                    </div>
+                </header>
+
+                <!-- Progress bar -->
+                <div class="disc-progress-wrap">
+                    <div class="disc-progress-track">
+                        <div class="disc-progress-fill"/>
+                    </div>
+                    <div class="disc-steps">
+                        <t t-foreach="sections" t-as="section">
+                            <div class="disc-step" t-att-data-index="section_index">
+                                <span class="disc-step-dot"><t t-esc="section_index + 1"/></span>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+
+                <!-- Server-side error banner -->
+                <div t-if="errors" class="disc-server-error">
+                    <strong>Please complete the following required fields:</strong>
+                    <ul>
+                        <li t-foreach="errors" t-as="err"><t t-esc="err"/></li>
+                    </ul>
+                </div>
+
+                <!-- The form -->
+                <form class="disc-form" method="post"
+                      t-attf-action="/discovery-form/#{token}/submit">
+                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                    <input type="hidden" name="payload" class="disc-payload"/>
+
+                    <t t-foreach="sections" t-as="section">
+                        <section class="disc-section" t-att-data-index="section_index"
+                                 t-att-data-section-id="section['id']">
+                            <div class="disc-section-head">
+                                <span class="disc-section-num">Section <t t-esc="section_index + 1"/> of <t t-esc="section_count"/></span>
+                                <h2 class="disc-section-title"><t t-esc="section['title']"/></h2>
+                                <p t-if="section.get('subtitle')" class="disc-section-sub">
+                                    <t t-esc="section['subtitle']"/>
+                                </p>
+                            </div>
+
+                            <div class="disc-section-body">
+                                <t t-foreach="section['fields']" t-as="field">
+                                    <t t-call="crm_extended_rk.discovery_field"/>
+                                </t>
+
+                                <!-- Entity sub-form: count driven by "entityCount" above.
+                                     Blocks are generated by the front-end. -->
+                                <div t-if="section.get('entities')" class="disc-entities-wrap">
+                                    <div class="disc-entities-head">
+                                        <h3><t t-esc="section['entities']['title']"/></h3>
+                                        <p class="disc-help">Complete one block for each legal entity
+                                           in scope. The number of blocks follows the count you enter above.</p>
+                                    </div>
+                                    <div class="disc-entities"/>
+
+                                    <!-- Hidden clone source -->
+                                    <div class="disc-entity-template" style="display:none;">
+                                        <div class="disc-entity">
+                                            <div class="disc-entity-head">
+                                                <span class="disc-entity-title">Entity</span>
+                                            </div>
+                                            <t t-foreach="section['entities']['fields']" t-as="field">
+                                                <t t-call="crm_extended_rk.discovery_field">
+                                                    <t t-set="fclass" t-value="'disc-efield'"/>
+                                                </t>
+                                            </t>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </t>
+
+                    <!-- Navigation -->
+                    <div class="disc-nav">
+                        <button type="button" class="disc-btn disc-btn-ghost disc-prev">Back</button>
+                        <button type="button" class="disc-btn disc-btn-primary disc-next">Continue</button>
+                        <button type="submit" class="disc-btn disc-btn-primary disc-submit">
+                            Submit Discovery Form
+                        </button>
+                    </div>
+                </form>
+
+                <footer class="disc-footer">
+                    <span>© <t t-esc="company.name"/>. Your information is kept strictly confidential.</span>
+                </footer>
+            </div>
+
+            <!-- Data for the front-end serializer (attribute values round-trip
+                 entities such as &amp; correctly; script-tag text would not). -->
+            <input type="hidden" class="disc-prefill-json" t-att-value="prefill_json"/>
+            <input type="hidden" class="disc-submitted-json" t-att-value="submitted_payload or '{}'"/>
+            <script src="/crm_extended_rk/static/src/js/discovery_form.js"/>
+        </t>
+    </template>
+
+    <!-- ================================================================
+         THANK-YOU PAGE
+         ================================================================ -->
+    <template id="discovery_thanks" name="Discovery Submitted">
+        <t t-call="crm_extended_rk.discovery_shell">
+            <div class="disc-shell disc-center">
+                <div class="disc-result-card">
+                    <div class="disc-logo-box disc-logo-box-lg">
+                        <img t-att-src="logo_src or ('/web/image/res.company/%s/logo' % logo_company.id)"
+                             t-att-alt="company.name" class="disc-logo"/>
+                    </div>
+                    <div class="disc-result-icon disc-icon-ok">✓</div>
+                    <h1>Thank you!</h1>
+                    <p>Your discovery form has been submitted successfully to
+                       <strong><t t-esc="company.name"/></strong>.</p>
+                    <p class="disc-muted">Our team will review your responses and get back to you shortly.
+                       You may now close this window.</p>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ================================================================
+         ALREADY SUBMITTED
+         ================================================================ -->
+    <template id="discovery_already_submitted" name="Discovery Already Submitted">
+        <t t-call="crm_extended_rk.discovery_shell">
+            <div class="disc-shell disc-center">
+                <div class="disc-result-card">
+                    <div class="disc-logo-box disc-logo-box-lg">
+                        <img t-att-src="logo_src or ('/web/image/res.company/%s/logo' % logo_company.id)"
+                             t-att-alt="company.name" class="disc-logo"/>
+                    </div>
+                    <div class="disc-result-icon disc-icon-info">✓</div>
+                    <h1>Already submitted</h1>
+                    <p>This discovery form has already been completed. Thank you.</p>
+                    <p class="disc-muted">If you need to make changes, please contact your
+                       <t t-esc="company.name"/> representative.</p>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ================================================================
+         INVALID / EXPIRED LINK
+         ================================================================ -->
+    <template id="discovery_invalid" name="Discovery Invalid Link">
+        <t t-call="crm_extended_rk.discovery_shell">
+            <div class="disc-shell disc-center">
+                <div class="disc-result-card">
+                    <div class="disc-logo-box disc-logo-box-lg">
+                        <img t-att-src="logo_src or ('/web/image/res.company/%s/logo' % logo_company.id)"
+                             t-att-alt="company.name" class="disc-logo"/>
+                    </div>
+                    <div class="disc-result-icon disc-icon-warn">!</div>
+                    <h1>Link not valid</h1>
+                    <p>This discovery form link is invalid or has expired.</p>
+                    <p class="disc-muted">Please contact your <t t-esc="company.name"/>
+                       representative for a new link.</p>
+                </div>
+            </div>
+        </t>
+    </template>
+
+</odoo>

@@ -773,6 +773,9 @@ const amlForm = (function () {
             'any': '<span class="aml-doc-badge any-one">Any One</span>',
         };
         const ANY_ONE_KEYS = ['cert_incumbency'];
+        const SAMPLE_DOCS = {
+            'ind_proof_residence': '/aml_automation_extended_rk/static/src/files/proof_of_residence_sample.pdf',
+        };
 
         docLines.forEach((doc, i) => {
             const badgeType = ANY_ONE_KEYS.includes(doc.doc_key) ? 'any' : String(doc.is_mandatory);
@@ -783,12 +786,22 @@ const amlForm = (function () {
             const uploadedNamesHtml = doc.attachment_names && doc.attachment_names.length
                 ? `<div class="aml-doc-uploaded-names">✔ ${doc.attachment_names.join(', ')}</div>`
                 : '';
+            const sampleUrl = SAMPLE_DOCS[doc.doc_key];
+            const sampleBlockHtml = sampleUrl
+                ? `<div class="aml-doc-sample-row">
+                    <a class="aml-doc-sample-link" href="${sampleUrl}" download target="_blank">⬇ Download Sample</a>
+                    <p class="aml-doc-sample-note">This document is for applicants who do not have proof of residence in their own name, and must be submitted along with a supporting document.</p>
+                </div>`
+                : '';
 
             div.innerHTML = `
                 <div class="aml-doc-num">${i + 1}</div>
                 <div class="aml-doc-info">
-                    <span class="aml-doc-name" title="${esc(doc.tooltip || doc.doc_name)}">${esc(doc.doc_name)}</span>
-                    ${BADGE[badgeType]}
+                    <div class="aml-doc-name-row">
+                        <span class="aml-doc-name" title="${esc(doc.tooltip || doc.doc_name)}">${esc(doc.doc_name)}</span>
+                        ${BADGE[badgeType]}
+                    </div>
+                    ${sampleBlockHtml}
                     <div id="doc-names-${doc.id}">${uploadedNamesHtml}</div>
                 </div>
                 <div class="aml-doc-upload-btn">

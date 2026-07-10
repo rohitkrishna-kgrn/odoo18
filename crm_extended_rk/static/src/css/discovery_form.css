@@ -1,0 +1,289 @@
+/* ============================================================
+   KGRN Client Discovery Form
+   Branding mirrors website_extended_rk (navy → blue gradient)
+   ============================================================ */
+
+:root {
+    --disc-navy: #0d2b45;
+    --disc-blue: #1a4f72;
+    --disc-blue-2: #1e6fa5;
+    --disc-bg: #eef1f5;
+    --disc-card: #ffffff;
+    --disc-border: #d8dee6;
+    --disc-text: #1f2937;
+    --disc-muted: #6b7280;
+    --disc-ok: #16a34a;
+    --disc-err: #dc2626;
+    --disc-radius: 14px;
+    --disc-shadow: 0 10px 40px rgba(13, 43, 69, 0.10);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+.disc-body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: var(--disc-text);
+    background:
+        radial-gradient(1200px 500px at 100% -10%, rgba(30, 111, 165, 0.12), transparent 60%),
+        radial-gradient(900px 500px at -10% 110%, rgba(13, 43, 69, 0.10), transparent 60%),
+        var(--disc-bg);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+}
+
+.disc-shell {
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    background: var(--disc-card);
+    border-radius: var(--disc-radius);
+    box-shadow: var(--disc-shadow);
+    overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.disc-header {
+    background: linear-gradient(135deg, var(--disc-navy) 0%, var(--disc-blue) 65%, var(--disc-blue-2) 100%);
+    color: #fff;
+    padding: 1.6rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.disc-brand { display: flex; align-items: center; gap: 1rem; }
+.disc-logo-box {
+    background: #fff;
+    border-radius: 10px;
+    padding: 8px 14px;
+    display: inline-flex;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.disc-logo { height: 44px; width: auto; object-fit: contain; display: block; }
+.disc-brand-text { display: flex; flex-direction: column; }
+.disc-company { font-size: 1.15rem; font-weight: 700; letter-spacing: .3px; }
+.disc-subtitle { font-size: .82rem; color: rgba(255,255,255,.72); letter-spacing: 1.5px; text-transform: uppercase; }
+.disc-header-meta { font-size: .8rem; color: rgba(255,255,255,.75); }
+.disc-ref { background: rgba(255,255,255,.14); padding: .35rem .7rem; border-radius: 999px; }
+
+/* ── Progress ───────────────────────────────────────────── */
+.disc-progress-wrap { padding: 1.4rem 2rem .4rem; }
+.disc-progress-track {
+    height: 6px; background: #e5e9ef; border-radius: 999px; overflow: hidden;
+}
+.disc-progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--disc-blue), var(--disc-blue-2));
+    border-radius: 999px;
+    transition: width .45s cubic-bezier(.4, 0, .2, 1);
+}
+.disc-steps { display: flex; justify-content: space-between; margin-top: .8rem; }
+.disc-step { flex: 1; display: flex; justify-content: center; }
+.disc-step-dot {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 700;
+    background: #e5e9ef; color: var(--disc-muted);
+    border: 2px solid transparent;
+    transition: all .3s ease;
+}
+.disc-step.is-active .disc-step-dot {
+    background: #fff; color: var(--disc-blue); border-color: var(--disc-blue);
+    box-shadow: 0 0 0 4px rgba(26, 79, 114, .15);
+    transform: scale(1.08);
+}
+.disc-step.is-done .disc-step-dot { background: var(--disc-blue); color: #fff; }
+
+/* ── Server error banner ────────────────────────────────── */
+.disc-server-error {
+    margin: 1rem 2rem 0; padding: .9rem 1.1rem;
+    background: #fef2f2; border: 1px solid #f5c2c2; color: #991b1b;
+    border-radius: 10px; font-size: .9rem;
+}
+.disc-server-error ul { margin: .4rem 0 0; padding-left: 1.1rem; }
+
+/* ── Sections (animated) ────────────────────────────────── */
+.disc-form { padding: 1.2rem 2rem 2rem; }
+.disc-section { display: none; }
+.disc-section.is-active {
+    display: block;
+    animation: discSlideIn .45s cubic-bezier(.2, .7, .2, 1);
+}
+.disc-section.is-leaving { animation: discSlideOut .3s ease forwards; }
+
+@keyframes discSlideIn {
+    from { opacity: 0; transform: translateX(28px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes discSlideOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(-28px); }
+}
+
+.disc-section-head { margin-bottom: 1.4rem; }
+.disc-section-num { font-size: .74rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--disc-blue-2); }
+.disc-section-title { font-size: 1.5rem; font-weight: 700; color: var(--disc-navy); margin: .3rem 0 .35rem; }
+.disc-section-sub { color: var(--disc-muted); font-size: .95rem; margin: 0; }
+
+/* ── Fields ─────────────────────────────────────────────── */
+.disc-field, .disc-efield { margin-bottom: 1.35rem; }
+.disc-field.is-hidden, .disc-efield.is-hidden { display: none; }
+.disc-label { display: block; font-size: .92rem; font-weight: 600; color: #374151; margin-bottom: .5rem; }
+.disc-req { color: var(--disc-err); margin-left: 2px; }
+.disc-help { font-size: .8rem; color: var(--disc-muted); margin: .4rem 0 0; }
+
+.disc-input {
+    width: 100%; padding: .7rem .9rem;
+    border: 1.5px solid var(--disc-border); border-radius: 9px;
+    font-size: .95rem; color: var(--disc-text); background: #fafbfc;
+    outline: none; transition: border-color .18s, box-shadow .18s, background .18s;
+}
+.disc-input:focus {
+    border-color: var(--disc-blue); background: #fff;
+    box-shadow: 0 0 0 3px rgba(26, 79, 114, .12);
+}
+textarea.disc-input { resize: vertical; min-height: 90px; }
+
+/* ── Choice pills (radio / checkbox) ────────────────────── */
+.disc-options { display: flex; flex-direction: column; gap: .55rem; }
+.disc-options-check .disc-choice, .disc-options-radio .disc-choice { }
+.disc-choice {
+    display: flex; align-items: center; gap: .7rem;
+    padding: .65rem .85rem;
+    border: 1.5px solid var(--disc-border); border-radius: 10px;
+    cursor: pointer; background: #fafbfc;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+    font-size: .92rem;
+}
+.disc-choice:hover { border-color: var(--disc-blue-2); background: #f4f8fb; }
+.disc-choice input { position: absolute; opacity: 0; width: 0; height: 0; }
+.disc-choice-box {
+    flex: 0 0 auto; width: 20px; height: 20px;
+    border: 2px solid var(--disc-border); background: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all .15s ease;
+}
+.disc-options-radio .disc-choice-box { border-radius: 50%; }
+.disc-options-check .disc-choice-box, .disc-confirm .disc-choice-box { border-radius: 6px; }
+.disc-choice-box::after {
+    content: ''; opacity: 0; transition: opacity .15s ease;
+}
+.disc-options-radio .disc-choice-box::after {
+    width: 9px; height: 9px; border-radius: 50%; background: #fff;
+}
+.disc-options-check .disc-choice-box::after, .disc-confirm .disc-choice-box::after {
+    content: '✓'; color: #fff; font-size: .8rem; font-weight: 700;
+}
+.disc-choice input:checked ~ .disc-choice-box { background: var(--disc-blue); border-color: var(--disc-blue); }
+.disc-choice input:checked ~ .disc-choice-box::after { opacity: 1; }
+.disc-choice.is-selected { border-color: var(--disc-blue); background: #eef5fa; box-shadow: 0 0 0 2px rgba(26,79,114,.10); }
+.disc-choice-lbl { line-height: 1.35; }
+.disc-confirm { font-weight: 500; }
+
+/* ── Entities sub-form ──────────────────────────────────── */
+.disc-entities-wrap {
+    margin-top: 1.6rem; padding-top: 1.4rem; border-top: 1px dashed var(--disc-border);
+}
+.disc-entities-head h3 { font-size: 1.05rem; color: var(--disc-navy); margin: 0 0 .2rem; }
+.disc-entity {
+    border: 1.5px solid var(--disc-border); border-radius: 12px;
+    padding: 1.1rem 1.1rem .3rem; margin-bottom: 1rem; background: #fbfcfd;
+    animation: discSlideIn .3s ease;
+}
+.disc-entity-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .9rem; }
+.disc-entity-title { font-weight: 700; color: var(--disc-blue); font-size: .95rem; }
+.disc-remove-entity {
+    background: none; border: none; color: var(--disc-err);
+    font-size: .82rem; cursor: pointer; font-weight: 600;
+}
+.disc-add-entity {
+    background: #eef5fa; color: var(--disc-blue); border: 1.5px dashed var(--disc-blue-2);
+    padding: .6rem 1rem; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: .88rem;
+    transition: background .15s;
+}
+.disc-add-entity:hover { background: #e3eef6; }
+
+/* ── Signature ──────────────────────────────────────────── */
+.disc-sign-wrap { }
+.disc-sign-canvas {
+    width: 100%; height: 170px; border: 1.5px solid var(--disc-border);
+    border-radius: 10px; background: #fff; touch-action: none; cursor: crosshair; display: block;
+}
+.disc-sign-bar { display: flex; justify-content: space-between; align-items: center; margin-top: .5rem; }
+.disc-sign-hint { font-size: .8rem; color: var(--disc-muted); }
+.disc-sign-clear {
+    background: none; border: 1px solid var(--disc-border); border-radius: 8px;
+    padding: .35rem .8rem; font-size: .82rem; cursor: pointer; color: var(--disc-text);
+}
+.disc-sign-clear:hover { border-color: var(--disc-blue); color: var(--disc-blue); }
+
+/* ── Validation ─────────────────────────────────────────── */
+.disc-field.has-error .disc-input,
+.disc-field.has-error .disc-sign-canvas { border-color: var(--disc-err); background: #fff6f6; }
+.disc-field.has-error .disc-choice { border-color: var(--disc-err); }
+.disc-efield.has-error .disc-input { border-color: var(--disc-err); background: #fff6f6; }
+.disc-efield.has-error .disc-choice { border-color: var(--disc-err); }
+.disc-field-error, .disc-efield .disc-field-error {
+    color: var(--disc-err); font-size: .78rem; margin-top: .35rem; min-height: 0;
+}
+
+/* "Other — please specify" manual input */
+.disc-other-input { margin-top: .55rem; }
+.disc-other-input.is-hidden { display: none; }
+
+/* ── Navigation ─────────────────────────────────────────── */
+.disc-nav { display: flex; gap: .8rem; margin-top: 1.6rem; }
+.disc-btn {
+    padding: .8rem 1.6rem; border-radius: 10px; font-size: .95rem; font-weight: 600;
+    cursor: pointer; border: none; transition: transform .12s, opacity .15s, box-shadow .15s;
+}
+.disc-btn-primary {
+    background: linear-gradient(135deg, var(--disc-navy), var(--disc-blue));
+    color: #fff; margin-left: auto;
+    box-shadow: 0 6px 18px rgba(13, 43, 69, .22);
+}
+.disc-btn-primary:hover { transform: translateY(-1px); }
+.disc-btn-ghost {
+    background: #fff; color: var(--disc-navy); border: 1.5px solid var(--disc-border);
+}
+.disc-btn-ghost:hover { border-color: var(--disc-blue); }
+
+/* ── Footer ─────────────────────────────────────────────── */
+.disc-footer {
+    text-align: center; padding: 1.1rem; font-size: .78rem; color: var(--disc-muted);
+    border-top: 1px solid #eef1f4;
+}
+
+/* ── Result pages ───────────────────────────────────────── */
+.disc-center { display: flex; align-items: center; justify-content: center; min-height: 60vh; }
+.disc-result-card { text-align: center; padding: 3rem 2.5rem; }
+.disc-logo-box-lg { margin: 0 auto 1.6rem; padding: 12px 20px; }
+.disc-logo-box-lg .disc-logo { height: 56px; }
+.disc-result-icon {
+    width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 1.4rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.4rem; font-weight: 700; color: #fff;
+    animation: discPop .5s cubic-bezier(.2, 1.3, .4, 1);
+}
+.disc-icon-ok { background: var(--disc-ok); }
+.disc-icon-info { background: var(--disc-blue); }
+.disc-icon-warn { background: #d97706; }
+@keyframes discPop { from { transform: scale(0); } to { transform: scale(1); } }
+.disc-result-card h1 { font-size: 1.7rem; color: var(--disc-navy); margin: 0 0 .6rem; }
+.disc-result-card p { color: var(--disc-text); margin: .3rem 0; }
+.disc-muted { color: var(--disc-muted); font-size: .9rem; }
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .disc-body { padding: 0; }
+    .disc-shell { border-radius: 0; box-shadow: none; }
+    .disc-header { padding: 1.2rem 1.2rem; }
+    .disc-progress-wrap, .disc-form, .disc-server-error { padding-left: 1.2rem; padding-right: 1.2rem; }
+    .disc-server-error { margin-left: 1.2rem; margin-right: 1.2rem; }
+    .disc-company { font-size: 1rem; }
+    .disc-step-dot { width: 22px; height: 22px; font-size: .66rem; }
+    .disc-section-title { font-size: 1.25rem; }
+    .disc-btn { padding: .75rem 1.1rem; }
+}

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="crm_lead_view_form_discovery" model="ir.ui.view">
+        <field name="name">crm.lead.form.discovery</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+
+            <!-- eInvoicing flag on the sheet (labelled) -->
+            <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="einvoicing_service" widget="boolean_toggle"
+                       readonly="discovery_form_state != 'not_sent'"/>
+            </xpath>
+
+            <!-- Header: eInvoicing toggle gates the send / resend buttons -->
+            <xpath expr="//header" position="inside">
+                <button name="action_send_discovery_form" type="object"
+                        string="Send Discovery Form to Client"
+                        class="btn-primary" icon="fa-paper-plane"
+                        invisible="not einvoicing_service or discovery_form_state != 'not_sent'"/>
+                <button name="action_send_discovery_form" type="object"
+                        string="Resend Discovery Form" icon="fa-refresh"
+                        invisible="not einvoicing_service or discovery_form_state == 'not_sent'"/>
+                <field name="discovery_form_state" widget="badge"
+                        decoration-info="discovery_form_state == 'sent'"
+                        decoration-success="discovery_form_state == 'submitted'"
+                        invisible="discovery_form_state == 'not_sent'"/>
+            </xpath>
+
+            <!-- Notebook page with the submitted response -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Discovery Form" name="discovery_form"
+                      invisible="discovery_form_state == 'not_sent'">
+                    <group>
+                        <group>
+                            <field name="discovery_form_state" readonly="1"/>
+                            <field name="discovery_sent_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="discovery_submitted_date" readonly="1"/>
+                            <field name="discovery_token" readonly="1"
+                                   groups="base.group_no_one"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-info" role="alert"
+                         invisible="discovery_form_state != 'sent'">
+                        The discovery form has been sent to the client and is awaiting submission.
+                    </div>
+                    <div class="oe_button_box" invisible="discovery_form_state != 'submitted'">
+                        <button name="action_download_discovery_pdf" type="object"
+                                class="btn-secondary" icon="fa-file-pdf-o"
+                                string="Download PDF"/>
+                    </div>
+                    <separator string="Client Response"
+                               invisible="discovery_form_state != 'submitted'"/>
+                    <field name="discovery_summary" nolabel="1"
+                           invisible="discovery_form_state != 'submitted'"/>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

@@ -76,6 +76,12 @@
                 <field name="x_stage_name" invisible="1"/>
                 <field name="x_stage_is_converted" invisible="1"/>
                 <field name="x_stage_is_lost" invisible="1"/>
+                <field name="x_invoice_id" invisible="1"/>
+                <field name="x_billing_stage" invisible="1"/>
+                <field name="x_invoice_state" invisible="1"/>
+                <field name="x_invoice_payment_state" invisible="1"/>
+
+                <!-- Pipeline stage actions (Sales team) -->
                 <button name="action_move_to_contacted" type="object"
                         string="Contacted"
                         class="btn btn-primary"
@@ -84,21 +90,39 @@
                         string="Lost"
                         class="btn btn-danger"
                         invisible="not x_is_referral or x_stage_name != 'New'"/>
-                <!-- New Quotation: visible at all active stages until quotation is created -->
                 <button name="action_create_quotation" type="object"
                         string="New Quotation"
                         class="btn btn-primary"
                         invisible="not x_is_referral or x_stage_is_converted or x_stage_is_lost or x_has_quotation"/>
-                <!-- View Quotation: visible whenever a quotation/SO is linked -->
                 <button name="action_view_quotation" type="object"
                         string="View Sales Order"
                         class="btn btn-secondary"
                         invisible="not x_is_referral or not x_has_quotation"/>
-                <!-- View Invoice: visible when invoice is linked -->
+
+                <!-- Accounting workflow actions (Accounts team) -->
+                <button name="action_create_invoice" type="object"
+                        string="Create Invoice"
+                        class="btn btn-primary"
+                        invisible="not x_is_referral or not x_stage_is_converted or x_invoice_id"
+                        groups="referral_crm_gk.group_referral_accounts,referral_crm_gk.group_referral_manager"/>
                 <button name="action_open_invoice" type="object"
                         string="View Invoice"
                         class="btn btn-secondary"
                         invisible="not x_is_referral or not x_invoice_id"/>
+                <button name="action_register_payment" type="object"
+                        string="Register Payment"
+                        class="btn btn-success"
+                        invisible="not x_is_referral or not x_invoice_id or x_invoice_payment_state == 'paid' or x_invoice_state != 'posted'"
+                        groups="referral_crm_gk.group_referral_accounts,referral_crm_gk.group_referral_manager"/>
+            </xpath>
+
+            <!-- Payment stage statusbar — shows invoice billing progression -->
+            <xpath expr="//header/field[@name='stage_id']" position="after">
+                <field name="x_billing_stage" widget="statusbar"
+                       statusbar_visible="not_paid,partial,paid"
+                       readonly="1"
+                       invisible="not x_is_referral or not x_stage_is_converted"
+                       class="o_statusbar_status"/>
             </xpath>
 
             <!-- Change "Expected Revenue" label to "Revenue" -->
@@ -424,6 +448,26 @@
         ]"/>
     </record>
 
+
+    <!-- Converted Referrals — Manager and Accounts team; locked to converted stage -->
+    <record id="action_referral_converted_referrals" model="ir.actions.act_window">
+        <field name="name">Converted Referrals</field>
+        <field name="res_model">crm.lead</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('x_is_referral', '=', True), ('stage_id.x_is_referral_converted', '=', True)]</field>
+        <field name="context">{'default_x_is_referral': True}</field>
+        <field name="search_view_id" ref="view_referral_lead_search"/>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_referral_lead_list')}),
+        ]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No converted referrals yet. Referrals appear here once the sales team
+                moves them to the Converted stage.
+            </p>
+        </field>
+    </record>
 
     <!-- Config: Stage list view (adds colour + description columns) -->
     <record id="view_referral_crm_stage_list" model="ir.ui.view">

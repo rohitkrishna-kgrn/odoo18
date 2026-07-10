@@ -64,10 +64,27 @@ class CrmLead(models.Model):
         string='Invoice Payment Status',
         readonly=True,
     )
+    x_invoice_state = fields.Selection(
+        related='x_invoice_id.state',
+        string='Invoice State',
+        readonly=True,
+    )
     x_invoice_attachment_ids = fields.Many2many(
         'ir.attachment',
         compute='_compute_invoice_attachments',
         string='Invoice Documents',
+    )
+
+    # Billing/payment stage — drives the visible statusbar on the referral form
+    x_billing_stage = fields.Selection([
+        ('no_invoice', 'No Invoice'),
+        ('invoice_draft', 'Invoice Draft'),
+        ('not_paid', 'Not Paid'),
+        ('partial', 'Partially Paid'),
+        ('paid', 'Fully Paid'),
+    ], string='Payment Stage',
+       compute='_compute_billing_stage',
+       store=True,
     )
 
     # Commission payment status — computed from invoice when linked; manual otherwise
@@ -170,10 +187,11 @@ class CrmLead(models.Model):
         readonly=True,
     )
 
-    @api.depends('x_sale_order_id', 'x_sale_order_id.amount_total')
+    @api.depends('x_sale_order_id', 'x_sale_order_id.amount_untaxed')
     def _compute_deal_value(self):
+        # Use untaxed amount so commissions are calculated on the net service fee, not on VAT
         for rec in self:
-            rec.x_deal_value = rec.x_sale_order_id.amount_total if rec.x_sale_order_id else 0.0
+            rec.x_deal_value = rec.x_sale_order_id.amount_untaxed if rec.x_sale_order_id else 0.0
 
     @api.depends('x_sale_order_id')
     def _compute_has_quotation(self):
@@ -217,6 +235,27 @@ class CrmLead(models.Model):
         # Allows manual writes for leads without a linked invoice.
         # When an invoice is linked the compute overrides any manual value.
         pass
+
+    @api.depends(
+        'x_invoice_id',
+        'x_invoice_id.state',
+        'x_invoice_id.payment_state',
+    )
+    def _compute_billing_stage(self):
+        for rec in self:
+            inv = rec.x_invoice_id
+            if not inv:
+                rec.x_billing_stage = 'no_invoice'
+            elif inv.state == 'draft':
+                rec.x_billing_stage = 'invoice_draft'
+            elif inv.payment_state in ('not_paid', 'invoicing_legacy', 'reversed'):
+                rec.x_billing_stage = 'not_paid'
+            elif inv.payment_state in ('partial', 'in_payment'):
+                rec.x_billing_stage = 'partial'
+            elif inv.payment_state == 'paid':
+                rec.x_billing_stage = 'paid'
+            else:
+                rec.x_billing_stage = 'not_paid'
 
     @api.depends('x_invoice_id')
     def _compute_invoice_attachments(self):
@@ -263,6 +302,49 @@ class CrmLead(models.Model):
             'view_mode': 'form',
             'target': 'current',
         }
+
+    def action_create_invoice(self):
+        """Create invoice from the linked sale order and open it."""
+        self.ensure_one()
+        from odoo.exceptions import UserError
+        if not self.x_sale_order_id:
+            raise UserError(
+                "No sale order is linked to this referral. "
+                "Please create a quotation first."
+            )
+        if self.x_sale_order_id.state not in ('sale', 'done'):
+            raise UserError(
+                "The sale order must be confirmed before creating an invoice."
+            )
+        # If invoice already exists, just open it
+        if self.x_invoice_id:
+            return self.action_open_invoice()
+        # Create the invoice — our _create_invoices override auto-links it
+        self.x_sale_order_id.sudo()._create_invoices()
+        # Fallback link in case override didn't fire
+        if not self.x_invoice_id:
+            existing = self.x_sale_order_id.invoice_ids.filtered(
+                lambda m: m.move_type == 'out_invoice' and m.state != 'cancel'
+            )
+            if existing:
+                self.sudo().x_invoice_id = existing[0].id
+        if self.sudo().x_invoice_id:
+            return self.action_open_invoice()
+        raise UserError("Invoice could not be created. Please try from the Sales Order.")
+
+    def action_register_payment(self):
+        """Open the standard Odoo payment registration wizard for the linked invoice."""
+        self.ensure_one()
+        from odoo.exceptions import UserError
+        if not self.x_invoice_id:
+            raise UserError("No invoice is linked to this referral.")
+        if self.x_invoice_id.state != 'posted':
+            raise UserError(
+                "The invoice must be confirmed (posted) before registering a payment."
+            )
+        if self.x_invoice_id.payment_state == 'paid':
+            raise UserError("This invoice is already fully paid.")
+        return self.x_invoice_id.action_register_payment()
 
     # ── Email notifications ────────────────────────────────────────────────
 

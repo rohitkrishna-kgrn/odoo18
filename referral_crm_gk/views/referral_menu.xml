@@ -49,6 +49,18 @@
         <field name="groups_id" eval="[(6, 0, [ref('referral_crm_gk.group_referral_user'), ref('referral_crm_gk.group_referral_manager')])]"/>
     </record>
 
+    <!-- Converted Referrals — Manager and Accounts access group only -->
+    <record id="menu_referral_converted" model="ir.ui.menu">
+        <field name="name">Converted Referrals</field>
+        <field name="parent_id" ref="menu_referral_root"/>
+        <field name="action" ref="action_referral_converted_referrals"/>
+        <field name="sequence">16</field>
+        <field name="groups_id" eval="[(6, 0, [
+            ref('referral_crm_gk.group_referral_manager'),
+            ref('referral_crm_gk.group_referral_accounts'),
+        ])]"/>
+    </record>
+
     <!-- Referrers -->
     <record id="menu_referral_referrers" model="ir.ui.menu">
         <field name="name">Referrers</field>
