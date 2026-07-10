@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_hr_employee_mis_role" model="ir.ui.view">
+        <field name="name">hr.employee.mis.role.form</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='work_location_id']" position="after">
+                <field name="mis_revenue_role_id" string="Role for MIS"/>
+            </xpath>
+
+            <!-- Performance Management section -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Performance (MIS)"
+                      groups="mis_report_kgrn.group_mis_admin">
+                    <field name="company_currency_id" invisible="1"/>
+                    <group>
+                        <group string="Framework">
+                            <field name="mis_performance_applicable"/>
+                            <field name="mis_performance_team"
+                                   invisible="not mis_performance_applicable"/>
+                            <field name="mis_office_location"
+                                   invisible="not mis_performance_applicable"/>
+                        </group>
+                        <group string="Cost &amp; Ramp-up">
+                            <field name="mis_annual_ctc"
+                                   invisible="not mis_performance_applicable"/>
+                            <field name="mis_ramp_start_date"
+                                   invisible="not mis_performance_applicable"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

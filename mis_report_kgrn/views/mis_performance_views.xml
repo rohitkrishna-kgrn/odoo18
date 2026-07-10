@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- OWL client actions (Performance Management dashboards) -->
+    <record id="action_mis_perf_sales" model="ir.actions.client">
+        <field name="name">Sales Performance</field>
+        <field name="tag">mis_performance_sales</field>
+    </record>
+
+    <record id="action_mis_perf_operations" model="ir.actions.client">
+        <field name="name">Operations Performance</field>
+        <field name="tag">mis_performance_operations</field>
+    </record>
+
+    <record id="action_mis_perf_other" model="ir.actions.client">
+        <field name="name">Other Teams Performance</field>
+        <field name="tag">mis_performance_other</field>
+    </record>
+
+</odoo>

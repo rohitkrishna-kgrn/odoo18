@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_mis_revenue_role_list" model="ir.ui.view">
+        <field name="name">mis.revenue.role.list</field>
+        <field name="model">mis.revenue.role</field>
+        <field name="arch" type="xml">
+            <list string="MIS Revenue Roles" editable="top">
+                <field name="name"       string="Role Name"/>
+                <field name="multiplier" string="Multiplier" digits="[16,2]"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mis_revenue_role_form" model="ir.ui.view">
+        <field name="name">mis.revenue.role.form</field>
+        <field name="model">mis.revenue.role</field>
+        <field name="arch" type="xml">
+            <form string="MIS Revenue Role">
+                <sheet>
+                    <group>
+                        <field name="name"       string="Role Name"/>
+                        <field name="multiplier" string="Multiplier" digits="[16,2]"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mis_revenue_role" model="ir.actions.act_window">
+        <field name="name">Revenue Roles</field>
+        <field name="res_model">mis.revenue.role</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

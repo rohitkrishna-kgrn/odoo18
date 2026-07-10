@@ -21,7 +21,23 @@
         id="menu_mis_project_wise_list"
         name="Project List"
         parent="menu_mis_project_wise_root"
-        action="action_mis_project_wise_list"
+        action="action_mis_project_wise_client"
+        sequence="1"
+        groups="mis_report_kgrn.group_mis_user"/>
+
+    <!-- Project Revenue -->
+    <menuitem
+        id="menu_mis_project_revenue_root"
+        name="Project Revenue"
+        parent="menu_mis_dashboard_root"
+        sequence="2"
+        groups="mis_report_kgrn.group_mis_user"/>
+
+    <menuitem
+        id="menu_mis_project_revenue_list"
+        name="Revenue Report"
+        parent="menu_mis_project_revenue_root"
+        action="mis_report_kgrn.action_mis_project_revenue_client"
         sequence="1"
         groups="mis_report_kgrn.group_mis_user"/>
 
@@ -30,14 +46,62 @@
         id="menu_mis_outstanding_root"
         name="Outstandings"
         parent="menu_mis_dashboard_root"
-        sequence="2"
+        sequence="3"
         groups="mis_report_kgrn.group_mis_user"/>
+
+    <!-- Performance Management (Admin only) -->
+    <menuitem
+        id="menu_mis_performance_root"
+        name="Performance Management"
+        parent="menu_mis_dashboard_root"
+        sequence="4"
+        groups="mis_report_kgrn.group_mis_admin"/>
+
+    <menuitem
+        id="menu_mis_perf_sales"
+        name="Sales"
+        parent="menu_mis_performance_root"
+        action="mis_report_kgrn.action_mis_perf_sales"
+        sequence="1"
+        groups="mis_report_kgrn.group_mis_admin"/>
+
+    <menuitem
+        id="menu_mis_perf_operations"
+        name="Operations"
+        parent="menu_mis_performance_root"
+        action="mis_report_kgrn.action_mis_perf_operations"
+        sequence="2"
+        groups="mis_report_kgrn.group_mis_admin"/>
+
+    <menuitem
+        id="menu_mis_perf_other"
+        name="Other Teams"
+        parent="menu_mis_performance_root"
+        action="mis_report_kgrn.action_mis_perf_other"
+        sequence="3"
+        groups="mis_report_kgrn.group_mis_admin"/>
+
+    <!-- Configuration (Admin only) -->
+    <menuitem
+        id="menu_mis_config_root"
+        name="Configuration"
+        parent="menu_mis_dashboard_root"
+        sequence="99"
+        groups="mis_report_kgrn.group_mis_admin"/>
+
+    <menuitem
+        id="menu_mis_revenue_role_config"
+        name="Revenue Roles"
+        parent="menu_mis_config_root"
+        action="mis_report_kgrn.action_mis_revenue_role"
+        sequence="1"
+        groups="mis_report_kgrn.group_mis_admin"/>
 
     <menuitem
         id="menu_mis_outstanding_list"
         name="Outstanding Report"
         parent="menu_mis_outstanding_root"
-        action="action_mis_outstanding_list"
+        action="action_mis_outstanding_client"
         sequence="1"
         groups="mis_report_kgrn.group_mis_user"/>
 

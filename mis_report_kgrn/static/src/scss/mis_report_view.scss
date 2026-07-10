@@ -1,0 +1,257 @@
+.o_mis_report {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--o-view-background-color, #fff);
+
+    // ── Toolbar ──────────────────────────────────────────────────────────
+    .o_mis_toolbar {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--o-list-group-border-color, #dee2e6);
+        background: var(--o-gray-100, #f8f9fa);
+
+        .o_mis_toolbar_row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            & + .o_mis_toolbar_row { margin-top: 8px; }
+        }
+
+        .o_mis_search {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #fff;
+            border: 1px solid var(--o-input-border-color, #ced4da);
+            border-radius: 4px;
+            padding: 2px 8px;
+            .fa { color: var(--o-gray-500, #6c757d); }
+            input { border: none; outline: none; min-width: 180px; padding: 3px 0; }
+        }
+
+        .o_mis_daterange {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+
+            .o_mis_daterange_label {
+                font-weight: 600;
+                color: var(--o-gray-600, #495057);
+            }
+            .o_mis_date { width: 130px; padding: 3px 6px; height: 28px; font-size: 12px; }
+            .o_mis_dash { color: var(--o-gray-500, #6c757d); }
+        }
+
+        .o_mis_count {
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--o-gray-600, #495057);
+            font-weight: 600;
+        }
+
+        .o_mis_groupby_label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--o-gray-600, #495057);
+        }
+
+        .o_mis_chip {
+            border: 1px solid var(--o-gray-300, #ced4da);
+            background: #fff;
+            color: var(--o-gray-700, #343a40);
+            border-radius: 14px;
+            padding: 2px 12px;
+            font-size: 12px;
+
+            &.o_mis_chip_active {
+                background: var(--o-primary, #714B67);
+                border-color: var(--o-primary, #714B67);
+                color: #fff;
+            }
+            &.o_mis_chip_locked {
+                opacity: 1;
+                cursor: default;
+            }
+            .o_mis_chip_order {
+                display: inline-block;
+                margin-right: 4px;
+                font-weight: 700;
+            }
+            .o_mis_chip_lock {
+                margin-left: 6px;
+                font-size: 10px;
+                opacity: 0.85;
+            }
+        }
+    }
+
+    // ── Table ────────────────────────────────────────────────────────────
+    .o_mis_table_wrap {
+        flex: 1;
+        overflow: auto;
+        padding: 0;
+    }
+
+    .o_mis_loading {
+        padding: 24px;
+        text-align: center;
+        color: var(--o-gray-500, #6c757d);
+    }
+
+    .o_mis_table {
+        margin: 0;
+        font-size: 13px;
+        white-space: nowrap;
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--o-gray-200, #e9ecef);
+            font-weight: 600;
+            font-size: 12px;
+            border-bottom: 2px solid var(--o-gray-300, #ced4da);
+        }
+
+        .o_mis_num { text-align: right; }
+
+        .o_mis_group {
+            cursor: pointer;
+            background: var(--o-gray-100, #f1f1f1);
+            font-weight: 600;
+            &:hover { background: var(--o-gray-200, #e9ecef); }
+
+            .fa { margin-right: 6px; color: var(--o-gray-600, #495057); }
+            .o_mis_group_label { color: var(--o-gray-800, #212529); }
+            .o_mis_badge {
+                display: inline-block;
+                margin-left: 8px;
+                padding: 0 7px;
+                border-radius: 9px;
+                background: var(--o-primary, #714B67);
+                color: #fff;
+                font-size: 11px;
+                font-weight: 600;
+            }
+        }
+
+        .o_mis_row {
+            &.o_mis_row_done   td:first-child { box-shadow: inset 3px 0 0 #28a745; }
+            &.o_mis_row_pending td:first-child { box-shadow: inset 3px 0 0 #dc3545; }
+            &:hover { background: var(--o-gray-100, #f8f9fa); }
+            &.o_mis_row_click { cursor: pointer; }
+        }
+
+        .o_mis_link {
+            color: var(--o-primary, #714B67);
+            cursor: pointer;
+            &:hover { text-decoration: underline; }
+        }
+
+        .o_mis_total {
+            position: sticky;
+            bottom: 0;
+            background: var(--o-gray-200, #e9ecef);
+            border-top: 2px solid var(--o-gray-400, #adb5bd);
+            font-weight: 700;
+        }
+
+        .o_mis_empty {
+            text-align: center;
+            color: var(--o-gray-500, #6c757d);
+            padding: 16px;
+        }
+
+    }
+
+    // ── Detail table (shared) ────────────────────────────────────────────
+    .o_mis_detail_table {
+        margin: 4px 0;
+        font-size: 12px;
+        background: #fff;
+        white-space: nowrap;
+        .o_mis_num { text-align: right; }
+        thead th {
+            background: var(--o-gray-100, #eef0f2);
+            border-bottom: 1px solid var(--o-gray-300, #ced4da);
+            font-weight: 600;
+        }
+        .o_mis_empty { text-align: center; color: var(--o-gray-500, #6c757d); padding: 12px; }
+    }
+
+    // ── Form mode ────────────────────────────────────────────────────────
+    .o_mis_form {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: auto;
+
+        .o_mis_form_header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--o-list-group-border-color, #dee2e6);
+            background: var(--o-gray-100, #f8f9fa);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+
+            .o_mis_form_title {
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--o-gray-800, #212529);
+            }
+        }
+
+        .o_mis_form_body {
+            padding: 16px;
+            max-width: 1100px;
+        }
+
+        .o_mis_form_section {
+            margin-bottom: 20px;
+
+            .o_mis_form_section_title {
+                font-size: 13px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: var(--o-primary, #714B67);
+                border-bottom: 1px solid var(--o-gray-300, #ced4da);
+                padding-bottom: 4px;
+                margin-bottom: 10px;
+            }
+        }
+
+        .o_mis_form_grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(280px, 1fr));
+            gap: 6px 32px;
+        }
+
+        .o_mis_form_field {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            padding: 3px 0;
+
+            label {
+                width: 190px;
+                flex-shrink: 0;
+                font-weight: 600;
+                color: var(--o-gray-600, #495057);
+                margin: 0;
+                font-size: 13px;
+            }
+            .o_mis_value { color: var(--o-gray-900, #111); }
+            .o_mis_link {
+                color: var(--o-primary, #714B67);
+                cursor: pointer;
+                &:hover { text-decoration: underline; }
+            }
+        }
+    }
+}

@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- ── Revenue breakdown dialog ────────────────────────────────────── -->
+    <t t-name="mis_report_kgrn.MisRevenueBreakdownDialog">
+        <Dialog title="props.title" size="'lg'">
+            <div class="o_mis_breakdown">
+                <h6 class="o_mis_bd_head">
+                    Sales Revenue
+                    <span class="o_mis_bd_total" t-esc="money(props.salesTotal)"/>
+                </h6>
+                <table class="table table-sm o_mis_detail_table">
+                    <thead>
+                        <tr>
+                            <th>Sale Order</th><th>Date</th><th>Customer</th>
+                            <th class="o_mis_num">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="props.sales" t-as="s" t-key="s_index">
+                            <td t-esc="s.ref"/>
+                            <td t-esc="s.date"/>
+                            <td t-esc="s.customer"/>
+                            <td class="o_mis_num" t-esc="money(s.amount)"/>
+                        </tr>
+                        <tr t-if="!props.sales.length">
+                            <td colspan="4" class="o_mis_empty">No sales this month.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h6 class="o_mis_bd_head">
+                    Delivery Revenue
+                    <span class="o_mis_bd_total" t-esc="money(props.deliveryTotal)"/>
+                </h6>
+                <table class="table table-sm o_mis_detail_table">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th class="o_mis_num">Hours</th>
+                            <th class="o_mis_num">Weighted</th>
+                            <th class="o_mis_num">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="props.delivery" t-as="d" t-key="d_index">
+                            <td t-esc="d.task"/>
+                            <td class="o_mis_num" t-esc="num(d.hours)"/>
+                            <td class="o_mis_num" t-esc="num(d.weighted)"/>
+                            <td class="o_mis_num" t-esc="money(d.amount)"/>
+                        </tr>
+                        <tr t-if="!props.delivery.length">
+                            <td colspan="4" class="o_mis_empty">No delivery this month.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-secondary" t-on-click="() => props.close()">Close</button>
+            </t>
+        </Dialog>
+    </t>
+
+    <!-- ── Main view ───────────────────────────────────────────────────── -->
+    <t t-name="mis_report_kgrn.MisReportView">
+        <div class="o_mis_report">
+
+            <!-- ═══ LIST MODE ═══ -->
+            <t t-if="state.view === 'list'">
+                <div class="o_mis_toolbar">
+                    <div class="o_mis_toolbar_row">
+                        <div class="o_mis_search">
+                            <i class="fa fa-search"/>
+                            <input type="text" class="o_input" placeholder="Search..."
+                                   t-att-value="state.search" t-on-input="onSearchInput"/>
+                        </div>
+
+                        <t t-foreach="config.dateFilters" t-as="df" t-key="df.field">
+                            <div class="o_mis_daterange">
+                                <span class="o_mis_daterange_label" t-esc="df.label"/>
+                                <input type="date" class="o_input o_mis_date"
+                                       t-att-value="state.dates[df.field].from"
+                                       t-on-change="(ev) => this.onDateChange(df.field, 'from', ev)"/>
+                                <span class="o_mis_dash">→</span>
+                                <input type="date" class="o_input o_mis_date"
+                                       t-att-value="state.dates[df.field].to"
+                                       t-on-change="(ev) => this.onDateChange(df.field, 'to', ev)"/>
+                            </div>
+                        </t>
+
+                        <button class="btn btn-secondary btn-sm o_mis_clear" t-on-click="clearFilters">
+                            <i class="fa fa-eraser"/> Clear
+                        </button>
+                        <button class="btn btn-secondary btn-sm" t-on-click="load">
+                            <i class="fa fa-refresh"/> Refresh
+                        </button>
+                        <span class="o_mis_count" t-esc="state.count + ' records'"/>
+                    </div>
+
+                    <div class="o_mis_toolbar_row">
+                        <span class="o_mis_groupby_label">Group by:</span>
+                        <t t-foreach="config.groupBy" t-as="gb" t-key="gb.field">
+                            <button class="btn btn-sm o_mis_chip"
+                                    t-att-class="{ 'o_mis_chip_active': isGroupedBy(gb.field), 'o_mis_chip_locked': isLocked(gb.field) }"
+                                    t-att-disabled="isLocked(gb.field) ? 'disabled' : false"
+                                    t-att-title="isLocked(gb.field) ? 'Default grouping (locked)' : ''"
+                                    t-on-click="() => this.toggleGroupBy(gb.field)">
+                                <span t-if="isGroupedBy(gb.field)" class="o_mis_chip_order"
+                                      t-esc="groupByOrder(gb.field)"/>
+                                <t t-esc="gb.label"/>
+                                <i t-if="isLocked(gb.field)" class="fa fa-lock o_mis_chip_lock"/>
+                            </button>
+                        </t>
+                    </div>
+                </div>
+
+                <div class="o_mis_table_wrap">
+                    <div t-if="state.loading" class="o_mis_loading">Loading…</div>
+                    <table t-else="" class="o_mis_table table table-sm">
+                        <thead>
+                            <tr>
+                                <th t-foreach="columns" t-as="col" t-key="col.name"
+                                    t-att-class="{ 'o_mis_num': col.type === 'monetary' or col.type === 'float' or col.type === 'integer' or col.type === 'percent' }"
+                                    t-esc="col.label"/>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-if="state.groupBy.length">
+                                <t t-foreach="state.tree" t-as="node" t-key="node.path">
+                                    <t t-call="mis_report_kgrn.MisReportNode">
+                                        <t t-set="node" t-value="node"/>
+                                        <t t-set="depth" t-value="0"/>
+                                    </t>
+                                </t>
+                            </t>
+                            <t t-else="">
+                                <t t-foreach="state.leaves" t-as="rec" t-key="rec.id">
+                                    <t t-call="mis_report_kgrn.MisReportRow">
+                                        <t t-set="rec" t-value="rec"/>
+                                        <t t-set="depth" t-value="0"/>
+                                    </t>
+                                </t>
+                            </t>
+
+                            <tr t-if="!state.count">
+                                <td t-att-colspan="columns.length" class="o_mis_empty">
+                                    No records found.
+                                </td>
+                            </tr>
+
+                            <tr t-if="state.count" class="o_mis_total">
+                                <t t-foreach="columns" t-as="col" t-key="col.name">
+                                    <td t-if="col_index === 0"><strong>Total</strong></td>
+                                    <td t-elif="col.agg" class="o_mis_num">
+                                        <strong t-esc="formatTotal(col)"/>
+                                    </td>
+                                    <td t-else=""/>
+                                </t>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+
+            <!-- ═══ FORM MODE ═══ -->
+            <t t-if="state.view === 'form' and state.record">
+                <div class="o_mis_form">
+                    <div class="o_mis_form_header">
+                        <button class="btn btn-secondary btn-sm" t-on-click="backToList">
+                            <i class="fa fa-arrow-left"/> Back
+                        </button>
+                        <span class="o_mis_form_title" t-esc="formTitle(state.record)"/>
+                    </div>
+
+                    <div class="o_mis_form_body">
+                        <t t-foreach="config.form" t-as="section" t-key="section.title">
+                            <div class="o_mis_form_section">
+                                <div class="o_mis_form_section_title" t-esc="section.title"/>
+                                <div class="o_mis_form_grid">
+                                    <t t-foreach="section.fields" t-as="fname" t-key="fname">
+                                        <t t-set="def" t-value="fieldDef(fname)"/>
+                                        <div class="o_mis_form_field">
+                                            <label t-esc="def.label"/>
+                                            <t t-if="def.type === 'm2o' and def.open">
+                                                <span class="o_mis_value o_mis_link"
+                                                      t-on-click="() => this.openRecord(def.open, state.record[def.name])"
+                                                      t-esc="formatCell(def, state.record)"/>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="o_mis_value" t-esc="formatCell(def, state.record)"/>
+                                            </t>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- Revenue breakdown wizard button -->
+                        <div t-if="config.revenueBreakdown" class="o_mis_form_section">
+                            <button class="btn btn-primary btn-sm"
+                                    t-on-click="() => this.openBreakdown(state.record)">
+                                <i class="fa fa-list-ul me-1"/> Revenue Breakdown
+                            </button>
+                        </div>
+
+                        <!-- Employee breakdown (revenue) -->
+                        <div t-if="config.detail" class="o_mis_form_section">
+                            <div class="o_mis_form_section_title" t-esc="config.detail.title"/>
+                            <table class="o_mis_detail_table table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th t-foreach="config.detail.columns" t-as="dc" t-key="dc.name"
+                                            t-att-class="{ 'o_mis_num': dc.type === 'monetary' or dc.type === 'float' or dc.type === 'integer' }"
+                                            t-esc="dc.label"/>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="state.detailCache[state.record.id] or []" t-as="line" t-key="line.id">
+                                        <td t-foreach="config.detail.columns" t-as="dc" t-key="dc.name"
+                                            t-att-class="{ 'o_mis_num': dc.type === 'monetary' or dc.type === 'float' or dc.type === 'integer' }"
+                                            t-esc="formatCell(dc, line)"/>
+                                    </tr>
+                                    <tr t-if="!(state.detailCache[state.record.id] or []).length">
+                                        <td t-att-colspan="config.detail.columns.length" class="o_mis_empty">
+                                            No timesheet entries.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+
+    <!-- ── Recursive group node ────────────────────────────────────────── -->
+    <t t-name="mis_report_kgrn.MisReportNode">
+        <tr class="o_mis_group" t-on-click="() => this.toggleGroup(node.path)">
+            <t t-foreach="columns" t-as="col" t-key="col.name">
+                <td t-if="col_index === 0" t-att-style="indent(depth)">
+                    <i class="fa" t-att-class="isExpanded(node.path) ? 'fa-caret-down' : 'fa-caret-right'"/>
+                    <span class="o_mis_group_label" t-esc="node.label"/>
+                    <span class="o_mis_badge" t-esc="node.count"/>
+                </td>
+                <td t-elif="col.agg" class="o_mis_num">
+                    <span t-esc="formatAgg(col, node)"/>
+                </td>
+                <td t-else=""/>
+            </t>
+        </tr>
+
+        <t t-if="isExpanded(node.path)">
+            <t t-if="node.children">
+                <t t-foreach="node.children" t-as="child" t-key="child.path">
+                    <t t-call="mis_report_kgrn.MisReportNode">
+                        <t t-set="node" t-value="child"/>
+                        <t t-set="depth" t-value="depth + 1"/>
+                    </t>
+                </t>
+            </t>
+            <t t-else="">
+                <t t-foreach="node.leaves" t-as="rec" t-key="rec.id">
+                    <t t-call="mis_report_kgrn.MisReportRow">
+                        <t t-set="rec" t-value="rec"/>
+                        <t t-set="depth" t-value="depth + 1"/>
+                    </t>
+                </t>
+            </t>
+        </t>
+    </t>
+
+    <!-- ── Leaf record row (click → form) ──────────────────────────────── -->
+    <t t-name="mis_report_kgrn.MisReportRow">
+        <tr class="o_mis_row o_mis_row_click" t-att-class="rowClass(rec)"
+            t-on-click="() => this.openForm(rec)">
+            <t t-foreach="columns" t-as="col" t-key="col.name">
+                <td t-if="col_index === 0" t-att-style="indent(depth + 1)"
+                    t-att-class="{ 'o_mis_num': col.type === 'monetary' or col.type === 'float' or col.type === 'integer' or col.type === 'percent' }">
+                    <t t-if="col.type === 'm2o'">
+                        <span t-att-class="{ 'o_mis_link': col.open }"
+                              t-on-click.stop="() => col.open and this.openRecord(col.open, rec[col.name])"
+                              t-esc="formatCell(col, rec)"/>
+                    </t>
+                    <t t-else="">
+                        <span t-esc="formatCell(col, rec)"/>
+                    </t>
+                </td>
+                <td t-else=""
+                    t-att-class="{ 'o_mis_num': col.type === 'monetary' or col.type === 'float' or col.type === 'integer' or col.type === 'percent' }">
+                    <t t-if="col.type === 'm2o'">
+                        <span t-att-class="{ 'o_mis_link': col.open }"
+                              t-on-click.stop="() => col.open and this.openRecord(col.open, rec[col.name])"
+                              t-esc="formatCell(col, rec)"/>
+                    </t>
+                    <t t-else="">
+                        <span t-esc="formatCell(col, rec)"/>
+                    </t>
+                </td>
+            </t>
+        </tr>
+    </t>
+
+</templates>
