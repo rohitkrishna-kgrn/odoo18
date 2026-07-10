@@ -47,6 +47,23 @@
         </field>
     </record>
 
+    <record id="view_order_form_inherit_einvoicing" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.einvoicing</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <field name="payment_term_id" position="after">
+                <!-- Locked ON when the linked opportunity is an eInvoicing one -->
+                <field name="opportunity_einvoicing" invisible="1"/>
+                <field name="einvoicing_service" widget="boolean_toggle"
+                       readonly="opportunity_einvoicing"/>
+                <field name="entity_count"
+                       invisible="not einvoicing_service"
+                       required="einvoicing_service"/>
+            </field>
+        </field>
+    </record>
+
 
     <!-- Inherit Project form view to add estimated_hours -->
     <record id="view_project_form_inherit_estimated_hours" model="ir.ui.view">

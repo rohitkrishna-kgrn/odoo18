@@ -17,6 +17,21 @@ class CrmLead(models.Model):
         string='eInvoicing Service', tracking=True,
         help="Enable when this opportunity concerns the eInvoicing service. "
              "The client discovery form can only be sent for such opportunities.")
+    sale_order_id = fields.Many2one(
+        'sale.order', string='Sale Order', copy=False, readonly=True,
+        help="Quotation / sale order created from this pipeline.")
+
+    # Stage flags used to show/hide the manual stage buttons in the header.
+    is_stage_new = fields.Boolean(compute='_compute_stage_flags')
+    is_stage_lost = fields.Boolean(compute='_compute_stage_flags')
+
+    @api.depends('stage_id')
+    def _compute_stage_flags(self):
+        new_stage = self.env.ref('crm.stage_lead1', raise_if_not_found=False)
+        lost_stage = self.env.ref('crm_extended_rk.stage_lost', raise_if_not_found=False)
+        for lead in self:
+            lead.is_stage_new = bool(new_stage and lead.stage_id == new_stage)
+            lead.is_stage_lost = bool(lost_stage and lead.stage_id == lost_stage)
     discovery_token = fields.Char(
         string='Discovery Access Token', copy=False, index=True, readonly=True)
     discovery_form_state = fields.Selection(
@@ -35,6 +50,35 @@ class CrmLead(models.Model):
     discovery_summary = fields.Html(
         string='Discovery Form Submission', copy=False, readonly=True, sanitize=False)
     discovery_signature = fields.Binary(string='Discovery Signature', copy=False, attachment=True)
+
+    # ==================================================================
+    # Pipeline stage automation
+    #   Draft quotation created ----> Proposition   (see sale_order.py)
+    #   Approved / Confirmed / Cancelled ------------> SE / Won / Lost
+    #   Lost button ----------------> Lost stage
+    #   Manual buttons: New -> Qualified, Lost -> New
+    # ==================================================================
+    def _move_stage(self, stage_xmlid):
+        stage = self.env.ref(stage_xmlid, raise_if_not_found=False)
+        if stage:
+            self.write({'stage_id': stage.id, 'active': True})
+
+    def action_move_to_qualified(self):
+        """Header button shown while in the New stage."""
+        self._move_stage('crm.stage_lead2')
+
+    def action_move_to_new(self):
+        """Header button shown while in the Lost stage."""
+        self._move_stage('crm.stage_lead1')
+
+    def action_set_lost(self, **additional_values):
+        # The standard "Lost" button archives the lead; in addition we drop it
+        # into the dedicated "Lost" pipeline column and keep it visible there.
+        res = super().action_set_lost(**additional_values)
+        lost_stage = self.env.ref('crm_extended_rk.stage_lost', raise_if_not_found=False)
+        if lost_stage:
+            self.write({'stage_id': lost_stage.id, 'active': True})
+        return res
 
     # ------------------------------------------------------------------
     # Token / URL helpers
