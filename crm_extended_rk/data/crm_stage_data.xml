@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- New stage: Service Engagement (between Proposition and Won) -->
+    <record id="stage_service_engagement" model="crm.stage">
+        <field name="name">Service Engagement</field>
+        <field name="sequence">40</field>
+        <field name="is_won" eval="False"/>
+        <field name="fold" eval="False"/>
+    </record>
+
+    <!-- New stage: Lost -->
+    <record id="stage_lost" model="crm.stage">
+        <field name="name">Lost</field>
+        <field name="sequence">80</field>
+        <field name="is_won" eval="False"/>
+        <field name="fold" eval="True"/>
+    </record>
+
+</odoo>

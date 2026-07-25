@@ -251,7 +251,7 @@
             <div class="disc-shell disc-center">
                 <div class="disc-result-card">
                     <div class="disc-logo-box disc-logo-box-lg">
-                        <img t-att-src="logo_src or ('/web/image/res.company/%s/logo' % logo_company.id)"
+                        <img src="/crm_extended_rk/static/src/img/logo-kgrn.png"
                              t-att-alt="company.name" class="disc-logo"/>
                     </div>
                     <div class="disc-result-icon disc-icon-ok">✓</div>
@@ -273,7 +273,7 @@
             <div class="disc-shell disc-center">
                 <div class="disc-result-card">
                     <div class="disc-logo-box disc-logo-box-lg">
-                        <img t-att-src="logo_src or ('/web/image/res.company/%s/logo' % logo_company.id)"
+                        <img src="/crm_extended_rk/static/src/img/logo-kgrn.png"
                              t-att-alt="company.name" class="disc-logo"/>
                     </div>
                     <div class="disc-result-icon disc-icon-info">✓</div>
@@ -294,7 +294,7 @@
             <div class="disc-shell disc-center">
                 <div class="disc-result-card">
                     <div class="disc-logo-box disc-logo-box-lg">
-                        <img t-att-src="logo_src or ('/web/image/res.company/%s/logo' % logo_company.id)"
+                        <img src="/crm_extended_rk/static/src/img/logo-kgrn.png"
                              t-att-alt="company.name" class="disc-logo"/>
                     </div>
                     <div class="disc-result-icon disc-icon-warn">!</div>

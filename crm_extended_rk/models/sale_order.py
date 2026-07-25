@@ -22,6 +22,24 @@ class SaleOrder(models.Model):
         required=True,
     )
 
+    # eInvoicing engagement info (mirrors the opportunity)
+    opportunity_einvoicing = fields.Boolean(
+        related='opportunity_id.einvoicing_service', string='Opportunity eInvoicing')
+    einvoicing_service = fields.Boolean(
+        string='eInvoicing Service', compute='_compute_einvoicing_service',
+        store=True, readonly=False,
+        help="Automatically enabled (and locked) when the linked opportunity is an "
+             "eInvoicing Service opportunity.")
+    entity_count = fields.Integer(string='Number of Entities')
+
+    @api.depends('opportunity_id.einvoicing_service')
+    def _compute_einvoicing_service(self):
+        for order in self:
+            # Forced on when the opportunity is an eInvoicing one; otherwise the
+            # value stays whatever it already was (manually set).
+            order.einvoicing_service = bool(
+                order.einvoicing_service or order.opportunity_id.einvoicing_service)
+
     posted_invoice_total = fields.Monetary(
         string="Posted Invoice Total",
         compute="_compute_posted_invoice_total",
@@ -62,11 +80,53 @@ class SaleOrder(models.Model):
             order.paid_amount = paid
             order.pending_amount = order.amount_total - paid
 
+    # ------------------------------------------------------------------
+    # Pipeline stage automation driven by the linked opportunity
+    # ------------------------------------------------------------------
+    def _set_opportunity_stage(self, stage_xmlid):
+        """Move each linked opportunity to the stage given by external id."""
+        stage = self.env.ref(stage_xmlid, raise_if_not_found=False)
+        if not stage:
+            return
+        opportunities = self.mapped('opportunity_id').filtered(
+            lambda lead: lead.stage_id != stage)
+        if opportunities:
+            opportunities.write({'stage_id': stage.id})
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        orders = super().create(vals_list)
+        proposition = self.env.ref('crm.stage_lead3', raise_if_not_found=False)
+        for order in orders:
+            lead = order.opportunity_id
+            if not lead:
+                continue
+            # Link the created sale order back onto the pipeline record.
+            lead.sale_order_id = order.id
+            # A new draft quotation moves its opportunity forward to "Proposition"
+            # (only from an earlier stage - never drags it back).
+            if (proposition and order.state == 'draft'
+                    and lead.stage_id.sequence < proposition.sequence):
+                lead.stage_id = proposition.id
+        return orders
+
+    def action_approve_order(self):
+        res = super().action_approve_order()
+        # Approved quotation -> opportunity moves to "Service Engagement".
+        self.filtered(lambda o: o.approval_state == 'approved')._set_opportunity_stage(
+            'crm_extended_rk.stage_service_engagement')
+        return res
+
     def action_confirm(self):
         res = super().action_confirm()
-        # for order in self:
-        #     if order.advance_amount > 0.0:
-        #         order._create_advance_invoice()
+        # Confirmed order -> opportunity moves to "Won".
+        self._set_opportunity_stage('crm.stage_lead4')
+        return res
+
+    def action_cancel(self):
+        res = super().action_cancel()
+        # Cancelled order -> opportunity moves to "Lost".
+        self._set_opportunity_stage('crm_extended_rk.stage_lost')
         return res
 
     # def _create_advance_invoice(self):

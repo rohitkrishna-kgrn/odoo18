@@ -34,122 +34,108 @@
             <style>
                 * { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
                 /* Neutralise the report layout's bootstrap container -> full bleed */
-                body, #wrapwrap, main { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
-                body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; font-size: 12px; }
+                body, #wrapwrap, main { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; color: #111827; font-size: 14px; }
                 .disc-serif { font-family: Georgia, 'Times New Roman', serif; }
 
                 /* ---- Repeating header (sits in the 18mm top margin) ---- */
                 .disc-header {
                     position: fixed; top: 0; left: 0; right: 0; height: 18mm;
-                    background: #0d2b45; color: #fff;
+                    background: #fff; border-bottom: 1px solid #e5e9ef;
                 }
                 .disc-header table { width: 100%; height: 18mm; border-collapse: collapse; }
                 .disc-header td { vertical-align: middle; }
                 .disc-header td.hleft { padding-left: 16mm; white-space: nowrap; }
                 .disc-header td.hright {
-                    padding-right: 16mm; text-align: right; font-size: 8.5px;
-                    letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.55);
+                    padding-right: 16mm; text-align: right; font-size: 11px;
+                    letter-spacing: 1.5px; text-transform: uppercase; color: #6b7280;
                 }
-                .disc-header .hlogo {
-                    display: inline-block; background: #fff; border-radius: 5px;
-                    padding: 3px 7px; vertical-align: middle; margin-right: 9px;
-                }
-                .disc-header .hlogo img { height: 20px; display: block; }
-                .disc-header .hname { font-weight: 700; font-size: 12px; vertical-align: middle; }
+                .disc-header .hlogo { display: inline-block; vertical-align: middle; margin-right: 10px; }
+                .disc-header .hlogo img { height: 24px; display: block; }
+                .disc-header .hname { font-weight: 700; font-size: 15px; color: #0d2b45; vertical-align: middle; }
 
                 /* ---- Repeating footer (sits in the 14mm bottom margin) ---- */
                 .disc-footer {
                     position: fixed; bottom: 0; left: 0; right: 0; height: 14mm;
-                    background: #0d2b45;
+                    background: #fff; border-top: 1px solid #e5e9ef;
                 }
                 .disc-footer table { width: 100%; height: 14mm; border-collapse: collapse; }
-                .disc-footer td { vertical-align: middle; font-size: 8.5px; color: rgba(255,255,255,0.55); }
+                .disc-footer td { vertical-align: middle; font-size: 11px; color: #6b7280; }
                 .disc-footer td.fleft { padding-left: 16mm; }
                 .disc-footer td.fright {
                     padding-right: 16mm; text-align: right;
                     letter-spacing: 1.5px; text-transform: uppercase;
                 }
 
-                /* ---- Cover (fills the whole content area -> full navy page) ---- */
+                /* ---- Cover (white, fills the whole content area) ---- */
                 .disc-cover {
-                    background: #0d2b45; color: #fff; height: 265mm;
+                    background: #fff; color: #111827; height: 265mm;
                     position: relative; overflow: hidden; page-break-after: always;
-                    padding: 34mm 20mm 0;
+                    padding: 40mm 20mm 0;
                 }
                 .disc-cover::after {
                     content: ''; position: absolute; right: -80mm; bottom: -70mm;
                     width: 190mm; height: 190mm; border-radius: 50%;
-                    background: rgba(255,255,255,0.035);
-                }
-                .disc-cover-brand { margin-bottom: 26mm; }
-                .disc-cover-brand .clogo {
-                    display: inline-block; background: #fff; border-radius: 8px;
-                    padding: 9px 15px; vertical-align: middle;
-                }
-                .disc-cover-brand .clogo img { height: 40px; display: block; }
-                .disc-cover-brand .cname {
-                    display: block; margin-top: 14px; font-size: 15px; font-weight: 600;
-                    letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.85);
+                    background: rgba(13,43,69,0.035);
                 }
                 .disc-tag {
                     display: inline-block;
-                    border: 1px solid rgba(255,255,255,0.35); border-radius: 4px;
-                    padding: 6px 12px; font-size: 11px; letter-spacing: 3px;
-                    text-transform: uppercase; color: rgba(255,255,255,0.9);
+                    border: 1.5px solid #0d2b45; border-radius: 4px;
+                    padding: 8px 14px; font-size: 14px; letter-spacing: 3px;
+                    text-transform: uppercase; color: #0d2b45; font-weight: 600;
                 }
                 .disc-cover-title {
-                    font-size: 42px; font-weight: 700; line-height: 1.06;
-                    margin: 16px 0 0; text-transform: uppercase; letter-spacing: .5px;
+                    font-size: 52px; font-weight: 700; line-height: 1.05;
+                    margin: 22px 0 0; text-transform: uppercase; letter-spacing: .5px; color: #0d2b45;
                 }
-                .disc-accent { width: 66px; height: 4px; background: #f26522; margin: 20px 0; }
-                .disc-completed { font-size: 15px; color: rgba(255,255,255,0.72); }
-                .disc-completed b { color: #fff; }
+                .disc-accent { width: 80px; height: 5px; background: #f26522; margin: 26px 0; }
+                .disc-completed { font-size: 22px; color: #374151; }
+                .disc-completed b { color: #0d2b45; }
                 .disc-cover-meta {
-                    position: absolute; left: 20mm; right: 20mm; bottom: 16mm;
-                    border-top: 1px solid rgba(255,255,255,0.18); padding-top: 12px;
+                    position: absolute; left: 20mm; right: 20mm; bottom: 18mm;
+                    border-top: 2px solid #e5e9ef; padding-top: 16px;
                 }
                 .disc-cover-meta table { width: 100%; border-collapse: collapse; }
                 .disc-cover-meta td { width: 25%; vertical-align: top; }
                 .disc-cover-meta .lbl {
-                    font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
-                    color: rgba(255,255,255,0.5);
+                    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #9aa3af;
                 }
-                .disc-cover-meta .val { font-size: 13px; font-weight: 700; color: #fff; margin-top: 5px; }
+                .disc-cover-meta .val { font-size: 17px; font-weight: 700; color: #0d2b45; margin-top: 6px; }
 
-                /* ---- Content ---- */
-                .disc-content { padding: 8mm 16mm 6mm; }
-                .disc-sec { page-break-inside: avoid; margin-bottom: 8mm; }
+                /* ---- Content (white) ---- */
+                .disc-content { padding: 8mm 16mm 6mm; background: #fff; }
+                .disc-sec { page-break-inside: avoid; margin-bottom: 9mm; }
                 .disc-sec h2 {
-                    font-size: 15px; color: #0d2b45; font-weight: 700;
-                    border-bottom: 2px solid #eceff3; padding-bottom: 6px; margin: 0 0 2px;
+                    font-size: 22px; color: #0d2b45; font-weight: 700;
+                    border-bottom: 2px solid #eceff3; padding-bottom: 8px; margin: 0 0 4px;
                 }
                 .disc-sec h2 .num { color: #f26522; }
                 table.disc-kv { width: 100%; border-collapse: collapse; }
                 table.disc-kv td {
-                    padding: 8px 12px; vertical-align: top; font-size: 11.5px;
+                    padding: 10px 14px; vertical-align: top; font-size: 15px;
                     border-bottom: 1px solid #eef1f4;
                 }
                 table.disc-kv td.k { width: 44%; color: #6b7280; background: #f7f9fb; }
                 table.disc-kv td.v { color: #111827; font-weight: 600; }
-                ul.disc-vlist { margin: 0; padding-left: 15px; }
-                ul.disc-vlist li { margin: 1px 0; }
+                ul.disc-vlist { margin: 0; padding-left: 16px; }
+                ul.disc-vlist li { margin: 2px 0; }
                 .disc-ent-label {
-                    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
-                    color: #8a94a3; margin: 12px 0 6px; font-weight: 700;
+                    font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase;
+                    color: #8a94a3; margin: 14px 0 7px; font-weight: 700;
                 }
-                table.disc-ent { width: 100%; border-collapse: collapse; font-size: 10px; }
+                table.disc-ent { width: 100%; border-collapse: collapse; font-size: 13px; }
                 table.disc-ent th {
-                    background: #0d2b45; color: #fff; padding: 7px 8px;
-                    text-align: left; font-weight: 600; font-size: 9.5px;
+                    background: #0d2b45; color: #fff; padding: 9px 9px;
+                    text-align: left; font-weight: 600; font-size: 12px;
                 }
                 table.disc-ent td {
-                    border: 1px solid #e5e9ef; padding: 7px 8px; vertical-align: top; color: #1f2937;
+                    border: 1px solid #e5e9ef; padding: 9px 9px; vertical-align: top; color: #1f2937;
                 }
                 table.disc-ent tr:nth-child(even) td { background: #fbfcfd; }
                 .disc-ent .ent-name { font-weight: 700; color: #0d2b45; }
                 .disc-svc { color: #f26522; font-weight: 700; }
                 .disc-sign img {
-                    max-height: 90px; border: 1px solid #e5e9ef; border-radius: 6px;
+                    max-height: 110px; border: 1px solid #e5e9ef; border-radius: 6px;
                     padding: 6px; background: #fff; margin-top: 6px;
                 }
             </style>

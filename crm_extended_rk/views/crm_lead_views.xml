@@ -7,10 +7,33 @@
         <field name="inherit_id" ref="crm.crm_lead_view_form"/>
         <field name="arch" type="xml">
 
-            <!-- eInvoicing flag on the sheet (labelled) -->
+            <!-- eInvoicing flag + linked sale order on the sheet (labelled) -->
             <xpath expr="//field[@name='tag_ids']" position="after">
                 <field name="einvoicing_service" widget="boolean_toggle"
                        readonly="discovery_form_state != 'not_sent'"/>
+                <field name="sale_order_id" readonly="1"/>
+                <field name="is_stage_new" invisible="1"/>
+                <field name="is_stage_lost" invisible="1"/>
+            </xpath>
+
+            <!-- Stage may only be changed through buttons: make the statusbar
+                 readonly / non-clickable (drag &amp; drop is disabled in the kanban below). -->
+            <xpath expr="//field[@name='stage_id'][@widget='statusbar_duration']" position="attributes">
+                <attribute name="readonly">1</attribute>
+                <attribute name="options">{'clickable': '0', 'fold_field': 'fold'}</attribute>
+            </xpath>
+
+            <!-- Remove the native "Won" button (stage is button-driven only) -->
+            <xpath expr="//header/button[@name='action_set_won_rainbowman']" position="replace"/>
+
+            <!-- Manual stage buttons -->
+            <xpath expr="//header" position="inside">
+                <button name="action_move_to_qualified" type="object"
+                        string="Move to Qualified" class="btn-primary"
+                        invisible="not is_stage_new"/>
+                <button name="action_move_to_new" type="object"
+                        string="Move to New"
+                        invisible="not is_stage_lost"/>
             </xpath>
 
             <!-- Header: eInvoicing toggle gates the send / resend buttons -->
@@ -59,6 +82,42 @@
                 </page>
             </xpath>
 
+        </field>
+    </record>
+
+    <!-- Disable drag &amp; drop between stages in the pipeline kanban -->
+    <record id="crm_case_kanban_view_leads_no_drag" model="ir.ui.view">
+        <field name="name">crm.lead.kanban.no.drag</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_kanban_view_leads"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban" position="attributes">
+                <attribute name="records_draggable">0</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Per-stage filters + Stage group-by on the pipeline search view -->
+    <record id="crm_lead_search_stage_filters" model="ir.ui.view">
+        <field name="name">crm.lead.search.stage.filters</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.view_crm_case_opportunities_filter"/>
+        <field name="arch" type="xml">
+            <filter name="filter_lost" position="after">
+                <separator/>
+                <filter string="Stage: New" name="stage_new"
+                        domain="[('stage_id.name', '=', 'New')]"/>
+                <filter string="Stage: Qualified" name="stage_qualified"
+                        domain="[('stage_id.name', '=', 'Qualified')]"/>
+                <filter string="Stage: Proposition" name="stage_proposition"
+                        domain="[('stage_id.name', '=', 'Proposition')]"/>
+                <filter string="Stage: Service Engagement" name="stage_service_engagement"
+                        domain="[('stage_id.name', '=', 'Service Engagement')]"/>
+                <filter string="Stage: Won" name="stage_won"
+                        domain="[('stage_id.name', '=', 'Won')]"/>
+                <filter string="Stage: Lost" name="stage_lost_stage"
+                        domain="[('stage_id.name', '=', 'Lost')]"/>
+            </filter>
         </field>
     </record>
 
