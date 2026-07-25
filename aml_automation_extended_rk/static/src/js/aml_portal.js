@@ -147,6 +147,21 @@ const amlForm = (function () {
         const storageKey = 'aml_page_' + accessToken;
         const savedPage = parseInt(localStorage.getItem(storageKey) || '0', 10);
         showPage(isNaN(savedPage) ? 0 : Math.max(0, Math.min(savedPage, totalPages() - 1)));
+
+        // Autosave the current page in the background while the user types,
+        // so a refresh (without clicking Save/Next) doesn't lose field values.
+        document.addEventListener('input', onFieldChangedForAutosave);
+        document.addEventListener('change', onFieldChangedForAutosave);
+        window.addEventListener('beforeunload', function () {
+            if (accessToken) saveCurrentPage(true);
+        });
+    }
+
+    function onFieldChangedForAutosave(e) {
+        if (!e.target.closest || !e.target.closest('.aml-page.active')) return;
+        if (e.target.type === 'file') return;
+        clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(() => { saveCurrentPage().catch(() => {}); }, 900);
     }
 
     // ---- Restore saved field values into form inputs ----
@@ -351,7 +366,7 @@ const amlForm = (function () {
                 passport: 'Passport Copy/Emirates ID/any government issued identity with compulsory condition',
                 proof_of_residence: 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
             };
-            const CORP_DOCS = { trade_license: 'Trade License', memorandum: 'Memorandum of Association / Articles of Association' };
+            const CORP_DOCS = { trade_license: 'Trade License/Certificate of Incorporation', memorandum: 'Memorandum of Association / Articles of Association' };
             const missingShDocs = [];
             let firstShDocEl = null;
             if (tbody) {
@@ -399,13 +414,31 @@ const amlForm = (function () {
         return true;
     }
 
+    let isBusy = false;  // guards Save/Next/Submit against double-clicks while a request is in flight
+    let autosaveTimer = null;
+
     async function nextPage() {
+        if (isBusy) return;
         if (!validateCurrentPage()) return;
-        await saveCurrentPage();
-        if (currentPage < totalPages() - 1) showPage(currentPage + 1);
+        isBusy = true;
+        const pageEl = document.getElementById(getPageId(currentPage));
+        const btn = pageEl ? pageEl.querySelector('.aml-btn-next') : null;
+        const origHtml = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.textContent = 'Please wait…'; }
+        try {
+            await saveCurrentPage();
+            if (currentPage < totalPages() - 1) showPage(currentPage + 1);
+        } catch (e) {
+            showToast('Something went wrong: ' + e.message, 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+            isBusy = false;
+        }
     }
 
     async function savePage() {
+        if (isBusy) return;
+        isBusy = true;
         const pageEl = document.getElementById(getPageId(currentPage));
         const btn = pageEl ? pageEl.querySelector('.aml-btn-save') : null;
         if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
@@ -416,6 +449,7 @@ const amlForm = (function () {
             showToast('Save failed: ' + e.message, 'error');
         } finally {
             if (btn) { btn.disabled = false; btn.innerHTML = '&#10003; Save Progress'; }
+            isBusy = false;
         }
     }
 
@@ -443,10 +477,10 @@ const amlForm = (function () {
         return data;
     }
 
-    async function saveCurrentPage() {
+    async function saveCurrentPage(keepalive) {
         const pageId = getPageId(currentPage);
-        if (pageId === 'page-3') return await saveDirectors();
-        if (pageId === 'page-4') return await saveShareholders();
+        if (pageId === 'page-3') return await saveDirectors(keepalive);
+        if (pageId === 'page-4') return await saveShareholders(keepalive);
         if (pageId === 'page-5') return;  // documents saved on upload
         if (pageId === 'page-6') return;  // submit handles this
 
@@ -466,7 +500,7 @@ const amlForm = (function () {
                 access_token: accessToken,
                 page: page_key,
                 data: data,
-            });
+            }, keepalive);
         } catch (e) {
             console.error('Save error:', e);
         }
@@ -509,7 +543,14 @@ const amlForm = (function () {
             proof_of_residence: 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
         };
         const dirSampleUrl = '/aml_automation_extended_rk/static/src/files/proof_of_residence_sample.pdf';
-        const docsHtml = ['passport', 'proof_of_residence'].map(dt => `
+        const uploadedDirDocs = d.uploaded_docs || {};
+        const docsHtml = ['passport', 'proof_of_residence'].map(dt => {
+            const existing = uploadedDirDocs[dt];
+            if (existing) dirDocStatus[rowId].add(dt);
+            const statusHtml = existing
+                ? `✔ ${esc(existing.filename)} <button type="button" class="aml-doc-remove-btn" title="Remove attachment" onclick="amlForm.removeDirectorDoc('${rowId}','${dt}',${existing.attachment_id})">&#10005;</button>`
+                : '';
+            return `
             <div id="dir-doc-wrap-${rowId}-${dt}" style="display:flex;flex-direction:column;gap:4px;min-width:180px;max-width:280px;border-radius:4px;padding:2px;">
                 <span style="font-size:11px;color:#555;font-weight:600;">${dtLabels[dt]} <span style="color:#c62828;">*</span></span>
                 ${dt === 'proof_of_residence' ? `
@@ -522,9 +563,10 @@ const amlForm = (function () {
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none;"
                         onchange="amlForm.uploadDirectorDoc(this,'${rowId}','${dt}')"/>
                 </label>
-                <span id="dir-doc-status-${rowId}-${dt}" style="font-size:11px;color:#2e7d32;"></span>
+                <span id="dir-doc-status-${rowId}-${dt}" style="font-size:11px;color:#2e7d32;display:flex;align-items:center;gap:4px;">${statusHtml}</span>
             </div>
-        `).join('');
+        `;
+        }).join('');
         const docsTr = document.createElement('tr');
         docsTr.className = 'dir-docs-row';
         docsTr.dataset.rowId = rowId;
@@ -546,7 +588,7 @@ const amlForm = (function () {
         window.renumberRows('directors-tbody');
     }
 
-    async function saveDirectors() {
+    async function saveDirectors(keepalive) {
         const tbody = document.getElementById('directors-tbody');
         const rows = [];
         if (tbody) {
@@ -568,7 +610,7 @@ const amlForm = (function () {
                 access_token: accessToken,
                 directors: rows,
                 declaration_date: declDate ? declDate.value : false,
-            });
+            }, keepalive);
         } catch (e) { console.error(e); }
     }
 
@@ -598,7 +640,7 @@ const amlForm = (function () {
             const resp = await fetch('/aml/form/upload_director_doc', { method: 'POST', body: fd });
             const result = await resp.json();
             if (result.success) {
-                if (statusEl) statusEl.textContent = '✔ ' + result.filename;
+                if (statusEl) statusEl.innerHTML = `✔ ${esc(result.filename)} <button type="button" class="aml-doc-remove-btn" title="Remove attachment" onclick="amlForm.removeDirectorDoc('${rowId}','${docType}',${result.attachment_id})">&#10005;</button>`;
                 if (!dirDocStatus[rowId]) dirDocStatus[rowId] = new Set();
                 dirDocStatus[rowId].add(docType);
                 const wrapEl = document.getElementById('dir-doc-wrap-' + rowId + '-' + docType);
@@ -613,14 +655,29 @@ const amlForm = (function () {
         }
     }
 
+    async function removeDirectorDoc(rowId, docType, attachmentId) {
+        if (!window.confirm('Remove this attachment?')) return;
+        try {
+            await jsonRpc('/aml/form/remove_attachment', { access_token: accessToken, attachment_id: attachmentId });
+            if (dirDocStatus[rowId]) dirDocStatus[rowId].delete(docType);
+            const statusEl = document.getElementById('dir-doc-status-' + rowId + '-' + docType);
+            if (statusEl) statusEl.innerHTML = '';
+        } catch (e) {
+            showToast('Remove failed: ' + e.message, 'error');
+        }
+    }
+
     // ---- Shareholders Table ----
-    function _buildShDocItem(rowId, dt, label) {
+    function _buildShDocItem(rowId, dt, label, existing) {
         const shSampleUrl = '/aml_automation_extended_rk/static/src/files/proof_of_residence_sample.pdf';
         const sampleBlock = dt === 'proof_of_residence' ? `
             <div style="margin:2px 0;padding-top:2px;border-top:1px dashed #ccc;">
                 <a href="${shSampleUrl}" download target="_blank" style="font-size:11px;font-weight:700;color:#1565c0;text-decoration:none;">⬇ Declaration of proof of residence Download</a>
                 <p style="font-size:10px;color:#777;margin:2px 0 0;line-height:1.4;">Declaration of Proof of Residence is for applicants who do not have proof of residence in their own name and must be submitted along with a supporting document, issued within the last 3 months, showing the address of the respective individual.</p>
             </div>` : '';
+        const statusHtml = existing
+            ? `✔ ${esc(existing.filename)} <button type="button" class="aml-doc-remove-btn" title="Remove attachment" onclick="amlForm.removeShareholderDoc('${rowId}','${dt}',${existing.attachment_id})">&#10005;</button>`
+            : '';
         return `
             <div id="sh-doc-wrap-${rowId}-${dt}" style="display:flex;flex-direction:column;gap:4px;min-width:180px;max-width:280px;border-radius:4px;padding:2px;">
                 <span style="font-size:11px;color:#555;font-weight:600;">${label} <span style="color:#c62828;">*</span></span>
@@ -630,22 +687,29 @@ const amlForm = (function () {
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none;"
                         onchange="amlForm.uploadShareholderDoc(this,'${rowId}','${dt}')"/>
                 </label>
-                <span id="sh-doc-status-${rowId}-${dt}" style="font-size:11px;color:#2e7d32;"></span>
+                <span id="sh-doc-status-${rowId}-${dt}" style="font-size:11px;color:#2e7d32;display:flex;align-items:center;gap:4px;">${statusHtml}</span>
             </div>
         `;
     }
 
-    function _buildShDocsContent(rowId, shType) {
+    function _buildShDocsContent(rowId, shType, uploadedDocs) {
+        uploadedDocs = uploadedDocs || {};
         const IND = {
             passport: 'Passport Copy/Emirates ID/any government issued identity with compulsory condition',
             proof_of_residence: 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
         };
-        const CORP = { trade_license: 'Trade License', memorandum: 'Memorandum of Association / Articles of Association' };
+        const CORP = { trade_license: 'Trade License/Certificate of Incorporation', memorandum: 'Memorandum of Association / Articles of Association' };
         let inner = '';
         if (shType === 'individual') {
-            inner = Object.entries(IND).map(([dt, lbl]) => _buildShDocItem(rowId, dt, lbl)).join('');
+            inner = Object.entries(IND).map(([dt, lbl]) => {
+                if (uploadedDocs[dt]) shDocStatus[rowId].add(dt);
+                return _buildShDocItem(rowId, dt, lbl, uploadedDocs[dt]);
+            }).join('');
         } else if (shType === 'corporate') {
-            inner = Object.entries(CORP).map(([dt, lbl]) => _buildShDocItem(rowId, dt, lbl)).join('');
+            inner = Object.entries(CORP).map(([dt, lbl]) => {
+                if (uploadedDocs[dt]) shDocStatus[rowId].add(dt);
+                return _buildShDocItem(rowId, dt, lbl, uploadedDocs[dt]);
+            }).join('');
         } else {
             inner = '<span style="font-size:12px;color:#999;padding-top:6px;">Select a type above to see upload options.</span>';
         }
@@ -697,7 +761,7 @@ const amlForm = (function () {
         docsTr.innerHTML = `
             <td colspan="10" style="background:#f5f9ff;padding:8px 16px;border-top:none;">
                 <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;" id="sh-docs-content-${rowId}">
-                    ${_buildShDocsContent(rowId, shType)}
+                    ${_buildShDocsContent(rowId, shType, s.uploaded_docs)}
                 </div>
             </td>
         `;
@@ -744,7 +808,7 @@ const amlForm = (function () {
             const resp = await fetch('/aml/form/upload_shareholder_doc', { method: 'POST', body: fd });
             const result = await resp.json();
             if (result.success) {
-                if (statusEl) statusEl.textContent = '✔ ' + result.filename;
+                if (statusEl) statusEl.innerHTML = `✔ ${esc(result.filename)} <button type="button" class="aml-doc-remove-btn" title="Remove attachment" onclick="amlForm.removeShareholderDoc('${rowId}','${docType}',${result.attachment_id})">&#10005;</button>`;
                 if (!shDocStatus[rowId]) shDocStatus[rowId] = new Set();
                 shDocStatus[rowId].add(docType);
                 const wrapEl = document.getElementById('sh-doc-wrap-' + rowId + '-' + docType);
@@ -759,7 +823,19 @@ const amlForm = (function () {
         }
     }
 
-    async function saveShareholders() {
+    async function removeShareholderDoc(rowId, docType, attachmentId) {
+        if (!window.confirm('Remove this attachment?')) return;
+        try {
+            await jsonRpc('/aml/form/remove_attachment', { access_token: accessToken, attachment_id: attachmentId });
+            if (shDocStatus[rowId]) shDocStatus[rowId].delete(docType);
+            const statusEl = document.getElementById('sh-doc-status-' + rowId + '-' + docType);
+            if (statusEl) statusEl.innerHTML = '';
+        } catch (e) {
+            showToast('Remove failed: ' + e.message, 'error');
+        }
+    }
+
+    async function saveShareholders(keepalive) {
         const tbody = document.getElementById('shareholders-tbody');
         const rows = [];
         if (tbody) {
@@ -782,7 +858,7 @@ const amlForm = (function () {
                 access_token: accessToken,
                 shareholders: rows,
                 declaration_date: declDate ? declDate.value : false,
-            });
+            }, keepalive);
         } catch (e) { console.error(e); }
     }
 
@@ -814,9 +890,11 @@ const amlForm = (function () {
             div.className = 'aml-doc-item' + (doc.has_attachment ? ' uploaded' : '');
             div.id = 'doc-item-' + doc.id;
 
-            const uploadedNamesHtml = doc.attachment_names && doc.attachment_names.length
-                ? `<div class="aml-doc-uploaded-names">✔ ${doc.attachment_names.join(', ')}</div>`
-                : '';
+            const uploadedNamesHtml = (doc.attachments || []).map(a => `
+                <div class="aml-doc-uploaded-names" id="doc-att-${a.id}">✔ ${esc(a.name)}
+                    <button type="button" class="aml-doc-remove-btn" title="Remove attachment" onclick="amlForm.removeDocAttachment(${doc.id}, ${a.id})">&#10005;</button>
+                </div>
+            `).join('');
             const sampleCfg = SAMPLE_DOCS[doc.doc_key];
             const sampleBlockHtml = sampleCfg
                 ? `<div class="aml-doc-sample-row">
@@ -858,7 +936,7 @@ const amlForm = (function () {
         const namesEl = document.getElementById('doc-names-' + docId);
         if (statusEl) statusEl.textContent = 'Uploading...';
 
-        const uploadedNames = [];
+        const uploaded = [];
         for (const file of Array.from(input.files)) {
             const fd = new FormData();
             fd.append('access_token', accessToken);
@@ -868,7 +946,7 @@ const amlForm = (function () {
                 const resp = await fetch('/aml/form/upload_doc', { method: 'POST', body: fd });
                 const result = await resp.json();
                 if (result.success) {
-                    uploadedNames.push(result.filename);
+                    uploaded.push(result);
                 } else {
                     showToast('Upload failed: ' + (result.error || 'Unknown error'), 'error');
                 }
@@ -876,10 +954,43 @@ const amlForm = (function () {
                 showToast('Upload error: ' + e.message, 'error');
             }
         }
-        if (uploadedNames.length) {
+        if (uploaded.length) {
             if (statusEl) statusEl.textContent = '✔ Uploaded';
             if (itemEl) itemEl.classList.add('uploaded');
-            if (namesEl) namesEl.innerHTML += `<div class="aml-doc-uploaded-names">✔ ${uploadedNames.join(', ')}</div>`;
+            if (namesEl) {
+                uploaded.forEach(r => {
+                    namesEl.innerHTML += `<div class="aml-doc-uploaded-names" id="doc-att-${r.attachment_id}">✔ ${esc(r.filename)}
+                        <button type="button" class="aml-doc-remove-btn" title="Remove attachment" onclick="amlForm.removeDocAttachment(${docId}, ${r.attachment_id})">&#10005;</button>
+                    </div>`;
+                });
+            }
+        }
+    }
+
+    async function removeDocAttachment(docId, attachmentId) {
+        if (!window.confirm('Remove this attachment?')) return;
+        try {
+            await jsonRpc('/aml/form/remove_attachment', {
+                access_token: accessToken,
+                attachment_id: attachmentId,
+                doc_line_id: docId,
+            });
+            const el = document.getElementById('doc-att-' + attachmentId);
+            if (el) el.remove();
+
+            const doc = docLines.find(d => d.id === docId);
+            const namesEl = document.getElementById('doc-names-' + docId);
+            const remaining = namesEl ? namesEl.querySelectorAll('.aml-doc-uploaded-names').length : 0;
+            if (doc) {
+                doc.has_attachment = remaining > 0;
+                doc.attachments = (doc.attachments || []).filter(a => a.id !== attachmentId);
+            }
+            const itemEl = document.getElementById('doc-item-' + docId);
+            const statusEl = document.getElementById('doc-status-' + docId);
+            if (itemEl) itemEl.classList.toggle('uploaded', remaining > 0);
+            if (statusEl) statusEl.textContent = remaining > 0 ? '✔ Uploaded' : '';
+        } catch (e) {
+            showToast('Remove failed: ' + e.message, 'error');
         }
     }
 
@@ -1081,6 +1192,8 @@ const amlForm = (function () {
 
     // ---- Final Submit ----
     async function submitForm() {
+        if (isBusy) return;
+
         // Check mandatory documents are uploaded before submitting
         const ANY_ONE_KEYS = ['cert_incumbency'];
         const missingDocs = docLines.filter(doc => {
@@ -1129,6 +1242,9 @@ const amlForm = (function () {
             return;
         }
 
+        isBusy = true;
+        const submitBtn = document.getElementById('aml-submit-btn');
+        if (submitBtn) submitBtn.disabled = true;
         const overlay = document.getElementById('aml-loading-overlay');
         if (overlay) overlay.style.display = 'flex';
 
@@ -1145,10 +1261,14 @@ const amlForm = (function () {
                 window.location.href = '/aml/form/confirmed/' + encodeURIComponent(result.aml_id || '');
             } else {
                 if (overlay) overlay.style.display = 'none';
+                if (submitBtn) submitBtn.disabled = false;
+                isBusy = false;
                 showToast('Submission failed: ' + (result.error || 'Unknown error'), 'error');
             }
         } catch (e) {
             if (overlay) overlay.style.display = 'none';
+            if (submitBtn) submitBtn.disabled = false;
+            isBusy = false;
             showToast('Error: ' + e.message, 'error');
         }
     }
@@ -1271,7 +1391,7 @@ const amlForm = (function () {
         if (!toast) {
             toast = document.createElement('div');
             toast.id = 'aml-toast';
-            toast.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:14px 22px;border-radius:8px;font-size:14px;font-weight:600;max-width:360px;box-shadow:0 4px 18px rgba(0,0,0,.18);transition:opacity .3s;';
+            toast.style.cssText = 'position:fixed;top:24px;right:24px;z-index:9999;padding:14px 22px;border-radius:8px;font-size:14px;font-weight:600;max-width:360px;box-shadow:0 4px 18px rgba(0,0,0,.18);transition:opacity .3s;';
             document.body.appendChild(toast);
         }
         toast.style.background = type === 'error' ? '#c62828' : '#1565c0';
@@ -1282,11 +1402,12 @@ const amlForm = (function () {
         toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 4000);
     }
 
-    async function jsonRpc(route, params) {
+    async function jsonRpc(route, params, keepalive) {
         const resp = await fetch(route, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ jsonrpc: '2.0', method: 'call', params: params }),
+            keepalive: !!keepalive,
         });
         const json = await resp.json();
         if (json.error) throw new Error(JSON.stringify(json.error));
@@ -1294,7 +1415,7 @@ const amlForm = (function () {
     }
 
     // Public API
-    return { init, nextPage, prevPage, savePage, addDirectorRow, removeDirectorRow, addShareholderRow, removeShareholderRow, updateShareholderDocs, uploadShareholderDoc, handleDocUpload, clearSignature, switchSigTab, uploadSignatureImage, submitForm, toggleIdOther, toggleProofOther, togglePurposeOther, toggleIndDualCitizenship, toggleEl, addCountry, removeCountry, uploadDirectorDoc };
+    return { init, nextPage, prevPage, savePage, addDirectorRow, removeDirectorRow, addShareholderRow, removeShareholderRow, updateShareholderDocs, uploadShareholderDoc, handleDocUpload, clearSignature, switchSigTab, uploadSignatureImage, submitForm, toggleIdOther, toggleProofOther, togglePurposeOther, toggleIndDualCitizenship, toggleEl, addCountry, removeCountry, uploadDirectorDoc, removeDocAttachment, removeDirectorDoc, removeShareholderDoc };
 
 })();
 
@@ -1320,14 +1441,31 @@ const amlAdditional = (function () {
         container.innerHTML = '';
         hitDocs.forEach((doc, i) => {
             const div = document.createElement('div');
-            div.className = 'aml-doc-item';
+            div.className = 'aml-doc-item' + ((doc.attachments && doc.attachments.length) ? ' uploaded' : '');
             div.id = 'hit-doc-item-' + doc.id;
+            const namesHtml = (doc.attachments || []).map(a => `
+                <div class="aml-doc-uploaded-names" id="hit-doc-att-${a.id}">
+                    <a href="/web/content/${a.id}?download=true&access_token=${a.token}" target="_blank">✔ ${esc(a.name)}</a>
+                    <button type="button" class="aml-doc-remove-btn" title="Remove attachment" onclick="amlAdditional.removeDoc(${doc.id}, ${a.id})">&#10005;</button>
+                </div>
+            `).join('');
             div.innerHTML = `
                 <div class="aml-doc-num">${i + 1}</div>
                 <div class="aml-doc-info">
                     <span class="aml-doc-name">${esc(doc.document_name)}</span>
                     <span class="aml-doc-badge mandatory">Required</span>
-                    <div id="hit-doc-names-${doc.id}"></div>
+                    ${doc.staff_note ? `<p class="aml-doc-sample-note" style="margin-top:6px;">${esc(doc.staff_note)}</p>` : ''}
+                    ${doc.reference_file ? `
+                        <div class="aml-doc-sample-row">
+                            <a class="aml-doc-sample-link" href="/web/content/${doc.reference_file.id}?download=true&access_token=${doc.reference_file.token}" target="_blank">⬇ Download reference file: ${esc(doc.reference_file.name)}</a>
+                        </div>` : ''}
+                    <div id="hit-doc-names-${doc.id}">${namesHtml}</div>
+                    <div class="aml-field" style="margin-top:8px;max-width:360px;">
+                        <label style="font-size:11px;color:#777;">Note (optional)</label>
+                        <textarea rows="2" id="hit-doc-note-${doc.id}"
+                            placeholder="Describe what you're providing, if useful"
+                            onblur="amlAdditional.saveNote(${doc.id}, this.value)">${esc(doc.client_note || '')}</textarea>
+                    </div>
                 </div>
                 <div class="aml-doc-upload-btn">
                     <label>
@@ -1349,7 +1487,7 @@ const amlAdditional = (function () {
         const namesEl = document.getElementById('hit-doc-names-' + hitDocId);
         if (statusEl) statusEl.textContent = 'Uploading...';
 
-        const uploadedNames = [];
+        const uploaded = [];
         for (const file of Array.from(input.files)) {
             const fd = new FormData();
             fd.append('additional_token', additionalToken);
@@ -1358,16 +1496,55 @@ const amlAdditional = (function () {
             try {
                 const resp = await fetch('/aml/additional/upload', { method: 'POST', body: fd });
                 const result = await resp.json();
-                if (result.success) uploadedNames.push(result.filename);
+                if (result.success) uploaded.push(result);
                 else showToast('Upload failed: ' + (result.error || ''), 'error');
             } catch (e) {
                 showToast('Upload error: ' + e.message, 'error');
             }
         }
-        if (uploadedNames.length) {
+        if (uploaded.length) {
             if (statusEl) statusEl.textContent = '✔ Uploaded';
             if (itemEl) itemEl.classList.add('uploaded');
-            if (namesEl) namesEl.innerHTML += `<div class="aml-doc-uploaded-names">✔ ${uploadedNames.join(', ')}</div>`;
+            if (namesEl) {
+                uploaded.forEach(r => {
+                    namesEl.innerHTML += `<div class="aml-doc-uploaded-names" id="hit-doc-att-${r.attachment_id}">
+                        <a href="/web/content/${r.attachment_id}?download=true&access_token=${r.file_token}" target="_blank">✔ ${esc(r.filename)}</a>
+                        <button type="button" class="aml-doc-remove-btn" title="Remove attachment" onclick="amlAdditional.removeDoc(${hitDocId}, ${r.attachment_id})">&#10005;</button>
+                    </div>`;
+                });
+            }
+        }
+    }
+
+    async function removeDoc(hitDocId, attachmentId) {
+        if (!window.confirm('Remove this attachment?')) return;
+        try {
+            await jsonRpc('/aml/additional/remove_doc', {
+                additional_token: additionalToken,
+                attachment_id: attachmentId,
+            });
+            const el = document.getElementById('hit-doc-att-' + attachmentId);
+            if (el) el.remove();
+            const namesEl = document.getElementById('hit-doc-names-' + hitDocId);
+            const remaining = namesEl ? namesEl.querySelectorAll('.aml-doc-uploaded-names').length : 0;
+            const itemEl = document.getElementById('hit-doc-item-' + hitDocId);
+            const statusEl = document.getElementById('hit-doc-status-' + hitDocId);
+            if (itemEl) itemEl.classList.toggle('uploaded', remaining > 0);
+            if (statusEl) statusEl.textContent = remaining > 0 ? '✔ Uploaded' : '';
+        } catch (e) {
+            showToast('Remove failed: ' + e.message, 'error');
+        }
+    }
+
+    async function saveNote(hitDocId, note) {
+        try {
+            await jsonRpc('/aml/additional/save_note', {
+                additional_token: additionalToken,
+                hit_doc_id: hitDocId,
+                note: note,
+            });
+        } catch (e) {
+            showToast('Failed to save note: ' + e.message, 'error');
         }
     }
 
@@ -1432,7 +1609,7 @@ const amlAdditional = (function () {
         return json.result;
     }
 
-    return { init, handleUpload, submit };
+    return { init, handleUpload, removeDoc, saveNote, submit };
 
 })();
 

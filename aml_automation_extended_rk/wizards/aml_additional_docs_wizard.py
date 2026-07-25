@@ -31,17 +31,30 @@ class AmlAdditionalDocsWizard(models.TransientModel):
         ]).unlink()
 
         for idx, line in enumerate(self.doc_line_ids):
-            self.env['aml.hit.document'].sudo().create({
+            hit_doc = self.env['aml.hit.document'].sudo().create({
                 'request_id': aml.id,
                 'sequence': (idx + 1) * 10,
                 'document_name': line.document_name,
+                'staff_note': line.description or False,
             })
+            if line.reference_file:
+                ref_attachment = self.env['ir.attachment'].sudo().create({
+                    'name': line.reference_filename or ('Reference - %s' % line.document_name),
+                    'datas': line.reference_file,
+                    'res_model': 'aml.hit.document',
+                    'res_id': hit_doc.id,
+                })
+                ref_attachment.generate_access_token()
+                hit_doc.staff_sample_attachment_id = ref_attachment.id
 
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         form_url = '%s/aml/additional/%s' % (base_url, additional_token)
 
         doc_list_html = '<ul>' + ''.join(
-            '<li>%s</li>' % line.document_name for line in self.doc_line_ids
+            '<li>%s%s</li>' % (
+                line.document_name,
+                ' – %s' % line.description if line.description else '',
+            ) for line in self.doc_line_ids
         ) + '</ul>'
 
         body = _(
@@ -80,3 +93,7 @@ class AmlAdditionalDocsWizardLine(models.TransientModel):
 
     wizard_id = fields.Many2one('aml.additional.docs.wizard', required=True, ondelete='cascade')
     document_name = fields.Char(string='Document Name', required=True)
+    description = fields.Char(string='Description / Guidance for Client',
+        help='Optional extra detail about what exactly is needed for this document, shown to the client on the upload form and in the request email.')
+    reference_file = fields.Binary(string='Reference File')
+    reference_filename = fields.Char(string='Reference File Name')

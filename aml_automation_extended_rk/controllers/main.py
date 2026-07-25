@@ -12,6 +12,15 @@ _logger = logging.getLogger(__name__)
 
 class AmlPortalController(http.Controller):
 
+    def _attachment_token(self, attachment):
+        """Return a per-attachment access token so anonymous portal visitors can
+        download their own files via /web/content/<id>?access_token=... without
+        the attachment needing to be globally public (which would let anyone
+        who guesses an ID download another client's KYC documents)."""
+        if not attachment.access_token:
+            attachment.generate_access_token()
+        return attachment.access_token
+
     # =========================================================================
     # Main KYC Form (multi-page)
     # =========================================================================
@@ -25,6 +34,29 @@ class AmlPortalController(http.Controller):
         if not aml:
             return request.render('aml_automation_extended_rk.portal_form_expired', {})
 
+        # Attachments previously uploaded for director / shareholder rows are
+        # tagged with (line_type, line_index, doc_type) so they can be
+        # re-attached to the right row + slot after a page refresh, without
+        # requiring the user to re-upload.
+        def _uploaded_docs_by_index(line_type):
+            attachments = request.env['ir.attachment'].sudo().search([
+                ('res_model', '=', 'aml.request'),
+                ('res_id', '=', aml.id),
+                ('aml_line_type', '=', line_type),
+            ], order='id desc')
+            by_index = {}
+            for a in attachments:
+                slot = by_index.setdefault(a.aml_line_index, {})
+                if a.aml_doc_type not in slot:
+                    slot[a.aml_doc_type] = {
+                        'attachment_id': a.id,
+                        'filename': a.name.rsplit(' - ', 1)[-1],
+                    }
+            return by_index
+
+        dir_uploaded_docs = _uploaded_docs_by_index('director')
+        sh_uploaded_docs = _uploaded_docs_by_index('shareholder')
+
         # Pre-load existing director / shareholder lines for JS rendering
         directors = [{
             'id': d.id,
@@ -35,7 +67,8 @@ class AmlPortalController(http.Controller):
             'appointment_date': str(d.appointment_date) if d.appointment_date else '',
             'resignation_date': str(d.resignation_date) if d.resignation_date else '',
             'status': d.status or 'active',
-        } for d in aml.director_line_ids]
+            'uploaded_docs': dir_uploaded_docs.get(idx, {}),
+        } for idx, d in enumerate(aml.director_line_ids, start=1)]
 
         shareholders = [{
             'id': s.id,
@@ -47,7 +80,8 @@ class AmlPortalController(http.Controller):
             'num_shares': s.num_shares or 0,
             'percentage_holding': s.percentage_holding or 0.0,
             'date_of_entry': str(s.date_of_entry) if s.date_of_entry else '',
-        } for s in aml.shareholder_line_ids]
+            'uploaded_docs': sh_uploaded_docs.get(idx, {}),
+        } for idx, s in enumerate(aml.shareholder_line_ids, start=1)]
 
         doc_lines = [{
             'id': d.id,
@@ -56,7 +90,10 @@ class AmlPortalController(http.Controller):
             'is_mandatory': d.is_mandatory,
             'tooltip': d.tooltip or '',
             'has_attachment': bool(d.attachment_ids),
-            'attachment_names': [a.name for a in d.attachment_ids],
+            'attachments': [
+                {'id': a.id, 'name': a.name, 'token': self._attachment_token(a)}
+                for a in d.attachment_ids
+            ],
         } for d in aml.document_line_ids]
 
         def s(v): return v or ''
@@ -279,11 +316,13 @@ class AmlPortalController(http.Controller):
             'res_model': 'aml.request.document',
             'res_id': doc_line.id,
         })
+        file_token = attachment.generate_access_token()[0]
         doc_line.write({'attachment_ids': [(4, attachment.id)], 'is_submitted': True})
         return json.dumps({
             'success': True,
             'attachment_id': attachment.id,
             'filename': uploaded_file.filename,
+            'file_token': file_token,
         })
 
     @http.route('/aml/form/upload_director_doc', type='http', auth='public', methods=['POST'], csrf=False)
@@ -305,11 +344,29 @@ class AmlPortalController(http.Controller):
         doc_label = doc_type_labels.get(doc_type, doc_type or 'Document')
         name_prefix = 'Director %s - %s - %s' % (dir_index or '', dir_name or '', doc_label)
 
+        try:
+            line_index = int(dir_index or 0)
+        except (ValueError, TypeError):
+            line_index = 0
+
+        # Replace any previous upload for this same row + doc slot instead of
+        # leaving orphaned attachments behind.
+        request.env['ir.attachment'].sudo().search([
+            ('res_model', '=', 'aml.request'),
+            ('res_id', '=', aml.id),
+            ('aml_line_type', '=', 'director'),
+            ('aml_line_index', '=', line_index),
+            ('aml_doc_type', '=', doc_type),
+        ]).unlink()
+
         attachment = request.env['ir.attachment'].sudo().create({
             'name': '%s - %s' % (name_prefix, uploaded_file.filename),
             'raw': uploaded_file.read(),
             'res_model': 'aml.request',
             'res_id': aml.id,
+            'aml_line_type': 'director',
+            'aml_line_index': line_index,
+            'aml_doc_type': doc_type,
         })
         return json.dumps({
             'success': True,
@@ -332,23 +389,78 @@ class AmlPortalController(http.Controller):
         doc_type_labels = {
             'passport': 'Passport Copy/Emirates ID/any government issued identity with compulsory condition',
             'proof_of_residence': 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
-            'trade_license': 'Trade License',
+            'trade_license': 'Trade License/Certificate of Incorporation',
             'memorandum': 'Memorandum of Association / Articles of Association',
         }
         doc_label = doc_type_labels.get(doc_type, doc_type or 'Document')
         name_prefix = 'Shareholder %s - %s - %s' % (sh_index or '', sh_name or '', doc_label)
+
+        try:
+            line_index = int(sh_index or 0)
+        except (ValueError, TypeError):
+            line_index = 0
+
+        # Replace any previous upload for this same row + doc slot instead of
+        # leaving orphaned attachments behind.
+        request.env['ir.attachment'].sudo().search([
+            ('res_model', '=', 'aml.request'),
+            ('res_id', '=', aml.id),
+            ('aml_line_type', '=', 'shareholder'),
+            ('aml_line_index', '=', line_index),
+            ('aml_doc_type', '=', doc_type),
+        ]).unlink()
 
         attachment = request.env['ir.attachment'].sudo().create({
             'name': '%s - %s' % (name_prefix, uploaded_file.filename),
             'raw': uploaded_file.read(),
             'res_model': 'aml.request',
             'res_id': aml.id,
+            'aml_line_type': 'shareholder',
+            'aml_line_index': line_index,
+            'aml_doc_type': doc_type,
         })
         return json.dumps({
             'success': True,
             'attachment_id': attachment.id,
             'filename': uploaded_file.filename,
         })
+
+    @http.route('/aml/form/remove_attachment', type='json', auth='public', csrf=False)
+    def remove_attachment(self, access_token, attachment_id, doc_line_id=None, **kwargs):
+        aml = request.env['aml.request'].sudo().search([
+            ('access_token', '=', access_token), ('state', '=', 'draft')
+        ], limit=1)
+        if not aml:
+            return {'error': 'Invalid or expired token'}
+
+        try:
+            attachment_id = int(attachment_id)
+        except (ValueError, TypeError):
+            return {'error': 'Invalid attachment_id'}
+
+        attachment = request.env['ir.attachment'].sudo().browse(attachment_id)
+        if not attachment.exists():
+            return {'error': 'Attachment not found'}
+
+        # Attachments uploaded through this form live under two different
+        # ownership patterns depending on where they were uploaded:
+        #  - Director/Shareholder doc slots -> res_model='aml.request', res_id=aml.id
+        #  - Main "Documents" checklist rows -> res_model='aml.request.document', res_id=<line id>
+        # Verify the attachment actually belongs to this draft request before deleting it.
+        if attachment.res_model == 'aml.request' and attachment.res_id == aml.id:
+            pass
+        elif attachment.res_model == 'aml.request.document':
+            doc_line = request.env['aml.request.document'].sudo().browse(attachment.res_id)
+            if not doc_line.exists() or doc_line.request_id.id != aml.id:
+                return {'error': 'Attachment not found'}
+            doc_line.write({'attachment_ids': [(3, attachment.id)]})
+            if not doc_line.attachment_ids:
+                doc_line.write({'is_submitted': False})
+        else:
+            return {'error': 'Attachment not found'}
+
+        attachment.unlink()
+        return {'success': True}
 
     @http.route('/aml/form/submit', type='json', auth='public', csrf=False)
     def submit_form(self, access_token, signatory_name=None, signatory_designation=None,
@@ -413,8 +525,19 @@ class AmlPortalController(http.Controller):
         hit_docs = [{
             'id': d.id,
             'document_name': d.document_name,
+            'staff_note': d.staff_note or '',
+            'client_note': d.client_note or '',
             'submitted': d.submitted,
-        } for d in aml.hit_document_ids if not d.submitted]
+            'attachments': [
+                {'id': a.id, 'name': a.name, 'token': self._attachment_token(a)}
+                for a in d.attachment_ids
+            ],
+            'reference_file': {
+                'id': d.staff_sample_attachment_id.id,
+                'name': d.staff_sample_attachment_id.name,
+                'token': self._attachment_token(d.staff_sample_attachment_id),
+            } if d.staff_sample_attachment_id else None,
+        } for d in aml.hit_document_ids]
 
         base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url')
         logo_url = '%s/web/image/res.company/%s/logo' % (base_url, aml.company_id.id)
@@ -453,8 +576,63 @@ class AmlPortalController(http.Controller):
             'res_model': 'aml.hit.document',
             'res_id': hit_doc.id,
         })
+        file_token = attachment.generate_access_token()[0]
         hit_doc.write({'attachment_ids': [(4, attachment.id)], 'submitted': True})
-        return json.dumps({'success': True, 'filename': uploaded_file.filename})
+        return json.dumps({
+            'success': True,
+            'attachment_id': attachment.id,
+            'filename': uploaded_file.filename,
+            'file_token': file_token,
+        })
+
+    @http.route('/aml/additional/remove_doc', type='json', auth='public', csrf=False)
+    def remove_additional_doc(self, additional_token, attachment_id, **kwargs):
+        aml = request.env['aml.request'].sudo().search([
+            ('additional_access_token', '=', additional_token),
+            ('state', 'in', ('hit_detected', 'in_progress')),
+        ], limit=1)
+        if not aml:
+            return {'error': 'Invalid or expired token'}
+
+        try:
+            attachment_id = int(attachment_id)
+        except (ValueError, TypeError):
+            return {'error': 'Invalid attachment_id'}
+
+        attachment = request.env['ir.attachment'].sudo().browse(attachment_id)
+        if not attachment.exists() or attachment.res_model != 'aml.hit.document':
+            return {'error': 'Attachment not found'}
+
+        hit_doc = request.env['aml.hit.document'].sudo().browse(attachment.res_id)
+        if not hit_doc.exists() or hit_doc.request_id.id != aml.id:
+            return {'error': 'Attachment not found'}
+
+        hit_doc.write({'attachment_ids': [(3, attachment.id)]})
+        attachment.unlink()
+        if not hit_doc.attachment_ids:
+            hit_doc.write({'submitted': False})
+        return {'success': True}
+
+    @http.route('/aml/additional/save_note', type='json', auth='public', csrf=False)
+    def save_additional_note(self, additional_token, hit_doc_id, note='', **kwargs):
+        aml = request.env['aml.request'].sudo().search([
+            ('additional_access_token', '=', additional_token),
+            ('state', 'in', ('hit_detected', 'in_progress')),
+        ], limit=1)
+        if not aml:
+            return {'error': 'Invalid or expired token'}
+
+        try:
+            hit_doc_id = int(hit_doc_id)
+        except (ValueError, TypeError):
+            return {'error': 'Invalid hit_doc_id'}
+
+        hit_doc = request.env['aml.hit.document'].sudo().browse(hit_doc_id)
+        if not hit_doc.exists() or hit_doc.request_id.id != aml.id:
+            return {'error': 'Document not found'}
+
+        hit_doc.write({'client_note': note or ''})
+        return {'success': True}
 
     @http.route('/aml/additional/submit', type='json', auth='public', csrf=False)
     def submit_additional(self, additional_token, notes=None, **kwargs):
@@ -474,7 +652,7 @@ class AmlPortalController(http.Controller):
                 'additional_submitted_date': fields.Datetime.now(),
             })
             aml.message_post(body=_("Client submitted additional documents for HIT review."))
-            aml._notify_aml_managers_and_management(
+            aml._notify_aml_managers_and_assignee(
                 subject=_("AML Request %s – Additional Info Received") % aml.name,
                 body=_(
                     "<p>The client <strong>%s</strong> has submitted the requested additional documents "
@@ -492,7 +670,7 @@ class AmlPortalController(http.Controller):
             aml.message_post(
                 body=_("Client submitted additional documents requested during investigation.")
             )
-            aml._notify_aml_managers_and_management(
+            aml._notify_aml_managers_and_assignee(
                 subject=_("AML Request %s – Additional Documents Received") % aml.name,
                 body=_(
                     "<p>The client <strong>%s</strong> has uploaded the additional documents requested "

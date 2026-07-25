@@ -224,15 +224,6 @@
                                     invisible="ind_proof_address_type != 'other'"/>
                                 <field name="ind_document_date"/>
                             </group>
-                            <group string="Identification and Verification">
-                                <field name="ind_emirates_id_attached"/>
-                                <field name="ind_passport_attached"/>
-                                <field name="ind_proof_address_attached"/>
-                                <field name="ind_other_id_attached"/>
-                                <field name="ind_verified_portal"/>
-                                <field name="ind_verified_physically"/>
-                                <field name="ind_video_kyc"/>
-                            </group>
                             <group string="Nature of Relationship">
                                 <field name="ind_purpose_of_relationship"/>
                                 <field name="ind_purpose_of_relationship_other"
@@ -307,6 +298,8 @@
                                 <list create="0" delete="0">
                                     <field name="name" string="Document Name"/>
                                     <field name="mimetype" string="Type" optional="hide"/>
+                                    <button string="Preview" type="object" name="action_preview"
+                                            icon="fa-eye" class="btn btn-sm btn-secondary"/>
                                     <button string="Download" type="object" name="action_download"
                                             icon="fa-download" class="btn btn-sm btn-primary"/>
                                 </list>
@@ -337,6 +330,8 @@
                                 <list create="0" delete="0">
                                     <field name="name" string="Document Name"/>
                                     <field name="mimetype" string="Type" optional="hide"/>
+                                    <button string="Preview" type="object" name="action_preview"
+                                            icon="fa-eye" class="btn btn-sm btn-secondary"/>
                                     <button string="Download" type="object" name="action_download"
                                             icon="fa-download" class="btn btn-sm btn-primary"/>
                                 </list>
@@ -354,6 +349,11 @@
                                     <field name="attachment_ids" widget="many2many_tags"
                                         string="Files" readonly="1"/>
                                     <field name="is_submitted"/>
+                                    <button string="Preview" type="object"
+                                            name="action_preview_attachments"
+                                            icon="fa-eye"
+                                            class="btn btn-sm btn-secondary"
+                                            invisible="not attachment_ids"/>
                                     <button string="Download" type="object"
                                             name="action_download_attachments"
                                             icon="fa-download"
@@ -375,10 +375,12 @@
                         <page string="HIT Document Requests" name="hit_docs"
                             invisible="state not in ('hit_detected','additional_info','approved','rejected')">
                             <field name="hit_document_ids">
-                                <list>
+                                <list editable="bottom">
                                     <field name="sequence" string="#"/>
                                     <field name="document_name"/>
+                                    <field name="staff_note" string="Guidance for Client"/>
                                     <field name="submitted"/>
+                                    <field name="client_note" string="Client Note" readonly="1" optional="show"/>
                                     <field name="attachment_ids" widget="many2many_tags"
                                         string="Uploaded Files"/>
                                 </list>
@@ -397,6 +399,7 @@
                                 <list>
                                     <field name="document_name" string="Document"/>
                                     <field name="submitted" string="Submitted"/>
+                                    <field name="client_note" string="Client Note"/>
                                     <field name="attachment_ids" widget="many2many_tags"
                                         string="Uploaded Files"/>
                                 </list>
@@ -421,6 +424,8 @@
             <list create="0" delete="0" edit="0">
                 <field name="name" string="File Name"/>
                 <field name="mimetype" string="Type" optional="hide"/>
+                <button string="Preview" type="object" name="action_preview"
+                        icon="fa-eye" class="btn btn-sm btn-secondary"/>
                 <button string="Download" type="object" name="action_download"
                         icon="fa-download" class="btn btn-sm btn-primary"/>
             </list>

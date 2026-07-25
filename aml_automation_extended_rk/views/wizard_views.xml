@@ -224,6 +224,11 @@
                         <list editable="bottom">
                             <field name="document_name" required="1"
                                 placeholder="e.g. Updated Trade License"/>
+                            <field name="description"
+                                placeholder="Optional: describe exactly what's needed"/>
+                            <field name="reference_filename" column_invisible="1"/>
+                            <field name="reference_file" widget="binary"
+                                filename="reference_filename" string="Reference File"/>
                         </list>
                     </field>
                 </sheet>
@@ -258,6 +263,11 @@
                         <list editable="bottom">
                             <field name="document_name" required="1"
                                 placeholder="e.g. Updated Passport Copy"/>
+                            <field name="description"
+                                placeholder="Optional: describe exactly what's needed"/>
+                            <field name="reference_filename" column_invisible="1"/>
+                            <field name="reference_file" widget="binary"
+                                filename="reference_filename" string="Reference File"/>
                         </list>
                     </field>
                 </sheet>

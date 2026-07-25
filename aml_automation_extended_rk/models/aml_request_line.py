@@ -128,13 +128,29 @@ class AmlRequestDocument(models.Model):
                 'url': '/web/content/%s?download=true' % attachments.id,
                 'target': 'new',
             }
+        return self._action_open_attachments_popup()
+
+    def action_preview_attachments(self):
+        self.ensure_one()
+        attachments = self.attachment_ids
+        if not attachments:
+            return
+        if len(attachments) == 1:
+            return {
+                'type': 'ir.actions.act_url',
+                'url': '/web/content/%s?download=false' % attachments.id,
+                'target': 'new',
+            }
+        return self._action_open_attachments_popup()
+
+    def _action_open_attachments_popup(self):
         return {
             'type': 'ir.actions.act_window',
             'name': 'Files – %s' % self.doc_name,
             'res_model': 'ir.attachment',
             'view_mode': 'list',
             'views': [(self.env.ref('aml_automation_extended_rk.view_aml_attachment_list').id, 'list')],
-            'domain': [('id', 'in', attachments.ids)],
+            'domain': [('id', 'in', self.attachment_ids.ids)],
             'target': 'new',
             'context': {'create': False, 'delete': False},
         }
@@ -154,3 +170,9 @@ class AmlHitDocument(models.Model):
         string='Uploaded Files',
     )
     submitted = fields.Boolean(string='Submitted by Client', default=False)
+    staff_note = fields.Text(string='AML Staff Note',
+        help='Explains to the client exactly what is needed for this document request.')
+    client_note = fields.Text(string='Client Note',
+        help='Note added by the client when uploading this document.')
+    staff_sample_attachment_id = fields.Many2one('ir.attachment', string='Reference File',
+        help='Optional reference/sample file provided by AML staff, downloadable by the client on the upload form.')

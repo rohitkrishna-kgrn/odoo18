@@ -688,6 +688,31 @@ class AmlRequest(models.Model):
                 'author_id': self.env.user.partner_id.id,
             }).send()
 
+    def _notify_aml_managers_and_assignee(self, subject, body):
+        """Notify the AML Manager group plus this request's assigned AML Officer only
+        (no general company management) -- used when a client submits additional
+        documents, since that's specifically actionable by AML review, not management."""
+        manager_group = self.env.ref('aml_automation_extended_rk.group_aml_manager')
+        aml_managers = self.env['res.users'].search([
+            ('groups_id', 'in', [manager_group.id]), ('active', '=', True)
+        ])
+        recipients = set()
+        for u in aml_managers:
+            if u.email:
+                recipients.add(u.email)
+        if self.aml_user_id and self.aml_user_id.email:
+            recipients.add(self.aml_user_id.email)
+        full_body = "<p>Dear Team,</p>%s<p>Regards,<br/>AML System</p>" % body
+        email_from = self._get_mail_from()
+        for email in recipients:
+            self.env['mail.mail'].sudo().create({
+                'subject': subject,
+                'body_html': full_body,
+                'email_from': email_from,
+                'email_to': email,
+                'author_id': self.env.user.partner_id.id,
+            }).send()
+
     def _notify_aml_users_accepted(self):
         user_group = self.env.ref('aml_automation_extended_rk.group_aml_user')
         aml_users = self.env['res.users'].search([
