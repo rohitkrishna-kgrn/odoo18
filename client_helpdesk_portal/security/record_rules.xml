@@ -4,15 +4,30 @@
 
         <!--
             TICKET RECORD RULES
-            Manager: sees all tickets (no domain restriction)
-            Agent:   sees only tickets assigned to them
+            Admin:         sees all tickets (no domain restriction), sole reassigner
+            Manager:       sees tickets for their direct team members only
+                           (manager_id = the assigned employee's direct manager,
+                           not the full upward reporting chain)
+            Helpdesk User: sees only tickets assigned to them
         -->
 
-        <!-- Managers: unrestricted access to all tickets -->
-        <record id="rule_ticket_manager_all" model="ir.rule">
-            <field name="name">Helpdesk Ticket: Manager sees all</field>
+        <!-- Helpdesk Admin: unrestricted access to all tickets -->
+        <record id="rule_ticket_admin_all" model="ir.rule">
+            <field name="name">Helpdesk Ticket: Admin sees all</field>
             <field name="model_id" ref="model_client_helpdesk_ticket"/>
             <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('client_helpdesk_portal.group_helpdesk_admin'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Managers: restricted to tickets for their direct team members -->
+        <record id="rule_ticket_manager_all" model="ir.rule">
+            <field name="name">Helpdesk Ticket: Manager sees their team</field>
+            <field name="model_id" ref="model_client_helpdesk_ticket"/>
+            <field name="domain_force">[('manager_id', '=', user.id)]</field>
             <field name="groups" eval="[(4, ref('client_helpdesk_portal.group_helpdesk_manager'))]"/>
             <field name="perm_read" eval="True"/>
             <field name="perm_write" eval="True"/>
@@ -20,9 +35,9 @@
             <field name="perm_unlink" eval="True"/>
         </record>
 
-        <!-- Agents: see only tickets assigned to them -->
+        <!-- Helpdesk Users: see only tickets assigned to them -->
         <record id="rule_ticket_agent_assigned" model="ir.rule">
-            <field name="name">Helpdesk Ticket: Agent sees assigned</field>
+            <field name="name">Helpdesk Ticket: Helpdesk User sees assigned</field>
             <field name="model_id" ref="model_client_helpdesk_ticket"/>
             <field name="domain_force">[('user_id', '=', user.id)]</field>
             <field name="groups" eval="[(4, ref('client_helpdesk_portal.group_helpdesk_agent'))]"/>
@@ -34,15 +49,20 @@
 
         <!--
             STAGE RECORD RULES
-            Both Agent and Manager can read stages.
-            Only Manager can create/write/unlink stages.
+            Admin:                       full create/write/unlink access to stages.
+            Helpdesk User + Manager:     read only (Manager inherits this via the
+                                         implied Helpdesk User group — stage
+                                         configuration is Admin-only, but everyone
+                                         still needs to read stages to render
+                                         tickets: statusbar, kanban grouping,
+                                         list badge, etc).
         -->
 
         <record id="rule_stage_manager_all" model="ir.rule">
-            <field name="name">Helpdesk Stage: Manager full access</field>
+            <field name="name">Helpdesk Stage: Admin full access</field>
             <field name="model_id" ref="model_client_helpdesk_stage"/>
             <field name="domain_force">[(1, '=', 1)]</field>
-            <field name="groups" eval="[(4, ref('client_helpdesk_portal.group_helpdesk_manager'))]"/>
+            <field name="groups" eval="[(4, ref('client_helpdesk_portal.group_helpdesk_admin'))]"/>
             <field name="perm_read" eval="True"/>
             <field name="perm_write" eval="True"/>
             <field name="perm_create" eval="True"/>
@@ -50,7 +70,7 @@
         </record>
 
         <record id="rule_stage_agent_read" model="ir.rule">
-            <field name="name">Helpdesk Stage: Agent read only</field>
+            <field name="name">Helpdesk Stage: Helpdesk User/Manager read only</field>
             <field name="model_id" ref="model_client_helpdesk_stage"/>
             <field name="domain_force">[(1, '=', 1)]</field>
             <field name="groups" eval="[(4, ref('client_helpdesk_portal.group_helpdesk_agent'))]"/>
@@ -60,6 +80,34 @@
             <field name="perm_unlink" eval="False"/>
         </record>
 
+        <!--
+            HELPDESK PORTAL USER RECORD RULES
+            Admin:   sees every employee (no domain restriction)
+            Manager: sees only employees whose direct manager (in Employees)
+                     is themselves — i.e. their own team
+        -->
+
+        <record id="rule_portal_user_admin_all" model="ir.rule">
+            <field name="name">Helpdesk Portal User: Admin sees all</field>
+            <field name="model_id" ref="model_client_helpdesk_portal_user"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('client_helpdesk_portal.group_helpdesk_admin'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <record id="rule_portal_user_manager_team" model="ir.rule">
+            <field name="name">Helpdesk Portal User: Manager sees their team</field>
+            <field name="model_id" ref="model_client_helpdesk_portal_user"/>
+            <field name="domain_force">[('employee_id.parent_id.user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('client_helpdesk_portal.group_helpdesk_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
 
     </data>
 </odoo>

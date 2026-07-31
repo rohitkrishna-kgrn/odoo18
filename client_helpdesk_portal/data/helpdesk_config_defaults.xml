@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Default Helpdesk Admin: bootstrapped to the default administrator
+             account. Changeable afterwards only by the current Helpdesk Admin
+             via Configuration > Helpdesk Admin. -->
+        <record id="config_helpdesk_admin_user_id" model="ir.config_parameter">
+            <field name="key">client_helpdesk_portal.helpdesk_admin_user_id</field>
+            <field name="value" eval="str(ref('base.user_admin'))"/>
+        </record>
+
+    </data>
+</odoo>

@@ -27,6 +27,12 @@
                                placeholder="Please describe why this ticket is being closed…"
                                invisible="action_type != 'close'"/>
                     </group>
+                    <group string="Reason to In Progress" invisible="action_type != 'resume'">
+                        <field name="reason" widget="text" nolabel="1"
+                               style="min-height:120px;"
+                               placeholder="Please describe why this ticket is being moved back to In Progress…"
+                               invisible="action_type != 'resume'"/>
+                    </group>
                 </group>
 
                 <footer>
@@ -36,6 +42,9 @@
                     <button name="action_confirm" string="Close Ticket"
                             type="object" class="btn-danger"
                             invisible="action_type != 'close'"/>
+                    <button name="action_confirm" string="Resume Ticket"
+                            type="object" class="btn-primary"
+                            invisible="action_type != 'resume'"/>
                     <button string="Cancel" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>

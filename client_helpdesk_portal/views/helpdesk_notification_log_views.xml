@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         LIST VIEW — read-only audit trail, no create/edit/delete for anyone
+         (access rights already enforce this; create="false" etc. here just
+         keep the toolbar clean for the one group that can even open it).
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="view_helpdesk_notification_log_list" model="ir.ui.view">
+        <field name="name">client.helpdesk.notification.log.list</field>
+        <field name="model">client.helpdesk.notification.log</field>
+        <field name="arch" type="xml">
+            <list string="Notifications" create="false" edit="false" delete="false" default_order="date_time desc">
+                <field name="date_time" string="Date &amp; Time"/>
+                <field name="ticket_number" string="Ticket"/>
+                <field name="client_name" string="Client"/>
+                <field name="event_type" string="Type" widget="badge"
+                       decoration-info="event_type == 'email'"
+                       decoration-success="event_type == 'portal_view'"
+                       decoration-warning="event_type == 'reopen'"/>
+                <field name="recipient_label" string="Recipient"/>
+                <field name="email_to" string="To"/>
+                <field name="email_from" string="From"/>
+                <field name="subject" string="Subject"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         FORM VIEW — read-only detail popup when opening a row
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="view_helpdesk_notification_log_form" model="ir.ui.view">
+        <field name="name">client.helpdesk.notification.log.form</field>
+        <field name="model">client.helpdesk.notification.log</field>
+        <field name="arch" type="xml">
+            <form string="Notification" create="false" edit="false" delete="false">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="date_time"/>
+                            <field name="ticket_id"/>
+                            <field name="client_name"/>
+                            <field name="event_type"/>
+                        </group>
+                        <group>
+                            <field name="email_from"/>
+                            <field name="email_to"/>
+                            <field name="recipient_label"/>
+                            <field name="mail_id"/>
+                        </group>
+                    </group>
+                    <group string="Subject">
+                        <field name="subject" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="view_helpdesk_notification_log_search" model="ir.ui.view">
+        <field name="name">client.helpdesk.notification.log.search</field>
+        <field name="model">client.helpdesk.notification.log</field>
+        <field name="arch" type="xml">
+            <search string="Search Notifications">
+                <field name="ticket_number" string="Ticket"/>
+                <field name="client_name"/>
+                <field name="email_to" string="To"/>
+                <field name="subject"/>
+                <filter name="filter_email" string="Emails Sent" domain="[('event_type', '=', 'email')]"/>
+                <filter name="filter_portal_view" string="Client Portal Views" domain="[('event_type', '=', 'portal_view')]"/>
+                <filter name="filter_reopen" string="Reopened Tickets" domain="[('event_type', '=', 'reopen')]"/>
+                <separator/>
+                <filter name="filter_today" string="Today"
+                        domain="[('date_time', '&gt;=', (context_today()).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_week" string="This Week"
+                        domain="[('date_time', '&gt;=', (context_today() - relativedelta(weeks=1)).strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_ticket" string="Ticket" context="{'group_by': 'ticket_number'}"/>
+                    <filter name="group_type" string="Event Type" context="{'group_by': 'event_type'}"/>
+                    <filter name="group_recipient" string="Recipient" context="{'group_by': 'recipient_label'}"/>
+                    <filter name="group_date" string="Date" context="{'group_by': 'date_time:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         ACTIONS — Helpdesk Admin only
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="action_helpdesk_notification_log" model="ir.actions.act_window">
+        <field name="name">Notifications</field>
+        <field name="res_model">client.helpdesk.notification.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_group_type': 1, 'search_default_group_recipient': 1}</field>
+        <field name="search_view_id" ref="view_helpdesk_notification_log_search"/>
+        <field name="groups_id" eval="[(4, ref('client_helpdesk_portal.group_helpdesk_admin'))]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No notifications logged yet.</p>
+            <p>Every email sent to a client, assigned user, manager, or the Helpdesk Admin
+               — and every time a client opens the public Track Ticket page — is recorded here.</p>
+        </field>
+    </record>
+
+</odoo>

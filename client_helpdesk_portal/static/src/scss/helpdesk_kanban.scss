@@ -1,0 +1,215 @@
+// KGRN Helpdesk — Kanban design language
+// Clean white cards, a colored top accent per stage (instead of a full
+// pastel card tint), pill badges, and lightly polished column headers.
+// All dynamic coloring flows through two CSS custom properties set once
+// per card (--o-stage, --o-priority) so descendants just reference them.
+
+.o_helpdesk_kanban {
+    background: #f4f5f7;
+
+    .o_kanban_record {
+        padding: 6px;
+    }
+
+    // ── Column headers ───────────────────────────────────────────────
+    .o_kanban_group {
+        background: transparent;
+
+        > .o_kanban_header {
+            padding: 12px 10px 10px;
+        }
+
+        .o_column_title {
+            font-weight: 700;
+            font-size: .88rem;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .o_kanban_counter_side {
+            background: #e2e8f0;
+            color: #475569;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: .72rem;
+            padding: .15em .6em;
+        }
+    }
+
+    // ── Card shell ────────────────────────────────────────────────────
+    .o_helpdesk_ticket_card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: .55rem;
+        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, .06);
+        border-radius: 12px;
+        padding: 14px 14px 11px;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+        transition: box-shadow .18s ease, transform .12s ease, border-color .18s ease;
+
+        // Colored top accent strip identifying the stage at a glance.
+        &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--o-stage, #94a3b8);
+        }
+
+        &:hover {
+            box-shadow: 0 10px 24px rgba(15, 23, 42, .12);
+            border-color: rgba(15, 23, 42, .1);
+            transform: translateY(-2px);
+        }
+    }
+
+    // ── Header: ticket # + priority ─────────────────────────────────────
+    .o_helpdesk_card_header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .o_helpdesk_ticket_no {
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .02em;
+        color: #64748b;
+        font-family: "SFMono-Regular", Consolas, monospace;
+    }
+
+    .o_helpdesk_priority_chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+        color: var(--o-priority, #94a3b8);
+        white-space: nowrap;
+
+        i {
+            font-size: .7rem;
+        }
+    }
+
+    // ── Subject: fixed two-line clamp keeps every card the same height ──
+    .o_helpdesk_card_subject {
+        font-size: .95rem;
+        font-weight: 600;
+        line-height: 1.35;
+        color: #0f172a;
+        letter-spacing: -.01em;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: calc(1.35em * 2);
+    }
+
+    // ── Badges row ────────────────────────────────────────────────────
+    .o_helpdesk_badges_row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .o_helpdesk_stage_badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 600;
+        font-size: .74rem;
+        letter-spacing: .01em;
+        color: var(--o-stage, #475569);
+        background: rgba(0, 0, 0, .035);
+        border: 1px solid rgba(0, 0, 0, .06);
+        border-radius: 999px;
+        padding: .28em .75em;
+    }
+
+    .o_helpdesk_stage_dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--o-stage, #94a3b8);
+        flex-shrink: 0;
+    }
+
+    .o_helpdesk_badges_row .badge {
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: .72rem;
+        letter-spacing: .01em;
+        padding: .32em .7em;
+    }
+
+    // ── Client + date row ────────────────────────────────────────────
+    .o_helpdesk_card_meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .o_helpdesk_client_badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        max-width: 65%;
+        color: #334155;
+        font-size: .78rem;
+        font-weight: 600;
+
+        i {
+            font-size: .82rem;
+            opacity: .5;
+            flex-shrink: 0;
+        }
+    }
+
+    .o_helpdesk_date_chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: .74rem;
+        color: #94a3b8;
+        white-space: nowrap;
+
+        i {
+            font-size: .72rem;
+        }
+    }
+
+    // ── Footer: assignee ─────────────────────────────────────────────
+    .o_kanban_record_bottom {
+        margin: 0;
+        padding-top: .6rem;
+        border-top: 1px solid rgba(15, 23, 42, .06);
+    }
+
+    .o_helpdesk_card_footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .o_helpdesk_assignee_label {
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #94a3b8;
+    }
+}

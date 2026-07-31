@@ -20,53 +20,79 @@
                 <field name="request_type"/>
                 <field name="request_type_label"/>
                 <field name="priority"/>
+                <field name="priority_label"/>
                 <field name="user_id"/>
+                <field name="assignable_user_ids"/>
                 <field name="stage_id"/>
-                <field name="kanban_state"/>
+                <field name="stage_name"/>
+                <field name="is_closed"/>
                 <field name="client_name"/>
                 <field name="email"/>
+                <field name="created_date"/>
 
                 <templates>
                     <t t-name="card">
-                        <div class="oe_kanban_card oe_kanban_global_click">
-                            <!-- Header: priority stars + kanban state -->
-                            <div class="o_kanban_record_top mb-0">
-                                <div class="o_kanban_record_headings">
-                                    <strong class="o_kanban_record_title text-primary">
-                                        <field name="ticket_number"/>
-                                    </strong>
-                                </div>
-                                <div class="o_kanban_manage_button_section">
-                                    <field name="priority" widget="priority"/>
-                                    <field name="kanban_state" widget="state_selection"/>
-                                </div>
+                        <t t-set="stage_color"
+                           t-value="record.stage_name.raw_value === 'New' ? '#94a3b8'
+                                    : record.stage_name.raw_value === 'Under Review' ? '#3b82f6'
+                                    : record.stage_name.raw_value === 'In Progress' ? '#f59e0b'
+                                    : record.stage_name.raw_value === 'Waiting for Client' ? '#8b5cf6'
+                                    : record.stage_name.raw_value === 'Resolved' ? '#16a34a'
+                                    : record.stage_name.raw_value === 'Closed' ? '#dc3545'
+                                    : record.stage_name.raw_value === 'Reopened' ? '#d97706'
+                                    : '#94a3b8'"/>
+                        <t t-set="priority_color"
+                           t-value="record.priority.raw_value === '2' ? '#dc3545' : record.priority.raw_value === '1' ? '#f59e0b' : '#94a3b8'"/>
+                        <div class="oe_kanban_card oe_kanban_global_click o_helpdesk_ticket_card"
+                             t-att-style="'--o-stage:' + stage_color + ';--o-priority:' + priority_color + ';'">
+
+                            <!-- Header: ticket number + priority -->
+                            <div class="o_helpdesk_card_header">
+                                <span class="o_helpdesk_ticket_no">
+                                    <field name="ticket_number"/>
+                                </span>
+                                <span class="o_helpdesk_priority_chip">
+                                    <i class="fa fa-flag"/>
+                                    <field name="priority_label"/>
+                                </span>
                             </div>
 
                             <!-- Subject -->
-                            <div class="o_kanban_record_body">
-                                <div class="fw-bold text-truncate" t-att-title="record.subject.raw_value">
-                                    <field name="subject"/>
-                                </div>
-                                <div class="text-muted small mt-1">
-                                    <field name="client_name"/>
-                                    <t t-if="record.request_type.raw_value">
-                                        &#160;·&#160;
-                                        <field name="request_type_label"/>
-                                    </t>
-                                </div>
+                            <div class="o_helpdesk_card_subject"
+                                 t-att-title="record.subject.raw_value">
+                                <field name="subject"/>
                             </div>
 
-                            <!-- Footer: avatar + assignee -->
-                            <div class="o_kanban_record_bottom">
-                                <div class="oe_kanban_bottom_left">
-                                    <field name="request_type" widget="badge"
-                                           decoration-info="request_type == 'issue'"
-                                           decoration-warning="request_type == 'complaint'"
-                                           decoration-success="request_type == 'other'"/>
-                                </div>
-                                <div class="oe_kanban_bottom_right">
-                                    <field name="user_id" widget="many2one_avatar_user"/>
-                                </div>
+                            <!-- Stage + request type -->
+                            <div class="o_helpdesk_badges_row">
+                                <span class="o_helpdesk_stage_badge">
+                                    <span class="o_helpdesk_stage_dot"/>
+                                    <field name="stage_name"/>
+                                </span>
+                                <field name="request_type" widget="badge"
+                                       decoration-info="request_type == 'issue'"
+                                       decoration-warning="request_type == 'complaint'"
+                                       decoration-success="request_type == 'other'"/>
+                            </div>
+
+                            <!-- Client + date -->
+                            <div class="o_helpdesk_card_meta">
+                                <span class="o_helpdesk_client_badge text-truncate"
+                                      t-att-title="record.client_name.raw_value">
+                                    <i class="fa fa-user-circle"/>
+                                    <field name="client_name"/>
+                                </span>
+                                <span class="o_helpdesk_date_chip">
+                                    <i class="fa fa-clock-o"/>
+                                    <field name="created_date"/>
+                                </span>
+                            </div>
+
+                            <!-- Footer: assignee -->
+                            <div class="o_kanban_record_bottom o_helpdesk_card_footer">
+                                <span class="o_helpdesk_assignee_label">Assigned to</span>
+                                <field name="user_id" widget="many2one_avatar_user"
+                                       domain="[('id', 'in', assignable_user_ids)]"/>
                             </div>
                         </div>
                     </t>
@@ -84,7 +110,7 @@
         <field name="arch" type="xml">
             <list string="Helpdesk Tickets" default_order="id desc"
                   decoration-muted="is_closed == True">
-                <field name="ticket_number" string="Ticket #" optional="show"/>
+                <field name="ticket_number" string="Ticket Number" optional="show"/>
                 <field name="client_name" string="Client" optional="show"/>
                 <field name="company_name" string="Company" optional="hide"/>
                 <field name="subject" string="Subject" optional="show"/>
@@ -93,12 +119,22 @@
                        decoration-info="request_type == 'issue'"
                        decoration-warning="request_type == 'complaint'"
                        decoration-success="request_type == 'other'"/>
-                <field name="priority" string="Priority" widget="priority" optional="show"/>
-                <field name="stage_id" string="Stage" optional="show"/>
-                <field name="user_id" string="Assigned To" widget="many2one_avatar_user" optional="show"/>
+                <field name="priority" string="Priority" readonly="1" optional="show"/>
+                <field name="stage_id" string="Stage" widget="badge" optional="show"
+                       decoration-muted="stage_name == 'New'"
+                       decoration-info="stage_name == 'Under Review'"
+                       decoration-warning="stage_name == 'In Progress'"
+                       decoration-primary="stage_name == 'Waiting for Client'"
+                       decoration-success="stage_name == 'Resolved'"
+                       decoration-danger="stage_name == 'Closed'"/>
+                <field name="user_id" string="Assigned To" widget="many2one_avatar_user"
+                       domain="[('id', 'in', assignable_user_ids)]" optional="show"/>
+                <field name="manager_id" string="Reporting Manager" widget="many2one_avatar_user" optional="hide"/>
                 <field name="created_date" string="Created" optional="show"/>
                 <field name="last_updated" string="Updated" optional="hide"/>
                 <field name="is_closed" column_invisible="True"/>
+                <field name="stage_name" column_invisible="True"/>
+                <field name="assignable_user_ids" column_invisible="True"/>
             </list>
         </field>
     </record>
@@ -113,31 +149,34 @@
             <form string="Helpdesk Ticket">
                 <header>
                     <field name="stage_name" invisible="1"/>
-                    <!-- New → Under Review -->
+                    <!-- Button colors match the kanban's stage colors, so the
+                         action a button takes always maps to the same color
+                         as the stage it moves the ticket into. -->
+                    <!-- New / Reopened → Under Review (blue) -->
                     <button name="action_set_under_review" string="Under Review"
-                            type="object" class="btn-secondary"
-                            invisible="stage_name != 'New'"/>
-                    <!-- Under Review → In Progress -->
+                            type="object" class="btn-secondary o_hd_btn_review"
+                            invisible="stage_name not in ('New', 'Reopened')"/>
+                    <!-- Under Review → In Progress (amber) -->
                     <button name="action_set_in_progress" string="In Progress"
-                            type="object" class="btn-secondary"
+                            type="object" class="btn-secondary o_hd_btn_progress"
                             invisible="stage_name not in ('Under Review', 'Waiting for Client')"/>
-                    <!-- In Progress → Waiting for Client -->
+                    <!-- In Progress → Waiting for Client (purple) -->
                     <button name="action_set_waiting" string="Waiting for Client"
-                            type="object" class="btn-secondary"
+                            type="object" class="btn-secondary o_hd_btn_waiting"
                             invisible="stage_name != 'In Progress'"/>
-                    <!-- Waiting for Client → Resolved -->
+                    <!-- Waiting for Client → Resolved (green) -->
                     <button name="action_set_resolved" string="Resolved"
-                            type="object" class="btn-primary"
+                            type="object" class="btn-primary o_hd_btn_resolved"
                             invisible="stage_name != 'Waiting for Client'"/>
-                    <!-- Close Ticket (available in any non-terminal stage) -->
+                    <!-- Close Ticket (red — terminal action, available in any non-terminal stage) -->
                     <button name="action_set_closed" string="Close Ticket"
-                            type="object" class="btn-secondary"
-                            invisible="stage_name not in ('New', 'Under Review', 'In Progress', 'Waiting for Client')"/>
+                            type="object" class="btn-secondary o_hd_btn_closed"
+                            invisible="stage_name not in ('New', 'Under Review', 'In Progress', 'Waiting for Client', 'Reopened')"/>
                     <field name="stage_id" widget="statusbar"
-                           statusbar_visible="New,Under Review,In Progress,Resolved,Closed"/>
+                           statusbar_visible="New,Under Review,In Progress,Resolved,Closed,Reopened"/>
                 </header>
 
-                <sheet>
+                <sheet class="o_helpdesk_ticket_form">
                     <field name="attachment_count" invisible="1"/>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_portal_attachments" type="object"
@@ -150,16 +189,17 @@
                     <!-- Title row -->
                     <div class="oe_title">
                         <h1>
-                            <field name="ticket_number" readonly="1"/>
+                            <field name="ticket_number" readonly="1" class="o_helpdesk_ticket_number"/>
                         </h1>
-                        <h2>
-                            <field name="subject" placeholder="Subject…" required="1"/>
-                        </h2>
+                        <div class="o_row">
+                            <label for="subject" string="Subject"/>
+                            <field name="subject" placeholder="Subject…" required="1" class="o_helpdesk_subject_input"/>
+                        </div>
                     </div>
 
                     <group>
                         <!-- Client Information -->
-                        <group string="Client Information">
+                        <group string="Client Information" class="o_helpdesk_group">
                             <field name="client_name"/>
                             <field name="company_name"/>
                             <field name="email" widget="email"/>
@@ -167,11 +207,22 @@
                             <field name="reference_number"/>
                         </group>
                         <!-- Ticket Details -->
-                        <group string="Ticket Details">
+                        <group string="Ticket Details" class="o_helpdesk_group">
                             <field name="request_type"/>
-                            <field name="priority" widget="priority"/>
-                            <field name="user_id"/>
-                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="priority" readonly="1"/>
+                            <field name="assignable_user_ids" invisible="1"/>
+                            <field name="can_reassign" invisible="1"/>
+                            <!-- Single field node: editable for Admin/Manager
+                                 (can_reassign), read-only for everyone else
+                                 (Helpdesk User). Deliberately NOT split into two
+                                 group-gated <field name="user_id"> nodes —
+                                 Odoo's view compiler merges same-named field
+                                 nodes' domain/props by field name rather
+                                 than per node, which silently dropped the
+                                 domain on one of the two. -->
+                            <field name="user_id" class="o_helpdesk_assigned_to"
+                                   domain="[('id', 'in', assignable_user_ids)]"
+                                   readonly="not can_reassign"/>
                             <field name="created_date" readonly="1"/>
                             <field name="last_updated" readonly="1"/>
                             <field name="closed_date" readonly="1"
@@ -187,12 +238,33 @@
                                    placeholder="Describe the issue or request…"/>
                         </page>
                         <page string="Attachments" name="attachments">
-                            <field name="attachment_ids" widget="many2many_binary"
+                            <field name="attachment_ids" widget="attachment_preview_list"
                                    string="Client Attachments" readonly="1"/>
                         </page>
+                        <page string="Reason to In Progress" name="resume_reason"
+                              invisible="not resume_reason_line_ids">
+                            <field name="resume_reason_line_ids" readonly="1" nolabel="1">
+                                <list create="false" delete="false" open="false">
+                                    <field name="date_gst" string="Date" width="100px"/>
+                                    <field name="time_gst" string="Time" width="90px"/>
+                                    <field name="reason" string="Reason"/>
+                                </list>
+                            </field>
+                        </page>
                         <page string="Internal Notes" name="internal_notes">
-                            <field name="internal_notes" widget="html"
-                                   placeholder="Internal notes visible only to helpdesk team…"/>
+                            <field name="closed_reason_line_ids" readonly="1" nolabel="1"
+                                   invisible="not closed_reason_line_ids">
+                                <list create="false" delete="false" open="false">
+                                    <field name="date_gst" string="Date" width="100px"/>
+                                    <field name="time_gst" string="Time" width="90px"/>
+                                    <field name="action_type" string="Action" widget="badge"
+                                           width="100px"
+                                           decoration-success="action_type == 'resolve'"
+                                           decoration-danger="action_type == 'close'"
+                                           decoration-warning="action_type == 'reopen'"/>
+                                    <field name="reason" string="Reason"/>
+                                </list>
+                            </field>
                         </page>
                     </notebook>
                 </sheet>
@@ -211,12 +283,14 @@
         <field name="model">client.helpdesk.ticket</field>
         <field name="arch" type="xml">
             <search string="Search Tickets">
-                <field name="ticket_number" string="Ticket #"/>
+                <field name="ticket_number" string="Ticket Number"/>
                 <field name="subject"/>
                 <field name="client_name"/>
                 <field name="company_name"/>
                 <field name="email"/>
-                <field name="user_id" string="Assigned To"/>
+                <field name="user_id" string="Assigned To"
+                       domain="[('helpdesk_portal_user_ids.select_access', '=', True)]"/>
+                <field name="manager_id" string="Reporting Manager"/>
 
                 <filter name="filter_new" string="New"
                         domain="[('stage_id.name', '=', 'New')]"/>
@@ -256,6 +330,7 @@
                     <filter name="group_stage" string="Stage" context="{'group_by': 'stage_id'}"/>
                     <filter name="group_type" string="Request Type" context="{'group_by': 'request_type'}"/>
                     <filter name="group_priority" string="Priority" context="{'group_by': 'priority'}"/>
+                    <filter name="group_manager" string="Reporting Manager" context="{'group_by': 'manager_id'}"/>
                     <filter name="group_user" string="Assigned To" context="{'group_by': 'user_id'}"/>
                     <filter name="group_date" string="Created Date" context="{'group_by': 'created_date:month'}"/>
                 </group>
@@ -270,7 +345,10 @@
         <field name="name">All Tickets</field>
         <field name="res_model">client.helpdesk.ticket</field>
         <field name="view_mode">kanban,list,form</field>
-        <field name="context">{'search_default_filter_open': 1}</field>
+        <!-- Kanban is the default view here, deliberately with no default
+             filters or group-by, so users land on a clean board showing
+             every record. -->
+        <field name="context">{}</field>
         <field name="search_view_id" ref="view_helpdesk_ticket_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No tickets yet.</p>
@@ -282,7 +360,14 @@
         <field name="name">My Tickets</field>
         <field name="res_model">client.helpdesk.ticket</field>
         <field name="view_mode">kanban,list,form</field>
-        <field name="context">{'search_default_filter_my_tickets': 1, 'search_default_filter_open': 1}</field>
+        <!-- Hard domain, not just a removable search filter — Admin and
+             Manager can otherwise see other users' tickets here too via
+             their broader record rules (rule_ticket_admin_all,
+             rule_ticket_manager_all) once the "My Tickets" filter chip is
+             cleared from the search bar. This menu must always mean
+             "only tickets assigned to me", for every role. -->
+        <field name="domain">[('user_id', '=', uid)]</field>
+        <field name="context">{'search_default_filter_open': 1}</field>
         <field name="search_view_id" ref="view_helpdesk_ticket_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No tickets assigned to you.</p>

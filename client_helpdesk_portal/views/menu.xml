@@ -71,6 +71,23 @@
         parent="menu_helpdesk_config"
         action="action_helpdesk_stage"
         sequence="10"
+        groups="client_helpdesk_portal.group_helpdesk_admin"/>
+
+    <menuitem
+        id="menu_helpdesk_portal_users"
+        name="Helpdesk Portal Users"
+        parent="menu_helpdesk_config"
+        action="action_helpdesk_portal_user"
+        sequence="30"
         groups="client_helpdesk_portal.group_helpdesk_manager"/>
+
+    <!-- ── Notifications (Helpdesk Admin only) ─────────────────────────── -->
+    <menuitem
+        id="menu_helpdesk_notification_log"
+        name="Notifications"
+        parent="menu_helpdesk_root"
+        action="action_helpdesk_notification_log"
+        sequence="40"
+        groups="client_helpdesk_portal.group_helpdesk_admin"/>
 
 </odoo>

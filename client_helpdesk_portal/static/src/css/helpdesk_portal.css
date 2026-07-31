@@ -89,6 +89,25 @@
     line-height: 1.6;
 }
 
+.o_helpdesk_portal .hd-hero-track-link {
+    color: rgba(255,255,255,.75);
+    font-size: .9rem;
+}
+
+.o_helpdesk_portal .hd-hero-track-link a {
+    color: #fff;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.o_helpdesk_portal .hd-hero-track-link a:hover { color: #dbeafe; }
+
+.o_helpdesk_portal .hd-hero-track-label {
+    color: rgba(255,255,255,.75);
+    font-size: .9rem;
+}
+
 .o_helpdesk_portal .hd-hero-success {
     background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%);
 }
@@ -362,6 +381,20 @@
 
 .o_helpdesk_portal .hd-textarea { resize: vertical; min-height: 140px; }
 
+/* Selects reuse .hd-input but need a custom chevron for a consistent look
+   across browsers instead of the native OS arrow. */
+.o_helpdesk_portal select.hd-input {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 2.4rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.293l3.71-4.06a.75.75 0 111.08 1.04l-4.25 4.65a.75.75 0 01-1.08 0l-4.25-4.65a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right .8rem center;
+    background-size: 1.1rem;
+    cursor: pointer;
+}
+
 .o_helpdesk_portal .hd-char-counter {
     font-size: .78rem;
     color: #94a3b8;
@@ -456,6 +489,173 @@
     height: 100%;
     opacity: 0;
     cursor: pointer;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   TEAM / ASSIGNED TO FOLDABLE PICKER
+   A native <select><optgroup> can't collapse, so "Assigned To" is a
+   custom dropdown: click a team header to fold/unfold its employees.
+════════════════════════════════════════════════════════════════════ */
+.o_helpdesk_portal .hd-team-picker { position: relative; }
+
+.o_helpdesk_portal .hd-team-picker-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: .6rem .9rem;
+    border: 1.5px solid #d1d5db;
+    border-radius: var(--hd-radius-sm);
+    background: #fff;
+    font-size: .92rem;
+    color: #1e293b;
+    cursor: pointer;
+    transition: border-color .18s, box-shadow .18s;
+    text-align: left;
+    font-family: inherit;
+}
+
+.o_helpdesk_portal .hd-team-picker-trigger:hover { border-color: var(--hd-primary-mid); }
+
+.o_helpdesk_portal .hd-team-picker-trigger.is-invalid {
+    border-color: var(--hd-danger);
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, .10);
+}
+
+.o_helpdesk_portal .hd-team-picker.open .hd-team-picker-trigger {
+    border-color: var(--hd-primary-mid);
+    box-shadow: 0 0 0 3px rgba(0, 87, 184, .12);
+}
+
+.o_helpdesk_portal .hd-team-picker-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.o_helpdesk_portal .hd-team-picker-label.placeholder { color: #9ca3af; }
+
+.o_helpdesk_portal .hd-team-picker-caret {
+    color: #94a3b8;
+    font-size: .8rem;
+    transition: transform .18s;
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+.o_helpdesk_portal .hd-team-picker.open .hd-team-picker-caret { transform: rotate(180deg); }
+
+/* position: fixed (not absolute) and placed via JS from the trigger's
+   getBoundingClientRect() — the field sits in a card with overflow:hidden
+   (for its rounded corners), so an absolutely-positioned panel gets
+   clipped the moment it needs to extend past that card's edge. Fixed
+   positioning is relative to the viewport, so no ancestor's overflow
+   can clip it, same technique real dropdown/tooltip libraries use. */
+.o_helpdesk_portal .hd-team-picker-panel {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    background: #fff;
+    border: 1.5px solid var(--hd-border);
+    border-radius: var(--hd-radius-sm);
+    box-shadow: var(--hd-card-shadow);
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 6px;
+}
+
+.o_helpdesk_portal .hd-team-picker.open .hd-team-picker-panel { display: block; }
+
+.o_helpdesk_portal .hd-team-option {
+    display: flex;
+    align-items: center;
+    padding: .55rem .7rem;
+    border-radius: 6px;
+    font-size: .88rem;
+    color: #475569;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.o_helpdesk_portal .hd-team-option:hover { background: var(--hd-primary-light); color: var(--hd-primary); }
+
+.o_helpdesk_portal .hd-team-group + .hd-team-group { margin-top: 2px; }
+
+.o_helpdesk_portal .hd-team-group-header {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: .55rem .7rem;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    font-size: .82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--hd-primary);
+    cursor: pointer;
+    transition: background .15s;
+    font-family: inherit;
+}
+
+.o_helpdesk_portal .hd-team-group-header:hover { background: var(--hd-bg); }
+
+.o_helpdesk_portal .hd-team-group-caret {
+    font-size: .72rem;
+    color: var(--hd-primary-mid);
+    margin-right: 8px;
+    transition: transform .18s;
+    flex-shrink: 0;
+}
+
+.o_helpdesk_portal .hd-team-group.open .hd-team-group-caret { transform: rotate(90deg); }
+
+.o_helpdesk_portal .hd-team-group-name { flex: 1; }
+
+.o_helpdesk_portal .hd-team-group-count {
+    background: var(--hd-primary-light);
+    color: var(--hd-primary-mid);
+    font-size: .72rem;
+    font-weight: 700;
+    padding: .1rem .5rem;
+    border-radius: 100px;
+    margin-left: 8px;
+}
+
+.o_helpdesk_portal .hd-team-group-body {
+    display: none;
+    padding-left: 8px;
+    border-left: 2px solid var(--hd-border);
+    margin: 2px 0 4px 18px;
+}
+
+.o_helpdesk_portal .hd-team-group.open .hd-team-group-body { display: block; }
+
+.o_helpdesk_portal .hd-team-employee {
+    display: flex;
+    align-items: center;
+    padding: .5rem .7rem;
+    border-radius: 6px;
+    font-size: .88rem;
+    color: #475569;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.o_helpdesk_portal .hd-team-employee:hover { background: var(--hd-primary-light); color: var(--hd-primary); }
+
+.o_helpdesk_portal .hd-team-employee.selected {
+    background: var(--hd-primary-light);
+    color: var(--hd-primary);
+    font-weight: 600;
+}
+
+.o_helpdesk_portal .hd-team-employee.selected::after {
+    content: "\f00c";
+    font-family: FontAwesome;
+    margin-left: auto;
+    color: var(--hd-primary-mid);
 }
 
 /* File preview item */
@@ -762,6 +962,15 @@
     color: var(--hd-success);
 }
 
+/* Current step: blue highlight, distinct from completed (green) and
+   upcoming (default grey, no extra class needed). */
+.o_helpdesk_portal .hd-tl-current .hd-tl-dot {
+    border-color: var(--hd-primary-mid);
+    background: #dbeafe;
+    color: var(--hd-primary-mid);
+    box-shadow: 0 0 0 4px rgba(0, 87, 184, .15);
+}
+
 .o_helpdesk_portal .hd-tl-content { padding-top: 4px; }
 
 .o_helpdesk_portal .hd-tl-title {
@@ -772,6 +981,18 @@
 }
 
 .o_helpdesk_portal .hd-tl-done .hd-tl-title { color: var(--hd-success); }
+.o_helpdesk_portal .hd-tl-current .hd-tl-title { color: var(--hd-primary-mid); }
+
+/* Current step override: Resolved shows green (not the generic "current"
+   primary blue) while still marked "current", not folded into the
+   done/upcoming color logic above. */
+.o_helpdesk_portal .hd-tl-current-resolved .hd-tl-dot {
+    border-color: var(--hd-success);
+    background: #dcfce7;
+    color: var(--hd-success);
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, .15);
+}
+.o_helpdesk_portal .hd-tl-current-resolved .hd-tl-title { color: var(--hd-success); }
 
 .o_helpdesk_portal .hd-tl-desc {
     font-size: .82rem;
@@ -860,6 +1081,192 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════
+   MY DASHBOARD — stat tiles, ticket list, stage badges
+════════════════════════════════════════════════════════════════════ */
+.o_helpdesk_portal .hd-dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+
+.o_helpdesk_portal .hd-stat-tile {
+    background: #fff;
+    border: 1px solid var(--hd-border);
+    border-radius: var(--hd-radius-sm);
+    box-shadow: var(--hd-card-shadow);
+    padding: 1.1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-top: 3px solid var(--hd-primary-mid);
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+}
+
+.o_helpdesk_portal .hd-stat-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 18px rgba(0,0,0,.1);
+}
+
+.o_helpdesk_portal .hd-stat-tile.active {
+    background: var(--hd-primary-light);
+    box-shadow: 0 0 0 2px var(--hd-primary-mid);
+}
+
+.o_helpdesk_portal .hd-stat-tile.hd-stat-open      { border-top-color: var(--hd-warning); }
+.o_helpdesk_portal .hd-stat-tile.hd-stat-resolved  { border-top-color: var(--hd-success); }
+.o_helpdesk_portal .hd-stat-tile.hd-stat-closed    { border-top-color: #64748b; }
+
+.o_helpdesk_portal .hd-stat-tile.hd-stat-open.active     { background: #fffbeb; box-shadow: 0 0 0 2px var(--hd-warning); }
+.o_helpdesk_portal .hd-stat-tile.hd-stat-resolved.active { background: #f0fdf4; box-shadow: 0 0 0 2px var(--hd-success); }
+.o_helpdesk_portal .hd-stat-tile.hd-stat-closed.active   { background: #f1f5f9; box-shadow: 0 0 0 2px #64748b; }
+
+.o_helpdesk_portal .hd-stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.2;
+}
+
+.o_helpdesk_portal .hd-stat-label {
+    font-size: .78rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    margin-top: 2px;
+}
+
+/* ── Compact date filter — right side of the ticket-list header ──── */
+.o_helpdesk_portal .hd-date-filter-compact {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.o_helpdesk_portal .hd-input-sm {
+    width: 128px;
+    padding: 5px 8px;
+    font-size: .78rem;
+    border: 1px solid var(--hd-border);
+    border-radius: 6px;
+    background: #fff;
+    color: #334155;
+}
+
+.o_helpdesk_portal .hd-input-sm:focus {
+    outline: none;
+    border-color: var(--hd-primary-mid);
+    box-shadow: 0 0 0 2px rgba(0, 87, 184, .12);
+}
+
+.o_helpdesk_portal .hd-date-filter-sep {
+    color: #94a3b8;
+    font-size: .78rem;
+}
+
+.o_helpdesk_portal .hd-date-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--hd-primary-mid);
+    border-radius: 6px;
+    background: var(--hd-primary-mid);
+    color: #fff;
+    font-size: .78rem;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.o_helpdesk_portal .hd-date-filter-btn:hover { background: var(--hd-primary); }
+
+.o_helpdesk_portal .hd-date-filter-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--hd-border);
+    border-radius: 6px;
+    background: #fff;
+    color: #64748b;
+    font-size: .78rem;
+    flex-shrink: 0;
+    text-decoration: none;
+}
+
+.o_helpdesk_portal .hd-date-filter-clear:hover { background: var(--hd-bg); color: #334155; }
+
+.o_helpdesk_portal .hd-ticket-empty {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: #94a3b8;
+    font-size: .92rem;
+}
+
+.o_helpdesk_portal .hd-ticket-list { display: flex; flex-direction: column; }
+
+.o_helpdesk_portal .hd-ticket-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--hd-border);
+    text-decoration: none;
+    transition: background .15s;
+}
+
+.o_helpdesk_portal .hd-ticket-row:last-child { border-bottom: none; }
+.o_helpdesk_portal .hd-ticket-row:hover { background: var(--hd-bg); }
+
+.o_helpdesk_portal .hd-ticket-row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.o_helpdesk_portal .hd-ticket-row-number {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: .82rem;
+    color: var(--hd-primary-mid);
+    letter-spacing: .03em;
+}
+
+.o_helpdesk_portal .hd-ticket-row-subject {
+    font-weight: 600;
+    font-size: .96rem;
+    color: #1e293b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.o_helpdesk_portal .hd-ticket-row-meta {
+    font-size: .78rem;
+    color: #94a3b8;
+}
+
+.o_helpdesk_portal .hd-ticket-row-side {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+}
+
+.o_helpdesk_portal .hd-ticket-row-arrow {
+    color: #cbd5e1;
+    font-size: .8rem;
+}
+
+/* ════════════════════════════════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════════════════════════════════ */
 @media (max-width: 767px) {
@@ -869,4 +1276,16 @@
     .o_helpdesk_portal .hd-priority-grid { flex-direction: column; }
     .o_helpdesk_portal .hd-priority-card { flex: none; }
     .o_helpdesk_portal .hd-summary-label { width: 110px; }
+    .o_helpdesk_portal .hd-dashboard-stats { grid-template-columns: repeat(2, 1fr); }
+    .o_helpdesk_portal .hd-ticket-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .o_helpdesk_portal .hd-ticket-row-side { width: 100%; justify-content: space-between; }
+    .o_helpdesk_portal .hd-card-header { flex-wrap: wrap; }
+    .o_helpdesk_portal .hd-date-filter-compact.ms-auto {
+        margin-left: 0 !important;
+        width: 100%;
+        justify-content: flex-start;
+        padding-top: 10px;
+        border-top: 1px solid var(--hd-border);
+    }
+    .o_helpdesk_portal .hd-input-sm { flex: 1 1 auto; width: auto; }
 }

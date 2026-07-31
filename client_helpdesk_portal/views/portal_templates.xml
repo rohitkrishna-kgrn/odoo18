@@ -30,6 +30,18 @@
                     <p class="hd-hero-subtitle mb-0">
                         Describe your issue and our team will respond within 1–2 business days.
                     </p>
+                    <p class="hd-hero-track-label mt-3 mb-2">Already submitted a request?</p>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        <a href="/helpdesk/dashboard" class="hd-btn-outline-primary">
+                            <i class="fa fa-th-large me-2"/>My Dashboard
+                        </a>
+                        <a href="/helpdesk/track" class="hd-btn-outline-primary">
+                            <i class="fa fa-search me-2"/>Track Ticket
+                        </a>
+                        <a href="/helpdesk/reopen" class="hd-btn-outline-secondary">
+                            <i class="fa fa-undo me-2"/>Reopen Ticket
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -164,14 +176,19 @@
                                         <div class="hd-field-wrap">
                                             <label for="company_name" class="hd-label">
                                                 <i class="fa fa-building-o hd-label-icon"/>
-                                                Company Name
-                                                <span class="hd-optional">(optional)</span>
+                                                Company Name <span class="text-danger">*</span>
                                             </label>
                                             <input type="text" id="company_name" name="company_name"
-                                                   class="hd-input"
+                                                   t-att-class="'hd-input is-invalid' if error.get('company_name') else 'hd-input'"
                                                    t-att-value="form_data.get('company_name', '')"
                                                    placeholder="Your organisation"
-                                                   autocomplete="organization"/>
+                                                   autocomplete="organization" required="required"/>
+                                            <t t-if="error.get('company_name')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['company_name']"/>
+                                                </div>
+                                            </t>
                                         </div>
                                     </div>
 
@@ -229,6 +246,64 @@
                                                    class="hd-input"
                                                    t-att-value="form_data.get('reference_number', '')"
                                                    placeholder="Your account or reference number"/>
+                                        </div>
+                                    </div>
+
+                                    <!-- Assign To (client-requested handler) — custom foldable
+                                         team picker: a native <select><optgroup> can't collapse,
+                                         so this is a styled dropdown with one click-to-fold
+                                         section per team (see hd-team-picker JS/CSS). -->
+                                    <div class="col-md-6">
+                                        <div class="hd-field-wrap">
+                                            <t t-set="selected_emp_id" t-value="form_data.get('requested_employee_id', '')"/>
+                                            <label for="hd-team-picker-trigger" class="hd-label">
+                                                <i class="fa fa-user-circle-o hd-label-icon"/>
+                                                Assigned To
+                                                <span class="hd-optional">(optional)</span>
+                                            </label>
+                                            <div class="hd-team-picker" id="hd-team-picker">
+                                                <button type="button" id="hd-team-picker-trigger"
+                                                        t-att-class="'hd-team-picker-trigger is-invalid' if error.get('requested_employee_id') else 'hd-team-picker-trigger'">
+                                                    <span id="hd-team-picker-label"
+                                                          t-att-class="'hd-team-picker-label' if selected_emp_id else 'hd-team-picker-label placeholder'">
+                                                        <t t-if="not selected_emp_id">No preference — auto-assign</t>
+                                                        <t t-foreach="employees" t-as="team">
+                                                            <t t-foreach="team['employees']" t-as="emp">
+                                                                <t t-if="selected_emp_id == str(emp['id'])"><t t-esc="emp['name']"/></t>
+                                                            </t>
+                                                        </t>
+                                                    </span>
+                                                    <i class="fa fa-chevron-down hd-team-picker-caret"/>
+                                                </button>
+                                                <div class="hd-team-picker-panel" id="hd-team-picker-panel">
+                                                    <div class="hd-team-option" data-value="">
+                                                        <i class="fa fa-ban me-2"/>No preference — auto-assign
+                                                    </div>
+                                                    <div class="hd-team-group" t-foreach="employees" t-as="team"
+                                                         t-att-class="'hd-team-group open' if any(selected_emp_id == str(e['id']) for e in team['employees']) else 'hd-team-group'">
+                                                        <button type="button" class="hd-team-group-header">
+                                                            <i class="fa fa-chevron-right hd-team-group-caret"/>
+                                                            <span class="hd-team-group-name"><t t-esc="team['team']"/></span>
+                                                            <span class="hd-team-group-count"><t t-esc="len(team['employees'])"/></span>
+                                                        </button>
+                                                        <div class="hd-team-group-body">
+                                                            <div t-foreach="team['employees']" t-as="emp"
+                                                                 t-att-class="'hd-team-employee selected' if selected_emp_id == str(emp['id']) else 'hd-team-employee'"
+                                                                 t-att-data-value="emp['id']" t-att-data-name="emp['name']">
+                                                                <i class="fa fa-user-o me-2"/><t t-esc="emp['name']"/>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <input type="hidden" id="requested_employee_id" name="requested_employee_id"
+                                                   t-att-value="selected_emp_id"/>
+                                            <t t-if="error.get('requested_employee_id')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['requested_employee_id']"/>
+                                                </div>
+                                            </t>
                                         </div>
                                     </div>
 
@@ -343,7 +418,8 @@
                                         <label class="hd-label mb-2">
                                             <i class="fa fa-paperclip hd-label-icon"/>
                                             Attachment
-                                            <span class="hd-optional">(optional – max 10 MB)</span>
+                                            <span class="text-danger" id="hd-attachment-star" style="display:none;">*</span>
+                                            <span class="hd-optional" id="hd-attachment-hint">(optional – max 10 MB)</span>
                                         </label>
 
                                         <div id="hd-dropzone" class="hd-dropzone"
@@ -373,6 +449,12 @@
                                                 <t t-esc="error['attachment']"/>
                                             </div>
                                         </t>
+                                        <!-- Client-side only: shown by JS when Technical Issue is
+                                             selected and the client tries to submit with no file. -->
+                                        <div class="hd-field-error mt-1" id="hd-attachment-client-error" style="display:none;">
+                                            <i class="fa fa-exclamation-circle me-1"/>
+                                            An attachment is required for Technical Issue requests.
+                                        </div>
                                     </div>
 
                                 </div>
@@ -432,14 +514,35 @@
     var typeHidden = document.getElementById('request_type_hidden');
     var typeError  = document.getElementById('hd-type-error');
 
+    /* ── Attachment becomes mandatory for Technical Issue requests ────── */
+    var attachmentStar  = document.getElementById('hd-attachment-star');
+    var attachmentHint  = document.getElementById('hd-attachment-hint');
+    var attachmentError = document.getElementById('hd-attachment-client-error');
+
+    function updateAttachmentRequirement() {
+        var isIssue = typeHidden.value === 'issue';
+        if (attachmentStar) attachmentStar.style.display = isIssue ? 'inline' : 'none';
+        if (attachmentHint) {
+            attachmentHint.textContent = isIssue
+                ? '(required for technical issues – max 10 MB)'
+                : '(optional – max 10 MB)';
+        }
+        if (!isIssue &amp;&amp; attachmentError) attachmentError.style.display = 'none';
+    }
+
     typeCards.forEach(function (card) {
         card.addEventListener('click', function () {
             typeCards.forEach(function (c) { c.classList.remove('active'); });
             card.classList.add('active');
             typeHidden.value = card.getAttribute('data-value');
             if (typeError) typeError.style.display = 'none';
+            updateAttachmentRequirement();
         });
     });
+
+    /* Reflect the server-rendered selection (e.g. form re-shown after a
+       validation error elsewhere, with the client's choice preserved). */
+    updateAttachmentRequirement();
 
     /* ── Priority radio labels ───────────────────────────────────────── */
     var priorityLabels = document.querySelectorAll('.hd-priority-card');
@@ -449,6 +552,91 @@
             label.classList.add('active');
         });
     });
+
+    /* ── Team / Assigned To foldable picker ──────────────────────────── */
+    var teamPicker  = document.getElementById('hd-team-picker');
+    var teamTrigger = document.getElementById('hd-team-picker-trigger');
+    var teamLabel   = document.getElementById('hd-team-picker-label');
+    var teamPanel   = document.getElementById('hd-team-picker-panel');
+    var teamHidden  = document.getElementById('requested_employee_id');
+
+    if (teamPicker &amp;&amp; teamTrigger &amp;&amp; teamPanel &amp;&amp; teamHidden) {
+        function closeTeamPanel() { teamPicker.classList.remove('open'); }
+
+        /* The panel is position:fixed (viewport-relative) so it can escape
+           this field's card, which has overflow:hidden for its rounded
+           corners — an absolutely-positioned panel got clipped there since
+           this field sits right at that card's bottom edge. Position it
+           from the trigger's actual screen location every time it opens. */
+        function positionTeamPanel() {
+            var rect = teamTrigger.getBoundingClientRect();
+            teamPanel.style.left  = rect.left + 'px';
+            teamPanel.style.width = rect.width + 'px';
+            var spaceBelow = window.innerHeight - rect.bottom;
+            if (spaceBelow &lt; 200 &amp;&amp; rect.top &gt; spaceBelow) {
+                teamPanel.style.top    = 'auto';
+                teamPanel.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+            } else {
+                teamPanel.style.bottom = 'auto';
+                teamPanel.style.top    = (rect.bottom + 6) + 'px';
+            }
+        }
+
+        teamTrigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var opening = !teamPicker.classList.contains('open');
+            teamPicker.classList.toggle('open');
+            if (opening) positionTeamPanel();
+        });
+
+        /* A fixed-position panel doesn't move with the page, so close it
+           on scroll rather than let it visually detach from the field. */
+        window.addEventListener('scroll', function () {
+            if (teamPicker.classList.contains('open')) closeTeamPanel();
+        }, true);
+        window.addEventListener('resize', closeTeamPanel);
+
+        /* "No preference" option */
+        var noPrefOption = teamPanel.querySelector('.hd-team-option');
+        if (noPrefOption) {
+            noPrefOption.addEventListener('click', function () {
+                teamHidden.value = '';
+                teamLabel.textContent = 'No preference — auto-assign';
+                teamLabel.classList.add('placeholder');
+                teamPanel.querySelectorAll('.hd-team-employee.selected').forEach(function (el) {
+                    el.classList.remove('selected');
+                });
+                closeTeamPanel();
+            });
+        }
+
+        /* Fold/unfold each team independently */
+        teamPanel.querySelectorAll('.hd-team-group-header').forEach(function (header) {
+            header.addEventListener('click', function (e) {
+                e.stopPropagation();
+                header.closest('.hd-team-group').classList.toggle('open');
+            });
+        });
+
+        /* Pick an employee */
+        teamPanel.querySelectorAll('.hd-team-employee').forEach(function (row) {
+            row.addEventListener('click', function () {
+                teamHidden.value = row.getAttribute('data-value');
+                teamLabel.textContent = row.getAttribute('data-name');
+                teamLabel.classList.remove('placeholder');
+                teamPanel.querySelectorAll('.hd-team-employee.selected').forEach(function (el) {
+                    el.classList.remove('selected');
+                });
+                row.classList.add('selected');
+                closeTeamPanel();
+            });
+        });
+
+        /* Close when clicking anywhere outside the picker */
+        document.addEventListener('click', function (e) {
+            if (!teamPicker.contains(e.target)) closeTeamPanel();
+        });
+    }
 
     /* ── Multiple-file attachment preview ───────────────────────────── */
     var fileInput   = document.getElementById('attachment');
@@ -595,7 +783,16 @@
     var form      = document.getElementById('hd-portal-form');
     var submitBtn = document.getElementById('hd-submit-btn');
     if (form &amp;&amp; submitBtn) {
-        form.addEventListener('submit', function () {
+        form.addEventListener('submit', function (e) {
+            /* Technical Issue requires at least one attachment. */
+            if (typeHidden.value === 'issue' &amp;&amp; chosenFiles.files.length === 0) {
+                e.preventDefault();
+                if (attachmentError) {
+                    attachmentError.style.display = 'flex';
+                    attachmentError.scrollIntoView({behavior: 'smooth', block: 'center'});
+                }
+                return;
+            }
             submitBtn.disabled = true;
             submitBtn.innerHTML = '&lt;span class="spinner-border me-2"&gt;&lt;/span&gt;Submitting…';
         });
@@ -706,7 +903,7 @@
                                     <span class="hd-summary-label">Submitted On</span>
                                     <span class="hd-summary-value">
                                         <t t-if="created_date">
-                                            <t t-esc="created_date.strftime('%d %b %Y at %H:%M')"/> UTC
+                                            <t t-esc="created_date.strftime('%d %b %Y at %H:%M')"/> GST
                                         </t>
                                     </span>
                                 </div>
@@ -760,12 +957,12 @@
 
                     <!-- Actions -->
                     <div class="d-flex flex-wrap gap-3 justify-content-center mb-5">
-                        <a href="/helpdesk/submit" class="hd-btn-outline-primary">
+                        <a href="/helpdesk/dashboard" class="hd-btn-outline-primary">
+                            <i class="fa fa-th-large me-2"/>View My Dashboard
+                        </a>
+                        <a href="/helpdesk/submit" class="hd-btn-outline-secondary">
                             <i class="fa fa-plus me-2"/>Submit Another Request
                         </a>
-<button type="button" class="hd-btn-outline-secondary" onclick="window.print()">
-                            <i class="fa fa-print me-2"/>Print This Page
-                        </button>
                     </div>
 
                 </div>

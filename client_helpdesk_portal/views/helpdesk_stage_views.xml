@@ -46,6 +46,7 @@
         <field name="name">Stages</field>
         <field name="res_model">client.helpdesk.stage</field>
         <field name="view_mode">list,form</field>
+        <field name="groups_id" eval="[(4, ref('client_helpdesk_portal.group_helpdesk_admin'))]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No stages defined yet.</p>
             <p>Create stages to define your helpdesk ticket pipeline.</p>

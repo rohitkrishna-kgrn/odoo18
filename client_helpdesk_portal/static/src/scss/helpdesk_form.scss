@@ -1,0 +1,86 @@
+.o_helpdesk_ticket_form {
+    .o_helpdesk_ticket_number input {
+        font-weight: 700;
+        color: #003366;
+        letter-spacing: .02em;
+    }
+
+    .o_helpdesk_status_badge {
+        font-size: .85rem;
+        padding: .4em .9em;
+        border-radius: 100px;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    // Section header ("Client Information" / "Ticket Details") styling —
+    // a colored accent bar + bolder label instead of the default plain text.
+    .o_helpdesk_group {
+        > .o_horizontal_separator {
+            color: #003366;
+            font-weight: 700;
+            font-size: .85rem;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            border-bottom: 2px solid #0057b8;
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+        }
+    }
+
+    .o_helpdesk_assigned_to input,
+    .o_helpdesk_assigned_to .o_field_widget {
+        font-weight: 600;
+    }
+
+    .o_helpdesk_subject_input input {
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+}
+
+// Kanban/list badge polish shared with the ticket form's status badge.
+.o_helpdesk_stage_badge {
+    font-weight: 600;
+    letter-spacing: .01em;
+    border-radius: 100px;
+}
+
+// Ticket form header buttons — colored to match the stage each one moves
+// the ticket into (same palette as the kanban card's stage badge colors).
+// Global scope (not under .o_helpdesk_ticket_form, which is only the
+// <sheet>'s class — the header is a sibling, outside it) and !important
+// since Bootstrap's .btn-secondary/.btn-primary set background-color via
+// a class of equal-or-higher specificity that a plain inline style/class
+// override otherwise loses to.
+.o_hd_btn_review {
+    background-color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    color: #ffffff !important;
+    &:hover, &:focus { background-color: #2563eb !important; border-color: #2563eb !important; }
+}
+.o_hd_btn_progress {
+    background-color: #f59e0b !important;
+    border-color: #f59e0b !important;
+    color: #ffffff !important;
+    &:hover, &:focus { background-color: #d97706 !important; border-color: #d97706 !important; }
+}
+.o_hd_btn_waiting {
+    background-color: #8b5cf6 !important;
+    border-color: #8b5cf6 !important;
+    color: #ffffff !important;
+    &:hover, &:focus { background-color: #7c3aed !important; border-color: #7c3aed !important; }
+}
+.o_hd_btn_resolved {
+    background-color: #16a34a !important;
+    border-color: #16a34a !important;
+    color: #ffffff !important;
+    &:hover, &:focus { background-color: #15803d !important; border-color: #15803d !important; }
+}
+.o_hd_btn_closed {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #ffffff !important;
+    &:hover, &:focus { background-color: #b02a37 !important; border-color: #b02a37 !important; }
+}

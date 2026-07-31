@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     REOPEN TICKET — FORM
+══════════════════════════════════════════════════════════════════════ -->
+<template id="helpdesk_reopen_form" name="Client Helpdesk – Reopen a Ticket">
+<t t-call="website.layout">
+<t t-set="title">Reopen a Support Ticket</t>
+<t t-set="no_header" t-value="True"/>
+<t t-set="no_footer" t-value="True"/>
+
+<div class="o_helpdesk_portal">
+
+    <!-- ── Hero ──────────────────────────────────────────────────────── -->
+    <section class="hd-hero">
+        <div class="hd-hero-bg-pattern"></div>
+        <div class="container position-relative">
+            <div class="row justify-content-center text-center py-5">
+                <div class="col-lg-7">
+                    <div class="hd-hero-logo mb-4">
+                        <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+                             alt="KGRN Chartered Accountants" class="hd-logo-img"/>
+                    </div>
+                    <div class="hd-hero-badge mb-3">
+                        <i class="fa fa-undo me-2"/>Reopen a Ticket
+                    </div>
+                    <h1 class="hd-hero-title mb-3">Still need help with this?</h1>
+                    <p class="hd-hero-subtitle mb-0">
+                        Enter your ticket details below and we'll reopen it and route it back to your support team.
+                    </p>
+                    <p class="hd-hero-track-link mt-3 mb-0">
+                        <i class="fa fa-map-signs me-1"/>
+                        Just want to check its status instead?
+                        <a href="/helpdesk/track">Track your ticket</a>
+                    </p>
+                    <p class="hd-hero-track-link mt-1 mb-0">
+                        <i class="fa fa-th-large me-1"/>
+                        Have more than one ticket?
+                        <a href="/helpdesk/dashboard">View My Dashboard</a>
+                    </p>
+                    <p class="hd-hero-track-link mt-1 mb-0">
+                        <i class="fa fa-paper-plane me-1"/>
+                        Need to submit a new request instead?
+                        <a href="/helpdesk/submit">Start here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Form Body ─────────────────────────────────────────────────── -->
+    <section class="hd-form-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-7 col-lg-8">
+
+                    <!-- General error banner -->
+                    <t t-if="error.get('general')">
+                        <div class="alert hd-alert-danger mb-4" role="alert">
+                            <i class="fa fa-exclamation-circle me-2"/>
+                            <t t-esc="error['general']"/>
+                        </div>
+                    </t>
+
+                    <div class="hd-card">
+                        <div class="hd-card-header">
+                            <div class="hd-step-badge">
+                                <i class="fa fa-ticket"/>
+                            </div>
+                            <div>
+                                <h5 class="hd-card-title mb-0">Ticket Details</h5>
+                                <small class="text-muted">All fields are required</small>
+                            </div>
+                        </div>
+                        <div class="hd-card-body">
+                            <form id="hd-reopen-form" method="POST" action="/helpdesk/reopen/post" novalidate="">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                                <div class="row g-3">
+
+                                    <!-- Ticket Number -->
+                                    <div class="col-md-6">
+                                        <div class="hd-field-wrap">
+                                            <label for="ticket_number" class="hd-label">
+                                                <i class="fa fa-hashtag hd-label-icon"/>
+                                                Ticket Number <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text" id="ticket_number" name="ticket_number"
+                                                   t-att-class="'hd-input is-invalid' if error.get('ticket_number') else 'hd-input'"
+                                                   t-att-value="form_data.get('ticket_number', '')"
+                                                   placeholder="e.g. CHT/2026/0001"
+                                                   required="required"/>
+                                            <t t-if="error.get('ticket_number')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['ticket_number']"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                    <!-- Email -->
+                                    <div class="col-md-6">
+                                        <div class="hd-field-wrap">
+                                            <label for="email" class="hd-label">
+                                                <i class="fa fa-envelope-o hd-label-icon"/>
+                                                Registered Email Address <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="email" id="email" name="email"
+                                                   t-att-class="'hd-input is-invalid' if error.get('email') else 'hd-input'"
+                                                   t-att-value="form_data.get('email', '')"
+                                                   placeholder="you@example.com"
+                                                   required="required"/>
+                                            <t t-if="error.get('email')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['email']"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                    <!-- Reason -->
+                                    <div class="col-12">
+                                        <div class="hd-field-wrap">
+                                            <label for="reason" class="hd-label">
+                                                <i class="fa fa-align-left hd-label-icon"/>
+                                                Reason for Reopening <span class="text-danger">*</span>
+                                            </label>
+                                            <textarea id="reason" name="reason" rows="5"
+                                                      t-att-class="'hd-textarea is-invalid' if error.get('reason') else 'hd-textarea'"
+                                                      placeholder="Tell us why this ticket needs further attention…"
+                                                      required="required"><t t-esc="form_data.get('reason', '')"/></textarea>
+                                            <t t-if="error.get('reason')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['reason']"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <div class="hd-submit-row mt-4">
+                                    <div class="hd-privacy-note">
+                                        <i class="fa fa-lock me-2"/>
+                                        Only the client who submitted the original ticket can reopen it.
+                                    </div>
+                                    <button type="submit" class="hd-submit-btn">
+                                        <span>
+                                            <i class="fa fa-undo me-2"/>Reopen Ticket
+                                        </span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+</t>
+</template>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     REOPEN TICKET — SUCCESS
+══════════════════════════════════════════════════════════════════════ -->
+<template id="helpdesk_reopen_success" name="Client Helpdesk – Ticket Reopened">
+<t t-call="website.layout">
+<t t-set="title">Ticket Reopened</t>
+<t t-set="no_header" t-value="True"/>
+<t t-set="no_footer" t-value="True"/>
+
+<div class="o_helpdesk_portal">
+
+    <!-- Hero -->
+    <section class="hd-hero hd-hero-success">
+        <div class="hd-hero-bg-pattern"></div>
+        <div class="container position-relative">
+            <div class="row justify-content-center text-center py-5">
+                <div class="col-lg-7">
+                    <div class="hd-hero-logo mb-4">
+                        <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+                             alt="KGRN Chartered Accountants" class="hd-logo-img"/>
+                    </div>
+                    <div class="hd-hero-badge mb-3">
+                        <i class="fa fa-refresh me-2"/>Ticket Reopened
+                    </div>
+                    <h1 class="hd-hero-title mb-3">We're back on it!</h1>
+                    <p class="hd-hero-subtitle mb-0">
+                        Your ticket has been reopened and routed back to your support team.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="hd-form-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-7 col-lg-9">
+
+                    <!-- Animated checkmark card -->
+                    <div class="hd-card hd-success-card mb-4 text-center">
+                        <div class="hd-card-body py-5">
+                            <div class="hd-check-anim mx-auto mb-4">
+                                <svg viewBox="0 0 52 52" class="hd-check-svg">
+                                    <circle class="hd-check-circle" cx="26" cy="26" r="25" fill="none"/>
+                                    <path class="hd-check-mark" fill="none" d="M14 27 l7 8 l17-17"/>
+                                </svg>
+                            </div>
+                            <h3 class="fw-bold mb-1">
+                                Thank you, <t t-esc="client_name"/>!
+                            </h3>
+                            <p class="text-muted mb-0">
+                                Ticket <strong><t t-esc="ticket_number"/></strong> is now
+                                <strong><t t-esc="stage_name"/></strong>.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Ticket summary -->
+                    <div class="hd-card mb-4">
+                        <div class="hd-card-header">
+                            <div class="hd-step-badge">
+                                <i class="fa fa-ticket"/>
+                            </div>
+                            <div>
+                                <h5 class="hd-card-title mb-0">Your Ticket Details</h5>
+                                <small class="text-muted">Keep this number for your reference</small>
+                            </div>
+                            <div class="ms-auto">
+                                <span class="hd-ticket-badge">
+                                    <t t-esc="ticket_number"/>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="hd-card-body">
+                            <div class="hd-summary-grid">
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Subject</span>
+                                    <span class="hd-summary-value"><t t-esc="subject"/></span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Created On</span>
+                                    <span class="hd-summary-value">
+                                        <t t-if="created_date">
+                                            <t t-esc="created_date.strftime('%d %b %Y at %H:%M')"/> GST
+                                        </t>
+                                    </span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Current Status</span>
+                                    <span class="hd-summary-value fw-bold text-primary"><t t-esc="stage_name"/></span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Assigned To</span>
+                                    <span class="hd-summary-value"><t t-esc="assigned_to"/></span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Your Reason</span>
+                                    <span class="hd-summary-value"><t t-esc="reason"/></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status timeline -->
+                    <div class="hd-card mb-4">
+                        <div class="hd-card-header">
+                            <div class="hd-step-badge">
+                                <i class="fa fa-list-ol"/>
+                            </div>
+                            <div>
+                                <h5 class="hd-card-title mb-0">What happens next?</h5>
+                            </div>
+                        </div>
+                        <div class="hd-card-body">
+                            <div class="hd-timeline">
+                                <div class="hd-timeline-item hd-tl-done">
+                                    <div class="hd-tl-dot"><i class="fa fa-check"/></div>
+                                    <div class="hd-tl-content">
+                                        <div class="hd-tl-title">Ticket reopened</div>
+                                        <div class="hd-tl-desc">Your reason has been logged and your support team has been notified.</div>
+                                    </div>
+                                </div>
+                                <div class="hd-timeline-item">
+                                    <div class="hd-tl-dot"><i class="fa fa-search"/></div>
+                                    <div class="hd-tl-content">
+                                        <div class="hd-tl-title">Back under review</div>
+                                        <div class="hd-tl-desc">Our team will pick this ticket back up and follow up with you.</div>
+                                    </div>
+                                </div>
+                                <div class="hd-timeline-item">
+                                    <div class="hd-tl-dot"><i class="fa fa-check-circle"/></div>
+                                    <div class="hd-tl-content">
+                                        <div class="hd-tl-title">Resolved again</div>
+                                        <div class="hd-tl-desc">You'll receive an email once your ticket is resolved.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex flex-wrap gap-3 justify-content-center mb-5">
+                        <a t-attf-href="/helpdesk/track/#{ticket_number}" class="hd-btn-outline-primary">
+                            <i class="fa fa-map-signs me-2"/>Track Ticket
+                        </a>
+                        <a href="/helpdesk/submit" class="hd-btn-outline-secondary">
+                            <i class="fa fa-plus me-2"/>Submit a New Request
+                        </a>
+                        <a href="/helpdesk/reopen" class="hd-btn-outline-secondary">
+                            <i class="fa fa-undo me-2"/>Reopen Another Ticket
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script>
+(function () {
+    history.replaceState(null, '', location.href);
+    history.pushState(null, '', location.href);
+    window.addEventListener('popstate', function () {
+        history.pushState(null, '', location.href);
+    });
+})();
+</script>
+
+</t>
+</template>
+
+</odoo>

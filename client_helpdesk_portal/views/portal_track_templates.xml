@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     TRACK TICKET — LOOKUP FORM
+══════════════════════════════════════════════════════════════════════ -->
+<template id="helpdesk_track_form" name="Client Helpdesk – Track a Ticket">
+<t t-call="website.layout">
+<t t-set="title">Track a Support Ticket</t>
+<t t-set="no_header" t-value="True"/>
+<t t-set="no_footer" t-value="True"/>
+
+<div class="o_helpdesk_portal">
+
+    <!-- ── Hero ──────────────────────────────────────────────────────── -->
+    <section class="hd-hero">
+        <div class="hd-hero-bg-pattern"></div>
+        <div class="container position-relative">
+            <div class="row justify-content-center text-center py-5">
+                <div class="col-lg-7">
+                    <div class="hd-hero-logo mb-4">
+                        <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+                             alt="KGRN Chartered Accountants" class="hd-logo-img"/>
+                    </div>
+                    <div class="hd-hero-badge mb-3">
+                        <i class="fa fa-map-signs me-2"/>Track a Ticket
+                    </div>
+                    <h1 class="hd-hero-title mb-3">Where's my ticket?</h1>
+                    <p class="hd-hero-subtitle mb-0">
+                        Enter your ticket number and the email you submitted it with to see live status.
+                    </p>
+                    <p class="hd-hero-track-link mt-3 mb-0">
+                        <i class="fa fa-th-large me-1"/>
+                        Have more than one ticket?
+                        <a href="/helpdesk/dashboard">View My Dashboard</a>
+                    </p>
+                    <p class="hd-hero-track-link mt-1 mb-0">
+                        <i class="fa fa-paper-plane me-1"/>
+                        Need to submit a new request instead?
+                        <a href="/helpdesk/submit">Start here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Form Body ─────────────────────────────────────────────────── -->
+    <section class="hd-form-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-7 col-lg-8">
+
+                    <!-- General error banner -->
+                    <t t-if="error.get('general')">
+                        <div class="alert hd-alert-danger mb-4" role="alert">
+                            <i class="fa fa-exclamation-circle me-2"/>
+                            <t t-esc="error['general']"/>
+                        </div>
+                    </t>
+
+                    <div class="hd-card">
+                        <div class="hd-card-header">
+                            <div class="hd-step-badge">
+                                <i class="fa fa-search"/>
+                            </div>
+                            <div>
+                                <h5 class="hd-card-title mb-0">Find Your Ticket</h5>
+                                <small class="text-muted">Both fields are required</small>
+                            </div>
+                        </div>
+                        <div class="hd-card-body">
+                            <form id="hd-track-form" method="POST" action="/helpdesk/track/post" novalidate="">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                                <div class="row g-3">
+
+                                    <!-- Ticket Number -->
+                                    <div class="col-md-6">
+                                        <div class="hd-field-wrap">
+                                            <label for="ticket_number" class="hd-label">
+                                                <i class="fa fa-hashtag hd-label-icon"/>
+                                                Ticket Number <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text" id="ticket_number" name="ticket_number"
+                                                   t-att-class="'hd-input is-invalid' if error.get('ticket_number') else 'hd-input'"
+                                                   t-att-value="form_data.get('ticket_number', '')"
+                                                   placeholder="e.g. CHT/2026/0001"
+                                                   required="required"/>
+                                            <t t-if="error.get('ticket_number')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['ticket_number']"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                    <!-- Email -->
+                                    <div class="col-md-6">
+                                        <div class="hd-field-wrap">
+                                            <label for="email" class="hd-label">
+                                                <i class="fa fa-envelope-o hd-label-icon"/>
+                                                Registered Email Address <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="email" id="email" name="email"
+                                                   t-att-class="'hd-input is-invalid' if error.get('email') else 'hd-input'"
+                                                   t-att-value="form_data.get('email', '')"
+                                                   placeholder="you@example.com"
+                                                   required="required"/>
+                                            <t t-if="error.get('email')">
+                                                <div class="hd-field-error mt-1">
+                                                    <i class="fa fa-exclamation-circle me-1"/>
+                                                    <t t-esc="error['email']"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <div class="hd-submit-row mt-4">
+                                    <div class="hd-privacy-note">
+                                        <i class="fa fa-lock me-2"/>
+                                        Only the client who submitted the ticket can view its status.
+                                    </div>
+                                    <button type="submit" class="hd-submit-btn">
+                                        <span>
+                                            <i class="fa fa-map-signs me-2"/>Track Ticket
+                                        </span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+</t>
+</template>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     TRACK TICKET — READ-ONLY STATUS PAGE
+══════════════════════════════════════════════════════════════════════ -->
+<template id="helpdesk_track_page" name="Client Helpdesk – Ticket Status">
+<t t-call="website.layout">
+<t t-set="title">Ticket Status</t>
+<t t-set="no_header" t-value="True"/>
+<t t-set="no_footer" t-value="True"/>
+
+<div class="o_helpdesk_portal">
+
+    <!-- ── Hero ──────────────────────────────────────────────────────── -->
+    <section class="hd-hero">
+        <div class="hd-hero-bg-pattern"></div>
+        <div class="container position-relative">
+            <div class="row justify-content-center text-center py-5">
+                <div class="col-lg-7">
+                    <div class="hd-hero-logo mb-4">
+                        <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+                             alt="KGRN Chartered Accountants" class="hd-logo-img"/>
+                    </div>
+                    <div class="hd-hero-badge mb-3">
+                        <i class="fa fa-ticket me-2"/><t t-esc="ticket.ticket_number"/>
+                    </div>
+                    <h1 class="hd-hero-title mb-3"><t t-esc="ticket.subject"/></h1>
+                    <p class="hd-hero-subtitle mb-0">
+                        Current status: <strong><t t-esc="ticket.stage_id.name"/></strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="hd-form-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-7 col-lg-9">
+
+                    <!-- Progress -->
+                    <div class="hd-card mb-4">
+                        <div class="hd-card-header">
+                            <div class="hd-step-badge">
+                                <i class="fa fa-list-ol"/>
+                            </div>
+                            <div>
+                                <h5 class="hd-card-title mb-0">Ticket Progress</h5>
+                            </div>
+                        </div>
+                        <div class="hd-card-body">
+                            <div class="hd-timeline">
+                                <t t-foreach="progress_steps" t-as="step">
+                                    <div t-attf-class="hd-timeline-item #{'hd-tl-done' if step['state'] == 'done' else 'hd-tl-current' if step['state'] == 'current' else ''} #{'hd-tl-current-resolved' if step['state'] == 'current' and step['name'] == 'Resolved' else ''}">
+                                        <div class="hd-tl-dot">
+                                            <i t-if="step['state'] == 'done'" class="fa fa-check"/>
+                                            <i t-elif="step['state'] == 'current'" class="fa fa-dot-circle-o"/>
+                                            <i t-else="" class="fa fa-circle-o"/>
+                                        </div>
+                                        <div class="hd-tl-content">
+                                            <div class="hd-tl-title"><t t-esc="step['name']"/></div>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ticket details -->
+                    <div class="hd-card mb-4">
+                        <div class="hd-card-header">
+                            <div class="hd-step-badge">
+                                <i class="fa fa-info-circle"/>
+                            </div>
+                            <div>
+                                <h5 class="hd-card-title mb-0">Ticket Details</h5>
+                            </div>
+                        </div>
+                        <div class="hd-card-body">
+                            <div class="hd-summary-grid">
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Ticket Number</span>
+                                    <span class="hd-summary-value"><t t-esc="ticket.ticket_number"/></span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Subject</span>
+                                    <span class="hd-summary-value"><t t-esc="ticket.subject"/></span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Client Name</span>
+                                    <span class="hd-summary-value"><t t-esc="ticket.client_name"/></span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Registered Email</span>
+                                    <span class="hd-summary-value"><t t-esc="ticket.email"/></span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Assigned To</span>
+                                    <span class="hd-summary-value"><t t-esc="ticket.user_id.name or 'Unassigned'"/></span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Created On</span>
+                                    <span class="hd-summary-value">
+                                        <t t-if="ticket.created_date">
+                                            <t t-esc="ticket._fmt_gst(ticket.created_date)"/> GST
+                                        </t>
+                                    </span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Priority</span>
+                                    <span class="hd-summary-value"><t t-esc="ticket.priority_label"/></span>
+                                </div>
+                                <div class="hd-summary-row">
+                                    <span class="hd-summary-label">Current Status</span>
+                                    <span class="hd-summary-value fw-bold text-primary"><t t-esc="ticket.stage_id.name"/></span>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <div class="hd-label mb-2">
+                                    <i class="fa fa-align-left hd-label-icon"/>Description
+                                </div>
+                                <div class="hd-input" style="min-height:auto;height:auto;white-space:normal;">
+                                    <t t-out="ticket.description"/>
+                                </div>
+                            </div>
+
+                            <t t-if="resolution_remarks">
+                                <div class="mt-4" style="padding:16px 20px;background:#f0fdf4;border-left:5px solid #16a34a;border-radius:6px;">
+                                    <p style="margin:0 0 8px;font-weight:700;font-size:14px;color:#166534;">Resolution Remarks</p>
+                                    <p style="margin:0;font-size:14px;color:#555555;line-height:1.7;" t-esc="resolution_remarks"/>
+                                </div>
+                            </t>
+                            <t t-if="closed_remarks">
+                                <div class="mt-4" style="padding:16px 20px;background:#fff1f2;border-left:5px solid #dc3545;border-radius:6px;">
+                                    <p style="margin:0 0 8px;font-weight:700;font-size:14px;color:#991b1b;">Closed Remarks</p>
+                                    <p style="margin:0;font-size:14px;color:#555555;line-height:1.7;" t-esc="closed_remarks"/>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- Attachments -->
+                    <div class="hd-card mb-4" t-if="ticket.attachment_ids">
+                        <div class="hd-card-header">
+                            <div class="hd-step-badge">
+                                <i class="fa fa-paperclip"/>
+                            </div>
+                            <div>
+                                <h5 class="hd-card-title mb-0">Attachments</h5>
+                            </div>
+                        </div>
+                        <div class="hd-card-body hd-file-preview">
+                            <t t-foreach="ticket.attachment_ids" t-as="att">
+                                <div class="hd-file-item">
+                                    <i class="fa fa-file-o hd-file-icon"/>
+                                    <div class="hd-file-info">
+                                        <span class="hd-file-name"><t t-esc="att.name"/></span>
+                                    </div>
+                                    <a t-attf-href="/helpdesk/track/#{ticket.ticket_number}/attachment/#{att.id}"
+                                       target="_blank" class="hd-btn-outline-secondary me-2" style="padding:.35rem .9rem;font-size:.8rem;">
+                                        <i class="fa fa-eye me-1"/>Preview
+                                    </a>
+                                    <a t-attf-href="/helpdesk/track/#{ticket.ticket_number}/attachment/#{att.id}?download=1"
+                                       class="hd-btn-outline-primary" style="padding:.35rem .9rem;font-size:.8rem;">
+                                        <i class="fa fa-download me-1"/>Download
+                                    </a>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex flex-wrap gap-3 justify-content-center mb-5">
+                        <t t-if="ticket.stage_id.name == 'Closed'">
+                            <a href="/helpdesk/reopen" class="hd-btn-outline-primary">
+                                <i class="fa fa-undo me-2"/>Reopen This Ticket
+                            </a>
+                        </t>
+                        <a href="/helpdesk/dashboard" class="hd-btn-outline-secondary">
+                            <i class="fa fa-th-large me-2"/>View My Dashboard
+                        </a>
+                        <a href="/helpdesk/submit" class="hd-btn-outline-secondary">
+                            <i class="fa fa-plus me-2"/>Submit a New Request
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+</t>
+</template>
+
+</odoo>

@@ -5,10 +5,11 @@
         <record id="seq_client_helpdesk_ticket" model="ir.sequence">
             <field name="name">Client Helpdesk Ticket</field>
             <field name="code">client.helpdesk.ticket</field>
-            <field name="prefix">TKT</field>
-            <field name="padding">5</field>
+            <field name="prefix">CHT/</field>
+            <field name="padding">4</field>
             <field name="number_next">1</field>
             <field name="number_increment">1</field>
+            <field name="use_date_range" eval="False"/>
             <field name="company_id" eval="False"/>
         </record>
 

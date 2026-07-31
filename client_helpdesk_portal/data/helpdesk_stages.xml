@@ -44,5 +44,12 @@
             <field name="is_closed">True</field>
         </record>
 
+        <record id="stage_reopened" model="client.helpdesk.stage">
+            <field name="name">Reopened</field>
+            <field name="sequence">7</field>
+            <field name="fold">False</field>
+            <field name="is_closed">False</field>
+        </record>
+
     </data>
 </odoo>

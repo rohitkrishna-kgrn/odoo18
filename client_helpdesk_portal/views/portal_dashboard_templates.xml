@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     MY DASHBOARD — EMAIL LOOKUP
+══════════════════════════════════════════════════════════════════════ -->
+<template id="helpdesk_dashboard_login" name="Client Helpdesk – My Dashboard Login">
+<t t-call="website.layout">
+<t t-set="title">My Dashboard</t>
+<t t-set="no_header" t-value="True"/>
+<t t-set="no_footer" t-value="True"/>
+
+<div class="o_helpdesk_portal">
+
+    <!-- ── Hero ──────────────────────────────────────────────────────── -->
+    <section class="hd-hero">
+        <div class="hd-hero-bg-pattern"></div>
+        <div class="container position-relative">
+            <div class="row justify-content-center text-center py-5">
+                <div class="col-lg-7">
+                    <div class="hd-hero-logo mb-4">
+                        <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+                             alt="KGRN Chartered Accountants" class="hd-logo-img"/>
+                    </div>
+                    <div class="hd-hero-badge mb-3">
+                        <i class="fa fa-th-large me-2"/>My Dashboard
+                    </div>
+                    <h1 class="hd-hero-title mb-3">All your tickets, in one place</h1>
+                    <p class="hd-hero-subtitle mb-0">
+                        Enter the email address you used to submit your request(s) to view every
+                        ticket and track its status live.
+                    </p>
+                    <p class="hd-hero-track-link mt-3 mb-0">
+                        <i class="fa fa-paper-plane me-1"/>
+                        Need to submit a new request instead?
+                        <a href="/helpdesk/submit">Start here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Form Body ─────────────────────────────────────────────────── -->
+    <section class="hd-form-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-6 col-lg-7">
+
+                    <!-- General error banner -->
+                    <t t-if="error.get('general')">
+                        <div class="alert hd-alert-danger mb-4" role="alert">
+                            <i class="fa fa-exclamation-circle me-2"/>
+                            <t t-esc="error['general']"/>
+                        </div>
+                    </t>
+
+                    <div class="hd-card">
+                        <div class="hd-card-header">
+                            <div class="hd-step-badge">
+                                <i class="fa fa-envelope-o"/>
+                            </div>
+                            <div>
+                                <h5 class="hd-card-title mb-0">Open My Dashboard</h5>
+                                <small class="text-muted">We'll look up every ticket linked to this email</small>
+                            </div>
+                        </div>
+                        <div class="hd-card-body">
+                            <form id="hd-dashboard-form" method="POST" action="/helpdesk/dashboard/post" novalidate="">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                                <div class="hd-field-wrap">
+                                    <label for="email" class="hd-label">
+                                        <i class="fa fa-envelope-o hd-label-icon"/>
+                                        Email Address <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="email" id="email" name="email"
+                                           t-att-class="'hd-input is-invalid' if error.get('email') else 'hd-input'"
+                                           t-att-value="form_data.get('email', '')"
+                                           placeholder="you@example.com"
+                                           autocomplete="email" required="required"/>
+                                    <t t-if="error.get('email')">
+                                        <div class="hd-field-error mt-1">
+                                            <i class="fa fa-exclamation-circle me-1"/>
+                                            <t t-esc="error['email']"/>
+                                        </div>
+                                    </t>
+                                </div>
+
+                                <div class="hd-submit-row mt-4">
+                                    <div class="hd-privacy-note">
+                                        <i class="fa fa-lock me-2"/>
+                                        Only tickets submitted with this email address will be shown.
+                                    </div>
+                                    <button type="submit" class="hd-submit-btn">
+                                        <span>
+                                            <i class="fa fa-th-large me-2"/>View My Dashboard
+                                        </span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+</t>
+</template>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     MY DASHBOARD — TICKET LIST
+══════════════════════════════════════════════════════════════════════ -->
+<template id="helpdesk_dashboard_view" name="Client Helpdesk – My Dashboard">
+<t t-call="website.layout">
+<t t-set="title">My Dashboard</t>
+<t t-set="no_header" t-value="True"/>
+<t t-set="no_footer" t-value="True"/>
+
+<div class="o_helpdesk_portal">
+
+    <!-- ── Hero ──────────────────────────────────────────────────────── -->
+    <section class="hd-hero">
+        <div class="hd-hero-bg-pattern"></div>
+        <div class="container position-relative">
+            <div class="row justify-content-center text-center py-5">
+                <div class="col-lg-8">
+                    <div class="hd-hero-logo mb-4">
+                        <img src="https://kompanyservices.com/wp-content/uploads/logo-kgrn.png"
+                             alt="KGRN Chartered Accountants" class="hd-logo-img"/>
+                    </div>
+                    <div class="hd-hero-badge mb-3">
+                        <i class="fa fa-th-large me-2"/>My Dashboard
+                    </div>
+                    <h1 class="hd-hero-title mb-3">Your Support Tickets</h1>
+                    <p class="hd-hero-subtitle mb-0">
+                        Showing tickets submitted with <strong><t t-esc="email"/></strong>
+                    </p>
+                    <p class="hd-hero-track-link mt-3 mb-0">
+                        <i class="fa fa-refresh me-1"/>
+                        Not you? <a href="/helpdesk/dashboard/logout">Switch email</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="hd-form-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-9 col-lg-10">
+
+                    <!-- ── Summary stats — click a tile to filter the list below ── -->
+                    <div class="hd-dashboard-stats mb-4">
+                        <a t-att-href="stat_url_all"
+                           t-attf-class="hd-stat-tile #{'active' if current_filter == 'all' else ''}">
+                            <span class="hd-stat-value"><t t-esc="total_count"/></span>
+                            <span class="hd-stat-label">Total Tickets</span>
+                        </a>
+                        <a t-att-href="stat_url_open"
+                           t-attf-class="hd-stat-tile hd-stat-open #{'active' if current_filter == 'open' else ''}">
+                            <span class="hd-stat-value"><t t-esc="open_count"/></span>
+                            <span class="hd-stat-label">Open</span>
+                        </a>
+                        <a t-att-href="stat_url_resolved"
+                           t-attf-class="hd-stat-tile hd-stat-resolved #{'active' if current_filter == 'resolved' else ''}">
+                            <span class="hd-stat-value"><t t-esc="resolved_count"/></span>
+                            <span class="hd-stat-label">Resolved</span>
+                        </a>
+                        <a t-att-href="stat_url_closed"
+                           t-attf-class="hd-stat-tile hd-stat-closed #{'active' if current_filter == 'closed' else ''}">
+                            <span class="hd-stat-value"><t t-esc="closed_count"/></span>
+                            <span class="hd-stat-label">Closed</span>
+                        </a>
+                    </div>
+
+                    <!-- ── Ticket list ────────────────────────────────── -->
+                    <div class="hd-card">
+                        <div class="hd-card-header">
+                            <div class="hd-step-badge">
+                                <i class="fa fa-list"/>
+                            </div>
+                            <div>
+                                <h5 class="hd-card-title mb-0">
+                                    <t t-if="current_filter == 'open'">Open Tickets</t>
+                                    <t t-elif="current_filter == 'resolved'">Resolved Tickets</t>
+                                    <t t-elif="current_filter == 'closed'">Closed Tickets</t>
+                                    <t t-else="">All Tickets</t>
+                                    <span class="text-muted">(<t t-esc="len(tickets)"/>)</span>
+                                </h5>
+                                <small class="text-muted">Click any ticket to track its live status</small>
+                            </div>
+
+                            <!-- Compact date filter — right side of the header -->
+                            <form method="GET" action="/helpdesk/dashboard/view" class="hd-date-filter-compact ms-auto">
+                                <input type="hidden" name="filter" t-att-value="current_filter"/>
+                                <input type="date" name="date_from" class="hd-input-sm"
+                                       t-att-value="date_from" title="From date"/>
+                                <span class="hd-date-filter-sep">–</span>
+                                <input type="date" name="date_to" class="hd-input-sm"
+                                       t-att-value="date_to" title="To date"/>
+                                <button type="submit" class="hd-date-filter-btn" title="Apply date filter">
+                                    <i class="fa fa-filter"/>
+                                </button>
+                                <t t-if="date_from or date_to or current_filter != 'all'">
+                                    <a t-att-href="clear_filters_url" class="hd-date-filter-clear" title="Clear filters">
+                                        <i class="fa fa-times"/>
+                                    </a>
+                                </t>
+                            </form>
+                        </div>
+                        <div class="hd-card-body p-0">
+                            <div class="hd-ticket-list">
+                                <t t-if="not tickets">
+                                    <div class="hd-ticket-empty">
+                                        <i class="fa fa-inbox me-2"/>No tickets match the selected filters.
+                                    </div>
+                                </t>
+                                <t t-foreach="tickets" t-as="ticket">
+                                    <a t-attf-href="/helpdesk/track/#{ticket.ticket_number}" class="hd-ticket-row">
+                                        <div class="hd-ticket-row-main">
+                                            <span class="hd-ticket-row-number"><t t-esc="ticket.ticket_number"/></span>
+                                            <span class="hd-ticket-row-subject"><t t-esc="ticket.subject"/></span>
+                                            <span class="hd-ticket-row-meta">
+                                                <t t-esc="ticket.request_type_label"/> &#8226;
+                                                <t t-if="ticket.created_date">
+                                                    <t t-esc="ticket._fmt_gst(ticket.created_date)"/> GST
+                                                </t>
+                                            </span>
+                                        </div>
+                                        <div class="hd-ticket-row-side">
+                                            <span t-attf-class="hd-stage-badge #{stage_badge_map.get(ticket.stage_id.name, 'hd-stage-default')}">
+                                                <t t-esc="ticket.stage_id.name"/>
+                                            </span>
+                                            <i class="fa fa-chevron-right hd-ticket-row-arrow"/>
+                                        </div>
+                                    </a>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex flex-wrap gap-3 justify-content-center my-5">
+                        <a href="/helpdesk/submit" class="hd-btn-outline-primary">
+                            <i class="fa fa-plus me-2"/>Submit a New Request
+                        </a>
+                        <a href="/helpdesk/dashboard/logout" class="hd-btn-outline-secondary">
+                            <i class="fa fa-refresh me-2"/>Switch Email
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+</t>
+</template>
+
+</odoo>

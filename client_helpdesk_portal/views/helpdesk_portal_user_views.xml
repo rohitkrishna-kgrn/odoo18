@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         LIST VIEW
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="view_helpdesk_portal_user_list" model="ir.ui.view">
+        <field name="name">client.helpdesk.portal.user.list</field>
+        <field name="model">client.helpdesk.portal.user</field>
+        <field name="arch" type="xml">
+            <list string="Helpdesk Portal Users" create="false">
+                <field name="employee_id" string="User"/>
+                <field name="department_id" string="Department"/>
+                <field name="user_id" string="Linked Odoo User"
+                       decoration-danger="not user_id"/>
+                <field name="select_access" string="Select Access" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         FORM VIEW
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="view_helpdesk_portal_user_form" model="ir.ui.view">
+        <field name="name">client.helpdesk.portal.user.form</field>
+        <field name="model">client.helpdesk.portal.user</field>
+        <field name="arch" type="xml">
+            <form string="Helpdesk Portal User">
+                <sheet>
+                    <group>
+                        <field name="employee_id" string="User"/>
+                        <field name="department_id" string="Department" readonly="1"/>
+                        <field name="user_id" string="Linked Odoo User" readonly="1"/>
+                        <field name="select_access"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="view_helpdesk_portal_user_search" model="ir.ui.view">
+        <field name="name">client.helpdesk.portal.user.search</field>
+        <field name="model">client.helpdesk.portal.user</field>
+        <field name="arch" type="xml">
+            <search string="Search Helpdesk Portal Users">
+                <field name="employee_id" string="User"/>
+                <field name="department_id" string="Department"/>
+                <filter name="filter_select_access" string="Select Access Enabled"
+                        domain="[('select_access', '=', True)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_department" string="Department"
+                            context="{'group_by': 'department_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         ACTION
+    ════════════════════════════════════════════════════════════════════ -->
+    <record id="action_helpdesk_portal_user" model="ir.actions.act_window">
+        <field name="name">Helpdesk Portal Users</field>
+        <field name="res_model">client.helpdesk.portal.user</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_helpdesk_portal_user_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No helpdesk portal users configured yet.</p>
+            <p>Enable "Select Access" for employees who should appear in the "Assigned To" dropdown on the public ticket submission form.</p>
+        </field>
+    </record>
+
+</odoo>

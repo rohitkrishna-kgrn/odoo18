@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form_helpdesk" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.client.helpdesk.portal</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="20"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="Client Helpdesk" groups="client_helpdesk_portal.group_helpdesk_admin" name="client_helpdesk_portal">
+                    <block title="Helpdesk Admin">
+                        <setting string="Helpdesk Admin"
+                                 help="Receives tickets automatically when no handler is selected. Helpdesk Admins and Managers can manually reassign tickets to users with Select Access enabled in Helpdesk Portal Users (Managers limited to their own team).">
+                            <field name="helpdesk_admin_id" options="{'no_create': True}"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

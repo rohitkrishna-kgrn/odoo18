@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="client_helpdesk_portal.AttachmentPreviewField">
+        <div class="o_helpdesk_attachment_preview_list">
+            <t t-if="!files.length">
+                <span class="text-muted fst-italic">No attachments.</span>
+            </t>
+            <div t-foreach="files" t-as="file" t-key="file.id"
+                 class="o_helpdesk_attachment_row d-flex align-items-center border-bottom py-1">
+                <i class="fa fa-file-o me-2 text-muted" role="img"/>
+                <span class="flex-grow-1 text-truncate" t-esc="file.displayName" t-att-title="file.displayName"/>
+                <button t-if="file.isViewable" type="button"
+                        class="btn btn-sm btn-link p-1 me-1"
+                        title="Preview" aria-label="Preview"
+                        t-on-click="() => this.onPreview(file)">
+                    <i class="fa fa-eye" role="img"/>
+                </button>
+                <span t-else="" class="btn btn-sm btn-link p-1 me-1 text-muted disabled o_helpdesk_attachment_no_preview"
+                      title="Preview not available for this file type" aria-label="Preview not available">
+                    <i class="fa fa-eye-slash" role="img"/>
+                </span>
+                <a t-att-href="file.downloadUrl" class="btn btn-sm btn-link p-1"
+                   title="Download" aria-label="Download" download="">
+                    <i class="fa fa-download" role="img"/>
+                </a>
+            </div>
+        </div>
+    </t>
+
+</templates>

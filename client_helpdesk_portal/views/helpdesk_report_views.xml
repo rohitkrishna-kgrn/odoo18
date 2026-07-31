@@ -10,6 +10,8 @@
         <field name="arch" type="xml">
             <pivot string="Ticket Analysis" disable_linking="false">
                 <field name="stage_id" type="row"/>
+                <field name="manager_id" type="row"/>
+                <field name="user_id" type="row"/>
                 <field name="request_type" type="col"/>
                 <field name="priority" type="col"/>
                 <field name="ticket_number" type="measure" string="Count"/>
@@ -26,6 +28,7 @@
         <field name="arch" type="xml">
             <graph string="Ticket Analysis" type="bar" stacked="1">
                 <field name="stage_id" type="row"/>
+                <field name="user_id" type="row"/>
                 <field name="request_type" type="col"/>
             </graph>
         </field>
