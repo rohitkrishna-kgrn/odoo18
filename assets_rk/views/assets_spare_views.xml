@@ -1,5 +1,41 @@
 <odoo>
 
+  <!-- Spare Devices Kanban View -->
+  <record id="view_spare_assets_device_kanban" model="ir.ui.view">
+    <field name="name">assets.device.rk.spare.kanban</field>
+    <field name="model">assets.device.rk</field>
+    <field name="arch" type="xml">
+      <kanban class="o_kanban_mobile">
+        <field name="name"/>
+        <field name="asset_type"/>
+        <field name="serial_number"/>
+        <field name="location_id"/>
+        <templates>
+          <t t-name="card">
+            <div class="oe_kanban_global_click">
+              <div class="o_kanban_record_top">
+                <i t-if="record.asset_type.raw_value == 'laptop'" class="fa fa-laptop fa-2x" title="Laptop"/>
+                <i t-elif="record.asset_type.raw_value == 'desktop'" class="fa fa-desktop fa-2x" title="Desktop"/>
+                <i t-elif="record.asset_type.raw_value == 'keyboard'" class="fa fa-keyboard-o fa-2x" title="Keyboard"/>
+                <i t-elif="record.asset_type.raw_value == 'mouse'" class="fa fa-mouse-pointer fa-2x" title="Mouse"/>
+                <i t-elif="record.asset_type.raw_value == 'printer'" class="fa fa-print fa-2x" title="Printer"/>
+                <i t-elif="record.asset_type.raw_value == 'mobile'" class="fa fa-mobile fa-2x" title="Mobile"/>
+                <i t-elif="record.asset_type.raw_value == 'headphone'" class="fa fa-headphones fa-2x" title="Headphone"/>
+                <i t-else="" class="fa fa-cube fa-2x" title="Other"/>
+                <strong class="ms-2"><field name="name"/></strong>
+              </div>
+              <div class="o_kanban_record_body">
+                <div class="text-muted"><field name="serial_number"/></div>
+                <span class="badge text-bg-light"><i class="fa fa-map-marker me-1"/><field name="location_id"/></span>
+                <span class="badge text-bg-success ms-1">Available</span>
+              </div>
+            </div>
+          </t>
+        </templates>
+      </kanban>
+    </field>
+  </record>
+
   <!-- Spare Devices Tree View -->
   <record id="view_spare_assets_device_tree" model="ir.ui.view">
     <field name="name">assets.device.rk.spare.tree</field>
@@ -33,9 +69,32 @@
             <field name="warranty_until"/>
             <field name="active"/>
           </group>
+          <group string="Archive Details" invisible="active">
+            <field name="archive_reason" required="not active"/>
+            <field name="archive_reason_note"/>
+          </group>
           <notebook>
             <page string="Notes">
               <field name="notes"/>
+            </page>
+            <page string="Repair">
+              <field name="repair_ids" context="{'default_device_id': id}">
+                <list decoration-danger="status in ('cancelled', 'beyond_repair')" decoration-success="status == 'completed'">
+                  <field name="name" string="Repair No"/>
+                  <field name="reported_date"/>
+                  <field name="issue_title"/>
+                  <field name="status" widget="badge"
+                         decoration-info="status == 'pending'"
+                         decoration-warning="status == 'in_progress'"
+                         decoration-success="status == 'completed'"
+                         decoration-danger="status in ('cancelled', 'beyond_repair')"/>
+                  <field name="repair_cost"/>
+                  <field name="return_date"/>
+                  <control>
+                    <create string="New Repair"/>
+                  </control>
+                </list>
+              </field>
             </page>
           </notebook>
         </sheet>
@@ -44,20 +103,39 @@
     </field>
   </record>
 
+  <!-- Spare Devices Search View -->
+  <record id="view_spare_assets_device_search" model="ir.ui.view">
+    <field name="name">assets.device.rk.spare.search</field>
+    <field name="model">assets.device.rk</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name"/>
+        <field name="serial_number"/>
+        <field name="location_id"/>
+        <group expand="0" string="Group By">
+          <filter name="group_by_location" string="Location" context="{'group_by': 'location_id'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
   <!-- Spare Devices Action -->
   <record id="action_spare_assets_device" model="ir.actions.act_window">
     <field name="name">Spare Devices</field>
     <field name="res_model">assets.device.rk</field>
-    <field name="view_mode">list,form</field>
+    <field name="view_mode">kanban,list,form</field>
     <field name="view_ids" eval="[(5, 0, 0),
+      (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_spare_assets_device_kanban')}),
       (0, 0, {'view_mode': 'list', 'view_id': ref('view_spare_assets_device_tree')}),
       (0, 0, {'view_mode': 'form', 'view_id': ref('view_spare_assets_device_form')})
     ]"/>
+    <field name="search_view_id" ref="view_spare_assets_device_search"/>
     <field name="domain">[('assigned_to','=',False)]</field>
-    <field name="context">{}</field>
+    <field name="context">{'group_by': ['location_id']}</field>
   </record>
 
   <!-- Spare Devices Menu -->
-  <menuitem id="menu_spare_assets_device" name="Spare Devices" parent="menu_assets_rk_root" sequence="3" action="action_spare_assets_device"/>
+  <menuitem id="menu_spare_assets_device" name="Spare Devices" parent="menu_assets_rk_root"
+            action="action_spare_assets_device" sequence="20"/>
 
 </odoo>

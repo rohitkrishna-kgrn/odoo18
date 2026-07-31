@@ -8,6 +8,7 @@
       <list>
         <field name="name"/>
         <field name="description"/>
+        <field name="device_count"/>
       </list>
     </field>
   </record>
@@ -18,10 +19,22 @@
     <field name="arch" type="xml">
       <form>
         <sheet>
-          <field name="name"/>
-          <field name="description"/>
+          <group>
+            <field name="name"/>
+            <field name="description"/>
+          </group>
         </sheet>
       </form>
+    </field>
+  </record>
+
+  <record id="view_network_device_type_search" model="ir.ui.view">
+    <field name="name">network.device.type.rk.search</field>
+    <field name="model">network.device.type.rk</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name"/>
+      </search>
     </field>
   </record>
 
@@ -32,17 +45,60 @@
   </record>
 
   <!-- Network Device Views -->
+  <record id="view_network_device_kanban" model="ir.ui.view">
+    <field name="name">network.device.rk.kanban</field>
+    <field name="model">network.device.rk</field>
+    <field name="arch" type="xml">
+      <kanban class="o_kanban_mobile">
+        <field name="name"/>
+        <field name="device_type_id"/>
+        <field name="ip_address"/>
+        <field name="location_id"/>
+        <field name="warranty_status"/>
+        <templates>
+          <t t-name="card">
+            <div class="oe_kanban_global_click">
+              <div class="o_kanban_record_top">
+                <i class="fa fa-sitemap fa-2x text-primary" title="Network Device"/>
+                <strong class="ms-2"><field name="name"/></strong>
+              </div>
+              <div class="o_kanban_record_body">
+                <div><span class="badge text-bg-light"><field name="device_type_id"/></span></div>
+                <div t-if="record.ip_address.raw_value" class="text-muted">
+                  <i class="fa fa-globe me-1"/><field name="ip_address"/>
+                </div>
+                <div>
+                  <span class="badge text-bg-light"><i class="fa fa-map-marker me-1"/><field name="location_id"/></span>
+                </div>
+                <div class="mt-1">
+                  <span t-if="record.warranty_status.raw_value == 'valid'" class="badge text-bg-success">Under Warranty</span>
+                  <span t-elif="record.warranty_status.raw_value == 'expiring'" class="badge text-bg-warning">Expiring Soon</span>
+                  <span t-elif="record.warranty_status.raw_value == 'expired'" class="badge text-bg-danger">Warranty Expired</span>
+                  <span t-else="" class="badge text-bg-secondary">No Warranty Info</span>
+                </div>
+              </div>
+            </div>
+          </t>
+        </templates>
+      </kanban>
+    </field>
+  </record>
+
   <record id="view_network_device_tree" model="ir.ui.view">
     <field name="name">network.device.rk.tree</field>
     <field name="model">network.device.rk</field>
     <field name="arch" type="xml">
-      <list>
+      <list decoration-danger="warranty_status == 'expired'" decoration-warning="warranty_status == 'expiring'">
         <field name="name"/>
         <field name="device_type_id"/>
         <field name="ip_address"/>
         <field name="serial_number"/>
         <field name="location_id"/>
-        <field name="active"/>
+        <field name="warranty_status" widget="badge"
+               decoration-success="warranty_status == 'valid'"
+               decoration-warning="warranty_status == 'expiring'"
+               decoration-danger="warranty_status == 'expired'"/>
+        <field name="active" column_invisible="1"/>
       </list>
     </field>
   </record>
@@ -53,17 +109,27 @@
     <field name="arch" type="xml">
       <form>
         <sheet>
+          <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+          <div class="oe_title">
+            <label for="name"/>
+            <h1><field name="name" placeholder="e.g. Core Switch 1"/></h1>
+          </div>
           <group>
-            <field name="name"/>
-            <field name="device_type_id"/>
-            <field name="ip_address"/>
-            <field name="serial_number"/>
-            <field name="location_id"/>
-          </group>
-          <group>
-            <field name="purchase_date"/>
-            <field name="warranty_until"/>
-            <field name="active"/>
+            <group>
+              <field name="device_type_id"/>
+              <field name="ip_address"/>
+              <field name="serial_number"/>
+              <field name="location_id"/>
+            </group>
+            <group>
+              <field name="purchase_date"/>
+              <field name="warranty_until"/>
+              <field name="warranty_status" widget="badge"
+                     decoration-success="warranty_status == 'valid'"
+                     decoration-warning="warranty_status == 'expiring'"
+                     decoration-danger="warranty_status == 'expired'"/>
+              <field name="active"/>
+            </group>
           </group>
           <notebook>
             <page string="Notes">
@@ -76,16 +142,39 @@
     </field>
   </record>
 
+  <record id="view_network_device_search" model="ir.ui.view">
+    <field name="name">network.device.rk.search</field>
+    <field name="model">network.device.rk</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name"/>
+        <field name="serial_number"/>
+        <field name="ip_address"/>
+        <field name="device_type_id"/>
+        <field name="location_id"/>
+        <filter name="filter_warranty_expiring" string="Warranty Expiring Soon" domain="[('warranty_status', '=', 'expiring')]"/>
+        <filter name="filter_warranty_expired" string="Warranty Expired" domain="[('warranty_status', '=', 'expired')]"/>
+        <group expand="0" string="Group By">
+          <filter name="group_by_type" string="Device Type" context="{'group_by': 'device_type_id'}"/>
+          <filter name="group_by_location" string="Location" context="{'group_by': 'location_id'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
   <!-- Action -->
   <record id="action_network_devices" model="ir.actions.act_window">
     <field name="name">Network Devices</field>
     <field name="res_model">network.device.rk</field>
-    <field name="view_mode">list,form</field>
+    <field name="view_mode">list,kanban,form</field>
+    <field name="search_view_id" ref="view_network_device_search"/>
+    <field name="context">{'group_by': ['location_id']}</field>
   </record>
 
   <!-- Menus -->
-  <menuitem id="menu_network_devices_root" name="Network Devices" parent="menu_assets_rk_root" sequence="20"/>
-  <menuitem id="menu_network_devices" name="All Devices" parent="menu_network_devices_root" action="action_network_devices" sequence="10"/>
-  <menuitem id="menu_network_device_types" name="Device Types" parent="menu_network_devices_root" action="action_network_device_type" sequence="20"/>
+  <menuitem id="menu_network_devices" name="Network Devices" parent="menu_assets_rk_root"
+            action="action_network_devices" sequence="30"/>
+  <menuitem id="menu_network_device_types" name="Network Device Types" parent="menu_assets_rk_config"
+            action="action_network_device_type" sequence="20"/>
 
 </odoo>

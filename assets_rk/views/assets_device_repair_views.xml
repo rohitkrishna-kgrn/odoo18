@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="view_assets_device_repair_list" model="ir.ui.view">
+    <field name="name">assets.device.repair.rk.list</field>
+    <field name="model">assets.device.repair.rk</field>
+    <field name="arch" type="xml">
+      <list decoration-danger="status in ('cancelled', 'beyond_repair')" decoration-success="status == 'completed'">
+        <field name="name" string="Repair No"/>
+        <field name="reported_date"/>
+        <field name="issue_title"/>
+        <field name="status" widget="badge"
+               decoration-info="status == 'pending'"
+               decoration-warning="status == 'in_progress'"
+               decoration-success="status == 'completed'"
+               decoration-danger="status in ('cancelled', 'beyond_repair')"/>
+        <field name="repair_cost"/>
+        <field name="return_date"/>
+        <control>
+          <create string="New Repair"/>
+        </control>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_assets_device_repair_form" model="ir.ui.view">
+    <field name="name">assets.device.repair.rk.form</field>
+    <field name="model">assets.device.repair.rk</field>
+    <field name="arch" type="xml">
+      <form string="Repair Record">
+        <sheet>
+          <div class="oe_title">
+            <label for="name"/>
+            <h1><field name="name" readonly="1"/></h1>
+          </div>
+          <group string="Basic Information">
+            <group>
+              <field name="device_id" readonly="1"/>
+              <field name="asset_code"/>
+            </group>
+            <group>
+              <field name="status"/>
+            </group>
+          </group>
+          <group string="Problem Details">
+            <field name="issue_title"/>
+            <field name="issue_description"/>
+            <field name="category"/>
+            <div class="text-muted" colspan="2" invisible="category != 'other'">
+              Please add additional details in the Remarks field (Resolution tab).
+            </div>
+          </group>
+          <group string="Timeline">
+            <group>
+              <field name="reported_date"/>
+              <field name="sent_for_repair_date"/>
+            </group>
+            <group>
+              <field name="return_date"/>
+              <field name="completed_date" required="status == 'completed'"/>
+            </group>
+          </group>
+          <group string="Repair Information">
+            <group>
+              <field name="service_provider" placeholder="Enter service center or technician name"/>
+              <field name="warranty_covered"/>
+            </group>
+            <group>
+              <field name="currency_id" invisible="1"/>
+              <field name="repair_cost"/>
+            </group>
+          </group>
+          <notebook>
+            <page string="Parts Replaced">
+              <field name="part_ids">
+                <list editable="bottom">
+                  <field name="part_name"/>
+                  <field name="quantity"/>
+                  <field name="currency_id" column_invisible="1"/>
+                  <field name="cost"/>
+                </list>
+              </field>
+            </page>
+            <page string="Resolution">
+              <group>
+                <field name="root_cause"/>
+                <field name="resolution" required="status == 'completed'"/>
+                <field name="remarks"/>
+              </group>
+            </page>
+            <page string="Attachments">
+              <field name="attachment_ids" widget="many2many_binary"/>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+  </record>
+
+  <record id="view_assets_device_repair_search" model="ir.ui.view">
+    <field name="name">assets.device.repair.rk.search</field>
+    <field name="model">assets.device.repair.rk</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name" string="Repair No"/>
+        <field name="issue_title"/>
+        <field name="device_id"/>
+        <field name="category"/>
+        <filter name="filter_pending" string="Pending" domain="[('status', '=', 'pending')]"/>
+        <filter name="filter_in_progress" string="In Progress" domain="[('status', '=', 'in_progress')]"/>
+        <filter name="filter_completed" string="Completed" domain="[('status', '=', 'completed')]"/>
+        <group expand="0" string="Group By">
+          <filter name="group_by_status" string="Status" context="{'group_by': 'status'}"/>
+          <filter name="group_by_category" string="Category" context="{'group_by': 'category'}"/>
+          <filter name="group_by_device" string="Asset" context="{'group_by': 'device_id'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+</odoo>

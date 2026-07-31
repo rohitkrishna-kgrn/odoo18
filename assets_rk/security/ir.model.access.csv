@@ -3,3 +3,12 @@ access_assets_device_rk,access.assets.device.rk,model_assets_device_rk,group_ass
 access_assets_location_rk,access.assets.location.rk,model_assets_location_rk,group_assets_rk_manager,1,1,1,1
 access_network_device_rk,access.network.device.rk,model_network_device_rk,group_assets_rk_manager,1,1,1,1
 access_network_device_type_rk,access.network.device.type.rk,model_network_device_type_rk,group_assets_rk_manager,1,1,1,1
+access_it_document_folder,access.it.document.folder,model_it_document_folder,group_assets_rk_manager,1,1,1,1
+access_it_document_file,access.it.document.file,model_it_document_file,group_assets_rk_manager,1,1,1,1
+access_it_document_file_version,access.it.document.file.version,model_it_document_file_version,group_assets_rk_manager,1,1,1,1
+access_it_document_category,access.it.document.category,model_it_document_category,group_assets_rk_manager,1,1,1,1
+access_it_document_tag,access.it.document.tag,model_it_document_tag,group_assets_rk_manager,1,1,1,1
+access_it_document_replace_wizard,access.it.document.replace.wizard,model_it_document_replace_wizard,group_assets_rk_manager,1,1,1,1
+access_assets_device_archive_wizard,access.assets.device.archive.wizard,model_assets_device_archive_wizard,group_assets_rk_manager,1,1,1,1
+access_assets_device_repair_rk,access.assets.device.repair.rk,model_assets_device_repair_rk,group_assets_rk_manager,1,1,1,1
+access_assets_device_repair_part_rk,access.assets.device.repair.part.rk,model_assets_device_repair_part_rk,group_assets_rk_manager,1,1,1,1

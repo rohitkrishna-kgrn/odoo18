@@ -1,5 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+  <record id="view_assets_location_kanban" model="ir.ui.view">
+    <field name="name">assets.location.rk.kanban</field>
+    <field name="model">assets.location.rk</field>
+    <field name="arch" type="xml">
+      <kanban class="o_kanban_mobile">
+        <field name="name"/>
+        <field name="code"/>
+        <field name="device_count"/>
+        <field name="network_device_count"/>
+        <templates>
+          <t t-name="card">
+            <div class="oe_kanban_global_click">
+              <div class="o_kanban_record_top">
+                <i class="fa fa-map-marker fa-2x text-danger" title="Location"/>
+                <strong class="ms-2"><field name="name"/></strong>
+              </div>
+              <div class="o_kanban_record_body">
+                <span class="badge text-bg-light">Code: <field name="code"/></span>
+                <div class="mt-2">
+                  <span class="badge text-bg-info me-1">
+                    <i class="fa fa-desktop me-1"/><field name="device_count"/> Devices
+                  </span>
+                  <span class="badge text-bg-secondary">
+                    <i class="fa fa-sitemap me-1"/><field name="network_device_count"/> Network
+                  </span>
+                </div>
+              </div>
+            </div>
+          </t>
+        </templates>
+      </kanban>
+    </field>
+  </record>
+
   <record id="view_assets_location_tree" model="ir.ui.view">
     <field name="name">assets.location.rk.tree</field>
     <field name="model">assets.location.rk</field>
@@ -7,6 +41,9 @@
       <list>
         <field name="name"/>
         <field name="code"/>
+        <field name="currency_id"/>
+        <field name="device_count"/>
+        <field name="network_device_count"/>
       </list>
     </field>
   </record>
@@ -15,26 +52,50 @@
     <field name="name">assets.location.rk.form</field>
     <field name="model">assets.location.rk</field>
     <field name="arch" type="xml">
-      <form>
+      <form string="Location">
         <sheet>
+          <div class="oe_button_box" name="button_box">
+            <button name="action_view_devices" type="object" class="oe_stat_button" icon="fa-desktop">
+              <field name="device_count" widget="statinfo" string="Devices"/>
+            </button>
+            <button name="action_view_network_devices" type="object" class="oe_stat_button" icon="fa-sitemap">
+              <field name="network_device_count" widget="statinfo" string="Network Devices"/>
+            </button>
+          </div>
+          <div class="oe_title">
+            <label for="name"/>
+            <h1><field name="name" placeholder="e.g. Head Office"/></h1>
+          </div>
           <group>
-            <field name="name"/>
             <field name="code"/>
+            <field name="currency_id" options="{'no_create': True}"/>
           </group>
         </sheet>
       </form>
     </field>
   </record>
 
+  <record id="view_assets_location_search" model="ir.ui.view">
+    <field name="name">assets.location.rk.search</field>
+    <field name="model">assets.location.rk</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name"/>
+        <field name="code"/>
+      </search>
+    </field>
+  </record>
 
   <record id="action_assets_location" model="ir.actions.act_window">
     <field name="name">Locations</field>
     <field name="res_model">assets.location.rk</field>
-    <field name="view_mode">list,form</field>
+    <field name="view_mode">kanban,list,form</field>
     <field name="context">{}</field>
   </record>
 
   <menuitem id="menu_assets_rk_root" name="IT Assets" sequence="10" web_icon="assets_rk,static/description/icon.png"/>
-  <menuitem id="menu_assets_location" name="Locations" parent="menu_assets_rk_root" sequence="10" action="action_assets_location"/>
-  
+  <menuitem id="menu_assets_rk_config" name="Configuration" parent="menu_assets_rk_root" sequence="90"/>
+  <menuitem id="menu_assets_location" name="Locations" parent="menu_assets_rk_config"
+            action="action_assets_location" sequence="10"/>
+
 </odoo>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- INR and AED are inactive by default in Odoo; activate them so they are
+       selectable as a Location's currency (used to price Repair Cost). -->
+  <record id="base.INR" model="res.currency">
+    <field name="active" eval="True"/>
+  </record>
+  <record id="base.AED" model="res.currency">
+    <field name="active" eval="True"/>
+  </record>
+</odoo>

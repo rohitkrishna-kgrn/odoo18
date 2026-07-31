@@ -1,0 +1,488 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <!-- ==================== Document Category ==================== -->
+  <record id="view_it_document_category_list" model="ir.ui.view">
+    <field name="name">it.document.category.list</field>
+    <field name="model">it.document.category</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="name"/>
+        <field name="color" widget="color_picker"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_it_document_category_form" model="ir.ui.view">
+    <field name="name">it.document.category.form</field>
+    <field name="model">it.document.category</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="color" widget="color_picker"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_it_document_category" model="ir.actions.act_window">
+    <field name="name">Document Categories</field>
+    <field name="res_model">it.document.category</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+  <!-- ==================== Document Tag ==================== -->
+  <record id="view_it_document_tag_list" model="ir.ui.view">
+    <field name="name">it.document.tag.list</field>
+    <field name="model">it.document.tag</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="name"/>
+        <field name="color" widget="color_picker"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_it_document_tag_form" model="ir.ui.view">
+    <field name="name">it.document.tag.form</field>
+    <field name="model">it.document.tag</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="color" widget="color_picker"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_it_document_tag" model="ir.actions.act_window">
+    <field name="name">Document Tags</field>
+    <field name="res_model">it.document.tag</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+  <!-- ==================== Folder Views ==================== -->
+  <record id="view_it_document_folder_kanban" model="ir.ui.view">
+    <field name="name">it.document.folder.kanban</field>
+    <field name="model">it.document.folder</field>
+    <field name="arch" type="xml">
+      <kanban class="o_kanban_mobile" highlight_color="color">
+        <field name="name"/>
+        <field name="file_count"/>
+        <field name="total_size_display"/>
+        <field name="create_date"/>
+        <field name="create_uid"/>
+        <field name="color"/>
+        <templates>
+          <t t-name="menu">
+            <field name="color" widget="kanban_color_picker"/>
+          </t>
+          <t t-name="card">
+            <div class="oe_kanban_global_click">
+              <div class="o_kanban_record_top">
+                <i class="fa fa-folder fa-2x text-warning" title="Folder"/>
+                <strong class="ms-2"><field name="name"/></strong>
+              </div>
+              <div class="o_kanban_record_body">
+                <span class="badge text-bg-info">
+                  <i class="fa fa-file-o me-1"/><field name="file_count"/> Files
+                </span>
+                <span class="badge text-bg-light">
+                  <i class="fa fa-hdd-o me-1"/><field name="total_size_display"/>
+                </span>
+              </div>
+              <div class="o_kanban_record_bottom">
+                <div class="oe_kanban_bottom_left text-muted">
+                  <i class="fa fa-user"/> <field name="create_uid"/>
+                </div>
+                <div class="oe_kanban_bottom_right text-muted">
+                  <field name="create_date"/>
+                </div>
+              </div>
+            </div>
+          </t>
+        </templates>
+      </kanban>
+    </field>
+  </record>
+
+  <record id="view_it_document_folder_list" model="ir.ui.view">
+    <field name="name">it.document.folder.list</field>
+    <field name="model">it.document.folder</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="name"/>
+        <field name="file_count"/>
+        <field name="total_size_display" string="Storage Used"/>
+        <field name="create_uid" string="Created By"/>
+        <field name="create_date" string="Created Date"/>
+        <field name="active" column_invisible="1"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_it_document_folder_form" model="ir.ui.view">
+    <field name="name">it.document.folder.form</field>
+    <field name="model">it.document.folder</field>
+    <field name="arch" type="xml">
+      <form string="Document Folder">
+        <header>
+          <button name="action_download_all" type="object" string="Download All (ZIP)"
+                  class="btn-primary" icon="fa-download" invisible="not file_count"/>
+        </header>
+        <sheet>
+          <div class="oe_button_box" name="button_box">
+            <button name="action_view_documents" type="object" class="oe_stat_button" icon="fa-file-o">
+              <field name="file_count" widget="statinfo" string="Total Files"/>
+            </button>
+            <button name="action_view_latest_documents" type="object" class="oe_stat_button" icon="fa-clock-o">
+              <div class="o_stat_info">
+                <span class="o_stat_text">Latest Documents</span>
+              </div>
+            </button>
+            <button name="action_view_folder_statistics" type="object" class="oe_stat_button" icon="fa-bar-chart">
+              <div class="o_stat_info">
+                <span class="o_stat_text">Folder Statistics</span>
+              </div>
+            </button>
+            <button name="action_view_folder_statistics" type="object" class="oe_stat_button" icon="fa-hdd-o">
+              <div class="o_stat_info">
+                <span class="o_stat_value"><field name="total_size_display"/></span>
+                <span class="o_stat_text">Storage Used</span>
+              </div>
+            </button>
+          </div>
+          <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+          <div class="oe_title">
+            <label for="name"/>
+            <h1><field name="name" placeholder="e.g. API Design Documents"/></h1>
+          </div>
+          <group>
+            <group>
+              <field name="doc_type"/>
+              <field name="active"/>
+            </group>
+            <group>
+              <field name="create_uid" string="Created By" readonly="1"/>
+              <field name="create_date" string="Created Date" readonly="1"/>
+            </group>
+          </group>
+          <group string="Description">
+            <field name="description" nolabel="1" placeholder="Describe the purpose of this folder..."/>
+          </group>
+          <notebook>
+            <page string="Documents">
+              <field name="document_ids" context="{'default_folder_id': id, 'default_doc_type': doc_type}">
+                <list>
+                  <field name="name"/>
+                  <field name="category_id"/>
+                  <field name="version"/>
+                  <field name="file_type"/>
+                  <field name="file_size_display"/>
+                  <field name="uploaded_by"/>
+                  <field name="upload_date"/>
+                  <field name="tag_ids" widget="many2many_tags"/>
+                </list>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+  </record>
+
+  <record id="view_it_document_folder_search" model="ir.ui.view">
+    <field name="name">it.document.folder.search</field>
+    <field name="model">it.document.folder</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name"/>
+        <field name="create_uid" string="Created By"/>
+        <filter name="filter_active" string="Active" domain="[('active', '=', True)]"/>
+        <filter name="filter_archived" string="Archived" domain="[('active', '=', False)]"/>
+        <group expand="0" string="Group By">
+          <filter name="group_by_doc_type" string="Document Menu" context="{'group_by': 'doc_type'}"/>
+          <filter name="group_by_created_by" string="Created By" context="{'group_by': 'create_uid'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+  <!-- ==================== File Views ==================== -->
+  <record id="view_it_document_file_kanban" model="ir.ui.view">
+    <field name="name">it.document.file.kanban</field>
+    <field name="model">it.document.file</field>
+    <field name="arch" type="xml">
+      <kanban class="o_kanban_mobile" highlight_color="color">
+        <field name="name"/>
+        <field name="color"/>
+        <field name="category_id"/>
+        <field name="version"/>
+        <field name="file_type"/>
+        <field name="file_size_display"/>
+        <field name="uploaded_by"/>
+        <field name="upload_date"/>
+        <field name="tag_ids"/>
+        <field name="is_favorite"/>
+        <field name="download_count"/>
+        <templates>
+          <t t-name="card">
+            <div class="oe_kanban_global_click">
+              <div class="o_kanban_record_top">
+                <t t-set="ftype" t-value="record.file_type.raw_value or ''"/>
+                <i t-if="ftype == 'PDF'" class="fa fa-file-pdf-o fa-2x" title="PDF"/>
+                <i t-elif="['DOC', 'DOCX'].includes(ftype)" class="fa fa-file-word-o fa-2x" title="Word"/>
+                <i t-elif="['XLS', 'XLSX', 'CSV'].includes(ftype)" class="fa fa-file-excel-o fa-2x" title="Excel"/>
+                <i t-elif="['PPT', 'PPTX'].includes(ftype)" class="fa fa-file-powerpoint-o fa-2x" title="PowerPoint"/>
+                <i t-elif="['ZIP', 'RAR', '7Z'].includes(ftype)" class="fa fa-file-archive-o fa-2x" title="Archive"/>
+                <i t-elif="['PNG', 'JPG', 'JPEG', 'GIF', 'BMP', 'SVG'].includes(ftype)" class="fa fa-file-image-o fa-2x" title="Image"/>
+                <i t-elif="['TXT', 'MD'].includes(ftype)" class="fa fa-file-text-o fa-2x" title="Text"/>
+                <i t-else="" class="fa fa-file-o fa-2x" title="File"/>
+                <strong class="ms-2"><field name="name"/></strong>
+                <span class="float-end">
+                  <field name="is_favorite" widget="boolean_favorite" nolabel="1"/>
+                </span>
+              </div>
+              <div class="o_kanban_record_body">
+                <div t-if="record.category_id.raw_value">
+                  <field name="category_id" widget="badge"/>
+                </div>
+                <div>
+                  <span class="badge text-bg-light">v<field name="version"/></span>
+                  <span class="badge text-bg-light"><field name="file_type"/></span>
+                  <span class="badge text-bg-light"><field name="file_size_display"/></span>
+                  <span t-if="record.download_count.raw_value" class="badge text-bg-light">
+                    <i class="fa fa-download me-1"/><field name="download_count"/>
+                  </span>
+                </div>
+                <field name="tag_ids" widget="many2many_tags"/>
+              </div>
+              <div class="o_kanban_record_bottom">
+                <div class="oe_kanban_bottom_left text-muted">
+                  <field name="uploaded_by" widget="many2one_avatar_user"/>
+                </div>
+                <div class="oe_kanban_bottom_right text-muted">
+                  <field name="upload_date"/>
+                </div>
+              </div>
+            </div>
+          </t>
+        </templates>
+      </kanban>
+    </field>
+  </record>
+
+  <record id="view_it_document_file_list" model="ir.ui.view">
+    <field name="name">it.document.file.list</field>
+    <field name="model">it.document.file</field>
+    <field name="arch" type="xml">
+      <list decoration-muted="not active">
+        <field name="is_favorite" widget="boolean_favorite" nolabel="1"/>
+        <field name="name"/>
+        <field name="folder_id"/>
+        <field name="category_id"/>
+        <field name="version"/>
+        <field name="file_type"/>
+        <field name="file_size_display"/>
+        <field name="uploaded_by"/>
+        <field name="upload_date"/>
+        <field name="download_count"/>
+        <field name="tag_ids" widget="many2many_tags"/>
+        <field name="active" column_invisible="1"/>
+        <button name="action_download" type="object" icon="fa-download" title="Download"/>
+        <button name="action_view_file" type="object" icon="fa-eye" title="View"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_it_document_file_list_latest" model="ir.ui.view">
+    <field name="name">it.document.file.list.latest</field>
+    <field name="model">it.document.file</field>
+    <field name="arch" type="xml">
+      <list default_order="upload_date desc" create="0">
+        <field name="name"/>
+        <field name="folder_id"/>
+        <field name="category_id"/>
+        <field name="version"/>
+        <field name="uploaded_by"/>
+        <field name="upload_date"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_it_document_file_form" model="ir.ui.view">
+    <field name="name">it.document.file.form</field>
+    <field name="model">it.document.file</field>
+    <field name="arch" type="xml">
+      <form string="Document">
+        <sheet>
+          <div class="oe_button_box" name="button_box">
+            <button name="action_download" type="object" class="oe_stat_button" icon="fa-download" string="Download"/>
+            <button name="action_view_file" type="object" class="oe_stat_button" icon="fa-eye" string="View"/>
+            <button name="action_open_replace_wizard" type="object" class="oe_stat_button" icon="fa-refresh" string="Replace"/>
+          </div>
+          <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+          <div class="oe_title">
+            <label for="name"/>
+            <h1>
+              <field name="is_favorite" widget="boolean_favorite" nolabel="1"/>
+              <field name="name" placeholder="Document name"/>
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="folder_id"/>
+              <field name="doc_type" readonly="1" force_save="1"/>
+              <field name="category_id"/>
+              <field name="tag_ids" widget="many2many_tags"/>
+              <field name="active"/>
+            </group>
+            <group>
+              <field name="version" readonly="1"/>
+              <field name="file_type" readonly="1"/>
+              <field name="file_size_display" string="File Size" readonly="1"/>
+              <field name="uploaded_by" readonly="1"/>
+              <field name="upload_date" readonly="1"/>
+              <field name="download_count" readonly="1"/>
+            </group>
+          </group>
+          <group string="Description">
+            <field name="description" nolabel="1"/>
+          </group>
+          <group string="File">
+            <field name="datas" filename="file_name"/>
+            <field name="file_name" invisible="1"/>
+          </group>
+          <group string="PDF Preview" invisible="not is_pdf">
+            <field name="datas" widget="pdf_viewer" nolabel="1" readonly="1"/>
+          </group>
+          <notebook>
+            <page string="Version History" invisible="not version_history_ids">
+              <field name="version_history_ids">
+                <list create="0" edit="0" delete="0">
+                  <field name="version"/>
+                  <field name="file_name"/>
+                  <field name="file_size"/>
+                  <field name="uploaded_by"/>
+                  <field name="upload_date"/>
+                  <button name="action_download" type="object" icon="fa-download" title="Download"/>
+                </list>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+  </record>
+
+  <record id="view_it_document_file_search" model="ir.ui.view">
+    <field name="name">it.document.file.search</field>
+    <field name="model">it.document.file</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name" string="Document Name"/>
+        <field name="folder_id"/>
+        <field name="uploaded_by"/>
+        <field name="tag_ids"/>
+        <field name="category_id"/>
+        <filter name="filter_favorites" string="My Favorites" domain="[('is_favorite', '=', True)]"/>
+        <filter name="filter_active" string="Active" domain="[('active', '=', True)]"/>
+        <filter name="filter_archived" string="Archived" domain="[('active', '=', False)]"/>
+        <filter name="filter_pdf" string="PDF Files" domain="[('is_pdf', '=', True)]"/>
+        <group expand="0" string="Group By">
+          <filter name="group_by_doc_type" string="Document Menu" context="{'group_by': 'doc_type'}"/>
+          <filter name="group_by_folder" string="Folder" context="{'group_by': 'folder_id'}"/>
+          <filter name="group_by_category" string="Category" context="{'group_by': 'category_id'}"/>
+          <filter name="group_by_uploaded_by" string="Uploaded By" context="{'group_by': 'uploaded_by'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+  <record id="view_it_document_file_pivot" model="ir.ui.view">
+    <field name="name">it.document.file.pivot</field>
+    <field name="model">it.document.file</field>
+    <field name="arch" type="xml">
+      <pivot>
+        <field name="category_id" type="row"/>
+        <field name="uploaded_by" type="col"/>
+      </pivot>
+    </field>
+  </record>
+
+  <record id="view_it_document_file_graph" model="ir.ui.view">
+    <field name="name">it.document.file.graph</field>
+    <field name="model">it.document.file</field>
+    <field name="arch" type="xml">
+      <graph type="bar">
+        <field name="category_id"/>
+      </graph>
+    </field>
+  </record>
+
+  <!-- ==================== Replace Wizard ==================== -->
+  <record id="view_it_document_replace_wizard_form" model="ir.ui.view">
+    <field name="name">it.document.replace.wizard.form</field>
+    <field name="model">it.document.replace.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Replace Document File">
+        <group>
+          <field name="document_id" readonly="1"/>
+          <field name="file_name"/>
+          <field name="datas" filename="file_name"/>
+        </group>
+        <footer>
+          <button name="action_confirm" type="object" string="Replace" class="btn-primary"/>
+          <button special="cancel" string="Cancel" class="btn-secondary"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <!-- ==================== Actions for the 3 document menus ==================== -->
+  <record id="action_it_document_folder_development" model="ir.actions.act_window">
+    <field name="name">Development Documents</field>
+    <field name="res_model">it.document.folder</field>
+    <field name="view_mode">kanban,list,form</field>
+    <field name="domain">[('doc_type', '=', 'development')]</field>
+    <field name="context">{'default_doc_type': 'development'}</field>
+  </record>
+
+  <record id="action_it_document_folder_test" model="ir.actions.act_window">
+    <field name="name">Test Documents</field>
+    <field name="res_model">it.document.folder</field>
+    <field name="view_mode">kanban,list,form</field>
+    <field name="domain">[('doc_type', '=', 'test')]</field>
+    <field name="context">{'default_doc_type': 'test'}</field>
+  </record>
+
+  <record id="action_it_document_folder_manual" model="ir.actions.act_window">
+    <field name="name">User Manuals</field>
+    <field name="res_model">it.document.folder</field>
+    <field name="view_mode">kanban,list,form</field>
+    <field name="domain">[('doc_type', '=', 'manual')]</field>
+    <field name="context">{'default_doc_type': 'manual'}</field>
+  </record>
+
+  <!-- ==================== Menus ==================== -->
+  <menuitem id="menu_it_document_root" name="Documents" parent="menu_assets_rk_root" sequence="40"/>
+  <menuitem id="menu_it_document_development" name="Development Documents" parent="menu_it_document_root"
+            action="action_it_document_folder_development" sequence="10"/>
+  <menuitem id="menu_it_document_test" name="Test Documents" parent="menu_it_document_root"
+            action="action_it_document_folder_test" sequence="20"/>
+  <menuitem id="menu_it_document_manual" name="User Manuals" parent="menu_it_document_root"
+            action="action_it_document_folder_manual" sequence="30"/>
+  <menuitem id="menu_it_document_category" name="Document Categories" parent="menu_assets_rk_config"
+            action="action_it_document_category" sequence="30"/>
+  <menuitem id="menu_it_document_tag" name="Document Tags" parent="menu_assets_rk_config"
+            action="action_it_document_tag" sequence="40"/>
+
+</odoo>

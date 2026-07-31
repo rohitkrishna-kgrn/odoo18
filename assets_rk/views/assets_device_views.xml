@@ -1,16 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <record id="view_assets_device_tree" model="ir.ui.view">
-    <field name="name">assets.device.rk.tree</field>
+  <record id="view_assets_device_kanban" model="ir.ui.view">
+    <field name="name">assets.device.rk.kanban</field>
     <field name="model">assets.device.rk</field>
     <field name="arch" type="xml">
-      <list>
+      <kanban class="o_kanban_mobile">
         <field name="name"/>
         <field name="asset_type"/>
         <field name="serial_number"/>
         <field name="location_id"/>
         <field name="assigned_to"/>
-        <field name="active"/>
+        <field name="warranty_status"/>
+        <templates>
+          <t t-name="card">
+            <div class="oe_kanban_global_click">
+              <div class="o_kanban_record_top">
+                <i t-if="record.asset_type.raw_value == 'laptop'" class="fa fa-laptop fa-2x" title="Laptop"/>
+                <i t-elif="record.asset_type.raw_value == 'desktop'" class="fa fa-desktop fa-2x" title="Desktop"/>
+                <i t-elif="record.asset_type.raw_value == 'keyboard'" class="fa fa-keyboard-o fa-2x" title="Keyboard"/>
+                <i t-elif="record.asset_type.raw_value == 'mouse'" class="fa fa-mouse-pointer fa-2x" title="Mouse"/>
+                <i t-elif="record.asset_type.raw_value == 'printer'" class="fa fa-print fa-2x" title="Printer"/>
+                <i t-elif="record.asset_type.raw_value == 'mobile'" class="fa fa-mobile fa-2x" title="Mobile"/>
+                <i t-elif="record.asset_type.raw_value == 'headphone'" class="fa fa-headphones fa-2x" title="Headphone"/>
+                <i t-else="" class="fa fa-cube fa-2x" title="Other"/>
+                <strong class="ms-2"><field name="name"/></strong>
+              </div>
+              <div class="o_kanban_record_body">
+                <div class="text-muted"><field name="serial_number"/></div>
+                <div>
+                  <span class="badge text-bg-light"><i class="fa fa-map-marker me-1"/><field name="location_id"/></span>
+                </div>
+                <div class="mt-1">
+                  <span t-if="record.warranty_status.raw_value == 'valid'" class="badge text-bg-success">Under Warranty</span>
+                  <span t-elif="record.warranty_status.raw_value == 'expiring'" class="badge text-bg-warning">Expiring Soon</span>
+                  <span t-elif="record.warranty_status.raw_value == 'expired'" class="badge text-bg-danger">Warranty Expired</span>
+                  <span t-else="" class="badge text-bg-secondary">No Warranty Info</span>
+                </div>
+              </div>
+              <div class="o_kanban_record_bottom">
+                <div class="oe_kanban_bottom_left"/>
+                <div class="oe_kanban_bottom_right">
+                  <field name="assigned_to" widget="many2one_avatar_user"/>
+                </div>
+              </div>
+            </div>
+          </t>
+        </templates>
+      </kanban>
+    </field>
+  </record>
+
+  <record id="view_assets_device_tree" model="ir.ui.view">
+    <field name="name">assets.device.rk.tree</field>
+    <field name="model">assets.device.rk</field>
+    <field name="arch" type="xml">
+      <list decoration-danger="warranty_status == 'expired'" decoration-warning="warranty_status == 'expiring'">
+        <field name="name"/>
+        <field name="asset_type"/>
+        <field name="serial_number"/>
+        <field name="location_id"/>
+        <field name="assigned_to"/>
+        <field name="warranty_until"/>
+        <field name="warranty_status" widget="badge"
+               decoration-success="warranty_status == 'valid'"
+               decoration-warning="warranty_status == 'expiring'"
+               decoration-danger="warranty_status == 'expired'"/>
+        <field name="active" column_invisible="1"/>
       </list>
     </field>
   </record>
@@ -21,21 +76,54 @@
     <field name="arch" type="xml">
       <form string="IT Asset">
         <sheet>
+          <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+          <div class="oe_title">
+            <label for="name"/>
+            <h1><field name="name" placeholder="e.g. Dell Latitude 5420"/></h1>
+          </div>
           <group>
-            <field name="name"/>
-            <field name="asset_type"/>
-            <field name="serial_number"/>
-            <field name="location_id"/>
-            <field name="assigned_to"/>
+            <group>
+              <field name="asset_type"/>
+              <field name="serial_number"/>
+              <field name="location_id"/>
+              <field name="assigned_to"/>
+            </group>
+            <group>
+              <field name="purchase_date"/>
+              <field name="warranty_until"/>
+              <field name="warranty_status" widget="badge"
+                     decoration-success="warranty_status == 'valid'"
+                     decoration-warning="warranty_status == 'expiring'"
+                     decoration-danger="warranty_status == 'expired'"/>
+              <field name="active"/>
+            </group>
           </group>
-          <group>
-            <field name="purchase_date"/>
-            <field name="warranty_until"/>
-            <field name="active"/>
+          <group string="Archive Details" invisible="active">
+            <field name="archive_reason" required="not active"/>
+            <field name="archive_reason_note"/>
           </group>
           <notebook>
             <page string="Notes">
               <field name="notes"/>
+            </page>
+            <page string="Repair">
+              <field name="repair_ids" context="{'default_device_id': id}">
+                <list decoration-danger="status in ('cancelled', 'beyond_repair')" decoration-success="status == 'completed'">
+                  <field name="name" string="Repair No"/>
+                  <field name="reported_date"/>
+                  <field name="issue_title"/>
+                  <field name="status" widget="badge"
+                         decoration-info="status == 'pending'"
+                         decoration-warning="status == 'in_progress'"
+                         decoration-success="status == 'completed'"
+                         decoration-danger="status in ('cancelled', 'beyond_repair')"/>
+                  <field name="repair_cost"/>
+                  <field name="return_date"/>
+                  <control>
+                    <create string="New Repair"/>
+                  </control>
+                </list>
+              </field>
             </page>
           </notebook>
         </sheet>
@@ -44,12 +132,58 @@
     </field>
   </record>
 
+  <record id="view_assets_device_archive_wizard_form" model="ir.ui.view">
+    <field name="name">assets.device.archive.wizard.form</field>
+    <field name="model">assets.device.archive.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Archive Device">
+        <field name="device_ids" widget="many2many_tags" readonly="1"/>
+        <group>
+          <field name="reason"/>
+          <field name="note" placeholder="Add remarks..."/>
+        </group>
+        <footer>
+          <button name="action_confirm" type="object" string="Archive" class="btn-danger"/>
+          <button special="cancel" string="Cancel" class="btn-secondary"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="view_assets_device_search" model="ir.ui.view">
+    <field name="name">assets.device.rk.search</field>
+    <field name="model">assets.device.rk</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name"/>
+        <field name="serial_number"/>
+        <field name="location_id"/>
+        <field name="assigned_to"/>
+        <field name="asset_type"/>
+        <filter name="filter_assigned" string="Assigned" domain="[('assigned_to', '!=', False)]"/>
+        <filter name="filter_unassigned" string="Unassigned" domain="[('assigned_to', '=', False)]"/>
+        <separator/>
+        <filter name="filter_warranty_expiring" string="Warranty Expiring Soon" domain="[('warranty_status', '=', 'expiring')]"/>
+        <filter name="filter_warranty_expired" string="Warranty Expired" domain="[('warranty_status', '=', 'expired')]"/>
+        <separator/>
+        <filter name="filter_active" string="Active" domain="[('active', '=', True)]"/>
+        <filter name="filter_archived" string="Archived" domain="[('active', '=', False)]"/>
+        <group expand="0" string="Group By">
+          <filter name="group_by_location" string="Location" context="{'group_by': 'location_id'}"/>
+          <filter name="group_by_assigned_to" string="Assigned To" context="{'group_by': 'assigned_to'}"/>
+          <filter name="group_by_asset_type" string="Asset Type" context="{'group_by': 'asset_type'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
   <record id="action_assets_device" model="ir.actions.act_window">
     <field name="name">IT Devices</field>
     <field name="res_model">assets.device.rk</field>
-    <field name="view_mode">list,form</field>
-    <field name="context">{}</field>
+    <field name="view_mode">kanban,list,form</field>
+    <field name="search_view_id" ref="view_assets_device_search"/>
+    <field name="context">{'group_by': ['location_id', 'assigned_to']}</field>
   </record>
 
-  <menuitem id="menu_assets_device" name="Devices" parent="menu_assets_rk_root" sequence="2" action="action_assets_device"/>
+  <menuitem id="menu_assets_device" name="Devices" parent="menu_assets_rk_root" sequence="10" action="action_assets_device"/>
 </odoo>
