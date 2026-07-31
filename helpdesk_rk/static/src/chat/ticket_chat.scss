@@ -1,0 +1,313 @@
+.o_helpdesk_ticket_chat {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #d8dadd;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.o_helpdesk_chat_header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background-color: #fff;
+    border-bottom: 1px solid #e2e4e8;
+
+    &.o_helpdesk_chat_header_unassigned {
+        padding: 8px 14px;
+        background-color: #f7f8fa;
+    }
+}
+
+.o_helpdesk_chat_header_avatar {
+    position: relative;
+    flex: 0 0 auto;
+
+    img {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        display: block;
+    }
+}
+
+.o_helpdesk_chat_presence_dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+
+    &.o_present {
+        background-color: #28a745;
+    }
+
+    &.o_absent {
+        background-color: #adb5bd;
+    }
+}
+
+.o_helpdesk_chat_header_info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.o_helpdesk_chat_header_name {
+    font-weight: 600;
+    font-size: 0.92rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.o_helpdesk_chat_header_sub {
+    font-size: 0.75rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.o_helpdesk_chat_header_dot {
+    opacity: 0.6;
+}
+
+.o_helpdesk_chat_presence_label {
+    &.o_present {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    &.o_absent {
+        color: #adb5bd;
+    }
+}
+
+.o_helpdesk_chat_call_btn {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background-color: #f0f6ff;
+    color: #714b67;
+    border: none;
+
+    &:hover:not(:disabled) {
+        background-color: #714b67;
+        color: #fff;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+    }
+}
+
+.o_helpdesk_chat_messages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    max-height: 420px;
+    min-height: 180px;
+    overflow-y: auto;
+    background-color: #f7f8fa;
+}
+
+.o_helpdesk_chat_bubble_row {
+    display: flex;
+
+    &.o_own {
+        justify-content: flex-end;
+
+        .o_helpdesk_chat_bubble {
+            background-color: #714b67;
+            color: #fff;
+        }
+
+        .o_helpdesk_chat_role,
+        .o_helpdesk_chat_date {
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .o_helpdesk_chat_attachment {
+            color: #fff;
+            text-decoration: underline;
+        }
+    }
+
+    &.o_other .o_helpdesk_chat_bubble {
+        background-color: #ffffff;
+        border: 1px solid #e2e4e8;
+    }
+}
+
+.o_helpdesk_chat_bubble {
+    max-width: 70%;
+    border-radius: 12px;
+    padding: 8px 12px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+.o_helpdesk_chat_meta {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+    margin-bottom: 2px;
+}
+
+.o_helpdesk_chat_author {
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.o_helpdesk_chat_role {
+    font-size: 0.72rem;
+    opacity: 0.7;
+}
+
+.o_helpdesk_chat_body {
+    font-size: 0.9rem;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.o_helpdesk_chat_attachments {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.o_helpdesk_chat_attachment {
+    font-size: 0.8rem;
+
+    i {
+        margin-right: 4px;
+    }
+}
+
+.o_helpdesk_chat_date {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.o_helpdesk_chat_closed_banner,
+.o_helpdesk_chat_readonly_banner {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    border-top: 1px solid #e0e0e0;
+    text-align: center;
+}
+
+.o_helpdesk_chat_closed_banner {
+    background-color: #fdf1ec;
+    color: #a5502b;
+}
+
+.o_helpdesk_chat_readonly_banner {
+    background-color: #f0f0f0;
+    color: #6c757d;
+}
+
+.o_helpdesk_chat_composer {
+    border-top: 1px solid #e2e4e8;
+    padding: 8px 12px;
+    background-color: #fff;
+}
+
+.o_helpdesk_chat_composer_row {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.o_helpdesk_chat_input {
+    flex: 1 1 auto;
+    resize: none;
+    min-height: 38px;
+    max-height: 120px;
+    border: 1px solid #d8dadd;
+    border-radius: 18px;
+    padding: 8px 14px;
+    font-size: 0.9rem;
+}
+
+.o_helpdesk_chat_send_btn,
+.o_helpdesk_chat_attach_btn {
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex: 0 0 auto;
+}
+
+.o_helpdesk_chat_pending_attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.o_helpdesk_chat_pending_chip {
+    background-color: #f0f0f0;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.o_helpdesk_chat_remove_pending {
+    cursor: pointer;
+    margin-left: 4px;
+}
+
+@media (max-width: 576px) {
+    .o_helpdesk_chat_messages {
+        max-height: 60vh;
+        padding: 10px;
+    }
+
+    .o_helpdesk_chat_bubble {
+        max-width: 88%;
+        padding: 8px 10px;
+    }
+
+    .o_helpdesk_chat_author {
+        font-size: 0.8rem;
+    }
+
+    .o_helpdesk_chat_body {
+        font-size: 0.85rem;
+    }
+
+    .o_helpdesk_chat_composer_row {
+        flex-wrap: wrap;
+    }
+
+    .o_helpdesk_chat_input {
+        min-height: 42px;
+        font-size: 0.95rem;
+    }
+
+    .o_helpdesk_chat_send_btn,
+    .o_helpdesk_chat_attach_btn {
+        width: 44px;
+        height: 44px;
+    }
+}

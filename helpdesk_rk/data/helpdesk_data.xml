@@ -16,4 +16,14 @@
         <field name="name">Rejected</field>
         <field name="sequence">40</field>
     </record>
+
+    <!-- Dedicated subtype for the Ticket Chat widget: kept out of the default
+         Chatter "Follow" subscription list so chat messages never trigger
+         email notifications. -->
+    <record id="mt_ticket_chat" model="mail.message.subtype">
+        <field name="name">Ticket Chat</field>
+        <field name="res_model">helpdesk_rk.ticket</field>
+        <field name="default" eval="False"/>
+        <field name="internal" eval="True"/>
+    </record>
 </odoo>

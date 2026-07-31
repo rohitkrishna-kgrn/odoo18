@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="helpdesk_rk.AttachmentPreview">
+        <div class="o_helpdesk_attachment_preview_wrap">
+            <div class="o_helpdesk_attachment_preview_header">
+                <span class="o_form_label">Preview</span>
+                <button type="button" class="btn btn-link o_helpdesk_attachment_preview_toggle"
+                        t-on-click="toggleExpanded"
+                        t-att-title="state.expanded ? 'Hide Preview' : 'Show Preview'"
+                        aria-label="Toggle attachment preview">
+                    <i t-attf-class="fa {{ state.expanded ? 'fa-eye-slash' : 'fa-eye' }}"/>
+                </button>
+            </div>
+            <div class="o_helpdesk_attachment_preview_body" t-if="state.expanded">
+                <img t-if="isImage" t-att-src="imageUrl" class="o_helpdesk_attachment_preview_image"/>
+                <iframe t-if="isPdf" class="o_helpdesk_attachment_preview_pdf"
+                        t-att-src="pdfViewerUrl" t-on-load="onPdfLoad"/>
+            </div>
+        </div>
+    </t>
+</templates>

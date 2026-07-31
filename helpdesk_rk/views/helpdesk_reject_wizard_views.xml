@@ -1,0 +1,18 @@
+<odoo>
+  <record id="view_helpdesk_ticket_reject_wizard_form" model="ir.ui.view">
+    <field name="name">helpdesk.ticket.reject.wizard.form</field>
+    <field name="model">helpdesk_rk.ticket.reject.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Reject Ticket">
+        <field name="ticket_id" invisible="1"/>
+        <group>
+          <field name="reason" placeholder="Please enter the reason or remarks before rejecting the ticket."/>
+        </group>
+        <footer>
+          <button name="action_confirm_reject" string="Reject Ticket" type="object" class="btn-danger"/>
+          <button string="Cancel" special="cancel" class="btn-secondary"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+</odoo>

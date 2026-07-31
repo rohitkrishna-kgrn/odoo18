@@ -1,0 +1,60 @@
+.o_helpdesk_ticket_form {
+    // Always Odoo's own brand purple, regardless of any theme overriding
+    // the generic Bootstrap "primary" color elsewhere in the backend.
+    .o_helpdesk_submit_btn {
+        background-color: #714b67;
+        border-color: #714b67;
+        color: #fff;
+
+        &:hover, &:focus {
+            background-color: darken(#714b67, 8%);
+            border-color: darken(#714b67, 8%);
+        }
+
+        &:active {
+            background-color: darken(#714b67, 15%);
+            border-color: darken(#714b67, 15%);
+        }
+    }
+
+    .o_helpdesk_favorite_corner {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 3;
+        font-size: 1.3rem;
+
+        .o_favorite a {
+            text-decoration: none;
+        }
+    }
+
+    .o_form_sheet {
+        .o_group {
+            margin-bottom: 8px;
+        }
+
+        .o_horizontal_separator {
+            margin-top: 20px;
+            color: #1f2328;
+        }
+    }
+
+    .o_form_label {
+        color: #1f2328;
+        font-weight: 600;
+    }
+
+    .o_field_widget {
+        color: #1f2328;
+
+        input, textarea, .o_input {
+            color: #1f2328;
+        }
+    }
+
+    h1 .o_field_widget input {
+        color: #1f2328;
+        font-weight: 600;
+    }
+}

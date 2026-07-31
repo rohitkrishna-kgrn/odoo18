@@ -1,0 +1,16 @@
+.o_helpdesk_simplified_chatter {
+    .o-mail-Chatter-sendMessage,
+    .o-mail-Chatter-logNote,
+    .o-mail-Chatter-activity,
+    .o-mail-Chatter-attachFiles,
+    .o-mail-Followers,
+    .o-mail-Chatter-close,
+    .o-mail-ActivityList,
+    .o-mail-ScheduledMessagesList {
+        display: none !important;
+    }
+
+    button:has(.o-mail-Chatter-follow) {
+        display: none !important;
+    }
+}

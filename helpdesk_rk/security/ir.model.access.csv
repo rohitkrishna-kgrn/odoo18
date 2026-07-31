@@ -2,4 +2,7 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_helpdesk_ticket_user,helpdesk_rk.ticket user,model_helpdesk_rk_ticket,group_helpdesk_user,1,1,1,0
 access_helpdesk_ticket_support,helpdesk_rk.ticket support,model_helpdesk_rk_ticket,group_helpdesk_support,1,1,1,1
 access_helpdesk_stage_user,helpdesk_rk.stage user,model_helpdesk_rk_stage,group_helpdesk_support,1,1,1,1
-access_helpdesk_config_admin,helpdesk_rk.config admin,model_helpdesk_rk_config,base.group_system,1,1,1,1
+access_helpdesk_ticket_reject_wizard_support,helpdesk_rk.ticket.reject.wizard support,model_helpdesk_rk_ticket_reject_wizard,group_helpdesk_support,1,1,1,1
+access_helpdesk_ticket_deadline_wizard_support,helpdesk_rk.ticket.deadline.wizard support,model_helpdesk_rk_ticket_deadline_wizard,group_helpdesk_support,1,1,1,1
+access_helpdesk_ticket_chat_read_user,helpdesk_rk.ticket.chat.read user,model_helpdesk_rk_ticket_chat_read,group_helpdesk_user,1,1,1,0
+access_helpdesk_ticket_chat_read_support,helpdesk_rk.ticket.chat.read support,model_helpdesk_rk_ticket_chat_read,group_helpdesk_support,1,1,1,1

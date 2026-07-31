@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="helpdesk_rk.TicketBellField">
+        <span t-attf-class="o_helpdesk_bell {{ isClosed ? 'o_helpdesk_bell_disabled' : '' }}" t-att-title="title">
+            <i t-attf-class="fa {{ isClosed ? 'fa-bell-slash' : 'fa-bell' }}"/>
+            <span class="o_helpdesk_bell_badge" t-if="!isClosed and unreadCount > 0" t-esc="unreadLabel"/>
+        </span>
+    </t>
+</templates>

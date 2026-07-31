@@ -1,14 +1,18 @@
 <odoo>
   <!-- Main Helpdesk Menu -->
-  <menuitem id="menu_helpdesk_root" name="Helpdesk" sequence="10" web_icon="helpdesk_rk,static/description/icon.png"/>web_icon="helpdesk_rk,static/description/icon.png"/>
+  <menuitem id="menu_helpdesk_root" name="Helpdesk" sequence="10" web_icon="helpdesk_rk,static/description/icon.png"/>
 
   <!-- Support/Admins: All tickets -->
   <record id="action_helpdesk_ticket_all" model="ir.actions.act_window">
     <field name="name">All Tickets</field>
     <field name="res_model">helpdesk_rk.ticket</field>
     <field name="view_mode">kanban,list,form</field>
-    <field name="context">{'default_stage_id': 'new'}</field>
     <field name="domain">[]</field>
+    <field name="search_view_id" ref="view_helpdesk_ticket_search"/>
+    <field name="view_ids" eval="[(5, 0, 0),
+        (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_helpdesk_ticket_kanban_all_tickets')}),
+        (0, 0, {'view_mode': 'list', 'view_id': ref('view_helpdesk_ticket_list')}),
+        (0, 0, {'view_mode': 'form', 'view_id': ref('view_helpdesk_ticket_form')})]"/>
   </record>
 
   <menuitem id="menu_helpdesk_tickets_all" name="All Tickets"
@@ -21,31 +25,12 @@
     <field name="name">My Tickets</field>
     <field name="res_model">helpdesk_rk.ticket</field>
     <field name="view_mode">kanban,list,form</field>
-    <field name="context">{'default_stage_id': 'new'}</field>
     <field name="domain">[('user_id', '=', uid)]</field>
+    <field name="search_view_id" ref="view_helpdesk_ticket_search"/>
   </record>
 
   <menuitem id="menu_helpdesk_tickets_own" name="Tickets"
             parent="menu_helpdesk_root"
             action="action_helpdesk_ticket_own"
             groups="helpdesk_rk.group_helpdesk_user"/>
-
-  <!-- Configuration menu only for admins -->
-  <menuitem id="menu_helpdesk_config" name="Configuration"
-            parent="menu_helpdesk_root"
-            sequence="20"
-            groups="base.group_system"/>
-
-  <!-- Support team configuration form -->
-  <record id="action_helpdesk_config" model="ir.actions.act_window">
-      <field name="name">Helpdesk Configuration</field>
-      <field name="res_model">helpdesk_rk.config</field>
-      <field name="view_mode">form</field>
-      <field name="target">new</field>
-  </record>
-
-  <menuitem id="menu_helpdesk_config_support_team" name="Support Team"
-            parent="menu_helpdesk_config"
-            action="action_helpdesk_config"
-            groups="base.group_system"/>
 </odoo>
