@@ -42,6 +42,13 @@
             }
             .o_mis_date { width: 130px; padding: 3px 6px; height: 28px; font-size: 12px; }
             .o_mis_dash { color: var(--o-gray-500, #6c757d); }
+
+            .o_mis_period_hint {
+                color: var(--o-brand-primary, #714b67);
+                font-weight: 600;
+                white-space: nowrap;
+                cursor: help;
+            }
         }
 
         .o_mis_count {

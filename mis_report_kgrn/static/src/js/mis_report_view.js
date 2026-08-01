@@ -47,6 +47,18 @@ const REPORT_CONFIGS = {
             { field: "deadline", label: "Deadline" },
             { field: "last_invoice_date", label: "Invoice Date" },
         ],
+        // When both bounds of "Invoice Date" are set, recompute Invoiced/Paid
+        // restricted to that exact range (and Outstanding as of the "to" date)
+        // via the server, instead of showing lifetime cumulative totals.
+        periodRecompute: {
+            dateField: "last_invoice_date",
+            method: "get_period_amounts",
+            columns: [
+                "invoiced_ex_vat", "invoiced_inc_vat",
+                "paid_ex_vat", "paid_inc_vat",
+                "outstanding_ex_vat", "outstanding_inc_vat",
+            ],
+        },
         groupBy: [
             { field: "company_id", label: "Company" },
             { field: "department_id", label: "Department" },
@@ -383,6 +395,7 @@ export class MisReportView extends Component {
             ),
             expanded: {},
             detailCache: {},
+            periodOverlay: null,
         });
 
         onWillStart(() => this.load());
@@ -409,6 +422,8 @@ export class MisReportView extends Component {
                 this.fieldNames
             );
             this.state.allRecords = records;
+            const pr = this.config.periodRecompute;
+            if (pr) await this.maybeRecomputePeriod(pr.dateField);
             this.applyFilters();
         } catch (e) {
             console.error("MIS Report load error:", e);
@@ -436,6 +451,22 @@ export class MisReportView extends Component {
         for (const [field, range] of Object.entries(this.state.dates)) {
             if (range.from) recs = recs.filter((r) => r[field] && r[field] >= range.from);
             if (range.to) recs = recs.filter((r) => r[field] && r[field] <= range.to);
+        }
+
+        // Overlay period-scoped Invoiced/Paid/Outstanding when active — see
+        // maybeRecomputePeriod(). Rows with no invoice/payment activity in
+        // the selected range are zeroed out rather than left at their
+        // lifetime totals.
+        const pr = this.config.periodRecompute;
+        if (pr && this.state.periodOverlay) {
+            const overlay = this.state.periodOverlay;
+            recs = recs.map((r) => {
+                const o = overlay[r.id];
+                if (o) return { ...r, ...o };
+                const zeroed = { ...r };
+                for (const col of pr.columns) zeroed[col] = 0;
+                return zeroed;
+            });
         }
 
         this.state.count = recs.length;
@@ -502,9 +533,30 @@ export class MisReportView extends Component {
         this.applyFilters();
     }
 
-    onDateChange(field, bound, ev) {
+    async onDateChange(field, bound, ev) {
         this.state.dates[field][bound] = ev.target.value;
+        await this.maybeRecomputePeriod(field);
         this.applyFilters();
+    }
+
+    // Fetch period-scoped Invoiced/Paid/Outstanding from the server whenever
+    // both bounds of the configured period field are set; otherwise fall
+    // back to the lifetime totals already loaded on each record.
+    async maybeRecomputePeriod(changedField) {
+        const pr = this.config.periodRecompute;
+        if (!pr || changedField !== pr.dateField) return;
+
+        const range = this.state.dates[pr.dateField];
+        if (range.from && range.to) {
+            const ids = this.state.allRecords.map((r) => r.id);
+            this.state.periodOverlay = await this.orm.call(
+                this.config.resModel,
+                pr.method,
+                [ids, range.from, range.to]
+            );
+        } else {
+            this.state.periodOverlay = null;
+        }
     }
 
     toggleGroupBy(field) {
@@ -539,6 +591,7 @@ export class MisReportView extends Component {
         for (const field of Object.keys(this.state.dates)) {
             this.state.dates[field] = { from: "", to: "" };
         }
+        this.state.periodOverlay = null;
         this.applyFilters();
     }
 

@@ -85,6 +85,11 @@
                                 <input type="date" class="o_input o_mis_date"
                                        t-att-value="state.dates[df.field].to"
                                        t-on-change="(ev) => this.onDateChange(df.field, 'to', ev)"/>
+                                <span t-if="config.periodRecompute and config.periodRecompute.dateField === df.field and state.periodOverlay"
+                                      class="o_mis_period_hint"
+                                      title="Invoiced/Paid now show only this date range's activity; Outstanding is the balance as of the 'to' date.">
+                                    <i class="fa fa-info-circle"/> Period mode
+                                </span>
                             </div>
                         </t>
 

@@ -227,6 +227,142 @@ class MisProjectWise(models.Model):
                                   offset=offset, limit=limit,
                                   orderby=orderby, lazy=lazy)
 
+    # ── Period-scoped Invoiced / Paid / Outstanding ────────────────────────
+    @api.model
+    def get_period_amounts(self, ids, date_from, date_to):
+        """Recompute Invoiced/Paid restricted to invoices/payments dated within
+        [date_from, date_to], and Outstanding as the balance as of date_to.
+
+        The lifetime columns on this view (invoiced_ex_vat, paid_ex_vat, ...)
+        sum every posted invoice/payment ever linked to a SO line, regardless
+        of date. That mismatches period-based ledgers (e.g. Tally) where a
+        selected month should only show that month's movement. This method
+        is the period-aware counterpart, called by the report UI when an
+        Invoice Date range is applied.
+
+        Returns {sale_order_line_id: {invoiced_ex_vat, invoiced_inc_vat,
+                                       paid_ex_vat, paid_inc_vat,
+                                       outstanding_ex_vat, outstanding_inc_vat}}
+        """
+        if not ids or not date_from or not date_to:
+            return {}
+
+        # Re-apply row-level access control server-side (defense in depth —
+        # the client only ever passes ids it was allowed to load).
+        allowed_ids = self.search([('id', 'in', ids)]).ids
+        if not allowed_ids:
+            return {}
+
+        self.env.cr.execute("""
+            WITH target_lines AS (
+                SELECT solr.order_line_id AS sol_id, aml.id AS inv_line_id, aml.move_id
+                FROM   sale_order_line_invoice_rel solr
+                JOIN   account_move_line aml ON aml.id = solr.invoice_line_id
+                WHERE  solr.order_line_id = ANY(%(ids)s)
+            ),
+            inv_moves AS (
+                SELECT tl.sol_id, tl.move_id,
+                       am.move_type, am.invoice_date, am.amount_total,
+                       aml.price_subtotal, aml.price_total
+                FROM   target_lines tl
+                JOIN   account_move_line aml ON aml.id = tl.inv_line_id
+                JOIN   account_move      am  ON am.id  = tl.move_id
+                WHERE  am.state = 'posted'
+                AND    am.move_type IN ('out_invoice', 'out_refund')
+            ),
+            recv_lines AS (
+                /* the receivable (AR) line of each invoice — this is the line
+                   that actually gets reconciled against payments */
+                SELECT aml.id AS recv_line_id, aml.move_id
+                FROM   account_move_line aml
+                JOIN   account_account   aa ON aa.id = aml.account_id
+                WHERE  aa.account_type = 'asset_receivable'
+            ),
+            recon AS (
+                SELECT
+                    rl.move_id AS invoice_move_id,
+                    pr.max_date,
+                    CASE WHEN pr.debit_move_id = rl.recv_line_id
+                         THEN pr.debit_amount_currency
+                         ELSE pr.credit_amount_currency END AS amount
+                FROM   account_partial_reconcile pr
+                JOIN   recv_lines rl
+                       ON rl.recv_line_id = pr.debit_move_id
+                       OR rl.recv_line_id = pr.credit_move_id
+            ),
+            paid_period_by_move AS (
+                SELECT invoice_move_id, SUM(amount) AS amount
+                FROM   recon
+                WHERE  max_date BETWEEN %(date_from)s AND %(date_to)s
+                GROUP  BY invoice_move_id
+            ),
+            paid_to_date_by_move AS (
+                SELECT invoice_move_id, SUM(amount) AS amount
+                FROM   recon
+                WHERE  max_date <= %(date_to)s
+                GROUP  BY invoice_move_id
+            )
+            SELECT
+                im.sol_id,
+
+                SUM(CASE WHEN im.invoice_date BETWEEN %(date_from)s AND %(date_to)s
+                         THEN (CASE WHEN im.move_type = 'out_invoice'
+                                    THEN im.price_subtotal ELSE -im.price_subtotal END)
+                         ELSE 0 END)                                        AS invoiced_ex_vat,
+                SUM(CASE WHEN im.invoice_date BETWEEN %(date_from)s AND %(date_to)s
+                         THEN (CASE WHEN im.move_type = 'out_invoice'
+                                    THEN im.price_total ELSE -im.price_total END)
+                         ELSE 0 END)                                        AS invoiced_inc_vat,
+
+                SUM(CASE WHEN im.invoice_date <= %(date_to)s
+                         THEN (CASE WHEN im.move_type = 'out_invoice'
+                                    THEN im.price_subtotal ELSE -im.price_subtotal END)
+                         ELSE 0 END)                                        AS invoiced_ex_vat_to_date,
+                SUM(CASE WHEN im.invoice_date <= %(date_to)s
+                         THEN (CASE WHEN im.move_type = 'out_invoice'
+                                    THEN im.price_total ELSE -im.price_total END)
+                         ELSE 0 END)                                        AS invoiced_inc_vat_to_date,
+
+                SUM(CASE WHEN COALESCE(im.amount_total, 0) <> 0
+                         THEN im.price_subtotal * COALESCE(ppm.amount, 0) / im.amount_total
+                         ELSE 0 END)                                        AS paid_ex_vat,
+                SUM(CASE WHEN COALESCE(im.amount_total, 0) <> 0
+                         THEN im.price_total * COALESCE(ppm.amount, 0) / im.amount_total
+                         ELSE 0 END)                                        AS paid_inc_vat,
+
+                SUM(CASE WHEN COALESCE(im.amount_total, 0) <> 0
+                         THEN im.price_subtotal * COALESCE(ptm.amount, 0) / im.amount_total
+                         ELSE 0 END)                                        AS paid_ex_vat_to_date,
+                SUM(CASE WHEN COALESCE(im.amount_total, 0) <> 0
+                         THEN im.price_total * COALESCE(ptm.amount, 0) / im.amount_total
+                         ELSE 0 END)                                        AS paid_inc_vat_to_date
+
+            FROM inv_moves im
+            LEFT JOIN paid_period_by_move ppm ON ppm.invoice_move_id = im.move_id
+            LEFT JOIN paid_to_date_by_move ptm ON ptm.invoice_move_id = im.move_id
+            GROUP BY im.sol_id
+        """, {
+            'ids': allowed_ids,
+            'date_from': date_from,
+            'date_to': date_to,
+        })
+
+        result = {}
+        for row in self.env.cr.dictfetchall():
+            invoiced_ex_vat_to_date = row['invoiced_ex_vat_to_date'] or 0
+            invoiced_inc_vat_to_date = row['invoiced_inc_vat_to_date'] or 0
+            paid_ex_vat_to_date = row['paid_ex_vat_to_date'] or 0
+            paid_inc_vat_to_date = row['paid_inc_vat_to_date'] or 0
+            result[row['sol_id']] = {
+                'invoiced_ex_vat': row['invoiced_ex_vat'] or 0,
+                'invoiced_inc_vat': row['invoiced_inc_vat'] or 0,
+                'paid_ex_vat': row['paid_ex_vat'] or 0,
+                'paid_inc_vat': row['paid_inc_vat'] or 0,
+                'outstanding_ex_vat': invoiced_ex_vat_to_date - paid_ex_vat_to_date,
+                'outstanding_inc_vat': invoiced_inc_vat_to_date - paid_inc_vat_to_date,
+            }
+        return result
+
     @api.model
     def get_dashboard_data(self):
         records = self.search_read(
