@@ -12,6 +12,7 @@ class HrContract(models.Model):
     _description = 'Employee Contract'
 
     struct_id = fields.Many2one('hr.payroll.structure', string='Salary Structure')
+    country_for_leave = fields.Selection(related='employee_id.country_for_leave', string='Country For Leave Model')
     schedule_pay = fields.Selection([
         ('monthly', 'Monthly'),
         ('quarterly', 'Quarterly'),
@@ -23,16 +24,21 @@ class HrContract(models.Model):
     ], string='Scheduled Pay', index=True, default='monthly',
     help="Defines the frequency of the wage payment.")
     resource_calendar_id = fields.Many2one(required=True, help="Employee's working schedule.")
-    hra = fields.Monetary(string='HRA', help="House rent allowance.")
-    travel_allowance = fields.Monetary(string="Travel Allowance", help="Travel allowance")
-    da = fields.Monetary(string="DA", help="Dearness allowance")
+    basic_salary = fields.Monetary(string="Basic Salary", help="Basic salary component.")
+    hra = fields.Monetary(string='House Rent Allowance', help="House rent allowance.")
+    travel_allowance = fields.Monetary(string="Conveyance Allowance", help="Conveyance allowance")
+    da = fields.Monetary(string="Special Allowance", help="Special allowance")
     meal_allowance = fields.Monetary(string="Meal Allowance", help="Meal allowance")
-    medical_allowance = fields.Monetary(string="Medical Allowance", help="Medical allowance")
+    medical_allowance = fields.Monetary(string="Medical Reimbursement", help="Medical reimbursement")
     currency_type = fields.Selection([
         ('aed', 'AED'),
         ('inr', 'INR'),
     ], string='Currency Type')
     other_allowance = fields.Monetary(string="Other Allowance", help="Other allowances")
+    epf_amount = fields.Monetary(string="Employee Provident Fund", help="Monthly employee provident fund deduction (India only).")
+    esi_amount = fields.Monetary(string="ESI", help="Monthly ESI deduction (India only).")
+    pt_amount = fields.Monetary(string="PT", help="Monthly professional tax deduction (state-specific, India only).")
+    other_deduction = fields.Monetary(string="Other Deduction", help="Other monthly deduction.")
     type_id = fields.Many2one('hr.contract.type', string="Employee Category",
                               required=True, help="Employee category",
                               default=lambda self: self.env['hr.contract.type'].search([], limit=1))

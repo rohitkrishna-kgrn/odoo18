@@ -62,6 +62,20 @@ class HrPayslip(models.Model):
         help="Indicates this payslip has a refund of another")
     payslip_run_id = fields.Many2one('hr.payslip.run', string='Payslip Batches', copy=False)
     payslip_count = fields.Integer(compute='_compute_payslip_count', string="Payslip Computation Details")
+    work_days = fields.Float(compute='_compute_lop_paid_days', string='Work Days')
+    lop_days = fields.Float(compute='_compute_lop_paid_days', string='LOP Days')
+    paid_days = fields.Float(compute='_compute_lop_paid_days', string='Paid Days')
+
+    @api.depends('worked_days_line_ids.number_of_days')
+    def _compute_lop_paid_days(self):
+        for slip in self:
+            by_code = {line.code: line.number_of_days for line in slip.worked_days_line_ids}
+            total = by_code.get('WORK100', 0.0)
+            accounted = by_code.get('PRESENT', 0.0) + by_code.get('LEAVE', 0.0) \
+                + by_code.get('SUNDAY', 0.0) + by_code.get('PH', 0.0)
+            slip.work_days = total
+            slip.lop_days = max(total - accounted, 0.0)
+            slip.paid_days = total - slip.lop_days
 
     def _compute_details_by_salary_rule_category(self):
         for payslip in self:
@@ -689,6 +703,23 @@ class HrPayslipLine(models.Model):
     def _compute_total(self):
         for line in self:
             line.total = float(line.quantity) * line.amount * line.rate / 100
+
+    @api.onchange('amount', 'quantity', 'rate')
+    def _onchange_recompute_net_salary(self):
+        """Manually editing any line's Amount/Quantity/Rate in the Salary Computation
+        list should keep the Net Salary line in sync, mirroring the NET rule's own
+        formula (categories.BASIC + categories.ALW + categories.DED) instead of only
+        reflecting whatever was computed the last time Compute Sheet ran."""
+        if self.code == 'NET':
+            return
+        lines = self.slip_id.line_ids
+        net_line = lines.filtered(lambda l: l.code == 'NET')
+        if not net_line:
+            return
+        basic = sum(lines.filtered(lambda l: l.category_id.code == 'BASIC').mapped('total'))
+        alw = sum(lines.filtered(lambda l: l.category_id.code == 'ALW').mapped('total'))
+        ded = sum(lines.filtered(lambda l: l.category_id.code == 'DED').mapped('total'))
+        net_line[0].amount = basic + alw + ded
 
     @api.model_create_multi
     def create(self, vals_list):

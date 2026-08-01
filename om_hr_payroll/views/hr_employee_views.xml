@@ -15,6 +15,39 @@
         </field>
     </record>
 
+    <record id="payroll_hr_employee_view_form_country_fields" model="ir.ui.view">
+        <field name="name">payroll.hr.employee.view.form.country.fields</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="employee_extended_rk.view_hr_employee_form_inherit_rk"/>
+        <field name="arch" type="xml">
+            <!-- The original bank_iban_number (added by employee_extended_rk) is superseded by
+                 the placement below, positioned next to DOJ for Dubai (which uses IBAN), while
+                 India uses the distinct bank_account_no field positioned next to PAN No instead. -->
+            <xpath expr="//field[@name='bank_iban_number']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='direct_bank']" position="after">
+                <separator string="PAY SLIP INFO"/>
+                <field name="country_for_leave"/>
+                <field name="employee_no" readonly="not country_for_leave"/>
+                <field name="name" readonly="not country_for_leave"/>
+                <field name="job_title" readonly="not country_for_leave"/>
+                <field name="birthday" readonly="not country_for_leave"/>
+                <newline/>
+                <field name="doj" readonly="not country_for_leave"/>
+                <field name="bank_iban_number" readonly="not country_for_leave" invisible="country_for_leave == 'india'"/>
+                <newline/>
+                <field name="pan_no" invisible="country_for_leave != 'india'"/>
+                <field name="bank_account_no" readonly="not country_for_leave" invisible="country_for_leave != 'india'"/>
+                <newline/>
+                <field name="uan_pf_no" invisible="country_for_leave != 'india'"/>
+                <field name="esi_no_editable" widget="boolean_toggle" invisible="country_for_leave != 'india'"/>
+                <newline/>
+                <field name="esi_no" invisible="country_for_leave != 'india'" readonly="not esi_no_editable"/>
+            </xpath>
+        </field>
+    </record>
+
     <menuitem id="menu_payroll_employee"
               name="Employees"
               parent="om_hr_payroll.menu_hr_payroll_root"

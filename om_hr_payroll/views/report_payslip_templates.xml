@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <template id="report_payslip">
-        <t t-call="web.html_container">
+        <t t-call="web.basic_layout">
+            <!-- Uses web.basic_layout (no default company header/footer chrome) instead of
+                 web.external_layout: the default footer concatenated company email/website/vat
+                 with the page-number fraction with no separators between them and was
+                 inconsistently visible across payslips. This report builds its own header and
+                 footer below, so the default chrome is unnecessary and was the source of that
+                 garbled text. -->
             <t t-foreach="docs" t-as="o">
-                <t t-call="web.external_layout">
 
-                    <!-- Header: Company Info and Logo -->
+                    <!-- Header: Company Name + Address top-left, Logo centered -->
                     <div class="page">
                         <div class="header-row">
-                            <!-- Company Info (Left Side) -->
-                            <div class="company-info">
+                            <div class="company-info-left">
                                 <h2 t-field="o.employee_id.contract_id.company_id.name"/>
                                 <p>
                                     <t t-esc="o.employee_id.contract_id.company_id.partner_id.street"/>
@@ -29,13 +33,12 @@
                                     <t t-if="o.employee_id.contract_id.company_id.phone">Phone: <t t-esc="o.company_id.phone"/></t>
                                 </p>
                             </div>
-
-                            <!-- Logo (Right Side) -->
-                            <div class="logo-container">
+                            <div class="logo-center">
                                 <img class="company-logo" t-if="o.employee_id.contract_id.company_id.logo"
                                     t-att-src="'data:image/png;base64,%s' % o.employee_id.contract_id.company_id.logo.decode('utf-8')"
                                     alt="Company Logo"/>
                             </div>
+                            <div class="header-spacer"/>
                         </div>
 
                         <!-- Main Payslip Body -->
@@ -43,30 +46,77 @@
 
                             <!-- Payslip Title -->
                             <div class="payslip-title">
-                                <h3>Pay Slip</h3>
-                                <p t-field="o.name"/>
+                                <h3>Pay Slip for the month of
+                                    <span t-field="o.date_from" t-options='{"widget": "date", "format": "MMMM yyyy"}'/>
+                                </h3>
                             </div>
 
                             <!-- Employee Info Table -->
                             <table class="info-table">
                                 <tr>
-                                    <td><strong>Name</strong></td>
-                                    <td><span t-field="o.employee_id"/></td>
+                                    <td><strong>Employee No.</strong></td>
+                                    <td><span t-field="o.employee_id.employee_no"/></td>
+                                    <td><strong>Employee Name</strong></td>
+                                    <td><span t-field="o.employee_id.name"/></td>
+                                </tr>
+                                <tr>
                                     <td><strong>Designation</strong></td>
-                                    <td><span t-field="o.employee_id.job_id"/></td>
+                                    <td><span t-field="o.employee_id.job_title"/></td>
+                                    <td><strong>Date of Birth</strong></td>
+                                    <td><span t-field="o.employee_id.birthday"/></td>
                                 </tr>
-                                <tr>
-                                    <td><strong>Email</strong></td>
-                                    <td><span t-field="o.employee_id.work_email"/></td>
-                                    <td><strong>Identification No</strong></td>
-                                    <td><span t-field="o.employee_id.identification_id"/></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Reference</strong></td>
-                                    <td><span t-field="o.number"/></td>
-                                    <td><strong>Bank Account</strong></td>
-                                    <td><span t-field="o.employee_id.bank_iban_number"/></td>
-                                </tr>
+                                <t t-if="o.employee_id.country_for_leave == 'india'">
+                                    <tr>
+                                        <td><strong>Date of Joining</strong></td>
+                                        <td><span t-field="o.employee_id.doj"/></td>
+                                        <td><strong>Work Days</strong></td>
+                                        <td><span t-field="o.work_days"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Loss of Pay Days</strong></td>
+                                        <td><span t-field="o.lop_days"/></td>
+                                        <td><strong>Paid Days</strong></td>
+                                        <td><span t-field="o.paid_days"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>PAN Number</strong></td>
+                                        <td><span t-field="o.employee_id.pan_no"/></td>
+                                        <td><strong>Bank Account Number</strong></td>
+                                        <td><span t-esc="o.employee_id.bank_account_no or o.employee_id.bank_iban_number"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>UAN Number (PF)</strong></td>
+                                        <td><span t-field="o.employee_id.uan_pf_no"/></td>
+                                        <td><strong>ESI Number</strong></td>
+                                        <td><span t-field="o.employee_id.esi_no"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Reference</strong></td>
+                                        <td colspan="3"><span t-field="o.number"/></td>
+                                    </tr>
+                                </t>
+                                <t t-else="">
+                                    <tr>
+                                        <td><strong>Date of Joining</strong></td>
+                                        <td><span t-field="o.employee_id.doj"/></td>
+                                        <td><strong>Work Days</strong></td>
+                                        <td><span t-field="o.work_days"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Loss of Pay Days</strong></td>
+                                        <td><span t-field="o.lop_days"/></td>
+                                        <td><strong>Paid Days</strong></td>
+                                        <td><span t-field="o.paid_days"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>IBAN Number</strong></td>
+                                        <td colspan="3"><span t-esc="o.employee_id.bank_iban_number or o.employee_id.bank_account_no"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Reference</strong></td>
+                                        <td colspan="3"><span t-field="o.number"/></td>
+                                    </tr>
+                                </t>
                                 <tr>
                                     <td><strong>Date From</strong></td>
                                     <td><span t-field="o.date_from"/></td>
@@ -75,71 +125,84 @@
                                 </tr>
                             </table>
 
-                            <!-- Salary Details Table -->
+                            <!-- Earnings / Deductions Table -->
+                            <t t-set="earning_lines" t-value="o.line_ids.filtered(lambda l: l.appears_on_payslip and l.category_id.code in ('BASIC', 'ALW'))"/>
+                            <t t-set="deduction_lines" t-value="o.line_ids.filtered(lambda l: l.appears_on_payslip and l.category_id.code == 'DED')"/>
+                            <t t-set="row_count" t-value="max(len(earning_lines), len(deduction_lines))"/>
+                            <t t-set="total_earnings" t-value="sum(earning_lines.mapped('total'))"/>
+                            <t t-set="total_deductions" t-value="sum(deduction_lines.mapped('total'))"/>
+                            <t t-set="net_pay" t-value="total_earnings + total_deductions"/>
                             <table class="salary-table">
                                 <thead>
                                     <tr>
-                                        <th>Code</th>
-                                        <th>Name</th>
+                                        <th>Earnings</th>
                                         <th>Amount</th>
-                                        <th>Total</th>
+                                        <th>Deductions</th>
+                                        <th>Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <t t-set="total_amount" t-value="0"/>
-                                    <tr t-foreach="o.line_ids.filtered(lambda line: line.appears_on_payslip)" t-as="line">
-                                        <td><span t-field="line.code"/></td>
-                                        <td><span t-field="line.name"/></td>
-                                        <td>
-                                            <span t-esc="line.amount"
+                                    <tr t-foreach="range(row_count)" t-as="row_index">
+                                        <td t-attf-class="#{'empty-cell' if row_index &gt;= len(earning_lines) else ''}"><span t-if="row_index &lt; len(earning_lines)" t-esc="earning_lines[row_index].name"/></td>
+                                        <td t-attf-class="#{'empty-cell' if row_index &gt;= len(earning_lines) else ''}">
+                                            <span t-if="row_index &lt; len(earning_lines)" t-esc="earning_lines[row_index].total"
                                                 t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/>
                                         </td>
-                                        <td>
-                                            <span t-esc="line.total"
+                                        <td t-attf-class="#{'empty-cell' if row_index &gt;= len(deduction_lines) else ''}"><span t-if="row_index &lt; len(deduction_lines)" t-esc="deduction_lines[row_index].name"/></td>
+                                        <td t-attf-class="#{'empty-cell' if row_index &gt;= len(deduction_lines) else ''}">
+                                            <span t-if="row_index &lt; len(deduction_lines)" t-esc="deduction_lines[row_index].total"
                                                 t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/>
                                         </td>
-                                        <t t-set="total_amount" t-value="total_amount + (line.total if line.total else 0)"/>
                                     </tr>
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <td colspan="3" class="text-right"><strong>Total Amount</strong></td>
+                                        <td><strong>Total Earnings</strong></td>
                                         <td>
-                                            <span t-esc="total_amount"
-                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/>
+                                            <strong><span t-esc="total_earnings"
+                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/></strong>
+                                        </td>
+                                        <td><strong>Total Deductions</strong></td>
+                                        <td>
+                                            <strong><span t-esc="total_deductions"
+                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/></strong>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="3" class="text-right">
+                                            <strong>
+                                                Net Pay
+                                                <t t-if="o.employee_id.country_for_leave == 'india'">(&#8377;)</t>
+                                                <t t-else="">(AED)</t>
+                                            </strong>
+                                        </td>
+                                        <td>
+                                            <strong><span t-esc="net_pay"
+                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/></strong>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="4">
+                                            <strong>Pay in Words: </strong>
+                                            <span t-esc="o.employee_id.contract_id.company_id.currency_id.amount_to_text(net_pay)"/>
                                         </td>
                                     </tr>
                                 </tfoot>
                             </table>
 
-                            <!-- Flex container for Worked Days and Signature -->
-                            <div class="flex-container">
-                                <!-- Worked Days Summary (Left Side) -->
-                                <div class="worked-days-summary">
-                                    <h4>Worked Days Summary</h4>
-                                    <table class="worked-days-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Name</th>
-                                                <th>Days</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr t-foreach="o.worked_days_line_ids" t-as="line">
-                                                <td><span t-field="line.name"/></td>
-                                                <td><span t-field="line.number_of_days"/></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                            <!-- Footer Note -->
+                            <div class="footer-note">
+                                <p>*** This is electronically generated pay slip hence does not require a signature ***</p>
+                            </div>
 
-                                <!-- Signature Section (Right Side) -->
-                                <div class="signature-section">
-                                    <img class="signature-logo" t-if="o.employee_id.contract_id.company_id.secondary_logo"
-                                        t-att-src="'data:image/png;base64,%s' % o.employee_id.contract_id.company_id.secondary_logo.decode('utf-8')"
-                                        alt="Authorized Signature"/>
-                                    <p class="signature-label">Authorized Signature</p>
-                                </div>
+                            <!-- Company Contact Footer -->
+                            <t t-set="footer_company" t-value="o.employee_id.contract_id.company_id"/>
+                            <div class="company-contact-footer">
+                                <span t-if="footer_company.email" t-field="footer_company.email"/>
+                                <t t-if="footer_company.email and footer_company.website"> | </t>
+                                <span t-if="footer_company.website" t-field="footer_company.website"/>
+                                <t t-if="footer_company.website and footer_company.vat"> | </t>
+                                <span t-if="footer_company.vat" t-field="footer_company.vat"/>
                             </div>
 
                         </div>
@@ -151,8 +214,7 @@
                             font-family: "Helvetica", "Arial", sans-serif;
                             font-size: 14px;
                             color: #333;
-                            margin-top: -100px;
-                            margin: 0; 
+                            margin: 0;
                             padding: 0;
                         }
 
@@ -161,7 +223,6 @@
                             padding: 0;
                             text-align: left;
                             page-break-before: always;
-                            margin-top: -100px;
                         }
 
                         h3 {
@@ -170,33 +231,30 @@
                             color: #007bff;
                         }
 
-                        h4 {
-                            font-size: 18px;
-                            margin-bottom: 8px;
-                            color: #333;
-                        }
-
                         .header-row {
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: flex-start;
+                            display: grid;
+                            grid-template-columns: 1fr auto 1fr;
+                            align-items: center;
                             margin-bottom: 20px;
                         }
 
-                        .company-info {
-                            width: 60%;
+                        .company-info-left {
+                            text-align: left;
                             font-size: 14px;
                             line-height: 1.4;
                         }
 
-                        .logo-container {
-                            width: 35%;
-                            text-align: right;
+                        .company-info-left h2 {
+                            margin: 0 0 4px 0;
+                        }
+
+                        .logo-center {
+                            text-align: center;
                         }
 
                         .company-logo {
-                            max-width: 150px;
-                            max-height: 80px;
+                            max-width: 100px;
+                            max-height: 60px;
                             width: auto;
                             height: auto;
                         }
@@ -207,8 +265,7 @@
                         }
 
                         .info-table,
-                        .salary-table,
-                        .worked-days-table {
+                        .salary-table {
                             width: 100%;
                             border-collapse: collapse;
                             margin-bottom: 20px;
@@ -217,18 +274,17 @@
 
                         .info-table td,
                         .salary-table td,
-                        .salary-table th,
-                        .worked-days-table td,
-                        .worked-days-table th {
+                        .salary-table th {
                             border: 1px solid #ddd;
                             padding: 8px;
                         }
 
-                        .salary-table thead {
-                            background-color: #f8f9fa;
+                        .info-table td.empty-cell,
+                        .salary-table td.empty-cell {
+                            border: none;
                         }
 
-                        .worked-days-table thead {
+                        .salary-table thead {
                             background-color: #f8f9fa;
                         }
 
@@ -236,41 +292,22 @@
                             text-align: right;
                         }
 
-                        .flex-container {
-                            display: flex;
-                            justify-content: space-between;
-                            margin-top: 25px;
+                        .footer-note {
+                            text-align: center;
+                            margin-top: 30px;
+                            font-size: 12px;
+                            font-style: italic;
+                            color: #555;
                         }
 
-                        .worked-days-summary {
-                            width: 48%;
-                        }
-
-                        .signature-section {
-                            width: 48%;
-                            text-align: right;
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: flex-end;
-                            align-items: flex-end;
-                        }
-
-                        .signature-logo {
-                            max-width: 150px;
-                            max-height: 80px;
-                            width: auto;
-                            height: auto;
-                            margin-bottom: 10px;
-                        }
-
-                        .signature-label {
-                            font-weight: bold;
-                            font-size: 14px;
-                            color: #333;
+                        .company-contact-footer {
+                            text-align: center;
+                            margin-top: 6px;
+                            font-size: 12px;
+                            color: #555;
                         }
                     </style>
 
-                </t>
             </t>
         </t>
     </template>

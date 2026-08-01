@@ -13,6 +13,8 @@
         'mail',
         'hr_contract',
         'hr_holidays',
+        'employee_extended_rk',
+        'leave_management_rk',
     ],
     'data': [
         'security/hr_payroll_security.xml',
@@ -35,7 +37,6 @@
         'views/report_payslip_details_templates.xml',
         'views/hr_contract_history_views.xml',
         'views/hr_leave_type_view.xml',
-        'data/mail_template.xml',
     ],
     'images': ['static/description/banner.png'],
     'application': True,
