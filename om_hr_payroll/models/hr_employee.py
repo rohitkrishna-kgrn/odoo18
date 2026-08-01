@@ -10,13 +10,18 @@ class HrEmployee(models.Model):
                                    groups="om_om_hr_payroll.group_hr_payroll_user")
 
     country_for_leave = fields.Selection(related='user_id.country', string='Country For Leave Model')
-    employee_no = fields.Char(string='Employee No.')
-    doj = fields.Date(string='DOJ', compute='_compute_doj', store=True, readonly=False)
-    pan_no = fields.Char(string='PAN No')
-    uan_pf_no = fields.Char(string='UAN No (PF)')
-    esi_no = fields.Char(string='ESI No')
-    esi_no_editable = fields.Boolean(string='Allow ESI No Edit', default=False)
-    bank_account_no = fields.Char(string='Bank A/c No')
+    # Sensitive HR/payroll data: restrict to HR Managers so these fields are
+    # stripped from reads/views for other users, avoiding the "not available
+    # for employee public profiles" AccessError (hr.employee has no read
+    # access for non-HR users, so Odoo falls back to hr.employee.public,
+    # which does not define these fields).
+    employee_no = fields.Char(string='Employee No.', groups='hr.group_hr_user')
+    doj = fields.Date(string='DOJ', compute='_compute_doj', store=True, readonly=False, groups='hr.group_hr_user')
+    pan_no = fields.Char(string='PAN No', groups='hr.group_hr_user')
+    uan_pf_no = fields.Char(string='UAN No (PF)', groups='hr.group_hr_user')
+    esi_no = fields.Char(string='ESI No', groups='hr.group_hr_user')
+    esi_no_editable = fields.Boolean(string='Allow ESI No Edit', default=False, groups='hr.group_hr_user')
+    bank_account_no = fields.Char(string='Bank A/c No', groups='hr.group_hr_user')
 
     def _compute_payslip_count(self):
         for employee in self:

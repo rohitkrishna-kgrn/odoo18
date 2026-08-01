@@ -28,22 +28,22 @@
             </xpath>
             <xpath expr="//field[@name='direct_bank']" position="after">
                 <separator string="PAY SLIP INFO"/>
-                <field name="country_for_leave"/>
-                <field name="employee_no" readonly="not country_for_leave"/>
+                <field name="country_for_leave" groups="hr.group_hr_user"/>
+                <field name="employee_no" readonly="not country_for_leave" groups="hr.group_hr_user"/>
                 <field name="name" readonly="not country_for_leave"/>
                 <field name="job_title" readonly="not country_for_leave"/>
                 <field name="birthday" readonly="not country_for_leave"/>
                 <newline/>
-                <field name="doj" readonly="not country_for_leave"/>
+                <field name="doj" readonly="not country_for_leave" groups="hr.group_hr_user"/>
                 <field name="bank_iban_number" readonly="not country_for_leave" invisible="country_for_leave == 'india'"/>
                 <newline/>
-                <field name="pan_no" invisible="country_for_leave != 'india'"/>
-                <field name="bank_account_no" readonly="not country_for_leave" invisible="country_for_leave != 'india'"/>
+                <field name="pan_no" invisible="country_for_leave != 'india'" groups="hr.group_hr_user"/>
+                <field name="bank_account_no" readonly="not country_for_leave" invisible="country_for_leave != 'india'" groups="hr.group_hr_user"/>
                 <newline/>
-                <field name="uan_pf_no" invisible="country_for_leave != 'india'"/>
-                <field name="esi_no_editable" widget="boolean_toggle" invisible="country_for_leave != 'india'"/>
+                <field name="uan_pf_no" invisible="country_for_leave != 'india'" groups="hr.group_hr_user"/>
+                <field name="esi_no_editable" widget="boolean_toggle" invisible="country_for_leave != 'india'" groups="hr.group_hr_user"/>
                 <newline/>
-                <field name="esi_no" invisible="country_for_leave != 'india'" readonly="not esi_no_editable"/>
+                <field name="esi_no" invisible="country_for_leave != 'india'" readonly="not esi_no_editable" groups="hr.group_hr_user"/>
             </xpath>
         </field>
     </record>
