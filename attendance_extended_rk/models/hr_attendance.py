@@ -31,8 +31,8 @@ class HrAttendance(models.Model):
                 ('check_in', '<=', end_of_day),
             ], limit=1)
 
-            # if existing_attendance:
-            #     raise UserError(_('You have already checked in today.'))
+            if existing_attendance:
+                raise UserError(_('You have already checked in today. Only one check-in per day is allowed.'))
 
             employee = self.env['hr.employee'].browse(employee_id)
             user_id = employee.user_id.id if employee.user_id else False
