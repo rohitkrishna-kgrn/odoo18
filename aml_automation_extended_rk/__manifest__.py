@@ -23,6 +23,7 @@
         'security/aml_groups.xml',
         'security/ir.model.access.csv',
         'security/aml_additional_docs_access.xml',
+        'security/aml_record_rules.xml',
         'data/aml_sequences.xml',
         'data/aml_mail_templates.xml',
         'data/aml_cron.xml',
@@ -40,6 +41,8 @@
         ],
         'web.assets_backend': [
             'aml_automation_extended_rk/static/src/css/aml_backend.css',
+            'aml_automation_extended_rk/static/src/js/aml_binary_field.js',
+            'aml_automation_extended_rk/static/src/xml/aml_binary_field.xml',
         ],
     },
     'installable': True,

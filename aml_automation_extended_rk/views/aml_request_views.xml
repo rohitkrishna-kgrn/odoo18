@@ -51,9 +51,15 @@
                         class="btn-secondary"
                         invisible="state != 'in_progress'"
                         groups="aml_automation_extended_rk.group_aml_user"/>
+
+                    <!-- No HIT follow-up actions -->
+                    <button name="action_additional_documents" type="object" string="Additional Document"
+                        class="btn-secondary"
+                        invisible="state != 'no_hit'"
+                        groups="aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_approve" type="object" string="Approve"
                         class="btn-success"
-                        invisible="state != 'additional_info'"
+                        invisible="state not in ('additional_info', 'no_hit')"
                         groups="aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_reject" type="object" string="Reject"
                         class="btn-danger"

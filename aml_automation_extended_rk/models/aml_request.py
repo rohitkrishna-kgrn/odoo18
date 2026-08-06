@@ -262,6 +262,28 @@ class AmlRequest(models.Model):
             record.access_url = '/aml/form/%s' % (record.access_token or '')
 
     # =========================================================================
+    # CRUD
+    # =========================================================================
+    def write(self, vals):
+        if 'aml_user_id' in vals and not self.env.su \
+                and not self.env.user.has_group('aml_automation_extended_rk.group_aml_manager'):
+            raise UserError(_("Only AML Managers can reassign the AML Officer."))
+
+        previous_officers = {}
+        if 'aml_user_id' in vals:
+            previous_officers = {rec.id: rec.aml_user_id for rec in self}
+        res = super().write(vals)
+        if 'aml_user_id' in vals:
+            for rec in self:
+                previous_officer = previous_officers.get(rec.id)
+                if rec.aml_user_id != previous_officer:
+                    # aml_user_id has tracking=True, so mail.thread already logs this
+                    # change in the chatter; this just triggers the assignment email.
+                    if rec.aml_user_id:
+                        rec._notify_assigned_officer()
+        return res
+
+    # =========================================================================
     # =========================================================================
     # Mail Helper
     # =========================================================================
@@ -274,6 +296,166 @@ class AmlRequest(models.Model):
             return '%s@%s' % (default_from, catchall_domain)
         company = self.company_id or self.env.company
         return company.email or self.env.user.email or ''
+
+    # =========================================================================
+    # Branded Email Shell (shared header/footer/table look for every AML mail)
+    # =========================================================================
+    _EMAIL_ACCENT = '#1a237e'
+    _EMAIL_NAVY = '#1c2340'
+    _EMAIL_BORDER = '#e2e6f0'
+    _EMAIL_STRIPE = '#f7f8fc'
+
+    def _email_logo_url(self):
+        """URL of the white-background JPEG logo (see ``_compute_logo_white_jpeg``).
+        Deliberately not /web/image/res.company/<id>/logo: company logos are often
+        stored as WebP, which many email clients (notably desktop Outlook) can't
+        render at all, and any transparency would show through inconsistently."""
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        company = self.company_id or self.env.company
+        return '%s/aml/logo/%s.jpg' % (base_url, company.id)
+
+    def _email_shell(self, title, body_html, subtitle=None):
+        """Wrap ``body_html`` in the branded KGRN email shell: logo top-right
+        in the header with an orange accent rule (matching the PDF report),
+        and a consistent closing footer. Every outbound AML mail is built
+        through this so all notifications share one look."""
+        company = self.company_id or self.env.company
+        subtitle_html = (
+            '<div style="color:#888888;font-family:Arial,sans-serif;font-size:12px;margin-top:3px;">%s</div>' % subtitle
+            if subtitle else ''
+        )
+        return """
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%%"
+       style="background:#eef1f8;padding:24px 0;font-family:Arial,Helvetica,sans-serif;">
+  <tr><td align="center">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="640"
+         style="background:#ffffff;border-radius:8px;border:1px solid %(border)s;">
+
+    <!-- Header -->
+    <tr>
+      <td style="padding:20px 28px 14px;border-bottom:3px solid %(accent)s;">
+        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td align="left" valign="middle">
+              <div style="color:%(navy)s;font-family:Arial,sans-serif;font-size:18px;font-weight:700;">%(title)s</div>
+              %(subtitle_html)s
+            </td>
+            <td align="right" valign="middle">
+              <img src="%(logo_url)s" alt="%(company_name)s"
+                   style="max-height:50px;max-width:150px;display:block;" border="0"/>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Body -->
+    <tr>
+      <td style="padding:26px 28px;">
+        %(body)s
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td style="padding:16px 28px;background:%(stripe)s;border-top:1px solid %(border)s;text-align:center;border-radius:0 0 8px 8px;">
+        <p style="margin:0;color:#8a90a3;font-family:Arial,sans-serif;font-size:11px;">
+          %(company_name)s &nbsp;|&nbsp; UAE AML/CFT Compliance Team
+        </p>
+        <p style="margin:4px 0 0;color:#b0b4c2;font-family:Arial,sans-serif;font-size:10px;">
+          This is an automated notification. Please do not reply directly to this email.
+        </p>
+      </td>
+    </tr>
+
+  </table>
+  </td></tr>
+</table>
+        """ % {
+            'accent': self._EMAIL_ACCENT,
+            'navy': self._EMAIL_NAVY,
+            'border': self._EMAIL_BORDER,
+            'stripe': self._EMAIL_STRIPE,
+            'title': title,
+            'subtitle_html': subtitle_html,
+            'logo_url': self._email_logo_url(),
+            'company_name': company.name,
+            'body': body_html,
+        }
+
+    def _email_kv_table(self, rows):
+        """rows: list of (label, value) tuples -> branded 2-column bordered
+        table, used for the "at a glance" fact block in every notification."""
+        trs = ''.join(
+            '<tr style="background:%s;">'
+            '<td style="padding:8px 12px;font-weight:bold;color:#333333;border:1px solid %s;'
+            'width:36%%;font-family:Arial,sans-serif;font-size:13px;">%s</td>'
+            '<td style="padding:8px 12px;color:#444444;border:1px solid %s;'
+            'font-family:Arial,sans-serif;font-size:13px;">%s</td></tr>'
+            % (self._EMAIL_STRIPE if i % 2 == 0 else '#ffffff', self._EMAIL_BORDER,
+               label, self._EMAIL_BORDER, value if value not in (None, False, '') else '-')
+            for i, (label, value) in enumerate(rows)
+        )
+        return (
+            '<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" '
+            'style="border-collapse:collapse;margin:4px 0 20px;">%s</table>'
+        ) % trs
+
+    def _email_list_table(self, headers, rows):
+        """headers: list[str]; rows: list[list[str]] -> branded striped data
+        table (orange header row) for digest / summary emails."""
+        thead = ''.join(
+            '<th style="padding:8px 10px;text-align:left;color:#ffffff;'
+            'font-family:Arial,sans-serif;font-size:12px;">%s</th>' % h
+            for h in headers
+        )
+        trs = ''.join(
+            '<tr style="background:%s;">%s</tr>' % (
+                self._EMAIL_STRIPE if i % 2 == 0 else '#ffffff',
+                ''.join(
+                    '<td style="padding:7px 10px;border:1px solid %s;color:#444444;'
+                    'font-family:Arial,sans-serif;font-size:12px;">%s</td>' % (self._EMAIL_BORDER, c)
+                    for c in row
+                ),
+            )
+            for i, row in enumerate(rows)
+        )
+        return (
+            '<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" '
+            'style="border-collapse:collapse;margin:4px 0 20px;">'
+            '<thead><tr style="background:%s;">%s</tr></thead><tbody>%s</tbody></table>'
+        ) % (self._EMAIL_ACCENT, thead, trs)
+
+    def _email_cta_button(self, label, url):
+        """Branded call-to-action button (VML fallback for Outlook + plain HTML),
+        used by every client-facing email that needs an action link."""
+        return """
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%%">
+          <tr>
+            <td align="center" style="padding:6px 0 24px;">
+              <!--[if mso]>
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml"
+                           xmlns:w="urn:schemas-microsoft-com:office:word"
+                           href="%(url)s"
+                           style="height:50px;v-text-anchor:middle;width:240px;"
+                           arcsize="10%%" fillcolor="%(accent)s" strokecolor="%(accent)s">
+                <w:anchorlock/>
+                <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:700;">
+                  %(label)s
+                </center>
+              </v:roundrect>
+              <![endif]-->
+              <!--[if !mso]><!-->
+              <a href="%(url)s"
+                 style="background-color:%(accent)s;color:#ffffff;font-family:Arial,sans-serif;
+                        font-size:15px;font-weight:700;padding:14px 36px;text-decoration:none;
+                        border-radius:8px;display:inline-block;mso-padding-alt:0;">
+                %(label)s
+              </a>
+              <!--<![endif]-->
+            </td>
+          </tr>
+        </table>""" % {'url': url, 'label': label, 'accent': self._EMAIL_ACCENT}
 
     # KYC Email (Python-generated – avoids Odoo 18 template rendering issues)
     # =========================================================================
@@ -290,36 +472,11 @@ class AmlRequest(models.Model):
 
         kyc_label = 'Entity' if self.kyc_type == 'entity' else 'Individual'
         order_name = self.sale_order_id.name or ''
-        company = self.company_id or self.env.company
-        logo_url = '%s/web/image/res.company/%s/logo' % (base_url, company.id)
+
+        cta_button = self._email_cta_button(_('Complete KYC Form'), form_url)
 
         body_html = """
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%%"
-       style="background:#f4f6fb;padding:24px 0;font-family:Arial,Helvetica,sans-serif;">
-  <tr><td align="center">
-
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="620"
-         style="background:#ffffff;border-radius:10px;border:1px solid #dde3f0;">
-
-    <!-- Header -->
-    <tr>
-      <td bgcolor="#1a237e" style="padding:32px 40px;text-align:center;border-radius:10px 10px 0 0;">
-        <img src="%(logo_url)s" alt="%(company_name)s"
-             style="max-height:60px;max-width:180px;display:block;margin:0 auto 14px;"
-             border="0"/>
-        <h1 style="color:#ffffff;margin:0;font-family:Arial,sans-serif;font-size:20px;font-weight:700;">
-          KYC / AML Form – %(company_name)s
-        </h1>
-        <p style="color:#c5cae9;margin:6px 0 0;font-family:Arial,sans-serif;font-size:13px;">
-          UAE AML/CFT Compliance
-        </p>
-      </td>
-    </tr>
-
-    <!-- Body -->
-    <tr>
-      <td style="padding:32px 40px;background:#ffffff;">
-        <p style="color:#1c2340;font-family:Arial,sans-serif;font-size:15px;margin:0 0 18px;">
+        <p style="color:%(navy)s;font-family:Arial,sans-serif;font-size:15px;margin:0 0 16px;">
           Dear <strong>%(partner_name)s</strong>,
         </p>
         <p style="color:#555555;font-family:Arial,sans-serif;font-size:14px;line-height:1.75;margin:0 0 14px;">
@@ -327,52 +484,14 @@ class AmlRequest(models.Model):
           <strong>DNFBPs</strong>, we are required to obtain and verify your customer due diligence
           (KYC) information before commencement of the engagement.
         </p>
-        <p style="color:#555555;font-family:Arial,sans-serif;font-size:14px;line-height:1.75;margin:0 0 28px;">
+        <p style="color:#555555;font-family:Arial,sans-serif;font-size:14px;line-height:1.75;margin:0 0 22px;">
           Please click the button below to securely complete your KYC form.
           The link is <strong>unique to your account</strong> and will expire once submitted.
         </p>
-
-        <!-- CTA Button (VML for Outlook + HTML fallback) -->
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%%">
-          <tr>
-            <td align="center" style="padding:20px 0 28px;">
-              <!--[if mso]>
-              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml"
-                           xmlns:w="urn:schemas-microsoft-com:office:word"
-                           href="%(form_url)s"
-                           style="height:50px;v-text-anchor:middle;width:240px;"
-                           arcsize="10%%" fillcolor="#1a237e" strokecolor="#1a237e">
-                <w:anchorlock/>
-                <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:700;">
-                  Complete KYC Form
-                </center>
-              </v:roundrect>
-              <![endif]-->
-              <!--[if !mso]><!-->
-              <a href="%(form_url)s"
-                 style="background-color:#1a237e;color:#ffffff;font-family:Arial,sans-serif;
-                        font-size:15px;font-weight:700;padding:14px 36px;text-decoration:none;
-                        border-radius:8px;display:inline-block;mso-padding-alt:0;">
-                Complete KYC Form
-              </a>
-              <!--<![endif]-->
-            </td>
-          </tr>
-        </table>
-
-        <!-- Reference box -->
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%%"
-               style="background:#f4f6fb;border-left:4px solid #1a237e;border-radius:0 6px 6px 0;margin:0 0 20px;">
-          <tr>
-            <td style="padding:14px 18px;font-family:Arial,sans-serif;font-size:13px;color:#555555;line-height:1.6;">
-              <strong>Reference:</strong> %(order_name)s &nbsp;&nbsp;|&nbsp;&nbsp;
-              <strong>KYC Type:</strong> %(kyc_label)s
-            </td>
-          </tr>
-        </table>
-
+        %(cta_button)s
+        %(kv_table)s
         <p style="color:#888888;font-family:Arial,sans-serif;font-size:13px;line-height:1.6;
-                  border-top:1px solid #dde3f0;padding-top:18px;margin:0 0 14px;">
+                  border-top:1px solid %(border)s;padding-top:16px;margin:0 0 14px;">
           If the button above does not work, copy and paste this link into your browser:
         </p>
         <p style="margin:0 0 18px;">
@@ -383,36 +502,28 @@ class AmlRequest(models.Model):
         </p>
         <p style="color:#888888;font-family:Arial,sans-serif;font-size:13px;margin:0;">
           If you have any questions, please contact our AML team.
-        </p>
-      </td>
-    </tr>
-
-    <!-- Footer -->
-    <tr>
-      <td bgcolor="#f4f6fb"
-          style="padding:16px 40px;text-align:center;border-top:1px solid #dde3f0;border-radius:0 0 10px 10px;">
-        <p style="color:#999999;font-family:Arial,sans-serif;font-size:12px;margin:0;">
-          %(company_name)s &nbsp;|&nbsp; UAE AML Compliance Team
-        </p>
-      </td>
-    </tr>
-
-  </table>
-
-  </td></tr>
-</table>
-        """ % {
+        </p>""" % {
+            'navy': self._EMAIL_NAVY,
+            'border': self._EMAIL_BORDER,
             'partner_name': partner.name,
             'form_url': form_url,
-            'order_name': order_name,
-            'kyc_label': kyc_label,
-            'company_name': company.name,
-            'logo_url': logo_url,
+            'cta_button': cta_button,
+            'kv_table': self._email_kv_table([
+                ('Client', partner.name),
+                ('Sale Order', order_name),
+                ('KYC Type', kyc_label),
+            ]),
         }
+
+        full_body = self._email_shell(
+            title='Complete Your KYC / AML Form',
+            subtitle='UAE AML/CFT Compliance',
+            body_html=body_html,
+        )
 
         self.env['mail.mail'].sudo().create({
             'subject': 'Action Required: Complete Your KYC / AML Form – %s' % (order_name or self.name),
-            'body_html': body_html,
+            'body_html': full_body,
             'email_from': self._get_mail_from(),
             'email_to': partner.email,
             'author_id': self.env.user.partner_id.id,
@@ -514,17 +625,8 @@ class AmlRequest(models.Model):
         if self.state != 'new':
             raise UserError(_("Only new requests can be accepted."))
 
-        aml_users = self.env['res.users'].search([
-            ('groups_id', 'in', [self.env.ref('aml_automation_extended_rk.group_aml_user').id]),
-            ('active', '=', True),
-        ], limit=1)
-
-        self.write({
-            'state': 'accepted',
-            'aml_user_id': aml_users.id if aml_users else False,
-        })
-        self.message_post(body=_("Request accepted. Assigned to AML pipeline."))
-        self._notify_aml_users_accepted()
+        self.write({'state': 'accepted'})
+        self.message_post(body=_("Request accepted."))
 
     def action_bypass(self):
         self.ensure_one()
@@ -536,11 +638,12 @@ class AmlRequest(models.Model):
         self.message_post(body=_("Request bypassed. No AML check required."))
         self._notify_management_and_salesperson(
             subject=_("AML Request %s – Bypassed (No AML Required)") % self.name,
-            body=_(
-                "<p>AML Request <strong>%s</strong> for client <strong>%s</strong> "
-                "has been <strong>bypassed</strong>. No AML check is required.</p>"
-                "<p>Sale Order: %s</p>"
-            ) % (self.name, self.partner_id.name, self.sale_order_id.name or '-'),
+            intro=_("AML Request <strong>%s</strong> has been bypassed. No AML check is required.") % self.name,
+            kv_rows=[
+                (_('Client'), self.partner_id.name),
+                (_('Sale Order'), self.sale_order_id.name or '-'),
+                (_('Status'), _('Bypassed')),
+            ],
         )
 
     def action_cancel(self):
@@ -553,11 +656,12 @@ class AmlRequest(models.Model):
         self.message_post(body=_("Request cancelled."))
         self._notify_management_and_salesperson(
             subject=_("AML Request %s – Cancelled") % self.name,
-            body=_(
-                "<p>AML Request <strong>%s</strong> for client <strong>%s</strong> "
-                "has been <strong>cancelled</strong>.</p>"
-                "<p>Sale Order: %s</p>"
-            ) % (self.name, self.partner_id.name, self.sale_order_id.name or '-'),
+            intro=_("AML Request <strong>%s</strong> has been cancelled.") % self.name,
+            kv_rows=[
+                (_('Client'), self.partner_id.name),
+                (_('Sale Order'), self.sale_order_id.name or '-'),
+                (_('Status'), _('Cancelled')),
+            ],
         )
 
     # =========================================================================
@@ -581,10 +685,11 @@ class AmlRequest(models.Model):
         self.message_post(body=_("No HIT Detected. Request marked as completed."))
         self._notify_aml_managers_and_management(
             subject=_("AML Request %s – No HIT Detected") % self.name,
-            body=_(
-                "<p>AML Request <strong>%s</strong> for client <strong>%s</strong> "
-                "has been completed with <strong>No HIT Detected</strong>.</p>"
-            ) % (self.name, self.partner_id.name),
+            intro=_("AML Request <strong>%s</strong> has been completed with no HIT detected.") % self.name,
+            kv_rows=[
+                (_('Client'), self.partner_id.name),
+                (_('Status'), _('No HIT Detected')),
+            ],
         )
 
     def action_hit_detected(self):
@@ -604,8 +709,8 @@ class AmlRequest(models.Model):
 
     def action_additional_documents(self):
         self.ensure_one()
-        if self.state != 'in_progress':
-            raise UserError(_("Request must be In Progress to request additional documents."))
+        if self.state not in ('in_progress', 'no_hit'):
+            raise UserError(_("Request must be In Progress or No HIT to request additional documents."))
         return {
             'type': 'ir.actions.act_window',
             'name': _('Request Additional Documents'),
@@ -617,16 +722,19 @@ class AmlRequest(models.Model):
 
     def action_approve(self):
         self.ensure_one()
-        if self.state != 'additional_info':
-            raise UserError(_("Can only approve after additional info is received."))
+        if self.state not in ('additional_info', 'no_hit'):
+            raise UserError(_("Can only approve after additional info is received, or directly from No HIT status."))
+        from_no_hit = self.state == 'no_hit'
         self.write({'state': 'approved'})
-        self.message_post(body=_("AML Request approved."))
+        self.message_post(body=_("AML Request approved directly from No HIT status.") if from_no_hit
+                           else _("AML Request approved."))
         self._notify_aml_managers_and_management(
             subject=_("AML Request %s – Approved") % self.name,
-            body=_(
-                "<p>AML Request <strong>%s</strong> for client <strong>%s</strong> "
-                "has been <strong>approved</strong>.</p>"
-            ) % (self.name, self.partner_id.name),
+            intro=_("AML Request <strong>%s</strong> has been approved.") % self.name,
+            kv_rows=[
+                (_('Client'), self.partner_id.name),
+                (_('Status'), _('Approved')),
+            ],
         )
 
     def action_reject(self):
@@ -637,16 +745,38 @@ class AmlRequest(models.Model):
         self.message_post(body=_("AML Request rejected."))
         self._notify_aml_managers_and_management(
             subject=_("AML Request %s – Rejected") % self.name,
-            body=_(
-                "<p>AML Request <strong>%s</strong> for client <strong>%s</strong> "
-                "has been <strong>rejected</strong>. The pipeline record is now closed.</p>"
-            ) % (self.name, self.partner_id.name),
+            intro=_("AML Request <strong>%s</strong> has been rejected. The pipeline record is now closed.") % self.name,
+            kv_rows=[
+                (_('Client'), self.partner_id.name),
+                (_('Status'), _('Rejected')),
+            ],
         )
 
     # =========================================================================
     # Notification Helpers
     # =========================================================================
-    def _notify_management_and_salesperson(self, subject, body):
+    def _build_notification_body(self, intro, kv_rows=None, closing=None):
+        """Lead-in paragraph + branded key/value table, used by every
+        notification helper so recipients always see a proper structured
+        summary instead of a wall of text."""
+        parts = ['<p style="color:%s;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;margin:0 0 16px;">%s</p>'
+                 % (self._EMAIL_NAVY, intro)]
+        if kv_rows:
+            parts.append(self._email_kv_table(kv_rows))
+        parts.append(
+            '<p style="color:#888888;font-family:Arial,sans-serif;font-size:13px;margin:0;">%s</p>'
+            % (closing or _('Please log in to the AML app to review and take any required action.'))
+        )
+        return ''.join(parts)
+
+    def _build_digest_body(self, intro, list_table):
+        """Lead-in paragraph + branded listing table, used by the pending-requests digests."""
+        return (
+            '<p style="color:%s;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;margin:0 0 16px;">%s</p>%s'
+            % (self._EMAIL_NAVY, intro, list_table)
+        )
+
+    def _notify_management_and_salesperson(self, subject, intro, kv_rows=None):
         management = self.company_id.approver_user_id
         salesperson = self.sale_order_id.user_id if self.sale_order_id else False
         recipients = set()
@@ -654,7 +784,10 @@ class AmlRequest(models.Model):
             recipients.add(management.email)
         if salesperson and salesperson.email:
             recipients.add(salesperson.email)
-        full_body = "<p>Dear Team,</p>%s<p>Regards,<br/>AML System</p>" % body
+        full_body = self._email_shell(
+            title=subject,
+            body_html=self._build_notification_body(intro, kv_rows),
+        )
         email_from = self._get_mail_from()
         for email in recipients:
             self.env['mail.mail'].sudo().create({
@@ -665,7 +798,7 @@ class AmlRequest(models.Model):
                 'author_id': self.env.user.partner_id.id,
             }).send()
 
-    def _notify_aml_managers_and_management(self, subject, body):
+    def _notify_aml_managers_and_management(self, subject, intro, kv_rows=None):
         manager_group = self.env.ref('aml_automation_extended_rk.group_aml_manager')
         aml_managers = self.env['res.users'].search([
             ('groups_id', 'in', [manager_group.id]), ('active', '=', True)
@@ -677,7 +810,10 @@ class AmlRequest(models.Model):
                 recipients.add(u.email)
         if management and management.email:
             recipients.add(management.email)
-        full_body = "<p>Dear Team,</p>%s<p>Regards,<br/>AML System</p>" % body
+        full_body = self._email_shell(
+            title=subject,
+            body_html=self._build_notification_body(intro, kv_rows),
+        )
         email_from = self._get_mail_from()
         for email in recipients:
             self.env['mail.mail'].sudo().create({
@@ -688,7 +824,7 @@ class AmlRequest(models.Model):
                 'author_id': self.env.user.partner_id.id,
             }).send()
 
-    def _notify_aml_managers_and_assignee(self, subject, body):
+    def _notify_aml_managers_and_assignee(self, subject, intro, kv_rows=None):
         """Notify the AML Manager group plus this request's assigned AML Officer only
         (no general company management) -- used when a client submits additional
         documents, since that's specifically actionable by AML review, not management."""
@@ -702,7 +838,10 @@ class AmlRequest(models.Model):
                 recipients.add(u.email)
         if self.aml_user_id and self.aml_user_id.email:
             recipients.add(self.aml_user_id.email)
-        full_body = "<p>Dear Team,</p>%s<p>Regards,<br/>AML System</p>" % body
+        full_body = self._email_shell(
+            title=subject,
+            body_html=self._build_notification_body(intro, kv_rows),
+        )
         email_from = self._get_mail_from()
         for email in recipients:
             self.env['mail.mail'].sudo().create({
@@ -713,56 +852,60 @@ class AmlRequest(models.Model):
                 'author_id': self.env.user.partner_id.id,
             }).send()
 
-    def _notify_aml_users_accepted(self):
-        user_group = self.env.ref('aml_automation_extended_rk.group_aml_user')
-        aml_users = self.env['res.users'].search([
-            ('groups_id', 'in', [user_group.id]), ('active', '=', True)
-        ])
-        body_html = _(
-            "<p>Dear AML Officer,</p>"
-            "<p>A new AML request <strong>%s</strong> for client <strong>%s</strong> "
-            "has been accepted and is now in your pipeline.</p>"
-            "<p>KYC Type: %s | Deadline: %s</p>"
-            "<p>Please review and take action.</p>"
-        ) % (
-            self.name, self.partner_id.name,
-            dict(self._fields['kyc_type'].selection).get(self.kyc_type or '', ''),
-            self.deadline,
+    def _notify_assigned_officer(self):
+        """Notify this request's assigned AML Officer that the case is now theirs.
+        Called from ``write()`` whenever ``aml_user_id`` is set or changed by an
+        AML Manager -- targeted at the assignee only, since access to the record
+        is likewise scoped to them (see ir.rule)."""
+        self.ensure_one()
+        if not self.aml_user_id or not self.aml_user_id.email:
+            return
+        subject = _("AML Request Assigned to You: %s") % self.name
+        full_body = self._email_shell(
+            title=subject,
+            body_html=self._build_notification_body(
+                intro=_("AML request <strong>%s</strong> has been assigned to you.") % self.name,
+                kv_rows=[
+                    (_('Client'), self.partner_id.name),
+                    (_('KYC Type'), dict(self._fields['kyc_type'].selection).get(self.kyc_type or '', '')),
+                    (_('Status'), dict(self._fields['state'].selection).get(self.state, self.state)),
+                    (_('Deadline'), self.deadline),
+                ],
+            ),
         )
-        email_from = self._get_mail_from()
-        for user in aml_users:
-            if user.email:
-                self.env['mail.mail'].sudo().create({
-                    'subject': _("New AML Request Assigned: %s") % self.name,
-                    'body_html': body_html,
-                    'email_from': email_from,
-                    'email_to': user.email,
-                    'author_id': self.env.user.partner_id.id,
-                }).send()
+        self.env['mail.mail'].sudo().create({
+            'subject': subject,
+            'body_html': full_body,
+            'email_from': self._get_mail_from(),
+            'email_to': self.aml_user_id.email,
+            'author_id': self.env.user.partner_id.id,
+            'model': 'aml.request',
+            'res_id': self.id,
+        }).send()
 
     def _notify_aml_managers_new_request(self):
         manager_group = self.env.ref('aml_automation_extended_rk.group_aml_manager')
         aml_managers = self.env['res.users'].search([
             ('groups_id', 'in', [manager_group.id]), ('active', '=', True)
         ])
-        body_html = _(
-            "<p>Dear AML Manager,</p>"
-            "<p>A new AML request <strong>%s</strong> has been submitted by client "
-            "<strong>%s</strong> via the KYC web form.</p>"
-            "<p>KYC Type: %s | Deadline: %s</p>"
-            "<p>Please log in to review and take action.</p>"
-            "<p>Regards,<br/>AML System</p>"
-        ) % (
-            self.name, self.partner_id.name,
-            dict(self._fields['kyc_type'].selection).get(self.kyc_type or '', ''),
-            self.deadline,
+        subject = _("New AML Request: %s") % self.name
+        full_body = self._email_shell(
+            title=subject,
+            body_html=self._build_notification_body(
+                intro=_("A new AML request <strong>%s</strong> has been submitted via the KYC web form.") % self.name,
+                kv_rows=[
+                    (_('Client'), self.partner_id.name),
+                    (_('KYC Type'), dict(self._fields['kyc_type'].selection).get(self.kyc_type or '', '')),
+                    (_('Deadline'), self.deadline),
+                ],
+            ),
         )
         email_from = self._get_mail_from()
         for manager in aml_managers:
             if manager.email:
                 self.env['mail.mail'].sudo().create({
-                    'subject': _("New AML Request: %s") % self.name,
-                    'body_html': body_html,
+                    'subject': subject,
+                    'body_html': full_body,
                     'email_from': email_from,
                     'email_to': manager.email,
                     'author_id': self.env.user.partner_id.id,
@@ -787,28 +930,30 @@ class AmlRequest(models.Model):
             ('groups_id', 'in', [manager_group.id]), ('active', '=', True)
         ])
         state_labels = dict(self._fields['state'].selection)
-        rows = ''.join(
-            "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
-                r.name, r.partner_id.name,
-                dict(self._fields['kyc_type'].selection).get(r.kyc_type or '', ''),
-                state_labels.get(r.state, r.state),
-                r.deadline or 'N/A',
-            ) for r in pending
+        kyc_labels = dict(self._fields['kyc_type'].selection)
+        list_table = self._email_list_table(
+            headers=['AML ID', 'Client', 'KYC Type', 'Status', 'Deadline'],
+            rows=[
+                [r.name, r.partner_id.name, kyc_labels.get(r.kyc_type or '', ''),
+                 state_labels.get(r.state, r.state), r.deadline or 'N/A']
+                for r in pending
+            ],
         )
-        body = (
-            "<p>Dear AML Manager,</p>"
-            "<p>The following AML requests have been pending for more than 1 day:</p>"
-            "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse:collapse;width:100%%'>"
-            "<thead><tr><th>AML ID</th><th>Client</th><th>KYC Type</th><th>Status</th><th>Deadline</th></tr></thead>"
-            "<tbody>%s</tbody></table>"
-            "<p>Regards,<br/>AML System</p>"
-        ) % rows
+        subject = "Pending AML Requests Summary"
+        full_body = self._email_shell(
+            title=subject,
+            subtitle=_("%d request(s) pending for more than 1 day") % len(pending),
+            body_html=self._build_digest_body(
+                intro=_("The following AML requests have been pending for more than 1 day:"),
+                list_table=list_table,
+            ),
+        )
         email_from = self._get_mail_from()
         for mgr in aml_managers:
             if mgr.email:
                 self.env['mail.mail'].sudo().create({
-                    'subject': "Pending AML Requests Summary",
-                    'body_html': body,
+                    'subject': subject,
+                    'body_html': full_body,
                     'email_from': email_from,
                     'email_to': mgr.email,
                     'author_id': self.env.user.partner_id.id,
@@ -829,41 +974,50 @@ class AmlRequest(models.Model):
             lambda u: u and u.email
         )
         state_labels = dict(self._fields['state'].selection)
-        rows = ''.join(
-            "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
-                r.name, r.partner_id.name,
-                dict(self._fields['kyc_type'].selection).get(r.kyc_type or '', ''),
-                state_labels.get(r.state, r.state),
-                r.deadline or 'N/A',
-            ) for r in pending
+        kyc_labels = dict(self._fields['kyc_type'].selection)
+        list_table = self._email_list_table(
+            headers=['AML ID', 'Client', 'KYC Type', 'Status', 'Deadline'],
+            rows=[
+                [r.name, r.partner_id.name, kyc_labels.get(r.kyc_type or '', ''),
+                 state_labels.get(r.state, r.state), r.deadline or 'N/A']
+                for r in pending
+            ],
         )
-        body = (
-            "<p>Dear Management,</p>"
-            "<p>Weekly AML Request Status Summary — Pending requests:</p>"
-            "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse:collapse;width:100%%'>"
-            "<thead><tr><th>AML ID</th><th>Client</th><th>KYC Type</th><th>Status</th><th>Deadline</th></tr></thead>"
-            "<tbody>%s</tbody></table>"
-            "<p>Regards,<br/>AML System</p>"
-        ) % rows
+        subject = "Weekly AML Requests Summary"
+        full_body = self._email_shell(
+            title=subject,
+            subtitle=_("%d request(s) currently pending") % len(pending),
+            body_html=self._build_digest_body(
+                intro=_("Weekly AML Request Status Summary — pending requests:"),
+                list_table=list_table,
+            ),
+        )
         email_from = self._get_mail_from()
         for user in management_users:
             self.env['mail.mail'].sudo().create({
-                'subject': "Weekly AML Requests Summary",
-                'body_html': body,
+                'subject': subject,
+                'body_html': full_body,
                 'email_from': email_from,
                 'email_to': user.email,
                 'author_id': self.env.user.partner_id.id,
             }).send()
 
-    def get_logo_white_jpeg(self):
-        """Composite company logo onto a white background and return as base64 JPEG.
-        JPEG has no alpha channel so transparent areas can never render as black.
-        Returns False if Pillow is unavailable so the caller can fall back."""
-        company = self.company_id or self.env.company
+    @api.model
+    def _compute_logo_white_jpeg(self, company):
+        """Composite ``company``'s logo onto a white background and return as base64 JPEG.
+        JPEG has no alpha channel so transparent areas can never render as black, and unlike
+        the source (often WebP) it's a format every PDF renderer and email client supports.
+        Returns False if Pillow is unavailable or the company has no logo, so callers can
+        fall back to the raw logo."""
         if not company.logo:
             return False
         try:
             from PIL import Image as PILImage
+            # Odoo only pre-registers a handful of Pillow codecs (BMP/PNG/ICO/GIF/JPEG/PPM) for
+            # security; company logos are frequently stored as WebP, so without registering this
+            # codec here Image.open() raises UnidentifiedImageError and we silently fall back to
+            # the raw (still-transparent, possibly WebP) logo.
+            from PIL import WebPImagePlugin  # noqa: F401
             logo_b64 = company.logo
             if isinstance(logo_b64, bytes):
                 logo_b64 = logo_b64.decode('utf-8')
@@ -876,3 +1030,9 @@ class AmlRequest(models.Model):
             return base64.b64encode(out.getvalue())
         except Exception:
             return False
+
+    def get_logo_white_jpeg(self):
+        """Instance-level convenience wrapper around ``_compute_logo_white_jpeg``,
+        used by the PDF report."""
+        company = self.company_id or self.env.company
+        return self._compute_logo_white_jpeg(company)

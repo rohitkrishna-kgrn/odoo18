@@ -52,29 +52,35 @@ class AmlHitWizard(models.TransientModel):
         form_url = '%s/aml/additional/%s' % (base_url, additional_token)
 
         # Send email
-        doc_list_html = '<ul>' + ''.join(
-            '<li>%s%s</li>' % (
-                line.document_name,
-                ' – %s' % line.description if line.description else '',
-            ) for line in self.doc_line_ids
-        ) + '</ul>'
+        doc_table = aml._email_list_table(
+            headers=[_('Document')],
+            rows=[[line.document_name] for line in self.doc_line_ids],
+        )
 
-        body = _(
-            "<p>Dear %s,</p>"
-            "<p>During our AML review of your KYC submission, we have identified that "
-            "additional documentation is required. Please provide the following documents:</p>"
-            "%s"
-            "<p>Please click the link below to upload the required documents:</p>"
-            "<p><a href='%s' style='background:#d32f2f;color:#fff;padding:10px 20px;"
-            "text-decoration:none;border-radius:4px;display:inline-block;margin:10px 0;'>"
-            "Upload Additional Documents</a></p>"
-            "<p>This is a time-sensitive request. Please respond at your earliest convenience.</p>"
-            "<p>Regards,<br/>KGRN AML Team</p>"
-        ) % (partner.name, doc_list_html, form_url)
+        body_html = (
+            '<p style="color:%s;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;margin:0 0 16px;">'
+            'Dear <strong>%s</strong>,</p>'
+            '<p style="color:#555555;font-family:Arial,sans-serif;font-size:14px;line-height:1.75;margin:0 0 14px;">'
+            'During our AML review of your KYC submission, we have identified that additional '
+            'documentation is required. Please provide the following documents:</p>'
+            '%s%s'
+            '<p style="color:#888888;font-family:Arial,sans-serif;font-size:13px;margin:0;">'
+            'This is a time-sensitive request. Please respond at your earliest convenience.</p>'
+        ) % (
+            aml._EMAIL_NAVY, partner.name, doc_table,
+            aml._email_cta_button(_('Upload Additional Documents'), form_url),
+        )
+
+        full_body = aml._email_shell(
+            title=_('Additional Documents Required'),
+            subtitle=_('AML HIT Review – %s') % aml.name,
+            body_html=body_html,
+        )
 
         self.env['mail.mail'].sudo().create({
             'subject': _("Action Required: Additional Documents for AML Review – %s") % aml.name,
-            'body_html': body,
+            'body_html': full_body,
+            'email_from': aml._get_mail_from(),
             'email_to': partner.email,
             'author_id': self.env.user.partner_id.id,
         }).send()

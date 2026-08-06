@@ -654,11 +654,12 @@ class AmlPortalController(http.Controller):
             aml.message_post(body=_("Client submitted additional documents for HIT review."))
             aml._notify_aml_managers_and_assignee(
                 subject=_("AML Request %s – Additional Info Received") % aml.name,
-                body=_(
-                    "<p>The client <strong>%s</strong> has submitted the requested additional documents "
-                    "for AML Request <strong>%s</strong>.</p>"
-                    "<p>Please review and take action (Approve / Reject).</p>"
-                ) % (aml.partner_id.name, aml.name),
+                intro=_("The client <strong>%s</strong> has submitted the requested additional documents. "
+                        "Please review and take action (Approve / Reject).") % aml.partner_id.name,
+                kv_rows=[
+                    (_('Client'), aml.partner_id.name),
+                    (_('AML Reference'), aml.name),
+                ],
             )
         else:
             # In Progress flow: stay in_progress, just record receipt
@@ -672,11 +673,26 @@ class AmlPortalController(http.Controller):
             )
             aml._notify_aml_managers_and_assignee(
                 subject=_("AML Request %s – Additional Documents Received") % aml.name,
-                body=_(
-                    "<p>The client <strong>%s</strong> has uploaded the additional documents requested "
-                    "during the AML investigation of request <strong>%s</strong>.</p>"
-                    "<p>Please review the documents in the Additional Info tab.</p>"
-                ) % (aml.partner_id.name, aml.name),
+                intro=_("The client <strong>%s</strong> has uploaded the additional documents requested "
+                        "during the AML investigation. Please review them in the Additional Info tab.") % aml.partner_id.name,
+                kv_rows=[
+                    (_('Client'), aml.partner_id.name),
+                    (_('AML Reference'), aml.name),
+                ],
             )
 
         return {'success': True}
+
+    # =========================================================================
+    # Branded email logo (white-background JPEG, safe for every email client)
+    # =========================================================================
+    @http.route('/aml/logo/<int:company_id>.jpg', type='http', auth='public', csrf=False)
+    def aml_email_logo(self, company_id, **kwargs):
+        company = request.env['res.company'].sudo().browse(company_id)
+        jpeg_b64 = company.exists() and request.env['aml.request'].sudo()._compute_logo_white_jpeg(company)
+        if not jpeg_b64:
+            return request.not_found()
+        return request.make_response(
+            base64.b64decode(jpeg_b64),
+            headers=[('Content-Type', 'image/jpeg'), ('Cache-Control', 'public, max-age=86400')],
+        )

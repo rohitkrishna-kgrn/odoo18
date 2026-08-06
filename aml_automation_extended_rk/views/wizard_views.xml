@@ -227,7 +227,7 @@
                             <field name="description"
                                 placeholder="Optional: describe exactly what's needed"/>
                             <field name="reference_filename" column_invisible="1"/>
-                            <field name="reference_file" widget="binary"
+                            <field name="reference_file" widget="aml_binary"
                                 filename="reference_filename" string="Reference File"/>
                         </list>
                     </field>
@@ -266,7 +266,7 @@
                             <field name="description"
                                 placeholder="Optional: describe exactly what's needed"/>
                             <field name="reference_filename" column_invisible="1"/>
-                            <field name="reference_file" widget="binary"
+                            <field name="reference_file" widget="aml_binary"
                                 filename="reference_filename" string="Reference File"/>
                         </list>
                     </field>
