@@ -207,6 +207,37 @@ class SaleOrderLine(models.Model):
         if self.product_id:
             self.estimated_hours = self.product_id.product_tmpl_id.estimated_hours  # get from product template
 
+    @api.onchange('manager_id')
+    def _onchange_manager_id_dedicated_check(self):
+        if self.manager_id and not self.manager_id.is_dedicated_manager:
+            self.manager_id = False
+            return {
+                'warning': {
+                    'title': _("Invalid Manager"),
+                    'message': _(
+                        "Only users designated as Dedicated Project Managers can be "
+                        "assigned as the Manager for this quotation line. Please select "
+                        "a user with the Dedicated Project Manager permission enabled."
+                    ),
+                }
+            }
+
+    @api.constrains('manager_id')
+    def _check_manager_is_dedicated(self):
+        for line in self:
+            if line.manager_id and not line.manager_id.is_dedicated_manager:
+                raise ValidationError(_(
+                    "Only users designated as Dedicated Project Managers can be "
+                    "assigned as the Manager for this quotation line. Please select "
+                    "a user with the Dedicated Project Manager permission enabled."
+                ))
+
+
+class ResUsers(models.Model):
+    _inherit = 'res.users'
+
+    is_dedicated_manager = fields.Boolean(string='Dedicated Project Manager', default=False)
+
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 

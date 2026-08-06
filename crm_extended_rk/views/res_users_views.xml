@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_users_form_inherit_dedicated_manager" model="ir.ui.view">
+        <field name="name">res.users.form.inherit.dedicated.manager</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="priority" eval="14"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='access_rights']//group" position="after">
+                <group string="Project Manager Access" name="project_manager_access">
+                    <field name="is_dedicated_manager" groups="base.group_system"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

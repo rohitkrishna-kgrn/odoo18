@@ -1,6 +1,6 @@
 {
     'name': 'CRM Extended RK',
-    'version': '1.1',
+    'version': '1.3',
     'depends': [
         'account',
         'sale',              # For sale.order and sale.order.line
@@ -19,6 +19,7 @@
         'security/ir.model.access.csv',
         'data/crm_stage_data.xml',
         'data/crm_tag_data.xml',
+        'views/res_users_views.xml',
         'views/sale_order_views.xml',
         'views/crm_lead_discovery_form_views.xml',
         'views/crm_lead_views.xml',

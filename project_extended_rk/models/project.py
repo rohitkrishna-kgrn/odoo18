@@ -69,6 +69,7 @@ class ProjectProject(models.Model):
 
     billable_type = fields.Selection([('billable', 'Billable'),('non_billable', 'Non-Billable')], string="Billing Type", default='billable')
 
+    completed_date = fields.Datetime(string='Completed Date', readonly=True)
 
     @api.depends("create_date")
     def _compute_project_created_date(self):
@@ -126,6 +127,33 @@ class ProjectProject(models.Model):
                     ('state', 'in', ['sale', 'done'])
                 ], order='date_order desc', limit=1)
                 project.sale_order_name = sale_order.name if sale_order else False
+
+    @api.onchange('user_id')
+    def _onchange_user_id_dedicated_manager_check(self):
+        if self.user_id and not self.user_id.is_dedicated_manager:
+            self.user_id = False
+            return {
+                'warning': {
+                    'title': _("Invalid Project Manager"),
+                    'message': _(
+                        "Only users designated as Dedicated Project Managers can be "
+                        "assigned as the Project Manager for this project. Please "
+                        "select a user with the Dedicated Project Manager permission "
+                        "enabled."
+                    ),
+                }
+            }
+
+    @api.constrains('user_id')
+    def _check_user_id_is_dedicated_manager(self):
+        for project in self:
+            if project.user_id and not project.user_id.is_dedicated_manager:
+                raise ValidationError(_(
+                    "Only users designated as Dedicated Project Managers can be "
+                    "assigned as the Project Manager for this project. Please "
+                    "select a user with the Dedicated Project Manager permission "
+                    "enabled."
+                ))
 
     @api.model
     def create(self, vals):
