@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- List of every discovery form sent for an opportunity — reached via the
+         "Discovery Forms" smart button on the crm.lead form. Read-only: new
+         submissions are only created through the "Send Discovery Form" button
+         on the opportunity, which also triggers the email. -->
+    <record id="crm_lead_discovery_form_view_list" model="ir.ui.view">
+        <field name="name">crm.lead.discovery.form.list</field>
+        <field name="model">crm.lead.discovery.form</field>
+        <field name="arch" type="xml">
+            <list string="Discovery Forms" create="false" edit="false" delete="false">
+                <field name="form_label" string="Form"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'sent'"
+                       decoration-success="state == 'submitted'"/>
+                <field name="sent_date"/>
+                <field name="submitted_date"/>
+                <button name="action_resend" type="object" string="Resend"
+                        icon="fa-refresh" invisible="state == 'submitted'"/>
+                <button name="action_preview" type="object" string="Preview"
+                        icon="fa-eye" invisible="state != 'submitted'"/>
+                <button name="action_download_pdf" type="object" string="Download"
+                        icon="fa-download" invisible="state != 'submitted'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="crm_lead_discovery_form_view_form" model="ir.ui.view">
+        <field name="name">crm.lead.discovery.form.form</field>
+        <field name="model">crm.lead.discovery.form</field>
+        <field name="arch" type="xml">
+            <form string="Discovery Form" create="false" delete="false">
+                <header>
+                    <button name="action_resend" type="object" string="Resend Email"
+                            class="btn-secondary" icon="fa-refresh"
+                            invisible="state == 'submitted'"/>
+                    <button name="action_download_pdf" type="object" string="Download PDF"
+                            class="btn-primary" icon="fa-file-pdf-o"
+                            invisible="state != 'submitted'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="sent,submitted"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="form_label" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="lead_id" readonly="1"/>
+                            <field name="sent_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="submitted_date" readonly="1"/>
+                            <field name="token" readonly="1" groups="base.group_no_one"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-info" role="alert" invisible="state != 'sent'">
+                        This discovery form has been sent to the client and is awaiting submission.
+                    </div>
+                    <separator string="Client Response" invisible="state != 'submitted'"/>
+                    <field name="summary" nolabel="1" invisible="state != 'submitted'"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

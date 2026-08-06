@@ -1,0 +1,11 @@
+/* CRM lead/opportunity form: statusbar buttons vs. stage bar (arrow stepper).
+   The stage bar must keep its chevron shape even if the button row ever
+   wraps to a second line (not enough horizontal room for all buttons), so
+   the statusbar row is top-aligned instead of the Bootstrap default
+   (stretch), which would otherwise stretch the stage bar's clip-path
+   arrows to match a taller button row. "Send Discovery Form" otherwise
+   behaves like any other header button: it sits on the first line when
+   there's room, and only wraps to its own line when space runs out. */
+.o_lead_opportunity_form .o_form_statusbar {
+    align-items: flex-start;
+}

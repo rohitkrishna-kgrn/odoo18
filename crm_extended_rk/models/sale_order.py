@@ -1,5 +1,5 @@
-from odoo import api, models, fields
-from odoo.exceptions import UserError
+from odoo import api, models, fields, _
+from odoo.exceptions import UserError, ValidationError
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
@@ -24,7 +24,7 @@ class SaleOrder(models.Model):
 
     # eInvoicing engagement info (mirrors the opportunity)
     opportunity_einvoicing = fields.Boolean(
-        related='opportunity_id.einvoicing_service', string='Opportunity eInvoicing')
+        string='Opportunity eInvoicing', compute='_compute_opportunity_einvoicing')
     einvoicing_service = fields.Boolean(
         string='eInvoicing Service', compute='_compute_einvoicing_service',
         store=True, readonly=False,
@@ -32,13 +32,18 @@ class SaleOrder(models.Model):
              "eInvoicing Service opportunity.")
     entity_count = fields.Integer(string='Number of Entities')
 
-    @api.depends('opportunity_id.einvoicing_service')
+    @api.depends('opportunity_id.discovery_form_type')
+    def _compute_opportunity_einvoicing(self):
+        for order in self:
+            order.opportunity_einvoicing = order.opportunity_id.discovery_form_type == 'einvoicing'
+
+    @api.depends('opportunity_id.discovery_form_type')
     def _compute_einvoicing_service(self):
         for order in self:
             # Forced on when the opportunity is an eInvoicing one; otherwise the
             # value stays whatever it already was (manually set).
             order.einvoicing_service = bool(
-                order.einvoicing_service or order.opportunity_id.einvoicing_service)
+                order.einvoicing_service or order.opportunity_id.discovery_form_type == 'einvoicing')
 
     posted_invoice_total = fields.Monetary(
         string="Posted Invoice Total",
@@ -109,6 +114,22 @@ class SaleOrder(models.Model):
                     and lead.stage_id.sequence < proposition.sequence):
                 lead.stage_id = proposition.id
         return orders
+
+    @api.constrains('approval_state', 'tag_ids')
+    def _check_tag_required_before_approval(self):
+        for order in self:
+            if order.approval_state != 'draft' and not order.tag_ids:
+                raise ValidationError(_(
+                    "Please select a Tag (Other Info > Sales) before this "
+                    "quotation can leave Draft."))
+
+    def action_submit_for_approval(self):
+        for order in self:
+            if not order.tag_ids:
+                raise UserError(_(
+                    "Please select a Tag (Other Info > Sales) before "
+                    "submitting this quotation for approval."))
+        return super().action_submit_for_approval()
 
     def action_approve_order(self):
         res = super().action_approve_order()

@@ -19,14 +19,14 @@
 
     <record id="action_report_discovery_form" model="ir.actions.report">
         <field name="name">Discovery Form</field>
-        <field name="model">crm.lead</field>
+        <field name="model">crm.lead.discovery.form</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">crm_extended_rk.report_discovery_form_document</field>
         <field name="report_file">crm_extended_rk.report_discovery_form_document</field>
         <field name="paperformat_id" ref="paperformat_discovery"/>
-        <field name="binding_model_id" ref="crm.model_crm_lead"/>
+        <field name="binding_model_id" ref="model_crm_lead_discovery_form"/>
         <field name="binding_type">report</field>
-        <field name="print_report_name">'Discovery Form - %s' % (object.name or '').replace('/', '-')</field>
+        <field name="print_report_name">'Discovery Form - %s - %s' % (object.form_label or '', object.lead_id.name or '').replace('/', '-')</field>
     </record>
 
     <template id="report_discovery_form_document">
@@ -164,7 +164,7 @@
 
                 <!-- ===== COVER ===== -->
                 <div class="disc-cover">
-                    <div class="disc-tag">eInvoicing Readiness</div>
+                    <div class="disc-tag"><t t-esc="r['form_label']"/></div>
                     <div class="disc-cover-title disc-serif">Discovery &amp; Readiness Assessment</div>
                     <div class="disc-accent"></div>
                     <div class="disc-completed">Completed for <b><t t-esc="r['client']"/></b></div>
@@ -201,32 +201,29 @@
                                 </t>
                             </table>
 
-                            <!-- Entity details table -->
+                            <!-- Entity details: one key/value block per entity -->
                             <t t-if="section['entities']">
                                 <div class="disc-ent-label">Entity Details</div>
-                                <table class="disc-ent">
-                                    <tr>
-                                        <th style="width:26%;">Entity</th>
-                                        <th style="width:12%;">ERP System</th>
-                                        <th style="width:12%;">Outbound/yr</th>
-                                        <th style="width:12%;">Inbound/yr</th>
-                                        <th style="width:16%;">Services</th>
-                                        <th style="width:22%;">Options</th>
-                                    </tr>
-                                    <t t-foreach="section['entities']" t-as="ent">
+                                <t t-foreach="section['entities']" t-as="ent">
+                                    <table class="disc-kv" style="margin-bottom:6px;">
                                         <tr>
-                                            <td class="ent-name"><t t-esc="ent_index + 1"/>. <t t-esc="ent['name'] or '-'"/></td>
-                                            <td><t t-esc="ent['erp'] or '-'"/></td>
-                                            <td><t t-esc="ent['outbound'] or '-'"/></td>
-                                            <td><t t-esc="ent['inbound'] or '-'"/></td>
-                                            <td>
-                                                <t t-foreach="ent['services']" t-as="s"><span class="disc-svc"><t t-esc="s"/></span><t t-if="not s_last">, </t></t>
-                                                <t t-if="not ent['services']">-</t>
+                                            <td class="k" colspan="2" style="background:#0d2b45;color:#fff;font-weight:700;">
+                                                <t t-esc="ent_index + 1"/>. <t t-esc="ent['name'] or 'Entity %s' % (ent_index + 1)"/>
                                             </td>
-                                            <td><t t-esc="ent['options'] or '-'"/></td>
                                         </tr>
-                                    </t>
-                                </table>
+                                        <t t-foreach="ent['cells']" t-as="cell">
+                                            <tr>
+                                                <td class="k"><t t-esc="cell['label']"/></td>
+                                                <td class="v">
+                                                    <t t-if="len(cell['values']) == 1"><t t-esc="cell['values'][0]"/></t>
+                                                    <ul class="disc-vlist" t-else="">
+                                                        <li t-foreach="cell['values']" t-as="v"><t t-esc="v"/></li>
+                                                    </ul>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </table>
+                                </t>
                             </t>
 
                             <!-- Signature -->

@@ -22,6 +22,21 @@
         </field>
     </record>
 
+    <record id="view_order_form_inherit_tag_ids" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.tag_ids</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <!-- Restrict quotation tags to the approved list only, and disable
+                 tag creation entirely (no_create) so the "New" button no longer
+                 shows up in the tags search/select popup. -->
+            <field name="tag_ids" position="attributes">
+                <attribute name="domain">[('name', 'in', ['SEO LANDLINE', 'SEO EMAIL', 'SEO WHATSAPP', 'DIRECT', 'KGRN', 'REF BY CONSULTANT', 'EXISTING CLIENT', 'LOST', 'ABSTRACT', 'FREEZONE', 'MAINLAND', 'UNQUALIFIED LEAD'])]</attribute>
+                <attribute name="options">{'color_field': 'color', 'no_create_edit': True, 'no_create': True}</attribute>
+            </field>
+        </field>
+    </record>
+
     <record id="view_order_form_inherit_status" model="ir.ui.view">
         <field name="name">sale.order.form.inherit.order_status</field>
         <field name="model">sale.order</field>

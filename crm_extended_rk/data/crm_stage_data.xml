@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!-- New stage: Not Qualified (between Qualified and Proposition) -->
+    <record id="stage_not_qualified" model="crm.stage">
+        <field name="name">Not Qualified</field>
+        <field name="sequence">20</field>
+        <field name="is_won" eval="False"/>
+        <field name="fold" eval="False"/>
+    </record>
+
+    <!-- Proposition ships from the crm module with sequence=3; bump it so
+         "Not Qualified" (sequence 20) can sit between Qualified (2) and it. -->
+    <record id="crm.stage_lead3" model="crm.stage">
+        <field name="sequence">30</field>
+    </record>
+
     <!-- New stage: Service Engagement (between Proposition and Won) -->
     <record id="stage_service_engagement" model="crm.stage">
         <field name="name">Service Engagement</field>
@@ -14,7 +28,7 @@
         <field name="name">Lost</field>
         <field name="sequence">80</field>
         <field name="is_won" eval="False"/>
-        <field name="fold" eval="True"/>
+        <field name="fold" eval="False"/>
     </record>
 
 </odoo>

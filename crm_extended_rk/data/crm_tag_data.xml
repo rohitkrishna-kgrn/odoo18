@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="1">
+    <!-- Approved quotation tags that don't already exist under this exact name.
+         DIRECT, KGRN and LOST already exist in crm.tag and are reused as-is. -->
+    <record id="quotation_tag_seo_landline" model="crm.tag">
+        <field name="name">SEO LANDLINE</field>
+    </record>
+    <record id="quotation_tag_seo_email" model="crm.tag">
+        <field name="name">SEO EMAIL</field>
+    </record>
+    <record id="quotation_tag_seo_whatsapp" model="crm.tag">
+        <field name="name">SEO WHATSAPP</field>
+    </record>
+    <record id="quotation_tag_ref_by_consultant" model="crm.tag">
+        <field name="name">REF BY CONSULTANT</field>
+    </record>
+    <record id="quotation_tag_existing_client" model="crm.tag">
+        <field name="name">EXISTING CLIENT</field>
+    </record>
+    <record id="quotation_tag_abstract" model="crm.tag">
+        <field name="name">ABSTRACT</field>
+    </record>
+    <record id="quotation_tag_freezone" model="crm.tag">
+        <field name="name">FREEZONE</field>
+    </record>
+    <record id="quotation_tag_mainland" model="crm.tag">
+        <field name="name">MAINLAND</field>
+    </record>
+    <record id="quotation_tag_unqualified_lead" model="crm.tag">
+        <field name="name">UNQUALIFIED LEAD</field>
+    </record>
+</odoo>

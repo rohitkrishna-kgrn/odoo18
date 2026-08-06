@@ -7,13 +7,47 @@
         <field name="inherit_id" ref="crm.crm_lead_view_form"/>
         <field name="arch" type="xml">
 
-            <!-- eInvoicing flag + linked sale order on the sheet (labelled) -->
+            <!-- Discovery form / service type + linked sale order on the sheet (labelled).
+                 Stays editable at all times: sending never locks it, so another
+                 (same or different type) discovery form can be sent later. -->
             <xpath expr="//field[@name='tag_ids']" position="after">
-                <field name="einvoicing_service" widget="boolean_toggle"
-                       readonly="discovery_form_state != 'not_sent'"/>
+                <field name="discovery_form_type"/>
                 <field name="sale_order_id" readonly="1"/>
                 <field name="is_stage_new" invisible="1"/>
                 <field name="is_stage_lost" invisible="1"/>
+                <field name="is_stage_qualified" invisible="1"/>
+                <field name="is_stage_not_qualified" invisible="1"/>
+            </xpath>
+
+            <!-- Notebook tab: reasons logged whenever the lead is moved to/from
+                 Not Qualified via the header buttons. Read-only audit trail;
+                 entries are only ever created through the reason wizard. -->
+            <xpath expr="//page[@name='internal_notes']" position="after">
+                <page name="qualification_reasons" string="Qualification Reasons">
+                    <field name="stage_reason_ids">
+                        <list string="Qualification Reasons" create="false" edit="false" delete="false">
+                            <field name="date"/>
+                            <field name="stage_id"/>
+                            <field name="reason"/>
+                            <field name="user_id"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+
+            <!-- Smart button: browse every discovery form sent for this opportunity -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_discovery_forms" type="object"
+                        class="oe_stat_button" icon="fa-list-alt"
+                        invisible="discovery_form_count == 0">
+                    <field name="discovery_form_count" widget="statinfo"
+                           string="Discovery Forms"/>
+                </button>
+            </xpath>
+
+            <!-- Source becomes mandatory once the lead has left the New stage. -->
+            <xpath expr="//page[@name='lead']//field[@name='source_id']" position="attributes">
+                <attribute name="required">not is_stage_new</attribute>
             </xpath>
 
             <!-- Stage may only be changed through buttons: make the statusbar
@@ -34,52 +68,24 @@
                 <button name="action_move_to_new" type="object"
                         string="Move to New"
                         invisible="not is_stage_lost"/>
+                <button name="action_open_not_qualified_wizard" type="object"
+                        string="Not Qualified"
+                        invisible="not (is_stage_new or is_stage_qualified)"/>
+                <button name="action_open_qualified_wizard" type="object"
+                        string="Qualified" class="btn-primary"
+                        invisible="not is_stage_not_qualified"/>
             </xpath>
 
-            <!-- Header: eInvoicing toggle gates the send / resend buttons -->
+            <!-- Header: compact "send" trigger. Always available once a form type is
+                 picked — every click sends a fresh submission, so more than one
+                 discovery form (same or different type) can be sent over time.
+                 Sent forms + their client responses are browsed via the
+                 "Discovery Forms" smart button above (list with download/preview). -->
             <xpath expr="//header" position="inside">
                 <button name="action_send_discovery_form" type="object"
-                        string="Send Discovery Form to Client"
-                        class="btn-primary" icon="fa-paper-plane"
-                        invisible="not einvoicing_service or discovery_form_state != 'not_sent'"/>
-                <button name="action_send_discovery_form" type="object"
-                        string="Resend Discovery Form" icon="fa-refresh"
-                        invisible="not einvoicing_service or discovery_form_state == 'not_sent'"/>
-                <field name="discovery_form_state" widget="badge"
-                        decoration-info="discovery_form_state == 'sent'"
-                        decoration-success="discovery_form_state == 'submitted'"
-                        invisible="discovery_form_state == 'not_sent'"/>
-            </xpath>
-
-            <!-- Notebook page with the submitted response -->
-            <xpath expr="//notebook" position="inside">
-                <page string="Discovery Form" name="discovery_form"
-                      invisible="discovery_form_state == 'not_sent'">
-                    <group>
-                        <group>
-                            <field name="discovery_form_state" readonly="1"/>
-                            <field name="discovery_sent_date" readonly="1"/>
-                        </group>
-                        <group>
-                            <field name="discovery_submitted_date" readonly="1"/>
-                            <field name="discovery_token" readonly="1"
-                                   groups="base.group_no_one"/>
-                        </group>
-                    </group>
-                    <div class="alert alert-info" role="alert"
-                         invisible="discovery_form_state != 'sent'">
-                        The discovery form has been sent to the client and is awaiting submission.
-                    </div>
-                    <div class="oe_button_box" invisible="discovery_form_state != 'submitted'">
-                        <button name="action_download_discovery_pdf" type="object"
-                                class="btn-secondary" icon="fa-file-pdf-o"
-                                string="Download PDF"/>
-                    </div>
-                    <separator string="Client Response"
-                               invisible="discovery_form_state != 'submitted'"/>
-                    <field name="discovery_summary" nolabel="1"
-                           invisible="discovery_form_state != 'submitted'"/>
-                </page>
+                        string="Send Discovery Form" class="btn-primary o_send_discovery_form_btn"
+                        icon="fa-paper-plane"
+                        invisible="not discovery_form_type"/>
             </xpath>
 
         </field>
@@ -109,6 +115,8 @@
                         domain="[('stage_id.name', '=', 'New')]"/>
                 <filter string="Stage: Qualified" name="stage_qualified"
                         domain="[('stage_id.name', '=', 'Qualified')]"/>
+                <filter string="Stage: Not Qualified" name="stage_not_qualified"
+                        domain="[('stage_id.name', '=', 'Not Qualified')]"/>
                 <filter string="Stage: Proposition" name="stage_proposition"
                         domain="[('stage_id.name', '=', 'Proposition')]"/>
                 <filter string="Stage: Service Engagement" name="stage_service_engagement"

@@ -4,7 +4,7 @@ import json
 
 from odoo import api, models
 
-from .discovery_schema import DISCOVERY_SECTIONS
+from .discovery_schema import entity_fields, get_label, get_sections
 
 
 class DiscoveryFormReport(models.AbstractModel):
@@ -21,13 +21,6 @@ class DiscoveryFormReport(models.AbstractModel):
                 return o.get('label')
         return value
 
-    @staticmethod
-    def _code(label):
-        """'Edition A — Standard...' -> 'Edition A' ; 'T1 — ...' -> 'T1'."""
-        if not label:
-            return ''
-        return str(label).split('—')[0].strip()
-
     def _fmt_values(self, field, value):
         """Return a list of display strings for a single answer."""
         if value in (None, '', [], {}):
@@ -41,34 +34,35 @@ class DiscoveryFormReport(models.AbstractModel):
             return ['Confirmed'] if value else ['Not confirmed']
         return [str(value)]
 
-    def _build_entities(self, answers):
+    def _build_entities(self, sections, answers):
+        """Generic per-entity key/value block (works for any schema's entity fields)."""
+        ent_fields = entity_fields(sections)
         rows = []
         for ent in answers.get('entities') or []:
-            opts = []
-            if ent.get('s6Edition'):
-                opts.append('S6: %s' % self._code(ent['s6Edition']))
-            if ent.get('s7Tier'):
-                opts.append('Support: %s' % self._code(ent['s7Tier']))
-            if ent.get('s8Level'):
-                opts.append('MS: %s' % self._code(ent['s8Level']))
+            cells = []
+            for field in ent_fields:
+                if field['type'] == 'signature':
+                    continue
+                vals = self._fmt_values(field, ent.get(field['key']))
+                if vals:
+                    cells.append({'label': field['label'], 'values': vals})
             rows.append({
-                'name': ent.get('entityName') or '',
-                'erp': ent.get('erpSystem') or '',
-                'outbound': ent.get('outboundCount') or '',
-                'inbound': ent.get('inboundCount') or '',
-                'services': ent.get('services') or [],
-                'options': ' / '.join(opts),
+                'name': ent.get('entityName') or ent.get('companyName') or '',
+                'cells': cells,
             })
         return rows
 
-    def _build_doc(self, lead):
+    def _build_doc(self, submission):
+        lead = submission.lead_id
         try:
-            answers = json.loads(lead.discovery_data or '{}')
+            answers = json.loads(submission.data or '{}')
         except (ValueError, TypeError):
             answers = {}
 
+        form_sections = get_sections(submission.form_type)
+
         sections = []
-        for section in DISCOVERY_SECTIONS:
+        for section in form_sections:
             rows = []
             for field in section['fields']:
                 if field['type'] == 'signature':
@@ -78,13 +72,17 @@ class DiscoveryFormReport(models.AbstractModel):
                     continue
                 rows.append({'label': field['label'], 'values': vals})
 
-            entities = self._build_entities(answers) if section.get('entities') else []
+            entities = self._build_entities(form_sections, answers) if section.get('entities') else []
 
+            # The section that carries the signature field is the confirmation
+            # section — its id varies per schema, so detect it by field type.
             signature = ''
-            if section['id'] == 'S09':
-                sig = answers.get('signatureData')
-                if isinstance(sig, str) and sig.startswith('data:image'):
-                    signature = sig
+            for field in section['fields']:
+                if field['type'] == 'signature':
+                    sig = answers.get(field['key'])
+                    if isinstance(sig, str) and sig.startswith('data:image'):
+                        signature = sig
+                    break
 
             if rows or entities or signature:
                 sections.append({
@@ -95,7 +93,7 @@ class DiscoveryFormReport(models.AbstractModel):
                     'signature': signature,
                 })
 
-        submitted = lead.discovery_submitted_date
+        submitted = submission.submitted_date
         submitted_str = ''
         if submitted:
             submitted_str = submitted.strftime('%d %B %Y')
@@ -111,6 +109,7 @@ class DiscoveryFormReport(models.AbstractModel):
             'client': client,
             'contact': contact,
             'submitted_str': submitted_str,
+            'form_label': get_label(submission.form_type),
             'sections': sections,
         }
 
@@ -152,10 +151,10 @@ class DiscoveryFormReport(models.AbstractModel):
     # ------------------------------------------------------------------
     @api.model
     def _get_report_values(self, docids, data=None):
-        docs = self.env['crm.lead'].browse(docids)
+        docs = self.env['crm.lead.discovery.form'].browse(docids)
         return {
             'doc_ids': docids,
-            'doc_model': 'crm.lead',
+            'doc_model': 'crm.lead.discovery.form',
             'docs': docs,
             'company': self.env.company,
             'logo_src': self._logo_data_uri(),

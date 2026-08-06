@@ -140,7 +140,7 @@
                         </div>
                         <div class="disc-brand-text">
                             <span class="disc-company"><t t-esc="company.name"/></span>
-                            <span class="disc-subtitle">Client Discovery Form</span>
+                            <span class="disc-subtitle"><t t-esc="form_label"/> Discovery Form</span>
                         </div>
                     </div>
                     <div class="disc-header-meta">

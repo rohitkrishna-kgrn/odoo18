@@ -349,7 +349,10 @@
         // ============================================================
         function validateSection(section) {
             var ok = true;
-            var fields = section.querySelectorAll(".disc-field, .disc-efield");
+            var fields = Array.prototype.filter.call(
+                section.querySelectorAll(".disc-field, .disc-efield"),
+                function (field) { return !field.closest(".disc-entity-template"); }
+            );
             fields.forEach(function (field) {
                 if (field.classList.contains("is-hidden")) { return; }
                 if (field.getAttribute("data-required") !== "1") { return; }
