@@ -292,6 +292,8 @@ function makePerformanceConfig(team, title) {
         currencyField: "currency_id",
         decorationField: "is_met",
         revenueBreakdown: true,
+        selectable: true,
+        exportable: true,
         baseDomain: [["performance_team", "=", team]],
         searchFields: ["employee_name", "escalation_stage"],
         titleFields: ["employee_id", "period_label"],
@@ -396,6 +398,11 @@ export class MisReportView extends Component {
             expanded: {},
             detailCache: {},
             periodOverlay: null,
+            selected: {},
+            expandedBreakdown: {},
+            breakdownCache: {},
+            breakdownLoading: {},
+            includeDetail: false,
         });
 
         onWillStart(() => this.load());
@@ -593,6 +600,267 @@ export class MisReportView extends Component {
         }
         this.state.periodOverlay = null;
         this.applyFilters();
+    }
+
+    // ── Row selection (Excel / PDF export) ───────────────────────────────
+    visibleLeafRecords() {
+        if (!this.state.groupBy.length) return this.state.leaves;
+        const out = [];
+        const walk = (nodes) => {
+            for (const n of nodes) {
+                if (n.children) walk(n.children);
+                else out.push(...n.leaves);
+            }
+        };
+        walk(this.state.tree);
+        return out;
+    }
+
+    toggleSelect(id, ev) {
+        if (ev) ev.stopPropagation();
+        const next = { ...this.state.selected };
+        if (next[id]) delete next[id];
+        else next[id] = true;
+        this.state.selected = next;
+    }
+
+    isSelected(id) {
+        return !!this.state.selected[id];
+    }
+
+    get selectedCount() {
+        return Object.keys(this.state.selected).length;
+    }
+
+    get totalColspan() {
+        return (
+            this.columns.length +
+            (this.config.selectable ? 1 : 0) +
+            (this.config.revenueBreakdown ? 1 : 0)
+        );
+    }
+
+    toggleSelectAllVisible() {
+        const visible = this.visibleLeafRecords();
+        const allSelected = visible.length && visible.every((r) => this.state.selected[r.id]);
+        const next = { ...this.state.selected };
+        for (const r of visible) {
+            if (allSelected) delete next[r.id];
+            else next[r.id] = true;
+        }
+        this.state.selected = next;
+    }
+
+    isAllVisibleSelected() {
+        const visible = this.visibleLeafRecords();
+        return !!visible.length && visible.every((r) => this.state.selected[r.id]);
+    }
+
+    toggleGroupSelect(node, ev) {
+        if (ev) ev.stopPropagation();
+        const allSelected = node.records.every((r) => this.state.selected[r.id]);
+        const next = { ...this.state.selected };
+        for (const r of node.records) {
+            if (allSelected) delete next[r.id];
+            else next[r.id] = true;
+        }
+        this.state.selected = next;
+    }
+
+    isGroupSelected(node) {
+        return node.records.length && node.records.every((r) => this.state.selected[r.id]);
+    }
+
+    // ── Inline task / timesheet detail (per employee-month row) ─────────
+    // Reuses get_revenue_breakdown, the same server method the form's
+    // "Revenue Breakdown" dialog already calls — so the numbers always
+    // match, and it automatically respects whichever month a row belongs
+    // to (i.e. the current date filter, since rows are pre-filtered).
+    async loadBreakdowns(records) {
+        const need = records.filter((r) => !this.state.breakdownCache[r.id]);
+        if (!need.length) return;
+        const items = need.map((r) => ({
+            key: String(r.id),
+            employee_id: Array.isArray(r.employee_id) ? r.employee_id[0] : r.employee_id,
+            user_id: Array.isArray(r.user_id) ? r.user_id[0] : r.user_id || false,
+            period_date: r.period_date,
+        }));
+        const loadingNext = { ...this.state.breakdownLoading };
+        for (const it of items) loadingNext[it.key] = true;
+        this.state.breakdownLoading = loadingNext;
+        const data = await this.orm.call(this.config.resModel, "get_revenue_breakdown_bulk", [items]);
+        const cacheNext = { ...this.state.breakdownCache };
+        const doneLoading = { ...this.state.breakdownLoading };
+        for (const [key, val] of Object.entries(data)) {
+            cacheNext[key] = val;
+            delete doneLoading[key];
+        }
+        this.state.breakdownCache = cacheNext;
+        this.state.breakdownLoading = doneLoading;
+    }
+
+    async toggleBreakdown(rec, ev) {
+        if (ev) ev.stopPropagation();
+        const next = { ...this.state.expandedBreakdown };
+        next[rec.id] = !next[rec.id];
+        this.state.expandedBreakdown = next;
+        if (next[rec.id]) await this.loadBreakdowns([rec]);
+    }
+
+    isBreakdownExpanded(id) {
+        return !!this.state.expandedBreakdown[id];
+    }
+
+    isBreakdownLoading(id) {
+        return !!this.state.breakdownLoading[String(id)];
+    }
+
+    breakdownOf(id) {
+        return this.state.breakdownCache[id];
+    }
+
+    async toggleAllBreakdowns() {
+        const visible = this.visibleLeafRecords();
+        const anyExpanded = visible.some((r) => this.state.expandedBreakdown[r.id]);
+        if (anyExpanded) {
+            this.state.expandedBreakdown = {};
+            return;
+        }
+        await this.loadBreakdowns(visible);
+        const next = {};
+        for (const r of visible) next[r.id] = true;
+        this.state.expandedBreakdown = next;
+    }
+
+    get anyBreakdownExpanded() {
+        return this.visibleLeafRecords().some((r) => this.state.expandedBreakdown[r.id]);
+    }
+
+    money(v, currencyId) {
+        return formatMonetary(v || 0, { currencyId });
+    }
+
+    num(v) {
+        return formatFloat(v || 0, { digits: [16, 2] });
+    }
+
+    // ── Excel / PDF export ───────────────────────────────────────────────
+    // Exports the checked rows, or — if nothing is checked — every row
+    // currently visible after search / date / group-by filtering.
+    _exportRecords() {
+        const visible = this.visibleLeafRecords();
+        if (!this.selectedCount) return visible;
+        return visible.filter((r) => this.state.selected[r.id]);
+    }
+
+    // Flattens the (already-fetched-or-fetched-now) task/timesheet detail of
+    // `rows` into one line per task, for the optional "Task Detail" export
+    // sheet/section.
+    async _buildDetailPayload(rows) {
+        await this.loadBreakdowns(rows);
+        const columns = [
+            { name: "employee_name", label: "Employee", type: "char" },
+            { name: "period_label", label: "Month", type: "char" },
+            { name: "project", label: "Project", type: "char" },
+            { name: "task", label: "Task", type: "char" },
+            { name: "hours", label: "Hours", type: "float" },
+            { name: "weighted", label: "Weighted Hrs", type: "float" },
+            { name: "amount", label: "Revenue", type: "monetary", agg: true },
+        ];
+        const detailRows = [];
+        for (const rec of rows) {
+            const bd = this.state.breakdownCache[rec.id];
+            if (!bd) continue;
+            for (const d of bd.delivery) {
+                detailRows.push({
+                    employee_name:
+                        rec.employee_name ||
+                        (Array.isArray(rec.employee_id) ? rec.employee_id[1] : ""),
+                    period_label: rec.period_label,
+                    project: d.project,
+                    task: d.task,
+                    hours: d.hours,
+                    weighted: d.weighted,
+                    amount: d.amount,
+                });
+            }
+        }
+        const totals = {
+            amount: detailRows.reduce((s, r) => s + (r.amount || 0), 0),
+        };
+        return {
+            title: "Task / Timesheet Detail",
+            columns,
+            rows: detailRows,
+            totals,
+        };
+    }
+
+    async exportFile(format) {
+        const rows = this._exportRecords();
+        if (!rows.length) return;
+
+        const columns = this.columns.map((c) => ({
+            name: c.name,
+            label: c.label,
+            type: c.type,
+            agg: !!c.agg,
+        }));
+        const outRows = rows.map((rec) => {
+            const o = {};
+            for (const col of this.columns) {
+                const v = rec[col.name];
+                o[col.name] = col.type === "m2o" ? (Array.isArray(v) ? v[1] : "") : v;
+            }
+            return o;
+        });
+        const groupNote = this.state.groupBy.length
+            ? ` — grouped by ${this.state.groupBy
+                  .map((f) => (this.config.groupBy.find((g) => g.field === f) || {}).label || f)
+                  .join(", ")}`
+            : "";
+        const payload = {
+            title: this.config.title,
+            subtitle: `${rows.length} record(s)${
+                this.selectedCount ? " (selected)" : ""
+            }${groupNote} — amounts in AED`,
+            columns,
+            rows: outRows,
+            totals: this.aggregate(rows),
+        };
+        if (this.config.revenueBreakdown && this.state.includeDetail) {
+            payload.detail = await this._buildDetailPayload(rows);
+        }
+
+        const url =
+            format === "pdf" ? "/mis_report_kgrn/export/pdf" : "/mis_report_kgrn/export/xlsx";
+        let resp;
+        try {
+            resp = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+        } catch (e) {
+            console.error("MIS export failed:", e);
+            return;
+        }
+        if (!resp.ok) {
+            console.error("MIS export failed:", await resp.text());
+            return;
+        }
+        const blob = await resp.blob();
+        const ext = format === "pdf" ? "pdf" : "xlsx";
+        const filename = `${this.config.title.replace(/\s+/g, "_")}_${new Date()
+            .toISOString()
+            .slice(0, 10)}.${ext}`;
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(link.href);
     }
 
     // ── Expand / collapse groups ─────────────────────────────────────────

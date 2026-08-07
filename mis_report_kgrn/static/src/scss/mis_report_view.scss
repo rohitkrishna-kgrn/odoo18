@@ -58,6 +58,25 @@
             font-weight: 600;
         }
 
+        .o_mis_selected_hint {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--o-primary, #714B67);
+            white-space: nowrap;
+        }
+
+        .o_mis_include_detail {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: var(--o-gray-700, #343a40);
+            white-space: nowrap;
+            margin: 0;
+            cursor: pointer;
+            input { cursor: pointer; margin: 0; }
+        }
+
         .o_mis_groupby_label {
             font-size: 12px;
             font-weight: 600;
@@ -123,6 +142,53 @@
         }
 
         .o_mis_num { text-align: right; }
+
+        .o_mis_checkbox_col {
+            width: 32px;
+            text-align: center;
+            cursor: default;
+            input[type="checkbox"] { cursor: pointer; margin: 0; }
+        }
+
+        .o_mis_toggle_col {
+            width: 24px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--o-gray-600, #495057);
+            &:hover { color: var(--o-primary, #714B67); }
+        }
+
+        .o_mis_breakdown_row {
+            background: var(--o-gray-50, #fbfbfc);
+            > td { padding: 10px 16px 14px 40px; border-top: none; }
+            &:hover { background: var(--o-gray-50, #fbfbfc); }
+        }
+
+        .o_mis_bd_loading {
+            font-size: 12px;
+            color: var(--o-gray-500, #6c757d);
+            padding: 6px 0;
+        }
+
+        .o_mis_bd_inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+
+            .o_mis_bd_col { flex: 1 1 360px; min-width: 320px; }
+        }
+
+        .o_mis_bd_head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--o-gray-700, #343a40);
+            margin: 0 0 4px 0;
+
+            .o_mis_bd_total { font-weight: 700; color: var(--o-primary, #714B67); }
+        }
 
         .o_mis_group {
             cursor: pointer;

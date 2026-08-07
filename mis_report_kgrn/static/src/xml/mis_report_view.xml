@@ -36,6 +36,7 @@
                 <table class="table table-sm o_mis_detail_table">
                     <thead>
                         <tr>
+                            <th>Project</th>
                             <th>Task</th>
                             <th class="o_mis_num">Hours</th>
                             <th class="o_mis_num">Weighted</th>
@@ -44,13 +45,14 @@
                     </thead>
                     <tbody>
                         <tr t-foreach="props.delivery" t-as="d" t-key="d_index">
+                            <td t-esc="d.project"/>
                             <td t-esc="d.task"/>
                             <td class="o_mis_num" t-esc="num(d.hours)"/>
                             <td class="o_mis_num" t-esc="num(d.weighted)"/>
                             <td class="o_mis_num" t-esc="money(d.amount)"/>
                         </tr>
                         <tr t-if="!props.delivery.length">
-                            <td colspan="4" class="o_mis_empty">No delivery this month.</td>
+                            <td colspan="5" class="o_mis_empty">No delivery this month.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -99,6 +101,33 @@
                         <button class="btn btn-secondary btn-sm" t-on-click="load">
                             <i class="fa fa-refresh"/> Refresh
                         </button>
+
+                        <t t-if="config.revenueBreakdown">
+                            <button class="btn btn-secondary btn-sm" t-on-click="toggleAllBreakdowns"
+                                    title="Show/hide the task &amp; timesheet detail for every visible row">
+                                <i class="fa" t-att-class="anyBreakdownExpanded ? 'fa-compress' : 'fa-tasks'"/>
+                                <t t-esc="anyBreakdownExpanded ? 'Hide Task Detail' : 'Show Task Detail'"/>
+                            </button>
+                        </t>
+
+                        <t t-if="config.exportable">
+                            <span class="o_mis_selected_hint" t-if="selectedCount">
+                                <t t-esc="selectedCount"/> selected
+                            </span>
+                            <label t-if="config.revenueBreakdown" class="o_mis_include_detail" title="Add a Task / Timesheet Detail sheet (Excel) or section (PDF) to the export">
+                                <input type="checkbox" t-model="state.includeDetail"/>
+                                Include task detail
+                            </label>
+                            <button class="btn btn-outline-success btn-sm" t-on-click="() => this.exportFile('xlsx')"
+                                    title="Export to Excel">
+                                <i class="fa fa-file-excel-o"/> Excel
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" t-on-click="() => this.exportFile('pdf')"
+                                    title="Export to PDF">
+                                <i class="fa fa-file-pdf-o"/> PDF
+                            </button>
+                        </t>
+
                         <span class="o_mis_count" t-esc="state.count + ' records'"/>
                     </div>
 
@@ -124,6 +153,11 @@
                     <table t-else="" class="o_mis_table table table-sm">
                         <thead>
                             <tr>
+                                <th t-if="config.selectable" class="o_mis_checkbox_col">
+                                    <input type="checkbox" t-att-checked="isAllVisibleSelected()"
+                                           t-on-change="toggleSelectAllVisible"/>
+                                </th>
+                                <th t-if="config.revenueBreakdown" class="o_mis_toggle_col"/>
                                 <th t-foreach="columns" t-as="col" t-key="col.name"
                                     t-att-class="{ 'o_mis_num': col.type === 'monetary' or col.type === 'float' or col.type === 'integer' or col.type === 'percent' }"
                                     t-esc="col.label"/>
@@ -148,12 +182,14 @@
                             </t>
 
                             <tr t-if="!state.count">
-                                <td t-att-colspan="columns.length" class="o_mis_empty">
+                                <td t-att-colspan="totalColspan" class="o_mis_empty">
                                     No records found.
                                 </td>
                             </tr>
 
                             <tr t-if="state.count" class="o_mis_total">
+                                <td t-if="config.selectable"/>
+                                <td t-if="config.revenueBreakdown"/>
                                 <t t-foreach="columns" t-as="col" t-key="col.name">
                                     <td t-if="col_index === 0"><strong>Total</strong></td>
                                     <td t-elif="col.agg" class="o_mis_num">
@@ -242,6 +278,11 @@
     <!-- ── Recursive group node ────────────────────────────────────────── -->
     <t t-name="mis_report_kgrn.MisReportNode">
         <tr class="o_mis_group" t-on-click="() => this.toggleGroup(node.path)">
+            <td t-if="config.selectable" class="o_mis_checkbox_col" t-on-click.stop="() => {}">
+                <input type="checkbox" t-att-checked="isGroupSelected(node)"
+                       t-on-change="(ev) => this.toggleGroupSelect(node, ev)"/>
+            </td>
+            <td t-if="config.revenueBreakdown" class="o_mis_toggle_col"/>
             <t t-foreach="columns" t-as="col" t-key="col.name">
                 <td t-if="col_index === 0" t-att-style="indent(depth)">
                     <i class="fa" t-att-class="isExpanded(node.path) ? 'fa-caret-down' : 'fa-caret-right'"/>
@@ -279,6 +320,15 @@
     <t t-name="mis_report_kgrn.MisReportRow">
         <tr class="o_mis_row o_mis_row_click" t-att-class="rowClass(rec)"
             t-on-click="() => this.openForm(rec)">
+            <td t-if="config.selectable" class="o_mis_checkbox_col" t-on-click.stop="() => {}">
+                <input type="checkbox" t-att-checked="isSelected(rec.id)"
+                       t-on-change="(ev) => this.toggleSelect(rec.id, ev)"/>
+            </td>
+            <td t-if="config.revenueBreakdown" class="o_mis_toggle_col"
+                t-on-click.stop="(ev) => this.toggleBreakdown(rec, ev)"
+                title="Show tasks &amp; hours (timesheet) for this month">
+                <i class="fa" t-att-class="isBreakdownExpanded(rec.id) ? 'fa-caret-down' : 'fa-caret-right'"/>
+            </td>
             <t t-foreach="columns" t-as="col" t-key="col.name">
                 <td t-if="col_index === 0" t-att-style="indent(depth + 1)"
                     t-att-class="{ 'o_mis_num': col.type === 'monetary' or col.type === 'float' or col.type === 'integer' or col.type === 'percent' }">
@@ -303,6 +353,71 @@
                     </t>
                 </td>
             </t>
+        </tr>
+
+        <tr t-if="config.revenueBreakdown and isBreakdownExpanded(rec.id)" class="o_mis_breakdown_row">
+            <td t-att-colspan="totalColspan">
+                <div t-if="isBreakdownLoading(rec.id)" class="o_mis_bd_loading">Loading task &amp; timesheet detail…</div>
+                <div t-elif="breakdownOf(rec.id)" class="o_mis_bd_inline">
+                    <t t-set="bd" t-value="breakdownOf(rec.id)"/>
+
+                    <div class="o_mis_bd_col">
+                        <h6 class="o_mis_bd_head">
+                            Tasks &amp; Timesheet Hours (Delivery)
+                            <span class="o_mis_bd_total" t-esc="money(bd.delivery_total, currencyId(rec))"/>
+                        </h6>
+                        <table class="table table-sm o_mis_detail_table">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Task</th>
+                                    <th class="o_mis_num">Hours</th>
+                                    <th class="o_mis_num">Weighted</th>
+                                    <th class="o_mis_num">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="bd.delivery" t-as="d" t-key="d_index">
+                                    <td t-esc="d.project"/>
+                                    <td t-esc="d.task"/>
+                                    <td class="o_mis_num" t-esc="num(d.hours)"/>
+                                    <td class="o_mis_num" t-esc="num(d.weighted)"/>
+                                    <td class="o_mis_num" t-esc="money(d.amount, currencyId(rec))"/>
+                                </tr>
+                                <tr t-if="!bd.delivery.length">
+                                    <td colspan="5" class="o_mis_empty">No timesheet entries this month.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="o_mis_bd_col">
+                        <h6 class="o_mis_bd_head">
+                            Sales
+                            <span class="o_mis_bd_total" t-esc="money(bd.sales_total, currencyId(rec))"/>
+                        </h6>
+                        <table class="table table-sm o_mis_detail_table">
+                            <thead>
+                                <tr>
+                                    <th>Sale Order</th><th>Date</th><th>Customer</th>
+                                    <th class="o_mis_num">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="bd.sales" t-as="s" t-key="s_index">
+                                    <td t-esc="s.ref"/>
+                                    <td t-esc="s.date"/>
+                                    <td t-esc="s.customer"/>
+                                    <td class="o_mis_num" t-esc="money(s.amount, currencyId(rec))"/>
+                                </tr>
+                                <tr t-if="!bd.sales.length">
+                                    <td colspan="4" class="o_mis_empty">No sales this month.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </td>
         </tr>
     </t>
 

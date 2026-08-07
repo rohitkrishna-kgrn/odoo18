@@ -351,6 +351,8 @@ class MisPerformanceLine(models.Model):
                 GROUP  BY pt.id, ia.invoiced_ex_vat
             )
             SELECT
+                CASE WHEN LEFT(pp.name::text, 1) = '{'
+                     THEN (pp.name::jsonb)->>'en_US' ELSE pp.name::text END AS project_name,
                 CASE WHEN LEFT(pt.name::text, 1) = '{'
                      THEN (pt.name::jsonb)->>'en_US' ELSE pt.name::text END AS task_name,
                 SUM(aal.unit_amount) AS hours,
@@ -361,20 +363,22 @@ class MisPerformanceLine(models.Model):
             FROM   account_analytic_line aal
             JOIN   task_weight tw ON tw.task_id = aal.task_id
             JOIN   project_task pt ON pt.id = aal.task_id
+            LEFT JOIN project_project pp ON pp.id = pt.project_id
             LEFT JOIN hr_employee he3 ON he3.user_id = aal.user_id AND he3.active = TRUE
             LEFT JOIN mis_revenue_role mrr ON mrr.id = he3.mis_revenue_role_id
             WHERE  aal.user_id = %s
               AND  aal.task_id IS NOT NULL
               AND  aal.unit_amount > 0
               AND  date_trunc('month', aal.date) = date_trunc('month', %s::date)
-            GROUP  BY pt.id, pt.name
+            GROUP  BY pt.id, pt.name, pp.name
             ORDER  BY revenue DESC
         """, (uid, period_date))
         delivery = [{
-            'task': r[0] or '',
-            'hours': round(r[1] or 0.0, 2),
-            'weighted': round(r[2] or 0.0, 2),
-            'amount': r[3] or 0.0,
+            'project': r[0] or '',
+            'task': r[1] or '',
+            'hours': round(r[2] or 0.0, 2),
+            'weighted': round(r[3] or 0.0, 2),
+            'amount': r[4] or 0.0,
         } for r in cr.fetchall()]
 
         return {
@@ -383,3 +387,15 @@ class MisPerformanceLine(models.Model):
             'sales_total': sum(s['amount'] for s in sales),
             'delivery_total': sum(d['amount'] for d in delivery),
         }
+
+    @api.model
+    def get_revenue_breakdown_bulk(self, items):
+        """Batch version of get_revenue_breakdown for the list-view's inline
+        per-row detail dropdown / "task detail" export. `items` is a list of
+        {key, employee_id, user_id, period_date}; returns {key: breakdown}."""
+        result = {}
+        for item in items:
+            result[item['key']] = self.get_revenue_breakdown(
+                item.get('employee_id'), item.get('user_id'), item.get('period_date')
+            )
+        return result
