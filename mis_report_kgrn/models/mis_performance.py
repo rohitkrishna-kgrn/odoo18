@@ -493,12 +493,41 @@ class MisPerformanceLine(models.Model):
                 LEFT JOIN hr_employee he2 ON he2.user_id = aal.user_id AND he2.active = TRUE
                 LEFT JOIN mis_revenue_role mrr ON mrr.id = he2.mis_revenue_role_id
                 GROUP  BY pt.id, ia.invoiced_ex_vat
+            ),
+            task_invoice_rows AS (
+                /* distinct posted invoices touching each task's SO line —
+                   basis for Invoice Details / Payment Reference / Balance */
+                SELECT DISTINCT
+                    pt6.id AS task_id,
+                    am6.id AS invoice_id,
+                    am6.name AS invoice_name,
+                    NULLIF(am6.payment_reference, '') AS payment_reference,
+                    am6.amount_residual AS balance
+                FROM   project_task pt6
+                JOIN   sale_order_line sol6 ON sol6.id = pt6.sale_line_id
+                JOIN   sale_order_line_invoice_rel solr6 ON solr6.order_line_id = sol6.id
+                JOIN   account_move_line aml6 ON aml6.id = solr6.invoice_line_id
+                JOIN   account_move      am6  ON am6.id  = aml6.move_id
+                WHERE  am6.move_type = 'out_invoice' AND am6.state = 'posted'
+            ),
+            task_inv_agg AS (
+                SELECT
+                    task_id,
+                    STRING_AGG(DISTINCT invoice_name, ', ') AS invoice_details,
+                    STRING_AGG(DISTINCT payment_reference, ', ') AS payment_reference,
+                    SUM(balance) AS balance
+                FROM   task_invoice_rows
+                GROUP  BY task_id
             )
             SELECT
                 CASE WHEN LEFT(pp.name::text, 1) = '{'
                      THEN (pp.name::jsonb)->>'en_US' ELSE pp.name::text END AS project_name,
                 CASE WHEN LEFT(pt.name::text, 1) = '{'
                      THEN (pt.name::jsonb)->>'en_US' ELSE pt.name::text END AS task_name,
+                COALESCE(rp4.complete_name, rp4.name, '') AS customer,
+                COALESCE(tia.invoice_details, '') AS invoice_details,
+                COALESCE(tia.payment_reference, '') AS payment_reference,
+                COALESCE(tia.balance, 0) AS balance,
                 SUM(aal.unit_amount) AS hours,
                 SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS weighted,
                 SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)
@@ -508,21 +537,28 @@ class MisPerformanceLine(models.Model):
             JOIN   task_weight tw ON tw.task_id = aal.task_id
             JOIN   project_task pt ON pt.id = aal.task_id
             LEFT JOIN project_project pp ON pp.id = pt.project_id
+            LEFT JOIN sale_order_line sol4 ON sol4.id = pt.sale_line_id
+            LEFT JOIN sale_order      so4  ON so4.id  = sol4.order_id
+            LEFT JOIN res_partner     rp4  ON rp4.id  = so4.partner_id
+            LEFT JOIN task_inv_agg    tia  ON tia.task_id = pt.id
             LEFT JOIN hr_employee he3 ON he3.user_id = aal.user_id AND he3.active = TRUE
             LEFT JOIN mis_revenue_role mrr ON mrr.id = he3.mis_revenue_role_id
             WHERE  aal.user_id = %s
               AND  aal.task_id IS NOT NULL
               AND  aal.unit_amount > 0
               AND  date_trunc('month', aal.date) = date_trunc('month', %s::date)
-            GROUP  BY pt.id, pt.name, pp.name
+            GROUP  BY pt.id, pt.name, pp.name, rp4.complete_name, rp4.name,
+                      tia.invoice_details, tia.payment_reference, tia.balance
             ORDER  BY revenue DESC
         """, (uid, period_date))
         delivery = [{
             'project': r[0] or '',
             'task': r[1] or '',
-            'hours': round(r[2] or 0.0, 2),
-            'weighted': round(r[3] or 0.0, 2),
-            'amount': r[4] or 0.0,
+            'customer': r[2] or '',
+            'invoice_details': r[3] or '',
+            'balance': r[5] or 0.0,
+            'hours': round(r[6] or 0.0, 2),
+            'amount': r[8] or 0.0,
         } for r in cr.fetchall()]
 
         return {

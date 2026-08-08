@@ -37,22 +37,26 @@
                     <thead>
                         <tr>
                             <th>Project</th>
+                            <th>Customer</th>
                             <th>Task</th>
                             <th class="o_mis_num">Hours</th>
-                            <th class="o_mis_num">Weighted</th>
                             <th class="o_mis_num">Revenue</th>
+                            <th>Invoice Details</th>
+                            <th class="o_mis_num">Balance</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr t-foreach="props.delivery" t-as="d" t-key="d_index">
                             <td t-esc="d.project"/>
+                            <td t-esc="d.customer"/>
                             <td t-esc="d.task"/>
                             <td class="o_mis_num" t-esc="num(d.hours)"/>
-                            <td class="o_mis_num" t-esc="num(d.weighted)"/>
                             <td class="o_mis_num" t-esc="money(d.amount)"/>
+                            <td t-esc="d.invoice_details"/>
+                            <td class="o_mis_num" t-esc="money(d.balance)"/>
                         </tr>
                         <tr t-if="!props.delivery.length">
-                            <td colspan="5" class="o_mis_empty">No delivery this month.</td>
+                            <td colspan="7" class="o_mis_empty">No delivery this month.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -106,8 +110,15 @@
                             <span class="o_mis_selected_hint" t-if="selectedCount">
                                 <t t-esc="selectedCount"/> selected
                             </span>
+                            <button class="btn btn-sm o_mis_task_include"
+                                    t-att-class="{ 'o_mis_task_include_active': state.includeTaskDetail }"
+                                    t-on-click="toggleIncludeTaskDetail"
+                                    title="When enabled, the Excel export adds a second sheet with each employee's task / project / hours detail for the month">
+                                <i class="fa" t-att-class="state.includeTaskDetail ? 'fa-check-square-o' : 'fa-square-o'"/>
+                                Task Include
+                            </button>
                             <button class="btn btn-outline-success btn-sm" t-on-click="() => this.exportFile()"
-                                    title="Export the Performance Report to Excel (selected rows, or all visible if none selected)">
+                                    title="Export the checked rows to Excel — nothing is exported unless rows are selected">
                                 <i class="fa fa-file-excel-o"/> Excel
                             </button>
                         </t>
@@ -345,19 +356,22 @@
                 <div t-elif="breakdownOf(rec.id)" class="o_mis_bd_inline">
                     <t t-set="bd" t-value="breakdownOf(rec.id)"/>
 
-                    <div class="o_mis_bd_col o_mis_bd_col_wide">
+                    <div class="o_mis_bd_col">
                         <h6 class="o_mis_bd_head">
                             Tasks &amp; Timesheet Hours (Delivery)
                             <span class="o_mis_bd_total" t-esc="money(bd.delivery_total, currencyId(rec))"/>
                         </h6>
+                        <div class="o_mis_table_scroll">
                         <table class="table table-sm o_mis_detail_table o_mis_project_table">
                             <thead>
                                 <tr>
                                     <th>Project</th>
+                                    <th>Customer</th>
                                     <th class="o_mis_num">Tasks</th>
                                     <th class="o_mis_num">Hours</th>
-                                    <th class="o_mis_num">Weighted</th>
                                     <th class="o_mis_num">Revenue</th>
+                                    <th>Invoice Details</th>
+                                    <th class="o_mis_num">Balance</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -368,26 +382,30 @@
                                             <i class="fa" t-att-class="isProjectExpanded(rec.id, pg.project) ? 'fa-caret-down' : 'fa-caret-right'"/>
                                             <span t-esc="pg.project"/>
                                         </td>
+                                        <td t-esc="pg.customer"/>
                                         <td class="o_mis_num" t-esc="pg.tasks.length"/>
                                         <td class="o_mis_num" t-esc="num(pg.hours)"/>
-                                        <td class="o_mis_num" t-esc="num(pg.weighted)"/>
                                         <td class="o_mis_num" t-esc="money(pg.amount, currencyId(rec))"/>
+                                        <td/><td class="o_mis_num"/>
                                     </tr>
                                     <t t-if="isProjectExpanded(rec.id, pg.project)">
                                         <tr t-foreach="pg.tasks" t-as="d" t-key="d_index" class="o_mis_task_row">
                                             <td class="o_mis_task_name" t-esc="d.task"/>
+                                            <td/>
                                             <td class="o_mis_num"/>
                                             <td class="o_mis_num" t-esc="num(d.hours)"/>
-                                            <td class="o_mis_num" t-esc="num(d.weighted)"/>
                                             <td class="o_mis_num" t-esc="money(d.amount, currencyId(rec))"/>
+                                            <td t-esc="d.invoice_details"/>
+                                            <td class="o_mis_num" t-esc="money(d.balance, currencyId(rec))"/>
                                         </tr>
                                     </t>
                                 </t>
                                 <tr t-if="!bd.delivery.length">
-                                    <td colspan="5" class="o_mis_empty">No timesheet entries this month.</td>
+                                    <td colspan="7" class="o_mis_empty">No timesheet entries this month.</td>
                                 </tr>
                             </tbody>
                         </table>
+                        </div>
                     </div>
 
                     <div class="o_mis_bd_col">

@@ -4,6 +4,7 @@ import { Component, useState, onWillStart } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { Dialog } from "@web/core/dialog/dialog";
+import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { formatMonetary, formatFloat, formatInteger } from "@web/views/fields/formatters";
 
 // Dialog showing the sales & delivery revenue breakdown for one employee-month.
@@ -411,6 +412,7 @@ export class MisReportView extends Component {
             breakdownCache: {},
             breakdownLoading: {},
             expandedProjects: {},
+            includeTaskDetail: false,
         });
 
         onWillStart(() => this.load());
@@ -610,6 +612,10 @@ export class MisReportView extends Component {
         this.applyFilters();
     }
 
+    toggleIncludeTaskDetail() {
+        this.state.includeTaskDetail = !this.state.includeTaskDetail;
+    }
+
     // ── Row selection (Excel / PDF export) ───────────────────────────────
     visibleLeafRecords() {
         if (!this.state.groupBy.length) return this.state.leaves;
@@ -735,12 +741,12 @@ export class MisReportView extends Component {
         for (const d of delivery || []) {
             const key = d.project || "—";
             if (!map.has(key)) {
-                map.set(key, { project: key, tasks: [], hours: 0, weighted: 0, amount: 0 });
+                map.set(key, { project: key, customer: d.customer || "", tasks: [], hours: 0, amount: 0 });
             }
             const g = map.get(key);
+            if (!g.customer && d.customer) g.customer = d.customer;
             g.tasks.push(d);
             g.hours += d.hours || 0;
-            g.weighted += d.weighted || 0;
             g.amount += d.amount || 0;
         }
         return [...map.values()];
@@ -767,92 +773,103 @@ export class MisReportView extends Component {
     }
 
     // ── Excel export (fixed KPI columns, one section per employee) ───────
-    // Exports the checked rows, or — if nothing is checked — every row
-    // currently visible after search / date / group-by filtering.
+    // Strictly the checked rows — nothing else. No rows checked = nothing
+    // to export (see exportFile below).
     _exportRecords() {
-        const visible = this.visibleLeafRecords();
-        if (!this.selectedCount) return visible;
-        return visible.filter((r) => this.state.selected[r.id]);
+        if (!this.selectedCount) return [];
+        return this.visibleLeafRecords().filter((r) => this.state.selected[r.id]);
     }
 
-    static PERFORMANCE_EXPORT_COLUMNS = [
-        { name: "name", label: "Name", type: "char" },
-        { name: "team", label: "Team", type: "char" },
-        { name: "location", label: "Location (UAE/India)", type: "char" },
-        { name: "monthly_ctc", label: "Monthly CTC", type: "monetary" },
-        { name: "monthly_obligation", label: "Min. Obligation (AED)", type: "monetary" },
-        { name: "invoices_raised_count", label: "Invoices Raised (No.)", type: "integer", agg: true },
-        { name: "invoices_raised_amount", label: "Invoices Raised (AED)", type: "monetary", agg: true },
-        { name: "payments_collected_amount", label: "Payments Collected (AED)", type: "monetary", agg: true },
-        { name: "work_completed_value", label: "Work Completed – Value (AED)", type: "monetary", agg: true },
-        { name: "vs_min_obligation", label: "vs. Min. Obligation", type: "percent" },
-        { name: "status", label: "Status", type: "char" },
-    ];
+    // Plain-value copy of a record's columns for the Excel sheet: m2o → label,
+    // boolean → Yes/No, everything else passed through as-is (numbers stay
+    // numeric so Excel can sum/format them).
+    _rowToPlain(rec, columns) {
+        const o = {};
+        for (const col of columns) {
+            const v = rec[col.name];
+            if (col.type === "m2o") o[col.name] = Array.isArray(v) ? v[1] : "";
+            else if (col.type === "boolean") o[col.name] = v ? "Yes" : "No";
+            else o[col.name] = v;
+        }
+        return o;
+    }
 
-    // Excel export with the fixed business KPI columns; each employee's
-    // task/project/hours detail (this month) rides along as a collapsed
-    // Excel outline group under their summary row.
+    // Sheet 1: the on-screen KPI columns, for the checked rows only. Sheet 2
+    // (only when "Task Include" is on): one flat row per task, across those
+    // same checked employees, with the task's Project, Customer & hours.
     async exportFile() {
         const rows = this._exportRecords();
-        if (!rows.length) return;
+        if (!rows.length) {
+            this.dialog.add(AlertDialog, {
+                title: "No records selected",
+                body: "Select at least one record to export.",
+            });
+            return;
+        }
 
-        await this.loadBreakdowns(rows);
-
-        const groups = rows.map((rec) => {
-            const bd = this.state.breakdownCache[rec.id];
-            const detail = {
-                delivery: bd
-                    ? this.groupDeliveryByProject(bd.delivery).map((pg) => ({
-                          project: pg.project,
-                          hours: pg.hours,
-                          weighted: pg.weighted,
-                          amount: pg.amount,
-                          tasks: pg.tasks.map((d) => ({
-                              task: d.task,
-                              hours: d.hours,
-                              weighted: d.weighted,
-                              amount: d.amount,
-                          })),
-                      }))
-                    : [],
-                sales: bd
-                    ? bd.sales.map((s) => ({
-                          ref: s.ref,
-                          date: s.date,
-                          customer: s.customer,
-                          amount: s.amount,
-                      }))
-                    : [],
-            };
-            return {
-                summary: {
-                    name:
-                        rec.employee_name ||
-                        (Array.isArray(rec.employee_id) ? rec.employee_id[1] : ""),
-                    team: Array.isArray(rec.department_id) ? rec.department_id[1] : "",
-                    location: rec.office_location || "",
-                    monthly_ctc: rec.monthly_ctc,
-                    monthly_obligation: rec.monthly_obligation,
-                    invoices_raised_count: rec.invoices_raised_count,
-                    invoices_raised_amount: rec.invoices_raised_amount,
-                    payments_collected_amount: rec.payments_collected_amount,
-                    work_completed_value: rec.total_revenue,
-                    vs_min_obligation: rec.achievement_pct,
-                    status: rec.escalation_stage,
-                },
-                detail,
-            };
-        });
-
+        const sheet1Columns = this.columns.map((c) => ({
+            name: c.name,
+            label: c.label,
+            type: c.type,
+            agg: !!c.agg,
+        }));
         const monthLabel = rows.length === 1 ? ` — ${rows[0].period_label}` : "";
         const payload = {
             title: "Performance Report",
-            subtitle: `${this.config.title}${monthLabel} — ${rows.length} employee(s)${
+            subtitle: `${this.config.title}${monthLabel} — ${rows.length} record(s)${
                 this.selectedCount ? " (selected)" : ""
             } — amounts in AED`,
-            columns: MisReportView.PERFORMANCE_EXPORT_COLUMNS,
-            groups,
+            sheet1: {
+                name: this.config.title.slice(0, 31),
+                columns: sheet1Columns,
+                rows: rows.map((rec) => this._rowToPlain(rec, this.columns)),
+                totals: this.aggregate(rows),
+            },
         };
+
+        if (this.state.includeTaskDetail) {
+            await this.loadBreakdowns(rows);
+            const detailColumns = [
+                { name: "employee", label: "Employee", type: "char" },
+                { name: "month", label: "Month", type: "char" },
+                { name: "customer", label: "Customer", type: "char" },
+                { name: "project", label: "Project", type: "char" },
+                { name: "task", label: "Task", type: "char" },
+                { name: "hours", label: "Hours", type: "float" },
+                { name: "revenue", label: "Revenue", type: "monetary", agg: true },
+                { name: "invoice_details", label: "Invoice Details", type: "char" },
+                { name: "balance", label: "Balance", type: "monetary", agg: true },
+            ];
+            const detailRows = [];
+            for (const rec of rows) {
+                const bd = this.state.breakdownCache[rec.id];
+                if (!bd) continue;
+                const empName =
+                    rec.employee_name || (Array.isArray(rec.employee_id) ? rec.employee_id[1] : "");
+                for (const d of bd.delivery) {
+                    detailRows.push({
+                        employee: empName,
+                        month: rec.period_label,
+                        customer: d.customer || "",
+                        project: d.project || "",
+                        task: d.task || "",
+                        hours: d.hours,
+                        revenue: d.amount,
+                        invoice_details: d.invoice_details || "",
+                        balance: d.balance || 0,
+                    });
+                }
+            }
+            payload.sheet2 = {
+                name: "Task Timesheet Detail",
+                columns: detailColumns,
+                rows: detailRows,
+                totals: {
+                    revenue: detailRows.reduce((s, r) => s + (r.revenue || 0), 0),
+                    balance: detailRows.reduce((s, r) => s + (r.balance || 0), 0),
+                },
+            };
+        }
 
         let resp;
         try {

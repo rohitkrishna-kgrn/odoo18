@@ -65,6 +65,20 @@
             white-space: nowrap;
         }
 
+        .o_mis_task_include {
+            border: 1px solid var(--o-gray-300, #ced4da);
+            background: #fff;
+            color: var(--o-gray-700, #343a40);
+            white-space: nowrap;
+            .fa { margin-right: 4px; }
+
+            &.o_mis_task_include_active {
+                background: var(--o-primary, #714B67);
+                border-color: var(--o-primary, #714B67);
+                color: #fff;
+            }
+        }
+
         .o_mis_groupby_label {
             font-size: 12px;
             font-weight: 600;
@@ -160,23 +174,28 @@
 
         .o_mis_bd_inline {
             display: flex;
-            flex-wrap: wrap;
-            gap: 24px;
-            align-items: flex-start;
+            flex-direction: column;
+            gap: 20px;
 
-            .o_mis_bd_col { flex: 1 1 360px; min-width: 320px; max-width: 100%; }
-            .o_mis_bd_col_wide { flex: 2 1 480px; }
+            .o_mis_bd_col { width: 100%; }
+        }
+
+        .o_mis_table_scroll {
+            overflow-x: auto;
         }
 
         .o_mis_project_table {
-            table-layout: fixed;
+            table-layout: auto;
             width: 100%;
+            white-space: normal;
+
+            th, td { vertical-align: top; }
+            .o_mis_num { white-space: nowrap; }
 
             .o_mis_project_name, .o_mis_task_name {
-                white-space: normal;
                 word-break: break-word;
+                min-width: 220px;
             }
-            th:first-child, td:first-child { width: 46%; }
 
             .o_mis_project_row {
                 cursor: pointer;
@@ -256,8 +275,11 @@
         margin: 4px 0;
         font-size: 12px;
         background: #fff;
-        white-space: nowrap;
-        .o_mis_num { text-align: right; }
+        white-space: normal;
+        table-layout: auto;
+        width: 100%;
+        td, th { vertical-align: top; word-break: break-word; }
+        .o_mis_num { text-align: right; white-space: nowrap; }
         thead th {
             background: var(--o-gray-100, #eef0f2);
             border-bottom: 1px solid var(--o-gray-300, #ced4da);
