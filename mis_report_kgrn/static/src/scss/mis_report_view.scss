@@ -65,18 +65,6 @@
             white-space: nowrap;
         }
 
-        .o_mis_include_detail {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 12px;
-            color: var(--o-gray-700, #343a40);
-            white-space: nowrap;
-            margin: 0;
-            cursor: pointer;
-            input { cursor: pointer; margin: 0; }
-        }
-
         .o_mis_groupby_label {
             font-size: 12px;
             font-weight: 600;
@@ -174,8 +162,32 @@
             display: flex;
             flex-wrap: wrap;
             gap: 24px;
+            align-items: flex-start;
 
-            .o_mis_bd_col { flex: 1 1 360px; min-width: 320px; }
+            .o_mis_bd_col { flex: 1 1 360px; min-width: 320px; max-width: 100%; }
+            .o_mis_bd_col_wide { flex: 2 1 480px; }
+        }
+
+        .o_mis_project_table {
+            table-layout: fixed;
+            width: 100%;
+
+            .o_mis_project_name, .o_mis_task_name {
+                white-space: normal;
+                word-break: break-word;
+            }
+            th:first-child, td:first-child { width: 46%; }
+
+            .o_mis_project_row {
+                cursor: pointer;
+                background: var(--o-gray-50, #f4f4f6);
+                font-weight: 600;
+                &:hover { background: var(--o-gray-100, #eef0f2); }
+                .fa { margin-right: 4px; color: var(--o-gray-600, #495057); }
+            }
+            .o_mis_task_row {
+                .o_mis_task_name { padding-left: 20px; color: var(--o-gray-700, #343a40); }
+            }
         }
 
         .o_mis_bd_head {

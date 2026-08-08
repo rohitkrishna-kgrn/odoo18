@@ -50,6 +50,11 @@ class MisPerformanceLine(models.Model):
     total_revenue    = fields.Float(string='Total Revenue',     readonly=True)
     achievement_pct  = fields.Float(string='Achievement %',     readonly=True)
 
+    # ── Invoicing / collection (period-scoped, delivery-task basis) ───────
+    invoices_raised_count     = fields.Integer(string='Invoices Raised (No.)',  readonly=True)
+    invoices_raised_amount    = fields.Float(string='Invoices Raised (AED)',    readonly=True)
+    payments_collected_amount = fields.Float(string='Payments Collected (AED)', readonly=True)
+
     # ── Status / escalation ──────────────────────────────────────────────
     is_met               = fields.Boolean(string='Met Obligation',      readonly=True)
     consecutive_non_perf = fields.Integer(string='Consec. Non-Perf Months', readonly=True)
@@ -178,6 +183,137 @@ class MisPerformanceLine(models.Model):
                     WHERE so.state IN ('sale', 'done')
                     GROUP BY e.employee_id, date_trunc('month', so.date_order)
                 ),
+                inv_lines AS (
+                    /* posted invoice lines, one row per (SO line, invoice) —
+                       basis for period-scoped Invoices Raised / Payments
+                       Collected, matched to tasks via their SO line */
+                    SELECT
+                        solr.order_line_id AS sol_id,
+                        am.id              AS move_id,
+                        am.invoice_date,
+                        am.amount_total,
+                        aml.price_subtotal
+                    FROM   sale_order_line_invoice_rel solr
+                    JOIN   account_move_line aml ON aml.id = solr.invoice_line_id
+                    JOIN   account_move      am  ON am.id  = aml.move_id
+                    WHERE  am.move_type = 'out_invoice'
+                      AND  am.state = 'posted'
+                      AND  am.invoice_date IS NOT NULL
+                ),
+                recv_lines AS (
+                    SELECT aml.id AS recv_line_id, aml.move_id
+                    FROM   account_move_line aml
+                    JOIN   account_account   aa ON aa.id = aml.account_id
+                    WHERE  aa.account_type = 'asset_receivable'
+                ),
+                recon AS (
+                    SELECT
+                        rl.move_id AS invoice_move_id,
+                        pr.max_date,
+                        CASE WHEN pr.debit_move_id = rl.recv_line_id
+                             THEN pr.debit_amount_currency
+                             ELSE pr.credit_amount_currency END AS amount
+                    FROM   account_partial_reconcile pr
+                    JOIN   recv_lines rl
+                           ON rl.recv_line_id = pr.debit_move_id
+                           OR rl.recv_line_id = pr.credit_move_id
+                ),
+                inv_period AS (
+                    /* invoiced (ex-VAT) amount raised per SO line, bucketed by
+                       the invoice's own month */
+                    SELECT sol_id, date_trunc('month', invoice_date)::date AS period_date,
+                           SUM(price_subtotal) AS invoiced_ex_vat
+                    FROM   inv_lines
+                    GROUP  BY sol_id, date_trunc('month', invoice_date)
+                ),
+                paid_period AS (
+                    /* amount actually collected per SO line, bucketed by the
+                       payment/reconciliation month (not the invoice month) */
+                    SELECT il.sol_id, date_trunc('month', r.max_date)::date AS period_date,
+                           SUM(il.price_subtotal * COALESCE(r.amount, 0)
+                               / NULLIF(il.amount_total, 0)) AS paid_ex_vat
+                    FROM   inv_lines il
+                    JOIN   recon r ON r.invoice_move_id = il.move_id
+                    GROUP  BY il.sol_id, date_trunc('month', r.max_date)
+                ),
+                task_sol AS (
+                    SELECT pt.id AS task_id, sol.id AS sol_id
+                    FROM   project_task pt
+                    JOIN   sale_order_line sol ON sol.id = pt.sale_line_id
+                ),
+                task_invoices AS (
+                    /* distinct (task, invoice) touches per month, for the
+                       plain Invoices Raised (No.) count */
+                    SELECT DISTINCT ts.task_id, il.move_id,
+                           date_trunc('month', il.invoice_date)::date AS period_date
+                    FROM   task_sol ts
+                    JOIN   inv_lines il ON il.sol_id = ts.sol_id
+                ),
+                task_period AS (
+                    SELECT ts.task_id, k.period_date,
+                           COALESCE(ip.invoiced_ex_vat, 0) AS invoiced_ex_vat,
+                           COALESCE(pp2.paid_ex_vat, 0)    AS paid_ex_vat
+                    FROM   task_sol ts
+                    JOIN   (
+                        SELECT sol_id, period_date FROM inv_period
+                        UNION
+                        SELECT sol_id, period_date FROM paid_period
+                    ) k ON k.sol_id = ts.sol_id
+                    LEFT JOIN inv_period  ip  ON ip.sol_id  = ts.sol_id AND ip.period_date  = k.period_date
+                    LEFT JOIN paid_period pp2 ON pp2.sol_id = ts.sol_id AND pp2.period_date = k.period_date
+                ),
+                inv_pay_alloc AS (
+                    /* employee's weighted-hours share (this month's hours ÷
+                       task's lifetime weighted hours — same allocation basis
+                       as delivery_revenue) of invoices raised / paid for
+                       tasks they logged time to, restricted to invoice /
+                       payment activity dated within that same month */
+                    SELECT
+                        aal.user_id,
+                        date_trunc('month', aal.date)::date AS period_date,
+                        SUM(
+                            aal.unit_amount * COALESCE(mrr.multiplier, 1)
+                            * CASE WHEN tw.total_weighted > 0
+                                   THEN COALESCE(tpm.invoiced_ex_vat, 0) / tw.total_weighted
+                                   ELSE 0 END
+                        ) AS invoices_raised_amount,
+                        SUM(
+                            aal.unit_amount * COALESCE(mrr.multiplier, 1)
+                            * CASE WHEN tw.total_weighted > 0
+                                   THEN COALESCE(tpm.paid_ex_vat, 0) / tw.total_weighted
+                                   ELSE 0 END
+                        ) AS payments_collected_amount
+                    FROM   account_analytic_line aal
+                    JOIN   task_weight tw ON tw.task_id = aal.task_id
+                    LEFT JOIN task_period tpm
+                           ON tpm.task_id = aal.task_id
+                          AND tpm.period_date = date_trunc('month', aal.date)::date
+                    LEFT JOIN hr_employee he5 ON he5.user_id = aal.user_id AND he5.active = TRUE
+                    LEFT JOIN mis_revenue_role mrr ON mrr.id = he5.mis_revenue_role_id
+                    WHERE  aal.task_id IS NOT NULL
+                      AND  aal.unit_amount > 0
+                      AND  aal.date IS NOT NULL
+                    GROUP  BY aal.user_id, date_trunc('month', aal.date)
+                ),
+                invoice_count_alloc AS (
+                    /* plain (non-fractional) count: distinct invoices raised
+                       this month for any task this employee logged hours to
+                       this month */
+                    SELECT user_id, period_date, COUNT(*) AS invoices_raised_count
+                    FROM (
+                        SELECT DISTINCT aal.user_id,
+                               ti.period_date,
+                               ti.move_id
+                        FROM   account_analytic_line aal
+                        JOIN   task_invoices ti
+                               ON ti.task_id = aal.task_id
+                              AND ti.period_date = date_trunc('month', aal.date)::date
+                        WHERE  aal.task_id IS NOT NULL
+                          AND  aal.unit_amount > 0
+                          AND  aal.date IS NOT NULL
+                    ) x
+                    GROUP BY user_id, period_date
+                ),
                 base AS (
                     SELECT
                         e.employee_id, e.user_id, e.department_id, e.company_id,
@@ -194,7 +330,10 @@ class MisPerformanceLine(models.Model):
                              )::int
                         END AS months_employed,
                         COALESCE(d.revenue, 0) AS delivery_revenue,
-                        COALESCE(s.revenue, 0) AS sales_revenue
+                        COALESCE(s.revenue, 0) AS sales_revenue,
+                        COALESCE(ipa.invoices_raised_amount, 0)    AS invoices_raised_amount,
+                        COALESCE(ipa.payments_collected_amount, 0) AS payments_collected_amount,
+                        COALESCE(ica.invoices_raised_count, 0)     AS invoices_raised_count
                     FROM emp e
                     /* per-employee month series: from the later of the rolling
                        12-month floor and the user's creation month, up to now */
@@ -208,6 +347,8 @@ class MisPerformanceLine(models.Model):
                     ) AS gs(period_date)
                     LEFT JOIN delivery d ON d.user_id = e.user_id AND d.period_date = gs.period_date::date
                     LEFT JOIN sales    s ON s.employee_id = e.employee_id AND s.period_date = gs.period_date::date
+                    LEFT JOIN inv_pay_alloc ipa ON ipa.user_id = e.user_id AND ipa.period_date = gs.period_date::date
+                    LEFT JOIN invoice_count_alloc ica ON ica.user_id = e.user_id AND ica.period_date = gs.period_date::date
                 ),
                 calc AS (
                     SELECT b.*,
@@ -272,6 +413,9 @@ class MisPerformanceLine(models.Model):
                     sales_revenue,
                     delivery_revenue,
                     total_revenue,
+                    invoices_raised_count,
+                    invoices_raised_amount,
+                    payments_collected_amount,
                     CASE WHEN monthly_obligation > 0
                          THEN total_revenue / monthly_obligation * 100
                          ELSE 0 END AS achievement_pct,

@@ -327,6 +327,9 @@ function makePerformanceConfig(team, title) {
             annual_target: { label: "Annual Target", type: "monetary", currency: "ctc_currency_id" },
             consecutive_non_perf: { label: "Consecutive Non-Perf Months", type: "integer" },
             period_date: { label: "Month (date)", type: "date" },
+            invoices_raised_count: { label: "Invoices Raised (No.)", type: "integer" },
+            invoices_raised_amount: { label: "Invoices Raised (AED)", type: "monetary" },
+            payments_collected_amount: { label: "Payments Collected (AED)", type: "monetary" },
         },
         form: [
             {
@@ -343,6 +346,11 @@ function makePerformanceConfig(team, title) {
                 title: "Revenue (this month)",
                 fields: ["sales_revenue", "delivery_revenue",
                          "total_revenue", "achievement_pct"],
+            },
+            {
+                title: "Invoicing & Collection (this month)",
+                fields: ["invoices_raised_count", "invoices_raised_amount",
+                         "payments_collected_amount"],
             },
             {
                 title: "Status & Escalation",
@@ -402,7 +410,7 @@ export class MisReportView extends Component {
             expandedBreakdown: {},
             breakdownCache: {},
             breakdownLoading: {},
-            includeDetail: false,
+            expandedProjects: {},
         });
 
         onWillStart(() => this.load());
@@ -719,21 +727,35 @@ export class MisReportView extends Component {
         return this.state.breakdownCache[id];
     }
 
-    async toggleAllBreakdowns() {
-        const visible = this.visibleLeafRecords();
-        const anyExpanded = visible.some((r) => this.state.expandedBreakdown[r.id]);
-        if (anyExpanded) {
-            this.state.expandedBreakdown = {};
-            return;
+    // Delivery detail comes back flat (one row per task); group it by
+    // project so the UI (and the Excel export) can show a collapsible
+    // Project → Task hierarchy instead of one long task list.
+    groupDeliveryByProject(delivery) {
+        const map = new Map();
+        for (const d of delivery || []) {
+            const key = d.project || "—";
+            if (!map.has(key)) {
+                map.set(key, { project: key, tasks: [], hours: 0, weighted: 0, amount: 0 });
+            }
+            const g = map.get(key);
+            g.tasks.push(d);
+            g.hours += d.hours || 0;
+            g.weighted += d.weighted || 0;
+            g.amount += d.amount || 0;
         }
-        await this.loadBreakdowns(visible);
-        const next = {};
-        for (const r of visible) next[r.id] = true;
-        this.state.expandedBreakdown = next;
+        return [...map.values()];
     }
 
-    get anyBreakdownExpanded() {
-        return this.visibleLeafRecords().some((r) => this.state.expandedBreakdown[r.id]);
+    toggleProjectGroup(rowId, project, ev) {
+        if (ev) ev.stopPropagation();
+        const key = `${rowId}::${project}`;
+        const next = { ...this.state.expandedProjects };
+        next[key] = !next[key];
+        this.state.expandedProjects = next;
+    }
+
+    isProjectExpanded(rowId, project) {
+        return !!this.state.expandedProjects[`${rowId}::${project}`];
     }
 
     money(v, currencyId) {
@@ -744,7 +766,7 @@ export class MisReportView extends Component {
         return formatFloat(v || 0, { digits: [16, 2] });
     }
 
-    // ── Excel / PDF export ───────────────────────────────────────────────
+    // ── Excel export (fixed KPI columns, one section per employee) ───────
     // Exports the checked rows, or — if nothing is checked — every row
     // currently visible after search / date / group-by filtering.
     _exportRecords() {
@@ -753,90 +775,88 @@ export class MisReportView extends Component {
         return visible.filter((r) => this.state.selected[r.id]);
     }
 
-    // Flattens the (already-fetched-or-fetched-now) task/timesheet detail of
-    // `rows` into one line per task, for the optional "Task Detail" export
-    // sheet/section.
-    async _buildDetailPayload(rows) {
-        await this.loadBreakdowns(rows);
-        const columns = [
-            { name: "employee_name", label: "Employee", type: "char" },
-            { name: "period_label", label: "Month", type: "char" },
-            { name: "project", label: "Project", type: "char" },
-            { name: "task", label: "Task", type: "char" },
-            { name: "hours", label: "Hours", type: "float" },
-            { name: "weighted", label: "Weighted Hrs", type: "float" },
-            { name: "amount", label: "Revenue", type: "monetary", agg: true },
-        ];
-        const detailRows = [];
-        for (const rec of rows) {
-            const bd = this.state.breakdownCache[rec.id];
-            if (!bd) continue;
-            for (const d of bd.delivery) {
-                detailRows.push({
-                    employee_name:
-                        rec.employee_name ||
-                        (Array.isArray(rec.employee_id) ? rec.employee_id[1] : ""),
-                    period_label: rec.period_label,
-                    project: d.project,
-                    task: d.task,
-                    hours: d.hours,
-                    weighted: d.weighted,
-                    amount: d.amount,
-                });
-            }
-        }
-        const totals = {
-            amount: detailRows.reduce((s, r) => s + (r.amount || 0), 0),
-        };
-        return {
-            title: "Task / Timesheet Detail",
-            columns,
-            rows: detailRows,
-            totals,
-        };
-    }
+    static PERFORMANCE_EXPORT_COLUMNS = [
+        { name: "name", label: "Name", type: "char" },
+        { name: "team", label: "Team", type: "char" },
+        { name: "location", label: "Location (UAE/India)", type: "char" },
+        { name: "monthly_ctc", label: "Monthly CTC", type: "monetary" },
+        { name: "monthly_obligation", label: "Min. Obligation (AED)", type: "monetary" },
+        { name: "invoices_raised_count", label: "Invoices Raised (No.)", type: "integer", agg: true },
+        { name: "invoices_raised_amount", label: "Invoices Raised (AED)", type: "monetary", agg: true },
+        { name: "payments_collected_amount", label: "Payments Collected (AED)", type: "monetary", agg: true },
+        { name: "work_completed_value", label: "Work Completed – Value (AED)", type: "monetary", agg: true },
+        { name: "vs_min_obligation", label: "vs. Min. Obligation", type: "percent" },
+        { name: "status", label: "Status", type: "char" },
+    ];
 
-    async exportFile(format) {
+    // Excel export with the fixed business KPI columns; each employee's
+    // task/project/hours detail (this month) rides along as a collapsed
+    // Excel outline group under their summary row.
+    async exportFile() {
         const rows = this._exportRecords();
         if (!rows.length) return;
 
-        const columns = this.columns.map((c) => ({
-            name: c.name,
-            label: c.label,
-            type: c.type,
-            agg: !!c.agg,
-        }));
-        const outRows = rows.map((rec) => {
-            const o = {};
-            for (const col of this.columns) {
-                const v = rec[col.name];
-                o[col.name] = col.type === "m2o" ? (Array.isArray(v) ? v[1] : "") : v;
-            }
-            return o;
-        });
-        const groupNote = this.state.groupBy.length
-            ? ` — grouped by ${this.state.groupBy
-                  .map((f) => (this.config.groupBy.find((g) => g.field === f) || {}).label || f)
-                  .join(", ")}`
-            : "";
-        const payload = {
-            title: this.config.title,
-            subtitle: `${rows.length} record(s)${
-                this.selectedCount ? " (selected)" : ""
-            }${groupNote} — amounts in AED`,
-            columns,
-            rows: outRows,
-            totals: this.aggregate(rows),
-        };
-        if (this.config.revenueBreakdown && this.state.includeDetail) {
-            payload.detail = await this._buildDetailPayload(rows);
-        }
+        await this.loadBreakdowns(rows);
 
-        const url =
-            format === "pdf" ? "/mis_report_kgrn/export/pdf" : "/mis_report_kgrn/export/xlsx";
+        const groups = rows.map((rec) => {
+            const bd = this.state.breakdownCache[rec.id];
+            const detail = {
+                delivery: bd
+                    ? this.groupDeliveryByProject(bd.delivery).map((pg) => ({
+                          project: pg.project,
+                          hours: pg.hours,
+                          weighted: pg.weighted,
+                          amount: pg.amount,
+                          tasks: pg.tasks.map((d) => ({
+                              task: d.task,
+                              hours: d.hours,
+                              weighted: d.weighted,
+                              amount: d.amount,
+                          })),
+                      }))
+                    : [],
+                sales: bd
+                    ? bd.sales.map((s) => ({
+                          ref: s.ref,
+                          date: s.date,
+                          customer: s.customer,
+                          amount: s.amount,
+                      }))
+                    : [],
+            };
+            return {
+                summary: {
+                    name:
+                        rec.employee_name ||
+                        (Array.isArray(rec.employee_id) ? rec.employee_id[1] : ""),
+                    team: Array.isArray(rec.department_id) ? rec.department_id[1] : "",
+                    location: rec.office_location || "",
+                    monthly_ctc: rec.monthly_ctc,
+                    monthly_obligation: rec.monthly_obligation,
+                    invoices_raised_count: rec.invoices_raised_count,
+                    invoices_raised_amount: rec.invoices_raised_amount,
+                    payments_collected_amount: rec.payments_collected_amount,
+                    work_completed_value: rec.total_revenue,
+                    vs_min_obligation: rec.achievement_pct,
+                    status: rec.escalation_stage,
+                },
+                detail,
+            };
+        });
+
+        const monthLabel = rows.length === 1 ? ` — ${rows[0].period_label}` : "";
+        const payload = {
+            title: "Performance Report",
+            subtitle: `${this.config.title}${monthLabel} — ${rows.length} employee(s)${
+                this.selectedCount ? " (selected)" : ""
+            } — amounts in AED`,
+            columns: MisReportView.PERFORMANCE_EXPORT_COLUMNS,
+            groups,
+        };
+
         let resp;
         try {
-            resp = await fetch(url, {
+            resp = await fetch("/mis_report_kgrn/export/performance_xlsx", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
@@ -850,10 +870,7 @@ export class MisReportView extends Component {
             return;
         }
         const blob = await resp.blob();
-        const ext = format === "pdf" ? "pdf" : "xlsx";
-        const filename = `${this.config.title.replace(/\s+/g, "_")}_${new Date()
-            .toISOString()
-            .slice(0, 10)}.${ext}`;
+        const filename = `Performance_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
         link.download = filename;
