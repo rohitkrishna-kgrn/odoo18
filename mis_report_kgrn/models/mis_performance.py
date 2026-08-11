@@ -530,9 +530,7 @@ class MisPerformanceLine(models.Model):
                 COALESCE(tia.balance, 0) AS balance,
                 SUM(aal.unit_amount) AS hours,
                 SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS weighted,
-                SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)
-                    * CASE WHEN tw.total_weighted > 0
-                           THEN tw.task_value / tw.total_weighted ELSE 0 END) AS revenue
+                MAX(tw.task_value) AS revenue
             FROM   account_analytic_line aal
             JOIN   task_weight tw ON tw.task_id = aal.task_id
             JOIN   project_task pt ON pt.id = aal.task_id
