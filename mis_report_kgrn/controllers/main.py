@@ -12,7 +12,10 @@ class MisPerformanceExportController(http.Controller):
     Sheet 1 is the fixed KPI summary (the on-screen list columns, one row
     per selected employee-month). Sheet 2, added only when "Task Include"
     is enabled, is a flat Task / Timesheet Detail sheet — one row per task,
-    with Customer and Project alongside it.
+    with Customer and Project alongside it. Sheet 3, used by the
+    "Performance Management Report" export, is the firm-wide overdue
+    invoice aging list — any sheet key (sheet1/sheet2/sheet3) is written
+    verbatim if present, so callers can mix and match.
 
     No DB queries here: everything in `sheet1` / `sheet2` is built
     client-side from data the browser already fetched through the ORM (and
@@ -74,6 +77,7 @@ class MisPerformanceExportController(http.Controller):
         subtitle = payload.get('subtitle') or ''
         sheet1 = payload.get('sheet1') or {}
         sheet2 = payload.get('sheet2')
+        sheet3 = payload.get('sheet3')
 
         output = io.BytesIO()
         workbook = xlsxwriter.Workbook(output, {'in_memory': True})
@@ -96,6 +100,8 @@ class MisPerformanceExportController(http.Controller):
         self._write_sheet(workbook, formats, sheet1)
         if sheet2 and sheet2.get('rows'):
             self._write_sheet(workbook, formats, sheet2)
+        if sheet3 and sheet3.get('rows'):
+            self._write_sheet(workbook, formats, sheet3)
 
         workbook.close()
         output.seek(0)

@@ -34,9 +34,15 @@ class HrEmployee(models.Model):
         help="UAE → 3× monthly / 5× annual CTC. India → 5× monthly / 10× annual CTC.")
     mis_performance_team = fields.Selection([
         ('sales',      'Sales'),
-        ('operations', 'Operations (Audit / Tax / Accounting / E-Invoicing)'),
+        ('audit',      'Audit'),
+        ('tax',        'Tax'),
+        ('accounting', 'Accounting'),
+        ('einvoicing', 'E-Invoicing'),
         ('other',      'Other'),
-    ], string='Performance Team', groups=MIS_EMP_GROUPS)
+    ], string='Performance Team', groups=MIS_EMP_GROUPS,
+        help="Employees previously tagged 'Operations' need to be re-tagged "
+             "into one of Audit / Tax / Accounting / E-Invoicing for the "
+             "Performance Management Report's Team Totals to include them.")
     mis_annual_ctc = fields.Monetary(
         string='Annual CTC',
         currency_field='company_currency_id',

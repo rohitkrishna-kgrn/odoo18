@@ -55,6 +55,12 @@ class MisPerformanceLine(models.Model):
     invoices_raised_amount    = fields.Float(string='Invoices Raised (AED)',    readonly=True)
     payments_collected_amount = fields.Float(string='Payments Collected (AED)', readonly=True)
 
+    # ── Work completed (raw, unweighted contracted value of completed
+    #    tasks — for the Performance Management Report's "Work Completed –
+    #    Value" column; independent of the role-weighted, invoiced-basis
+    #    delivery_revenue used for the obligation/escalation check) ───────
+    work_completed_value = fields.Float(string='Work Completed – Value (AED)', readonly=True)
+
     # ── Status / escalation ──────────────────────────────────────────────
     is_met               = fields.Boolean(string='Met Obligation',      readonly=True)
     consecutive_non_perf = fields.Integer(string='Consec. Non-Perf Months', readonly=True)
@@ -147,6 +153,39 @@ class MisPerformanceLine(models.Model):
                     LEFT JOIN hr_employee he2 ON he2.user_id = aal.user_id AND he2.active = TRUE
                     LEFT JOIN mis_revenue_role mrr ON mrr.id = he2.mis_revenue_role_id
                     GROUP BY pt.id, ia.invoiced_ex_vat
+                ),
+                task_completed AS (
+                    /* raw (unweighted) contracted value of COMPLETED tasks,
+                       independent of invoicing/role-weighting — basis for
+                       the "Work Completed – Value" report column */
+                    SELECT
+                        pt.id AS task_id,
+                        (sol.price_subtotal / NULLIF(sol.product_uom_qty, 0)) AS task_value,
+                        SUM(aal.unit_amount) AS total_hours
+                    FROM   project_task pt
+                    JOIN   sale_order_line sol ON sol.id = pt.sale_line_id
+                    JOIN   account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
+                    WHERE  pt.state_additional = 'completed'
+                    GROUP  BY pt.id, sol.price_subtotal, sol.product_uom_qty
+                ),
+                work_completed AS (
+                    /* per (user, month): raw-hours share of completed
+                       tasks' contracted value */
+                    SELECT
+                        aal.user_id,
+                        date_trunc('month', aal.date)::date AS period_date,
+                        SUM(
+                            aal.unit_amount
+                            * CASE WHEN tc.total_hours > 0
+                                   THEN tc.task_value / tc.total_hours
+                                   ELSE 0 END
+                        ) AS work_completed_value
+                    FROM   account_analytic_line aal
+                    JOIN   task_completed tc ON tc.task_id = aal.task_id
+                    WHERE  aal.task_id IS NOT NULL
+                      AND  aal.unit_amount > 0
+                      AND  aal.date IS NOT NULL
+                    GROUP  BY aal.user_id, date_trunc('month', aal.date)
                 ),
                 delivery AS (
                     /* weighted-timesheet revenue per (user, month) */
@@ -333,7 +372,8 @@ class MisPerformanceLine(models.Model):
                         COALESCE(s.revenue, 0) AS sales_revenue,
                         COALESCE(ipa.invoices_raised_amount, 0)    AS invoices_raised_amount,
                         COALESCE(ipa.payments_collected_amount, 0) AS payments_collected_amount,
-                        COALESCE(ica.invoices_raised_count, 0)     AS invoices_raised_count
+                        COALESCE(ica.invoices_raised_count, 0)     AS invoices_raised_count,
+                        COALESCE(wc.work_completed_value, 0)       AS work_completed_value
                     FROM emp e
                     /* per-employee month series: from the later of the rolling
                        12-month floor and the user's creation month, up to now */
@@ -349,6 +389,7 @@ class MisPerformanceLine(models.Model):
                     LEFT JOIN sales    s ON s.employee_id = e.employee_id AND s.period_date = gs.period_date::date
                     LEFT JOIN inv_pay_alloc ipa ON ipa.user_id = e.user_id AND ipa.period_date = gs.period_date::date
                     LEFT JOIN invoice_count_alloc ica ON ica.user_id = e.user_id AND ica.period_date = gs.period_date::date
+                    LEFT JOIN work_completed wc ON wc.user_id = e.user_id AND wc.period_date = gs.period_date::date
                 ),
                 calc AS (
                     SELECT b.*,
@@ -416,6 +457,7 @@ class MisPerformanceLine(models.Model):
                     invoices_raised_count,
                     invoices_raised_amount,
                     payments_collected_amount,
+                    work_completed_value,
                     CASE WHEN monthly_obligation > 0
                          THEN total_revenue / monthly_obligation * 100
                          ELSE 0 END AS achievement_pct,
@@ -577,3 +619,55 @@ class MisPerformanceLine(models.Model):
                 item.get('employee_id'), item.get('user_id'), item.get('period_date')
             )
         return result
+
+    # ── Overdue invoice aging (for the Performance Management Report's
+    #    "Overdue Invoice Detail" tab) ─────────────────────────────────────
+    @api.model
+    def get_overdue_invoices(self):
+        """Full aging list of unpaid, past-due customer invoices. Amounts
+        are converted to AED using the latest available currency rate (same
+        convention as the CTC INR→AED conversion in init())."""
+        self.env.cr.execute("""
+            SELECT
+                am.name,
+                COALESCE(rp.complete_name, rp.name, ''),
+                CASE WHEN LEFT(hd.name::text, 1) = '{'
+                     THEN (hd.name::jsonb)->>'en_US' ELSE hd.name::text END,
+                COALESCE(pmp.name, ''),
+                am.invoice_date,
+                am.invoice_date_due,
+                am.amount_residual * CASE WHEN cur.name = 'AED' THEN 1
+                    ELSE COALESCE(
+                        (SELECT 1.0 / r.rate FROM res_currency_rate r
+                         WHERE r.currency_id = cur.id
+                         ORDER BY r.name DESC LIMIT 1),
+                        CASE WHEN cur.name = 'USD' THEN 3.6725 ELSE 1 END)
+                    END,
+                (CURRENT_DATE - am.invoice_date_due)::integer,
+                COALESCE(arp.name, ''),
+                am.last_followup_date
+            FROM   account_move am
+            LEFT JOIN res_partner rp   ON rp.id  = am.partner_id
+            LEFT JOIN project_project pp ON pp.id = am.service_engagement_id
+            LEFT JOIN hr_department hd ON hd.id  = pp.department_id
+            LEFT JOIN res_users pmu    ON pmu.id = pp.user_id
+            LEFT JOIN res_partner pmp  ON pmp.id = pmu.partner_id
+            LEFT JOIN res_users aru    ON aru.id = am.ar_responsible_id
+            LEFT JOIN res_partner arp  ON arp.id = aru.partner_id
+            LEFT JOIN res_currency cur ON cur.id = am.currency_id
+            WHERE  am.move_type = 'out_invoice'
+              AND  am.state = 'posted'
+              AND  am.payment_state NOT IN ('paid', 'in_payment', 'reversed')
+              AND  am.invoice_date_due IS NOT NULL
+              AND  am.invoice_date_due < CURRENT_DATE
+              AND  am.amount_residual > 0.01
+            ORDER  BY 8 DESC
+        """)
+        cols = ['invoice_no', 'client', 'team', 'pm_responsible', 'invoice_date',
+                'due_date', 'amount_aed', 'days_overdue', 'ar_responsible',
+                'last_follow_up_date']
+        return [
+            {c: (v.isoformat() if hasattr(v, 'isoformat') else v)
+             for c, v in zip(cols, row)}
+            for row in self.env.cr.fetchall()
+        ]

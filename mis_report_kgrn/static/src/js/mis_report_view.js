@@ -286,7 +286,11 @@ const REPORT_CONFIGS = {
 };
 
 // ── Performance Management dashboards (shared shape, filtered by team) ──
+// `team` is either one team code ("sales") or an array of codes sharing a
+// screen (Operations groups its four sub-teams: Audit / Tax / Accounting /
+// E-Invoicing).
 function makePerformanceConfig(team, title) {
+    const teams = Array.isArray(team) ? team : [team];
     return {
         resModel: "mis.performance.line",
         title,
@@ -294,8 +298,8 @@ function makePerformanceConfig(team, title) {
         decorationField: "is_met",
         revenueBreakdown: true,
         selectable: true,
-        exportable: true,
-        baseDomain: [["performance_team", "=", team]],
+        performanceManagementReport: true,
+        baseDomain: [["performance_team", "in", teams]],
         searchFields: ["employee_name", "escalation_stage"],
         titleFields: ["employee_id", "period_label"],
         dateFilters: [{ field: "period_date", label: "Month" }],
@@ -331,6 +335,7 @@ function makePerformanceConfig(team, title) {
             invoices_raised_count: { label: "Invoices Raised (No.)", type: "integer" },
             invoices_raised_amount: { label: "Invoices Raised (AED)", type: "monetary" },
             payments_collected_amount: { label: "Payments Collected (AED)", type: "monetary" },
+            work_completed_value: { label: "Work Completed – Value (AED)", type: "monetary" },
         },
         form: [
             {
@@ -361,7 +366,9 @@ function makePerformanceConfig(team, title) {
     };
 }
 REPORT_CONFIGS.mis_performance_sales = makePerformanceConfig("sales", "Sales Performance");
-REPORT_CONFIGS.mis_performance_operations = makePerformanceConfig("operations", "Operations Performance");
+REPORT_CONFIGS.mis_performance_operations = makePerformanceConfig(
+    ["audit", "tax", "accounting", "einvoicing"], "Operations Performance"
+);
 REPORT_CONFIGS.mis_performance_other = makePerformanceConfig("other", "Other Teams Performance");
 
 export class MisReportView extends Component {
@@ -412,7 +419,6 @@ export class MisReportView extends Component {
             breakdownCache: {},
             breakdownLoading: {},
             expandedProjects: {},
-            includeTaskDetail: false,
         });
 
         onWillStart(() => this.load());
@@ -612,10 +618,6 @@ export class MisReportView extends Component {
         this.applyFilters();
     }
 
-    toggleIncludeTaskDetail() {
-        this.state.includeTaskDetail = !this.state.includeTaskDetail;
-    }
-
     // ── Row selection (Excel / PDF export) ───────────────────────────────
     visibleLeafRecords() {
         if (!this.state.groupBy.length) return this.state.leaves;
@@ -772,34 +774,29 @@ export class MisReportView extends Component {
         return formatFloat(v || 0, { digits: [16, 2] });
     }
 
-    // ── Excel export (fixed KPI columns, one section per employee) ───────
-    // Strictly the checked rows — nothing else. No rows checked = nothing
-    // to export (see exportFile below).
+    // ── Row selection helper, shared with the Performance Management
+    //    Report export below. Strictly the checked rows — nothing else.
     _exportRecords() {
         if (!this.selectedCount) return [];
         return this.visibleLeafRecords().filter((r) => this.state.selected[r.id]);
     }
 
-    // Plain-value copy of a record's columns for the Excel sheet: m2o → label,
-    // boolean → Yes/No, everything else passed through as-is (numbers stay
-    // numeric so Excel can sum/format them).
-    _rowToPlain(rec, columns) {
-        const o = {};
-        for (const col of columns) {
-            const v = rec[col.name];
-            if (col.type === "m2o") o[col.name] = Array.isArray(v) ? v[1] : "";
-            else if (col.type === "boolean") o[col.name] = v ? "Yes" : "No";
-            else o[col.name] = v;
-        }
-        return o;
-    }
+    // ── Performance Management Report (fixed 3-tab workbook) ─────────────
+    // Tab 1 is one row per CHECKED employee-month on the current dashboard
+    // (nothing checked = nothing exported); Tab 2 subtotals those same rows
+    // per team plus a total; Tab 3 is the full overdue invoice aging list
+    // (unrelated to row selection — sourced firm-wide from account.move via
+    // get_overdue_invoices).
+    async exportPerformanceManagementReport() {
+        const TEAM_LABELS = {
+            sales: "Sales", audit: "Audit", tax: "Tax",
+            accounting: "Accounting", einvoicing: "E-Invoicing", other: "Other",
+        };
+        const TEAM_ORDER = ["sales", "audit", "tax", "accounting", "einvoicing", "other"];
+        const UNCLASSIFIED = "Unclassified";
 
-    // Sheet 1: the on-screen KPI columns, for the checked rows only. Sheet 2
-    // (only when "Task Include" is on): one flat row per task, across those
-    // same checked employees, with the task's Project, Customer & hours.
-    async exportFile() {
-        const rows = this._exportRecords();
-        if (!rows.length) {
+        const records = this._exportRecords();
+        if (!records.length) {
             this.dialog.add(AlertDialog, {
                 title: "No records selected",
                 body: "Select at least one record to export.",
@@ -807,69 +804,152 @@ export class MisReportView extends Component {
             return;
         }
 
-        const sheet1Columns = this.columns.map((c) => ({
-            name: c.name,
-            label: c.label,
-            type: c.type,
-            agg: !!c.agg,
-        }));
-        const monthLabel = rows.length === 1 ? ` — ${rows[0].period_label}` : "";
-        const payload = {
-            title: "Performance Report",
-            subtitle: `${this.config.title}${monthLabel} — ${rows.length} record(s)${
-                this.selectedCount ? " (selected)" : ""
-            } — amounts in AED`,
-            sheet1: {
-                name: this.config.title.slice(0, 31),
-                columns: sheet1Columns,
-                rows: rows.map((rec) => this._rowToPlain(rec, this.columns)),
-                totals: this.aggregate(rows),
-            },
+        this.state.loading = true;
+        let overdue;
+        try {
+            overdue = await this.orm.call("mis.performance.line", "get_overdue_invoices", []);
+        } finally {
+            this.state.loading = false;
+        }
+
+        // ── Tab 1 — Individual Summary ────────────────────────────────
+        const sheet1Columns = [
+            { name: "employee_name", label: "Name", type: "char" },
+            { name: "team", label: "Team", type: "char" },
+            { name: "office_location", label: "Location (UAE/India)", type: "char" },
+            { name: "monthly_ctc", label: "Monthly CTC", type: "monetary", agg: true },
+            { name: "monthly_obligation", label: "Min. Obligation (AED)", type: "monetary", agg: true },
+            { name: "invoices_raised_count", label: "Invoices Raised (No.)", type: "integer", agg: true },
+            { name: "invoices_raised_amount", label: "Invoices Raised (AED)", type: "monetary", agg: true },
+            { name: "payments_collected_amount", label: "Payments Collected (AED)", type: "monetary", agg: true },
+            { name: "work_completed_value", label: "Work Completed – Value (AED)", type: "monetary", agg: true },
+            { name: "vs_obligation", label: "vs. Min. Obligation", type: "percent" },
+            { name: "status", label: "Status", type: "char" },
+        ];
+
+        const sheet1Rows = [];
+        const teamTotals = {};
+        for (const r of records) {
+            const obligation = r.monthly_obligation || 0;
+            const completed = r.work_completed_value || 0;
+            const teamCode = TEAM_LABELS[r.performance_team] ? r.performance_team : "__unclassified__";
+
+            sheet1Rows.push({
+                employee_name: r.employee_name,
+                team: TEAM_LABELS[teamCode] || UNCLASSIFIED,
+                office_location: r.office_location,
+                monthly_ctc: r.monthly_ctc,
+                monthly_obligation: obligation,
+                invoices_raised_count: r.invoices_raised_count,
+                invoices_raised_amount: r.invoices_raised_amount,
+                payments_collected_amount: r.payments_collected_amount,
+                work_completed_value: completed,
+                vs_obligation: obligation > 0 ? (completed / obligation) * 100 : 0,
+                status: r.escalation_stage,
+            });
+
+            const t = teamTotals[teamCode] || (teamTotals[teamCode] = {
+                member_count: 0, monthly_ctc: 0, monthly_obligation: 0,
+                invoices_raised_count: 0, invoices_raised_amount: 0,
+                payments_collected_amount: 0, work_completed_value: 0,
+            });
+            t.member_count += 1;
+            t.monthly_ctc += r.monthly_ctc || 0;
+            t.monthly_obligation += obligation;
+            t.invoices_raised_count += r.invoices_raised_count || 0;
+            t.invoices_raised_amount += r.invoices_raised_amount || 0;
+            t.payments_collected_amount += r.payments_collected_amount || 0;
+            t.work_completed_value += completed;
+        }
+        const sheet1Totals = {};
+        for (const col of sheet1Columns) {
+            if (col.agg) {
+                sheet1Totals[col.name] = sheet1Rows.reduce(
+                    (s, r) => s + (Number(r[col.name]) || 0), 0
+                );
+            }
+        }
+
+        // ── Tab 2 — Team Totals (one section per team + firm total) ────
+        const sheet2Columns = [
+            { name: "team", label: "Team", type: "char" },
+            { name: "member_count", label: "Members", type: "integer" },
+            { name: "monthly_ctc", label: "Monthly CTC", type: "monetary", agg: true },
+            { name: "monthly_obligation", label: "Min. Obligation (AED)", type: "monetary", agg: true },
+            { name: "invoices_raised_count", label: "Invoices Raised (No.)", type: "integer", agg: true },
+            { name: "invoices_raised_amount", label: "Invoices Raised (AED)", type: "monetary", agg: true },
+            { name: "payments_collected_amount", label: "Payments Collected (AED)", type: "monetary", agg: true },
+            { name: "work_completed_value", label: "Work Completed – Value (AED)", type: "monetary", agg: true },
+            { name: "vs_obligation", label: "vs. Min. Obligation", type: "percent" },
+        ];
+        const sheet2Rows = [];
+        const firmTotal = {
+            member_count: 0, monthly_ctc: 0, monthly_obligation: 0,
+            invoices_raised_count: 0, invoices_raised_amount: 0,
+            payments_collected_amount: 0, work_completed_value: 0,
+        };
+        const orderIndex = (code) => {
+            const i = TEAM_ORDER.indexOf(code);
+            return i === -1 ? TEAM_ORDER.length : i;
+        };
+        for (const code of Object.keys(teamTotals).sort(
+            (a, b) => orderIndex(a) - orderIndex(b)
+        )) {
+            const t = teamTotals[code];
+            sheet2Rows.push({
+                team: TEAM_LABELS[code] || UNCLASSIFIED,
+                ...t,
+                vs_obligation: t.monthly_obligation > 0
+                    ? (t.work_completed_value / t.monthly_obligation) * 100 : 0,
+            });
+            for (const k of Object.keys(firmTotal)) firmTotal[k] += t[k];
+        }
+        sheet2Rows.push({
+            team: "Firm Total",
+            ...firmTotal,
+            vs_obligation: firmTotal.monthly_obligation > 0
+                ? (firmTotal.work_completed_value / firmTotal.monthly_obligation) * 100 : 0,
+        });
+
+        // ── Tab 3 — Overdue Invoice Detail ──────────────────────────────
+        const sheet3Columns = [
+            { name: "invoice_no", label: "Invoice No.", type: "char" },
+            { name: "client", label: "Client", type: "char" },
+            { name: "team", label: "Team", type: "char" },
+            { name: "pm_responsible", label: "PM Responsible", type: "char" },
+            { name: "invoice_date", label: "Invoice Date", type: "char" },
+            { name: "due_date", label: "Due Date", type: "char" },
+            { name: "amount_aed", label: "Amount (AED)", type: "monetary", agg: true },
+            { name: "days_overdue", label: "Days Overdue", type: "integer" },
+            { name: "ar_responsible", label: "AR Responsible", type: "char" },
+            { name: "last_follow_up_date", label: "Last Follow-Up Date", type: "char" },
+        ];
+        const sheet3Totals = {
+            amount_aed: overdue.reduce((s, r) => s + (Number(r.amount_aed) || 0), 0),
         };
 
-        if (this.state.includeTaskDetail) {
-            await this.loadBreakdowns(rows);
-            const detailColumns = [
-                { name: "employee", label: "Employee", type: "char" },
-                { name: "month", label: "Month", type: "char" },
-                { name: "customer", label: "Customer", type: "char" },
-                { name: "project", label: "Project", type: "char" },
-                { name: "task", label: "Task", type: "char" },
-                { name: "hours", label: "Hours", type: "float" },
-                { name: "revenue", label: "Revenue", type: "monetary", agg: true },
-                { name: "invoice_details", label: "Invoice Details", type: "char" },
-                { name: "balance", label: "Balance", type: "monetary", agg: true },
-            ];
-            const detailRows = [];
-            for (const rec of rows) {
-                const bd = this.state.breakdownCache[rec.id];
-                if (!bd) continue;
-                const empName =
-                    rec.employee_name || (Array.isArray(rec.employee_id) ? rec.employee_id[1] : "");
-                for (const d of bd.delivery) {
-                    detailRows.push({
-                        employee: empName,
-                        month: rec.period_label,
-                        customer: d.customer || "",
-                        project: d.project || "",
-                        task: d.task || "",
-                        hours: d.hours,
-                        revenue: d.amount,
-                        invoice_details: d.invoice_details || "",
-                        balance: d.balance || 0,
-                    });
-                }
-            }
-            payload.sheet2 = {
-                name: "Task Timesheet Detail",
-                columns: detailColumns,
-                rows: detailRows,
-                totals: {
-                    revenue: detailRows.reduce((s, r) => s + (r.revenue || 0), 0),
-                    balance: detailRows.reduce((s, r) => s + (r.balance || 0), 0),
-                },
-            };
-        }
+        const payload = {
+            title: "Performance Management Report",
+            subtitle: `${this.config.title} — ${records.length} record(s) selected — amounts in AED`,
+            sheet1: {
+                name: "Individual Summary",
+                columns: sheet1Columns,
+                rows: sheet1Rows,
+                totals: sheet1Totals,
+            },
+            sheet2: {
+                name: "Team Totals",
+                columns: sheet2Columns,
+                rows: sheet2Rows,
+                totals: {},
+            },
+            sheet3: {
+                name: "Overdue Invoice Detail",
+                columns: sheet3Columns,
+                rows: overdue,
+                totals: sheet3Totals,
+            },
+        };
 
         let resp;
         try {
@@ -879,15 +959,15 @@ export class MisReportView extends Component {
                 body: JSON.stringify(payload),
             });
         } catch (e) {
-            console.error("MIS export failed:", e);
+            console.error("MIS performance management report export failed:", e);
             return;
         }
         if (!resp.ok) {
-            console.error("MIS export failed:", await resp.text());
+            console.error("MIS performance management report export failed:", await resp.text());
             return;
         }
         const blob = await resp.blob();
-        const filename = `Performance_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        const filename = `Performance_Management_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
         link.download = filename;

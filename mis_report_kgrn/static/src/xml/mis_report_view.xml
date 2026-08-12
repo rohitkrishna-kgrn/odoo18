@@ -106,20 +106,14 @@
                             <i class="fa fa-refresh"/> Refresh
                         </button>
 
-                        <t t-if="config.exportable">
+                        <t t-if="config.performanceManagementReport">
                             <span class="o_mis_selected_hint" t-if="selectedCount">
                                 <t t-esc="selectedCount"/> selected
                             </span>
-                            <button class="btn btn-sm o_mis_task_include"
-                                    t-att-class="{ 'o_mis_task_include_active': state.includeTaskDetail }"
-                                    t-on-click="toggleIncludeTaskDetail"
-                                    title="When enabled, the Excel export adds a second sheet with each employee's task / project / hours detail for the month">
-                                <i class="fa" t-att-class="state.includeTaskDetail ? 'fa-check-square-o' : 'fa-square-o'"/>
-                                Task Include
-                            </button>
-                            <button class="btn btn-outline-success btn-sm" t-on-click="() => this.exportFile()"
-                                    title="Export the checked rows to Excel — nothing is exported unless rows are selected">
-                                <i class="fa fa-file-excel-o"/> Excel
+                            <button class="btn btn-outline-primary btn-sm"
+                                    t-on-click="() => this.exportPerformanceManagementReport()"
+                                    title="Export the checked rows as a 3-tab Performance Management Report (Individual Summary, Team Totals, Overdue Invoice Detail) — nothing is exported unless rows are selected">
+                                <i class="fa fa-file-excel-o"/> Performance Management Report
                             </button>
                         </t>
 
