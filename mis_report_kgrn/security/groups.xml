@@ -23,5 +23,16 @@
             <field name="implied_ids" eval="[(4, ref('mis_report_kgrn.group_mis_manager'))]"/>
         </record>
 
+        <!-- MIS HR: read-only access to the Performance Management scorecard
+             (all employees) and the monthly report log; also the sole
+             audience for the automated monthly scorecard email — no one
+             else receives it. Deliberately scoped to Performance only —
+             no access to Project Wise/Revenue/Outstanding. -->
+        <record id="group_mis_hr" model="res.groups">
+            <field name="name">MIS HR</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
     </data>
 </odoo>

@@ -7,7 +7,7 @@
         name="MIS Dashboard"
         sequence="85"
         web_icon="mis_report_kgrn,static/description/icon.png"
-        groups="mis_report_kgrn.group_mis_user"/>
+        groups="mis_report_kgrn.group_mis_user,mis_report_kgrn.group_mis_hr"/>
 
     <!-- Project Wise → only list -->
     <menuitem
@@ -49,13 +49,13 @@
         sequence="3"
         groups="mis_report_kgrn.group_mis_user"/>
 
-    <!-- Performance Management (Admin only) -->
+    <!-- Performance Management (Admin + MIS HR) -->
     <menuitem
         id="menu_mis_performance_root"
         name="Performance Management"
         parent="menu_mis_dashboard_root"
         sequence="4"
-        groups="mis_report_kgrn.group_mis_admin"/>
+        groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
     <menuitem
         id="menu_mis_perf_sales"
@@ -63,7 +63,7 @@
         parent="menu_mis_performance_root"
         action="mis_report_kgrn.action_mis_perf_sales"
         sequence="1"
-        groups="mis_report_kgrn.group_mis_admin"/>
+        groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
     <menuitem
         id="menu_mis_perf_operations"
@@ -71,7 +71,7 @@
         parent="menu_mis_performance_root"
         action="mis_report_kgrn.action_mis_perf_operations"
         sequence="2"
-        groups="mis_report_kgrn.group_mis_admin"/>
+        groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
     <menuitem
         id="menu_mis_perf_other"
@@ -79,7 +79,15 @@
         parent="menu_mis_performance_root"
         action="mis_report_kgrn.action_mis_perf_other"
         sequence="3"
-        groups="mis_report_kgrn.group_mis_admin"/>
+        groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
+
+    <menuitem
+        id="menu_mis_perf_report_log"
+        name="Scorecard Log"
+        parent="menu_mis_performance_root"
+        action="mis_report_kgrn.action_mis_performance_report_log"
+        sequence="4"
+        groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
     <!-- Configuration (Admin only) -->
     <menuitem

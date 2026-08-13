@@ -1,3 +1,5 @@
+from dateutil.relativedelta import relativedelta
+
 from odoo import models, fields, api, tools
 
 
@@ -6,15 +8,29 @@ class MisPerformanceLine(models.Model):
     KGRN Performance Management Framework (HR-PMS-001).
 
     One row per (applicable employee × month) from the policy effective
-    date (2026-07-01) to the current month. Combines two revenue sources:
+    date (2026-07-01) to the current month. Combines two revenue sources,
+    both sourced from posted customer invoices that have actually been
+    (at least partially) COLLECTED, bucketed by the month the payment/
+    reconciliation happened (not invoice date, not order date, not
+    timesheet date), and both split across a task's contributors in
+    proportion to their lifetime hours × role_multiplier share of the
+    task's total weighted hours — the same non-duplicating split for
+    both, differing only in WHEN the collection happened relative to
+    project_task.completed_date (set once when a task is approved /
+    marked Completed; NULL if never completed):
 
-      • delivery_revenue — weighted-timesheet revenue attribution for
-        Audit/Tax/Accounting/E-Invoicing (Operations) teams. Each analytic
-        line contributes  hours × role_multiplier × (task_value / task_total_weighted_hours),
-        allocated to the month the time was logged.
+      • sales_revenue — amount collected while the task was still not
+        yet completed (payment date < completed_date, or completed_date
+        is NULL) — an advance against work in progress.
 
-      • sales_revenue — gross (untaxed) value of confirmed sale orders,
-        attributed to the salesperson by order-confirmation month.
+      • delivery_revenue — amount collected on or after the task's
+        completed_date — the final settlement once work is delivered.
+
+    Shares of a given payment sum to exactly the collected amount, so the
+    same payment is never duplicated across employees, projects, or the
+    sales/delivery split. Partial payments count pro-rata (a 60%-paid
+    invoice contributes 60% of its value) via the same reconciliation-based
+    split used by the Payments Collected column.
 
     Obligation & target follow the office location (UAE 3×/5×, India 5×/10×)
     with a new-joiner ramp-up (month 1 = 1×, month 2 = 2×, month 3+ = full).
@@ -154,6 +170,21 @@ class MisPerformanceLine(models.Model):
                     LEFT JOIN mis_revenue_role mrr ON mrr.id = he2.mis_revenue_role_id
                     GROUP BY pt.id, ia.invoiced_ex_vat
                 ),
+                task_user_weight AS (
+                    /* per (task, employee): lifetime weighted hours — same
+                       weighting as task_weight's denominator, split out per
+                       contributor so a task's invoiced amount can be divided
+                       among contributors without double-counting */
+                    SELECT
+                        pt.id AS task_id,
+                        aal.user_id,
+                        SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS user_weighted
+                    FROM project_task pt
+                    JOIN account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
+                    LEFT JOIN hr_employee he6 ON he6.user_id = aal.user_id AND he6.active = TRUE
+                    LEFT JOIN mis_revenue_role mrr ON mrr.id = he6.mis_revenue_role_id
+                    GROUP BY pt.id, aal.user_id
+                ),
                 task_completed AS (
                     /* raw (unweighted) contracted value of COMPLETED tasks,
                        independent of invoicing/role-weighting — basis for
@@ -187,45 +218,15 @@ class MisPerformanceLine(models.Model):
                       AND  aal.date IS NOT NULL
                     GROUP  BY aal.user_id, date_trunc('month', aal.date)
                 ),
-                delivery AS (
-                    /* weighted-timesheet revenue per (user, month) */
-                    SELECT
-                        aal.user_id,
-                        date_trunc('month', aal.date)::date AS period_date,
-                        SUM(
-                            aal.unit_amount * COALESCE(mrr.multiplier, 1)
-                            * CASE WHEN tw.total_weighted > 0
-                                   THEN tw.task_value / tw.total_weighted
-                                   ELSE 0 END
-                        ) AS revenue
-                    FROM account_analytic_line aal
-                    JOIN task_weight tw ON tw.task_id = aal.task_id
-                    LEFT JOIN hr_employee he3 ON he3.user_id = aal.user_id AND he3.active = TRUE
-                    LEFT JOIN mis_revenue_role mrr ON mrr.id = he3.mis_revenue_role_id
-                    WHERE aal.task_id IS NOT NULL
-                      AND aal.unit_amount > 0
-                      AND aal.date IS NOT NULL
-                    GROUP BY aal.user_id, date_trunc('month', aal.date)
-                ),
-                sales AS (
-                    /* confirmed-SO gross (untaxed, AED) revenue matched to the
-                       employee by salesperson user OR by matching name */
-                    SELECT
-                        e.employee_id,
-                        date_trunc('month', so.date_order)::date AS period_date,
-                        SUM(so.amount_untaxed) AS revenue
-                    FROM sale_order so
-                    JOIN res_users   su ON su.id = so.user_id
-                    JOIN res_partner sp ON sp.id = su.partner_id
-                    JOIN emp e ON ( e.user_id = so.user_id
-                                    OR lower(btrim(e.employee_name)) = lower(btrim(sp.name)) )
-                    WHERE so.state IN ('sale', 'done')
-                    GROUP BY e.employee_id, date_trunc('month', so.date_order)
+                task_sol AS (
+                    SELECT pt.id AS task_id, sol.id AS sol_id
+                    FROM   project_task pt
+                    JOIN   sale_order_line sol ON sol.id = pt.sale_line_id
                 ),
                 inv_lines AS (
                     /* posted invoice lines, one row per (SO line, invoice) —
-                       basis for period-scoped Invoices Raised / Payments
-                       Collected, matched to tasks via their SO line */
+                       basis for Sales/Delivery Revenue and the period-scoped
+                       Invoices Raised / Payments Collected columns */
                     SELECT
                         solr.order_line_id AS sol_id,
                         am.id              AS move_id,
@@ -238,6 +239,15 @@ class MisPerformanceLine(models.Model):
                     WHERE  am.move_type = 'out_invoice'
                       AND  am.state = 'posted'
                       AND  am.invoice_date IS NOT NULL
+                ),
+                inv_period AS (
+                    /* invoiced (ex-VAT) amount raised per SO line, bucketed by
+                       the invoice's own month — basis for Sales/Delivery
+                       Revenue */
+                    SELECT sol_id, date_trunc('month', invoice_date)::date AS period_date,
+                           SUM(price_subtotal) AS invoiced_ex_vat
+                    FROM   inv_lines
+                    GROUP  BY sol_id, date_trunc('month', invoice_date)
                 ),
                 recv_lines AS (
                     SELECT aml.id AS recv_line_id, aml.move_id
@@ -257,14 +267,6 @@ class MisPerformanceLine(models.Model):
                            ON rl.recv_line_id = pr.debit_move_id
                            OR rl.recv_line_id = pr.credit_move_id
                 ),
-                inv_period AS (
-                    /* invoiced (ex-VAT) amount raised per SO line, bucketed by
-                       the invoice's own month */
-                    SELECT sol_id, date_trunc('month', invoice_date)::date AS period_date,
-                           SUM(price_subtotal) AS invoiced_ex_vat
-                    FROM   inv_lines
-                    GROUP  BY sol_id, date_trunc('month', invoice_date)
-                ),
                 paid_period AS (
                     /* amount actually collected per SO line, bucketed by the
                        payment/reconciliation month (not the invoice month) */
@@ -275,10 +277,76 @@ class MisPerformanceLine(models.Model):
                     JOIN   recon r ON r.invoice_move_id = il.move_id
                     GROUP  BY il.sol_id, date_trunc('month', r.max_date)
                 ),
-                task_sol AS (
-                    SELECT pt.id AS task_id, sol.id AS sol_id
-                    FROM   project_task pt
-                    JOIN   sale_order_line sol ON sol.id = pt.sale_line_id
+                paid_task_events AS (
+                    /* each task's share of every reconciled payment against
+                       its SO line, at full (non-truncated) payment-date
+                       granularity, tagged with the task's completed_date —
+                       needed to tell which side of "done" each payment
+                       falls on before bucketing by month below */
+                    SELECT
+                        ts.task_id,
+                        r.max_date AS payment_date,
+                        pt7.completed_date,
+                        (il.price_subtotal * COALESCE(r.amount, 0)
+                         / NULLIF(il.amount_total, 0)) AS paid_ex_vat
+                    FROM   task_sol ts
+                    JOIN   inv_lines il ON il.sol_id = ts.sol_id
+                    JOIN   recon r ON r.invoice_move_id = il.move_id
+                    JOIN   project_task pt7 ON pt7.id = ts.task_id
+                ),
+                task_paid_split AS (
+                    /* per (task, payment month): collected amount split into
+                       "sales" (paid before the task was completed, or the
+                       task has never been completed — an advance) vs
+                       "delivery" (paid on/after completed_date — the final
+                       settlement) */
+                    SELECT
+                        task_id,
+                        date_trunc('month', payment_date)::date AS period_date,
+                        SUM(CASE WHEN completed_date IS NULL OR payment_date < completed_date
+                                 THEN paid_ex_vat ELSE 0 END) AS sales_paid,
+                        SUM(CASE WHEN completed_date IS NOT NULL AND payment_date >= completed_date
+                                 THEN paid_ex_vat ELSE 0 END) AS delivery_paid
+                    FROM   paid_task_events
+                    GROUP  BY task_id, date_trunc('month', payment_date)
+                ),
+                delivery AS (
+                    /* final-settlement (post-completion) collected revenue
+                       per (user, payment month): each task's delivery_paid
+                       for the month is split among its contributors by
+                       their lifetime hours × role-multiplier share —
+                       shares sum to exactly the collected amount, so the
+                       same payment is never duplicated across employees or
+                       projects */
+                    SELECT
+                        tuw.user_id,
+                        tps.period_date,
+                        SUM(
+                            CASE WHEN tw.total_weighted > 0
+                                 THEN tuw.user_weighted / tw.total_weighted * tps.delivery_paid
+                                 ELSE 0 END
+                        ) AS revenue
+                    FROM   task_user_weight tuw
+                    JOIN   task_weight tw ON tw.task_id = tuw.task_id
+                    JOIN   task_paid_split tps ON tps.task_id = tuw.task_id
+                    GROUP  BY tuw.user_id, tps.period_date
+                ),
+                sales AS (
+                    /* advance (pre-completion) collected revenue per (user,
+                       payment month) — same contributor split as delivery,
+                       applied to sales_paid instead */
+                    SELECT
+                        tuw.user_id,
+                        tps.period_date,
+                        SUM(
+                            CASE WHEN tw.total_weighted > 0
+                                 THEN tuw.user_weighted / tw.total_weighted * tps.sales_paid
+                                 ELSE 0 END
+                        ) AS revenue
+                    FROM   task_user_weight tuw
+                    JOIN   task_weight tw ON tw.task_id = tuw.task_id
+                    JOIN   task_paid_split tps ON tps.task_id = tuw.task_id
+                    GROUP  BY tuw.user_id, tps.period_date
                 ),
                 task_invoices AS (
                     /* distinct (task, invoice) touches per month, for the
@@ -386,7 +454,7 @@ class MisPerformanceLine(models.Model):
                         INTERVAL '1 month'
                     ) AS gs(period_date)
                     LEFT JOIN delivery d ON d.user_id = e.user_id AND d.period_date = gs.period_date::date
-                    LEFT JOIN sales    s ON s.employee_id = e.employee_id AND s.period_date = gs.period_date::date
+                    LEFT JOIN sales    s ON s.user_id = e.user_id AND s.period_date = gs.period_date::date
                     LEFT JOIN inv_pay_alloc ipa ON ipa.user_id = e.user_id AND ipa.period_date = gs.period_date::date
                     LEFT JOIN invoice_count_alloc ica ON ica.user_id = e.user_id AND ica.period_date = gs.period_date::date
                     LEFT JOIN work_completed wc ON wc.user_id = e.user_id AND wc.period_date = gs.period_date::date
@@ -482,59 +550,88 @@ class MisPerformanceLine(models.Model):
     # ── Revenue breakdown (for the OWL wizard) ───────────────────────────
     @api.model
     def get_revenue_breakdown(self, employee_id, user_id, period_date):
-        """Return the individual sale orders (sales) and tasks (delivery) that
-        make up an employee's revenue for the given month. `period_date` is any
-        date within the month ('YYYY-MM-DD')."""
-        emp = self.env['hr.employee'].browse(employee_id)
-        emp_name = emp.name or ''
+        """Return the individual tasks that make up an employee's Sales
+        (pre-completion / advance) and Delivery (post-completion / final
+        settlement) revenue for the given month — same definition as
+        init()/get_period_revenue_amounts: collected (payment/
+        reconciliation-date) basis, split at each task's completed_date,
+        both attributed to contributors by lifetime hours × role-multiplier
+        share. `period_date` is any date within the month ('YYYY-MM-DD')."""
         uid = user_id or 0
         cr = self.env.cr
 
-        # ── Sales: confirmed SOs matched by salesperson user OR name ──────
         cr.execute("""
-            SELECT so.name,
-                   so.date_order::date,
-                   COALESCE(rp.complete_name, rp.name, '') AS customer,
-                   so.amount_untaxed
-            FROM   sale_order so
-            LEFT JOIN res_partner rp ON rp.id = so.partner_id
-            LEFT JOIN res_users   su ON su.id = so.user_id
-            LEFT JOIN res_partner sp ON sp.id = su.partner_id
-            WHERE  so.state IN ('sale', 'done')
-              AND  date_trunc('month', so.date_order) = date_trunc('month', %s::date)
-              AND  ( so.user_id = %s
-                     OR lower(btrim(sp.name)) = lower(btrim(%s)) )
-            ORDER  BY so.amount_untaxed DESC
-        """, (period_date, uid, emp_name))
-        sales = [{
-            'ref': r[0] or '',
-            'date': str(r[1] or ''),
-            'customer': r[2] or '',
-            'amount': r[3] or 0.0,
-        } for r in cr.fetchall()]
-
-        # ── Delivery: weighted-timesheet revenue per task (invoiced basis) ─
-        cr.execute("""
-            WITH inv_agg AS (
-                SELECT solr.order_line_id AS sol_id,
-                       SUM(CASE WHEN am.state = 'posted' THEN aml.price_subtotal ELSE 0 END) AS invoiced_ex_vat
+            WITH task_sol AS (
+                SELECT pt.id AS task_id, sol.id AS sol_id
+                FROM   project_task pt
+                JOIN   sale_order_line sol ON sol.id = pt.sale_line_id
+            ),
+            inv_lines AS (
+                SELECT solr.order_line_id AS sol_id, am.id AS move_id,
+                       aml.price_subtotal, am.amount_total
                 FROM   sale_order_line_invoice_rel solr
                 JOIN   account_move_line aml ON aml.id = solr.invoice_line_id
                 JOIN   account_move      am  ON am.id  = aml.move_id
-                WHERE  am.move_type = 'out_invoice'
-                GROUP  BY solr.order_line_id
+                WHERE  am.move_type = 'out_invoice' AND am.state = 'posted'
+            ),
+            recv_lines AS (
+                SELECT aml.id AS recv_line_id, aml.move_id
+                FROM   account_move_line aml
+                JOIN   account_account   aa ON aa.id = aml.account_id
+                WHERE  aa.account_type = 'asset_receivable'
+            ),
+            recon AS (
+                SELECT
+                    rl.move_id AS invoice_move_id,
+                    pr.max_date,
+                    CASE WHEN pr.debit_move_id = rl.recv_line_id
+                         THEN pr.debit_amount_currency
+                         ELSE pr.credit_amount_currency END AS amount
+                FROM   account_partial_reconcile pr
+                JOIN   recv_lines rl
+                       ON rl.recv_line_id = pr.debit_move_id
+                       OR rl.recv_line_id = pr.credit_move_id
+            ),
+            task_paid_split AS (
+                /* per task: this month's collected amount, split into
+                   "sales" (paid before the task's completed_date, or the
+                   task has never been completed — an advance) vs
+                   "delivery" (paid on/after completed_date — the final
+                   settlement) */
+                SELECT
+                    ts.task_id,
+                    SUM(CASE WHEN pt5.completed_date IS NULL OR r.max_date < pt5.completed_date
+                             THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
+                             ELSE 0 END) AS sales_paid,
+                    SUM(CASE WHEN pt5.completed_date IS NOT NULL AND r.max_date >= pt5.completed_date
+                             THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
+                             ELSE 0 END) AS delivery_paid
+                FROM   task_sol ts
+                JOIN   inv_lines il ON il.sol_id = ts.sol_id
+                JOIN   recon r ON r.invoice_move_id = il.move_id
+                              AND date_trunc('month', r.max_date) = date_trunc('month', %s::date)
+                JOIN   project_task pt5 ON pt5.id = ts.task_id
+                GROUP  BY ts.task_id
             ),
             task_weight AS (
                 SELECT pt.id AS task_id,
-                       COALESCE(ia.invoiced_ex_vat, 0) AS task_value,
                        SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS total_weighted
                 FROM   project_task pt
-                JOIN   sale_order_line sol ON sol.id = pt.sale_line_id
-                LEFT JOIN inv_agg ia ON ia.sol_id = sol.id
                 JOIN   account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
                 LEFT JOIN hr_employee he2 ON he2.user_id = aal.user_id AND he2.active = TRUE
                 LEFT JOIN mis_revenue_role mrr ON mrr.id = he2.mis_revenue_role_id
-                GROUP  BY pt.id, ia.invoiced_ex_vat
+                GROUP  BY pt.id
+            ),
+            task_user_weight AS (
+                SELECT pt.id AS task_id, aal.user_id,
+                       SUM(aal.unit_amount) AS hours,
+                       SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS user_weighted
+                FROM   project_task pt
+                JOIN   account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
+                LEFT JOIN hr_employee he3 ON he3.user_id = aal.user_id AND he3.active = TRUE
+                LEFT JOIN mis_revenue_role mrr ON mrr.id = he3.mis_revenue_role_id
+                WHERE  aal.user_id = %s
+                GROUP  BY pt.id, aal.user_id
             ),
             task_invoice_rows AS (
                 /* distinct posted invoices touching each task's SO line —
@@ -570,36 +667,42 @@ class MisPerformanceLine(models.Model):
                 COALESCE(tia.invoice_details, '') AS invoice_details,
                 COALESCE(tia.payment_reference, '') AS payment_reference,
                 COALESCE(tia.balance, 0) AS balance,
-                SUM(aal.unit_amount) AS hours,
-                SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS weighted,
-                MAX(tw.task_value) AS revenue
-            FROM   account_analytic_line aal
-            JOIN   task_weight tw ON tw.task_id = aal.task_id
-            JOIN   project_task pt ON pt.id = aal.task_id
+                tuw.hours,
+                tuw.user_weighted AS weighted,
+                CASE WHEN tw.total_weighted > 0
+                     THEN tuw.user_weighted / tw.total_weighted * tps.sales_paid
+                     ELSE 0 END AS sales_amount,
+                CASE WHEN tw.total_weighted > 0
+                     THEN tuw.user_weighted / tw.total_weighted * tps.delivery_paid
+                     ELSE 0 END AS delivery_amount
+            FROM   task_user_weight tuw
+            JOIN   task_weight tw ON tw.task_id = tuw.task_id
+            JOIN   task_paid_split tps ON tps.task_id = tuw.task_id
+            JOIN   project_task pt ON pt.id = tuw.task_id
             LEFT JOIN project_project pp ON pp.id = pt.project_id
             LEFT JOIN sale_order_line sol4 ON sol4.id = pt.sale_line_id
             LEFT JOIN sale_order      so4  ON so4.id  = sol4.order_id
             LEFT JOIN res_partner     rp4  ON rp4.id  = so4.partner_id
             LEFT JOIN task_inv_agg    tia  ON tia.task_id = pt.id
-            LEFT JOIN hr_employee he3 ON he3.user_id = aal.user_id AND he3.active = TRUE
-            LEFT JOIN mis_revenue_role mrr ON mrr.id = he3.mis_revenue_role_id
-            WHERE  aal.user_id = %s
-              AND  aal.task_id IS NOT NULL
-              AND  aal.unit_amount > 0
-              AND  date_trunc('month', aal.date) = date_trunc('month', %s::date)
-            GROUP  BY pt.id, pt.name, pp.name, rp4.complete_name, rp4.name,
-                      tia.invoice_details, tia.payment_reference, tia.balance
-            ORDER  BY revenue DESC
-        """, (uid, period_date))
-        delivery = [{
+            ORDER  BY (
+                CASE WHEN tw.total_weighted > 0
+                     THEN tuw.user_weighted / tw.total_weighted * (tps.sales_paid + tps.delivery_paid)
+                     ELSE 0 END
+            ) DESC
+        """, (period_date, uid))
+        rows = [{
             'project': r[0] or '',
             'task': r[1] or '',
             'customer': r[2] or '',
             'invoice_details': r[3] or '',
             'balance': r[5] or 0.0,
             'hours': round(r[6] or 0.0, 2),
-            'amount': r[8] or 0.0,
+            'sales_amount': r[8] or 0.0,
+            'delivery_amount': r[9] or 0.0,
         } for r in cr.fetchall()]
+
+        sales = [dict(row, amount=row['sales_amount']) for row in rows if row['sales_amount']]
+        delivery = [dict(row, amount=row['delivery_amount']) for row in rows if row['delivery_amount']]
 
         return {
             'sales': sales,
@@ -618,6 +721,197 @@ class MisPerformanceLine(models.Model):
             result[item['key']] = self.get_revenue_breakdown(
                 item.get('employee_id'), item.get('user_id'), item.get('period_date')
             )
+        return result
+
+    # ── Period-scoped Sales / Delivery / Total Revenue ────────────────────
+    @api.model
+    def get_period_revenue_amounts(self, ids, date_from, date_to):
+        """Recompute Sales/Delivery/Total Revenue from amounts actually
+        COLLECTED (payment/reconciliation date) within exactly
+        [date_from, date_to], instead of each row's full calendar month.
+
+        Each row still represents one (employee, month); the window used is
+        the overlap between that row's month and the selected range (zero
+        when there is no overlap), and only payments reconciled within that
+        window count, pro-rata — same paid-basis as init(). A payment is
+        Sales revenue if it lands before the task's completed_date (or the
+        task was never completed — an advance), Delivery revenue if it
+        lands on/after completed_date (the final settlement) — same rule as
+        init(). Called by the dashboard whenever both bounds of the Date
+        filter are set — the period-aware counterpart to the sales_revenue/
+        delivery_revenue columns baked into the view, same convention as
+        mis.project.wise's get_period_amounts.
+
+        Returns {row_id: {sales_revenue, delivery_revenue, total_revenue}}.
+        """
+        if not ids or not date_from or not date_to:
+            return {}
+
+        # Re-apply row-level access control server-side (defense in depth).
+        allowed_ids = self.search([('id', 'in', ids)]).ids
+        if not allowed_ids:
+            return {}
+
+        d_from = fields.Date.to_date(date_from)
+        d_to = fields.Date.to_date(date_to)
+
+        rows = self.browse(allowed_ids).read(['user_id', 'period_date'])
+        row_ids, user_ids, eff_froms, eff_tos = [], [], [], []
+        for r in rows:
+            period_date = r['period_date']
+            month_end = period_date + relativedelta(day=31)
+            row_ids.append(r['id'])
+            user_ids.append(r['user_id'][0] if r['user_id'] else 0)
+            eff_froms.append(max(d_from, period_date))
+            eff_tos.append(min(d_to, month_end))
+
+        self.env.cr.execute("""
+            WITH targets AS (
+                SELECT * FROM unnest(
+                    %(row_ids)s::int[], %(user_ids)s::int[],
+                    %(eff_froms)s::date[], %(eff_tos)s::date[]
+                ) AS t(row_id, user_id, eff_from, eff_to)
+            ),
+            inv_lines AS (
+                /* all posted invoice lines (any date) — needed to prorate
+                   each reconciliation against the invoice's own total, same
+                   as init()'s paid_period */
+                SELECT
+                    solr.order_line_id AS sol_id,
+                    am.id              AS move_id,
+                    aml.price_subtotal,
+                    am.amount_total
+                FROM account_move am
+                JOIN account_move_line aml ON aml.move_id = am.id
+                JOIN sale_order_line_invoice_rel solr ON solr.invoice_line_id = aml.id
+                WHERE am.move_type = 'out_invoice' AND am.state = 'posted'
+            ),
+            recv_lines AS (
+                SELECT aml.id AS recv_line_id, aml.move_id
+                FROM   account_move_line aml
+                JOIN   account_account   aa ON aa.id = aml.account_id
+                WHERE  aa.account_type = 'asset_receivable'
+            ),
+            recon AS (
+                SELECT
+                    rl.move_id AS invoice_move_id,
+                    pr.max_date,
+                    CASE WHEN pr.debit_move_id = rl.recv_line_id
+                         THEN pr.debit_amount_currency
+                         ELSE pr.credit_amount_currency END AS amount
+                FROM   account_partial_reconcile pr
+                JOIN   recv_lines rl
+                       ON rl.recv_line_id = pr.debit_move_id
+                       OR rl.recv_line_id = pr.credit_move_id
+            ),
+            task_sol AS (
+                SELECT pt.id AS task_id, sol.id AS sol_id
+                FROM   project_task pt
+                JOIN   sale_order_line sol ON sol.id = pt.sale_line_id
+            ),
+            paid_task_lines AS (
+                /* each row's window-restricted collected amount per task, by
+                   reconciliation/payment date, split into "sales" (paid
+                   before the task's completed_date, or never completed —
+                   an advance) vs "delivery" (paid on/after completed_date —
+                   the final settlement) — same rule as init() */
+                SELECT
+                    t.row_id,
+                    ts.task_id,
+                    SUM(CASE WHEN pt7.completed_date IS NULL OR r.max_date < pt7.completed_date
+                             THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
+                             ELSE 0 END) AS sales_paid,
+                    SUM(CASE WHEN pt7.completed_date IS NOT NULL AND r.max_date >= pt7.completed_date
+                             THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
+                             ELSE 0 END) AS delivery_paid
+                FROM targets t
+                JOIN recon r ON r.max_date BETWEEN t.eff_from AND t.eff_to
+                JOIN inv_lines il ON il.move_id = r.invoice_move_id
+                JOIN task_sol ts ON ts.sol_id = il.sol_id
+                JOIN project_task pt7 ON pt7.id = ts.task_id
+                GROUP BY t.row_id, ts.task_id
+            ),
+            task_weight AS (
+                /* per task: lifetime total weighted hours — same denominator
+                   as init(), used only to derive each contributor's share */
+                SELECT
+                    pt.id AS task_id,
+                    SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS total_weighted
+                FROM project_task pt
+                JOIN account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
+                LEFT JOIN hr_employee he2 ON he2.user_id = aal.user_id AND he2.active = TRUE
+                LEFT JOIN mis_revenue_role mrr ON mrr.id = he2.mis_revenue_role_id
+                GROUP BY pt.id
+            ),
+            task_user_weight AS (
+                SELECT
+                    pt.id AS task_id,
+                    aal.user_id,
+                    SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS user_weighted
+                FROM project_task pt
+                JOIN account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
+                LEFT JOIN hr_employee he3 ON he3.user_id = aal.user_id AND he3.active = TRUE
+                LEFT JOIN mis_revenue_role mrr ON mrr.id = he3.mis_revenue_role_id
+                GROUP BY pt.id, aal.user_id
+            ),
+            delivery AS (
+                /* each row's window-restricted, post-completion (final
+                   settlement) collected amount for a task, split among that
+                   task's contributors by their lifetime hours ×
+                   role-multiplier share — same non-duplicating split as
+                   init() */
+                SELECT
+                    t.row_id,
+                    SUM(
+                        CASE WHEN tw.total_weighted > 0
+                             THEN tuw.user_weighted / tw.total_weighted * ptl.delivery_paid
+                             ELSE 0 END
+                    ) AS revenue
+                FROM targets t
+                JOIN task_user_weight tuw ON tuw.user_id = t.user_id
+                JOIN task_weight tw ON tw.task_id = tuw.task_id
+                JOIN paid_task_lines ptl ON ptl.row_id = t.row_id AND ptl.task_id = tuw.task_id
+                GROUP BY t.row_id
+            ),
+            sales AS (
+                /* each row's window-restricted, pre-completion (advance)
+                   collected amount for a task — same contributor split as
+                   delivery, applied to sales_paid instead */
+                SELECT
+                    t.row_id,
+                    SUM(
+                        CASE WHEN tw.total_weighted > 0
+                             THEN tuw.user_weighted / tw.total_weighted * ptl.sales_paid
+                             ELSE 0 END
+                    ) AS revenue
+                FROM targets t
+                JOIN task_user_weight tuw ON tuw.user_id = t.user_id
+                JOIN task_weight tw ON tw.task_id = tuw.task_id
+                JOIN paid_task_lines ptl ON ptl.row_id = t.row_id AND ptl.task_id = tuw.task_id
+                GROUP BY t.row_id
+            )
+            SELECT t.row_id,
+                   COALESCE(d.revenue, 0) AS delivery_revenue,
+                   COALESCE(s.revenue, 0) AS sales_revenue
+            FROM targets t
+            LEFT JOIN delivery d ON d.row_id = t.row_id
+            LEFT JOIN sales    s ON s.row_id = t.row_id
+        """, {
+            'row_ids': row_ids,
+            'user_ids': user_ids,
+            'eff_froms': eff_froms,
+            'eff_tos': eff_tos,
+        })
+
+        result = {}
+        for row in self.env.cr.dictfetchall():
+            sales_revenue = row['sales_revenue'] or 0
+            delivery_revenue = row['delivery_revenue'] or 0
+            result[row['row_id']] = {
+                'sales_revenue': sales_revenue,
+                'delivery_revenue': delivery_revenue,
+                'total_revenue': sales_revenue + delivery_revenue,
+            }
         return result
 
     # ── Overdue invoice aging (for the Performance Management Report's

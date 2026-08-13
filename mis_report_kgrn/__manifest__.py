@@ -6,6 +6,7 @@
     'author': 'KGRN',
     'depends': [
         'base',
+        'mail',
         'project',
         'sale',
         'sale_project',
@@ -25,7 +26,9 @@
         'views/mis_outstanding_views.xml',
         'views/mis_project_revenue_views.xml',
         'views/mis_performance_views.xml',
+        'views/mis_performance_report_log_views.xml',
         'views/mis_menus.xml',
+        'data/mis_performance_scorecard_data.xml',
     ],
     'assets': {
         'web.assets_backend': [

@@ -7,6 +7,16 @@ import { Dialog } from "@web/core/dialog/dialog";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { formatMonetary, formatFloat, formatInteger } from "@web/views/fields/formatters";
 
+// Last day (as 'YYYY-MM-DD') of the calendar month a 1st-of-month bucket
+// date falls in — used to test whether a monthly-bucketed row (e.g. a
+// Performance Management row keyed by month) overlaps a selected range
+// whose "from" bound falls after the 1st of that month.
+function monthEndStr(monthStart) {
+    const [y, m] = monthStart.split("-").map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    return `${monthStart.slice(0, 8)}${String(lastDay).padStart(2, "0")}`;
+}
+
 // Dialog showing the sales & delivery revenue breakdown for one employee-month.
 export class MisRevenueBreakdownDialog extends Component {
     static components = { Dialog };
@@ -302,7 +312,20 @@ function makePerformanceConfig(team, title) {
         baseDomain: [["performance_team", "in", teams]],
         searchFields: ["employee_name", "escalation_stage"],
         titleFields: ["employee_id", "period_label"],
-        dateFilters: [{ field: "period_date", label: "Month" }],
+        dateFilters: [{ field: "period_date", label: "Date" }],
+        // When both bounds are set, recompute Sales/Delivery/Total Revenue
+        // restricted to that exact date range (instead of each row's whole
+        // calendar month) via the server — same pattern as Project Wise's
+        // Invoice Date period recompute. `monthBucket: true` tells the row
+        // filter below to keep a row whenever the selected range overlaps
+        // its month, not only when its month start falls inside the range.
+        periodRecompute: {
+            dateField: "period_date",
+            monthBucket: true,
+            method: "get_period_revenue_amounts",
+            columns: ["sales_revenue", "delivery_revenue", "total_revenue"],
+            hint: "Sales/Delivery/Total Revenue now reflect only this exact date range, not the full month.",
+        },
         groupBy: [
             { field: "department_id", label: "Department" },
             { field: "employee_id", label: "Employee" },
@@ -471,8 +494,17 @@ export class MisReportView extends Component {
             );
         }
 
+        const pr0 = this.config.periodRecompute;
         for (const [field, range] of Object.entries(this.state.dates)) {
-            if (range.from) recs = recs.filter((r) => r[field] && r[field] >= range.from);
+            const isMonthBucket = pr0 && pr0.dateField === field && pr0.monthBucket;
+            if (range.from) {
+                // Month-bucket fields (e.g. Performance's period_date) store
+                // the 1st of the month: a row still overlaps the range as
+                // long as its month doesn't END before the "from" date.
+                recs = recs.filter((r) =>
+                    r[field] && (isMonthBucket ? monthEndStr(r[field]) >= range.from : r[field] >= range.from)
+                );
+            }
             if (range.to) recs = recs.filter((r) => r[field] && r[field] <= range.to);
         }
 
@@ -754,16 +786,16 @@ export class MisReportView extends Component {
         return [...map.values()];
     }
 
-    toggleProjectGroup(rowId, project, ev) {
+    toggleProjectGroup(rowId, project, ev, section = "delivery") {
         if (ev) ev.stopPropagation();
-        const key = `${rowId}::${project}`;
+        const key = `${rowId}::${section}::${project}`;
         const next = { ...this.state.expandedProjects };
         next[key] = !next[key];
         this.state.expandedProjects = next;
     }
 
-    isProjectExpanded(rowId, project) {
-        return !!this.state.expandedProjects[`${rowId}::${project}`];
+    isProjectExpanded(rowId, project, section = "delivery") {
+        return !!this.state.expandedProjects[`${rowId}::${section}::${project}`];
     }
 
     money(v, currencyId) {
