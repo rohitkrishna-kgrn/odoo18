@@ -143,6 +143,17 @@ class MisPerformanceLine(models.Model):
                     WHERE he.active = TRUE
                       AND he.mis_performance_applicable = TRUE
                 ),
+                sol_task_count AS (
+                    /* tasks sharing a sale-order line — many KGRN engagements
+                       (e.g. a monthly retainer) invoice a whole month's
+                       deliverables on a single SO line, so that line's value
+                       must be split equally across every task under it
+                       instead of counted in full for each one */
+                    SELECT sol.id AS sol_id, COUNT(DISTINCT pt.id) AS task_count
+                    FROM   sale_order_line sol
+                    JOIN   project_task pt ON pt.sale_line_id = sol.id
+                    GROUP  BY sol.id
+                ),
                 inv_agg AS (
                     /* posted invoiced (ex-VAT) amount per SO line — same
                        revenue basis as the Project Wise / Outstanding menus */
@@ -191,13 +202,15 @@ class MisPerformanceLine(models.Model):
                        the "Work Completed – Value" report column */
                     SELECT
                         pt.id AS task_id,
-                        (sol.price_subtotal / NULLIF(sol.product_uom_qty, 0)) AS task_value,
+                        (sol.price_subtotal / NULLIF(sol.product_uom_qty, 0))
+                            / NULLIF(stc.task_count, 0) AS task_value,
                         SUM(aal.unit_amount) AS total_hours
                     FROM   project_task pt
                     JOIN   sale_order_line sol ON sol.id = pt.sale_line_id
+                    JOIN   sol_task_count stc ON stc.sol_id = sol.id
                     JOIN   account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
                     WHERE  pt.state_additional = 'completed'
-                    GROUP  BY pt.id, sol.price_subtotal, sol.product_uom_qty
+                    GROUP  BY pt.id, sol.price_subtotal, sol.product_uom_qty, stc.task_count
                 ),
                 work_completed AS (
                     /* per (user, month): raw-hours share of completed
@@ -278,21 +291,26 @@ class MisPerformanceLine(models.Model):
                     GROUP  BY il.sol_id, date_trunc('month', r.max_date)
                 ),
                 paid_task_events AS (
-                    /* each task's share of every reconciled payment against
-                       its SO line, at full (non-truncated) payment-date
-                       granularity, tagged with the task's completed_date —
-                       needed to tell which side of "done" each payment
-                       falls on before bucketing by month below */
+                    /* each task's equal share of every reconciled payment
+                       against its SO line (divided by the number of tasks
+                       sharing that line, so a shared retainer line isn't
+                       counted in full for every task), at full
+                       (non-truncated) payment-date granularity, tagged
+                       with the task's completed_date — needed to tell
+                       which side of "done" each payment falls on before
+                       bucketing by month below */
                     SELECT
                         ts.task_id,
                         r.max_date AS payment_date,
                         pt7.completed_date,
                         (il.price_subtotal * COALESCE(r.amount, 0)
-                         / NULLIF(il.amount_total, 0)) AS paid_ex_vat
+                         / NULLIF(il.amount_total, 0))
+                        / NULLIF(stc.task_count, 0) AS paid_ex_vat
                     FROM   task_sol ts
                     JOIN   inv_lines il ON il.sol_id = ts.sol_id
                     JOIN   recon r ON r.invoice_move_id = il.move_id
                     JOIN   project_task pt7 ON pt7.id = ts.task_id
+                    JOIN   sol_task_count stc ON stc.sol_id = ts.sol_id
                 ),
                 task_paid_split AS (
                     /* per (task, payment month): collected amount split into
@@ -357,10 +375,14 @@ class MisPerformanceLine(models.Model):
                     JOIN   inv_lines il ON il.sol_id = ts.sol_id
                 ),
                 task_period AS (
+                    /* invoiced/paid amounts are equally divided by the
+                       number of tasks sharing the SO line (sol_task_count),
+                       same reasoning as paid_task_events above */
                     SELECT ts.task_id, k.period_date,
-                           COALESCE(ip.invoiced_ex_vat, 0) AS invoiced_ex_vat,
-                           COALESCE(pp2.paid_ex_vat, 0)    AS paid_ex_vat
+                           COALESCE(ip.invoiced_ex_vat, 0)  / NULLIF(stc.task_count, 0) AS invoiced_ex_vat,
+                           COALESCE(pp2.paid_ex_vat, 0)     / NULLIF(stc.task_count, 0) AS paid_ex_vat
                     FROM   task_sol ts
+                    JOIN   sol_task_count stc ON stc.sol_id = ts.sol_id
                     JOIN   (
                         SELECT sol_id, period_date FROM inv_period
                         UNION
@@ -566,6 +588,14 @@ class MisPerformanceLine(models.Model):
                 FROM   project_task pt
                 JOIN   sale_order_line sol ON sol.id = pt.sale_line_id
             ),
+            sol_task_count AS (
+                /* tasks sharing a sale-order line (e.g. a monthly retainer
+                   covering many deliverables) must split that line's value
+                   equally, not each get the full amount */
+                SELECT sol_id, COUNT(DISTINCT task_id) AS task_count
+                FROM   task_sol
+                GROUP  BY sol_id
+            ),
             inv_lines AS (
                 SELECT solr.order_line_id AS sol_id, am.id AS move_id,
                        aml.price_subtotal, am.amount_total
@@ -597,21 +627,24 @@ class MisPerformanceLine(models.Model):
                    "sales" (paid before the task's completed_date, or the
                    task has never been completed — an advance) vs
                    "delivery" (paid on/after completed_date — the final
-                   settlement) */
+                   settlement); divided equally by the number of tasks
+                   sharing the SO line so a shared retainer line isn't
+                   counted in full for every task */
                 SELECT
                     ts.task_id,
                     SUM(CASE WHEN pt5.completed_date IS NULL OR r.max_date < pt5.completed_date
                              THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
-                             ELSE 0 END) AS sales_paid,
+                             ELSE 0 END) / NULLIF(stc.task_count, 0) AS sales_paid,
                     SUM(CASE WHEN pt5.completed_date IS NOT NULL AND r.max_date >= pt5.completed_date
                              THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
-                             ELSE 0 END) AS delivery_paid
+                             ELSE 0 END) / NULLIF(stc.task_count, 0) AS delivery_paid
                 FROM   task_sol ts
                 JOIN   inv_lines il ON il.sol_id = ts.sol_id
                 JOIN   recon r ON r.invoice_move_id = il.move_id
                               AND date_trunc('month', r.max_date) = date_trunc('month', %s::date)
                 JOIN   project_task pt5 ON pt5.id = ts.task_id
-                GROUP  BY ts.task_id
+                JOIN   sol_task_count stc ON stc.sol_id = ts.sol_id
+                GROUP  BY ts.task_id, stc.task_count
             ),
             task_weight AS (
                 SELECT pt.id AS task_id,
@@ -809,27 +842,37 @@ class MisPerformanceLine(models.Model):
                 FROM   project_task pt
                 JOIN   sale_order_line sol ON sol.id = pt.sale_line_id
             ),
+            sol_task_count AS (
+                /* tasks sharing a sale-order line (e.g. a monthly retainer
+                   covering many deliverables) must split that line's value
+                   equally, not each get the full amount */
+                SELECT sol_id, COUNT(DISTINCT task_id) AS task_count
+                FROM   task_sol
+                GROUP  BY sol_id
+            ),
             paid_task_lines AS (
                 /* each row's window-restricted collected amount per task, by
                    reconciliation/payment date, split into "sales" (paid
                    before the task's completed_date, or never completed —
                    an advance) vs "delivery" (paid on/after completed_date —
-                   the final settlement) — same rule as init() */
+                   the final settlement) — same rule as init(); divided
+                   equally by the number of tasks sharing the SO line */
                 SELECT
                     t.row_id,
                     ts.task_id,
                     SUM(CASE WHEN pt7.completed_date IS NULL OR r.max_date < pt7.completed_date
                              THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
-                             ELSE 0 END) AS sales_paid,
+                             ELSE 0 END) / NULLIF(stc.task_count, 0) AS sales_paid,
                     SUM(CASE WHEN pt7.completed_date IS NOT NULL AND r.max_date >= pt7.completed_date
                              THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
-                             ELSE 0 END) AS delivery_paid
+                             ELSE 0 END) / NULLIF(stc.task_count, 0) AS delivery_paid
                 FROM targets t
                 JOIN recon r ON r.max_date BETWEEN t.eff_from AND t.eff_to
                 JOIN inv_lines il ON il.move_id = r.invoice_move_id
                 JOIN task_sol ts ON ts.sol_id = il.sol_id
                 JOIN project_task pt7 ON pt7.id = ts.task_id
-                GROUP BY t.row_id, ts.task_id
+                JOIN sol_task_count stc ON stc.sol_id = ts.sol_id
+                GROUP BY t.row_id, ts.task_id, stc.task_count
             ),
             task_weight AS (
                 /* per task: lifetime total weighted hours — same denominator
