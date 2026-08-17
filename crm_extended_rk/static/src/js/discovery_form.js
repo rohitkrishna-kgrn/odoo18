@@ -72,6 +72,7 @@
             btnSubmit.style.display = last ? "" : "none";
 
             sections[idx].querySelectorAll(".disc-sign-canvas").forEach(initSignature);
+            refreshAltRequirement(sections[idx]);
             if (!instant) { window.scrollTo({ top: 0, behavior: "smooth" }); }
         }
 
@@ -179,6 +180,51 @@
                 var field = inp.closest(".disc-field, .disc-efield");
                 if (field) { updateOther(field); }
             });
+            setupFileInputs(scope);
+        }
+
+        // ============================================================
+        // File attachment (e.g. a signed document alongside the signature)
+        // ============================================================
+        var MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+        function setupFileInputs(scope) {
+            scope.querySelectorAll(".disc-file-input").forEach(function (input) {
+                input.addEventListener("change", function () {
+                    var field = input.closest(".disc-field, .disc-efield");
+                    var file = input.files && input.files[0];
+                    if (!field || !file) { return; }
+                    if (file.size > MAX_FILE_BYTES) {
+                        window.alert("That file is too large. Maximum size is 5MB.");
+                        input.value = "";
+                        return;
+                    }
+                    var reader = new FileReader();
+                    reader.onload = function () {
+                        setFileValue(field, { name: file.name, data: reader.result });
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+            scope.querySelectorAll(".disc-file-clear").forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    var field = btn.closest(".disc-field, .disc-efield");
+                    if (!field) { return; }
+                    var input = field.querySelector(".disc-file-input");
+                    if (input) { input.value = ""; }
+                    setFileValue(field, null);
+                });
+            });
+        }
+
+        function setFileValue(field, value) {
+            var hidden = field.querySelector(".disc-file-data");
+            var nameEl = field.querySelector(".disc-file-name");
+            var clearBtn = field.querySelector(".disc-file-clear");
+            if (hidden) { hidden.value = value ? JSON.stringify(value) : ""; }
+            if (nameEl) { nameEl.textContent = value ? value.name : "No file selected"; }
+            if (clearBtn) { clearBtn.classList.toggle("is-hidden", !value); }
+            refreshAltRequirement();
         }
 
         function updateOther(field) {
@@ -286,6 +332,11 @@
                 var val = s ? s.value : "";
                 return val === "Other" && otherInput ? otherText : val;
             }
+            if (type === "file") {
+                var fileHidden = field.querySelector(".disc-file-data");
+                if (!fileHidden || !fileHidden.value) { return ""; }
+                try { return JSON.parse(fileHidden.value); } catch (e) { return ""; }
+            }
             var el = field.querySelector(".disc-value");
             return el ? el.value.trim() : "";
         }
@@ -324,6 +375,8 @@
                     sel.value = value;
                 }
                 updateOther(field);
+            } else if (type === "file") {
+                if (value && typeof value === "object") { setFileValue(field, value); }
             } else {
                 var input = field.querySelector(".disc-value");
                 if (input) { input.value = value; }
@@ -347,6 +400,31 @@
         // ============================================================
         // Validation
         // ============================================================
+        function isEmptyValue(val) {
+            return val === "" || val === false || val === null ||
+                   (Array.isArray(val) && val.length === 0);
+        }
+
+        // Either/or requirement pairs (e.g. Signature / Attach signed document):
+        // a field marked required with `data-required-alt="siblingKey"` is only
+        // actually required while its sibling is also empty.
+        function isSatisfiedByAlt(field) {
+            var altKey = field.getAttribute("data-required-alt");
+            if (!altKey) { return false; }
+            var scope = field.closest(".disc-entity") || field.closest(".disc-form");
+            var altField = scope && scope.querySelector('[data-key="' + altKey + '"]');
+            return !!altField && !isEmptyValue(getFieldValue(altField));
+        }
+
+        // Cosmetic: hide the "*" marker on either field of an either/or pair
+        // once one of them has a value, so the pair no longer both look mandatory.
+        function refreshAltRequirement(scope) {
+            (scope || document).querySelectorAll("[data-required-alt]").forEach(function (field) {
+                var reqEl = field.querySelector(".disc-label .disc-req");
+                if (reqEl) { reqEl.classList.toggle("is-hidden", isSatisfiedByAlt(field) || false); }
+            });
+        }
+
         function validateSection(section) {
             var ok = true;
             var fields = Array.prototype.filter.call(
@@ -357,8 +435,7 @@
                 if (field.classList.contains("is-hidden")) { return; }
                 if (field.getAttribute("data-required") !== "1") { return; }
                 var val = getFieldValue(field);
-                var empty = (val === "" || val === false ||
-                             (Array.isArray(val) && val.length === 0));
+                var empty = isEmptyValue(val) && !isSatisfiedByAlt(field);
                 var msg = "";
                 if (empty) {
                     msg = "This field is required.";
@@ -417,6 +494,7 @@
                 if (!drawing) { return; }
                 drawing = false;
                 hidden.value = canvas._empty ? "" : canvas.toDataURL("image/png");
+                refreshAltRequirement();
             }
             canvas.addEventListener("mousedown", start);
             canvas.addEventListener("mousemove", move);
@@ -430,6 +508,7 @@
                 clearBtn.addEventListener("click", function () {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     canvas._empty = true; hidden.value = "";
+                    refreshAltRequirement();
                 });
             }
             if (field._pendingSig) { paintDataUrl(canvas, field._pendingSig); }

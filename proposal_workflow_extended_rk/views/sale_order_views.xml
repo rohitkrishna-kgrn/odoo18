@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_order_form_proposal" model="ir.ui.view">
+        <field name="name">sale.order.form.proposal</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Documents -->
+            <xpath expr="//header" position="inside">
+                <button name="action_download_proposal" type="object"
+                        string="Download Proposal" class="btn-primary"
+                        invisible="state not in ('draft', 'sent')"/>
+                <button name="action_download_se" type="object"
+                        string="Download SE" class="btn-primary"
+                        invisible="not is_service_engagement_stage"/>
+                <field name="is_service_engagement_stage" invisible="1"/>
+            </xpath>
+
+            <!-- Mandatory CRM pipeline link -->
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="new_renewed" invisible="1"/>
+                <field name="crm_pipeline_id"
+                       options="{'no_quick_create': True}"
+                       required="new_renewed == 'new' and not crm_link_override"/>
+                <field name="crm_ref" invisible="not crm_pipeline_id"/>
+                <field name="crm_link_override"
+                       invisible="new_renewed != 'new' or crm_pipeline_id"/>
+                <field name="crm_link_override_reason"
+                       placeholder="Why is there no pipeline record for this quotation? Logged in the chatter."
+                       invisible="not crm_link_override or crm_pipeline_id"
+                       required="crm_link_override and not crm_pipeline_id"/>
+            </xpath>
+
+            <!-- Proposal narrative -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Proposal" name="proposal">
+                    <div class="d-flex align-items-center mb-2">
+                        <button name="action_refresh_proposal_lines" type="object"
+                                string="Reload from Products" class="btn-link"
+                                icon="fa-refresh"
+                                confirm="This replaces every scope, methodology and deliverable below with the current text from the products. Edits made here will be lost. Continue?"/>
+                        <span class="text-muted ms-2">
+                            One block per product on this quotation. Edit freely — changes
+                            stay on this proposal and do not touch the product.
+                        </span>
+                    </div>
+                    <field name="proposal_line_ids" nolabel="1">
+                        <list>
+                            <field name="sequence" widget="handle"/>
+                            <field name="code" string="Ref"/>
+                            <field name="name"/>
+                            <field name="scope" string="Scope of Work"/>
+                            <field name="methodology"/>
+                            <field name="is_einvoicing_product" optional="hide"/>
+                        </list>
+                        <form>
+                            <group>
+                                <field name="product_id"/>
+                                <field name="code" placeholder="S1"/>
+                                <field name="name"/>
+                            </group>
+                            <group string="Scope of Work">
+                                <field name="scope" nolabel="1"
+                                       placeholder="One bullet per line"/>
+                            </group>
+                            <group string="Methodology">
+                                <field name="methodology" nolabel="1"
+                                       placeholder="One bullet per line"/>
+                            </group>
+                            <group string="Deliverables">
+                                <field name="deliverables" nolabel="1"
+                                       placeholder="One per line, optionally 'Title | description'"/>
+                            </group>
+                        </form>
+                    </field>
+                    <group string="Executive Summary">
+                        <field name="proposal_executive_summary" nolabel="1"
+                               placeholder="Opening paragraph of the proposal. Leave empty for the standard KGRN opening."/>
+                    </group>
+                    <group string="Terms &amp; Conditions">
+                        <field name="proposal_terms" nolabel="1"/>
+                    </group>
+                    <group string="Service Engagement Agreement"
+                           invisible="not is_service_engagement_stage">
+                        <field name="se_agreement_type"/>
+                        <field name="se_effective_date"/>
+                        <field name="se_project_duration"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

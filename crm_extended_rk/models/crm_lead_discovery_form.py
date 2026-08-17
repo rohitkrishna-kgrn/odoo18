@@ -38,6 +38,8 @@ class CrmLeadDiscoveryForm(models.Model):
     # Human-readable rendering shown in the preview / PDF.
     summary = fields.Html(string='Client Response', copy=False, readonly=True, sanitize=False)
     signature = fields.Binary(string='Signature', copy=False, attachment=True)
+    signature_attachment = fields.Binary(string='Signed Document', copy=False, attachment=True)
+    signature_attachment_filename = fields.Char(string='Signed Document Filename', copy=False)
 
     def _selection_discovery_form_type(self):
         return form_selection()
@@ -85,8 +87,16 @@ class CrmLeadDiscoveryForm(models.Model):
             )
 
     def action_resend(self):
-        """Row-level action to resend a pending link."""
-        self.action_send()
+        """Row-level action: resending creates a brand new submission (its own
+        fresh link/token) rather than mutating this one, so the Discovery
+        Forms list keeps a full history of every send/resend as its own line."""
+        new_subs = self.env['crm.lead.discovery.form']
+        for sub in self:
+            new_subs |= self.env['crm.lead.discovery.form'].create({
+                'lead_id': sub.lead_id.id,
+                'form_type': sub.form_type,
+            })
+        new_subs.action_send()
 
     def _send_email(self, url):
         """Email the client a branded message carrying the unique form link."""
@@ -147,14 +157,26 @@ class CrmLeadDiscoveryForm(models.Model):
             # data:image/png;base64,XXXX -> keep only the base64 part for a Binary field
             signature_b64 = raw_sig.split(',', 1)[1]
 
+        attach_b64 = None
+        attach_name = None
+        raw_attach = payload.get('signatureAttachment')
+        if isinstance(raw_attach, dict):
+            data_url = raw_attach.get('data')
+            if isinstance(data_url, str) and ',' in data_url:
+                attach_b64 = data_url.split(',', 1)[1]
+                attach_name = raw_attach.get('name') or 'signed-document'
+
         vals = {
             'data': json.dumps(payload, ensure_ascii=False),
-            'summary': self._build_summary(payload),
+            'summary': self._build_summary(payload, attachment_name=attach_name),
             'state': 'submitted',
             'submitted_date': fields.Datetime.now(),
         }
         if signature_b64:
             vals['signature'] = signature_b64
+        if attach_b64:
+            vals['signature_attachment'] = attach_b64
+            vals['signature_attachment_filename'] = attach_name
         self.write(vals)
 
         self.lead_id.message_post(
@@ -209,6 +231,10 @@ class CrmLeadDiscoveryForm(models.Model):
     # ------------------------------------------------------------------
     def action_download_pdf(self):
         self.ensure_one()
+        if self.state != 'submitted':
+            raise UserError(_(
+                "The client hasn't submitted this discovery form yet, so there's "
+                "nothing to download."))
         return self.env.ref(
             'crm_extended_rk.action_report_discovery_form').report_action(self)
 
@@ -248,7 +274,7 @@ class CrmLeadDiscoveryForm(models.Model):
             return Markup('Confirmed') if value else Markup('Not confirmed')
         return Markup('%s') % value
 
-    def _build_summary(self, payload):
+    def _build_summary(self, payload, attachment_name=None):
         self.ensure_one()
         rows = Markup('')
         for section in get_sections(self.form_type):
@@ -288,6 +314,13 @@ class CrmLeadDiscoveryForm(models.Model):
                 'style="max-height:120px;border:1px solid #d1d5db;border-radius:6px;'
                 'padding:6px;background:#fff;"/></td></tr>'
             ) % sig
+
+        if attachment_name:
+            sig_block += Markup(
+                '<tr><td colspan="2">Attached document: '
+                '<a href="/web/content/crm.lead.discovery.form/%s/signature_attachment/%s'
+                '?download=true" target="_blank">%s</a></td></tr>'
+            ) % (self.id, attachment_name, attachment_name)
 
         return Markup(
             '<div class="disc-summary">'

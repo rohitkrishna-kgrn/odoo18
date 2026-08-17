@@ -19,9 +19,9 @@
                 <button name="action_resend" type="object" string="Resend"
                         icon="fa-refresh" invisible="state == 'submitted'"/>
                 <button name="action_preview" type="object" string="Preview"
-                        icon="fa-eye" invisible="state != 'submitted'"/>
+                        icon="fa-eye"/>
                 <button name="action_download_pdf" type="object" string="Download"
-                        icon="fa-download" invisible="state != 'submitted'"/>
+                        icon="fa-download"/>
             </list>
         </field>
     </record>
@@ -57,6 +57,11 @@
                     <div class="alert alert-info" role="alert" invisible="state != 'sent'">
                         This discovery form has been sent to the client and is awaiting submission.
                     </div>
+                    <group invisible="not signature_attachment_filename">
+                        <field name="signature_attachment" filename="signature_attachment_filename"
+                               string="Signed Document" readonly="1"/>
+                        <field name="signature_attachment_filename" invisible="1"/>
+                    </group>
                     <separator string="Client Response" invisible="state != 'submitted'"/>
                     <field name="summary" nolabel="1" invisible="state != 'submitted'"/>
                 </sheet>

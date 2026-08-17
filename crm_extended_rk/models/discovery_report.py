@@ -65,7 +65,7 @@ class DiscoveryFormReport(models.AbstractModel):
         for section in form_sections:
             rows = []
             for field in section['fields']:
-                if field['type'] == 'signature':
+                if field['type'] in ('signature', 'file'):
                     continue
                 vals = self._fmt_values(field, answers.get(field['key']))
                 if not vals:
@@ -84,13 +84,17 @@ class DiscoveryFormReport(models.AbstractModel):
                         signature = sig
                     break
 
-            if rows or entities or signature:
+            attachment_name = submission.signature_attachment_filename if any(
+                f['type'] == 'file' for f in section['fields']) else ''
+
+            if rows or entities or signature or attachment_name:
                 sections.append({
                     'id': section['id'],
                     'title': section['title'],
                     'rows': rows,
                     'entities': entities,
                     'signature': signature,
+                    'attachment_name': attachment_name,
                 })
 
         submitted = submission.submitted_date

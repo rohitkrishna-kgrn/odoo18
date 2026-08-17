@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- Service Engagement Agreement — transcription of `seHtml` in pdf.js.
+     Rendered in two passes like the proposal: the cover needs zero page margins
+     to bleed, the terms and schedules need the 20mm inset from `@page`. -->
+<template id="se_styles">
+<style>
+  /* Neutralise the Bootstrap container class web.minimal_layout puts on the body. */
+  body.o_body_pdf { max-width: none !important; width: auto !important;
+                    padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         color: #1A2F4E; margin: 0; padding: 0; font-size: 13px;
+         -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #fff; }
+  body * { font-family: inherit; }
+  p { line-height: 1.75; color: #4A4A4A; margin: 0 0 10px; font-size: 12.5px;
+      orphans: 3; widows: 3; }
+  ul { margin: 0 0 10px; padding-left: 22px; }
+  li { line-height: 1.7; color: #4A4A4A; margin-bottom: 5px; font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; page-break-inside: auto; }
+  /* Bootstrap's reboot leaves cells with `border-style: solid; border-width: 0`,
+     which wkhtmltopdf paints as a hairline box. Reset the style, not the width. */
+  .article table, .article thead, .article tbody, .article tfoot,
+  .article tr, .article td, .article th { border-style: none; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+
+  /* ── Cover ─────────────────────────────────────────────────────────────── */
+  .se-cover { width: 210mm; height: 296mm; position: relative; overflow: hidden;
+              background: #F5EFE7;
+              background: -webkit-linear-gradient(290deg, #FBFBF2 0%, #F5EFE7 100%);
+              background: linear-gradient(160deg, #FBFBF2 0%, #F5EFE7 100%); }
+  .cv-top { position: absolute; top: 0; left: 0; width: 210mm; height: 5px; background: #F15C22; }
+  .cv-accent { position: absolute; bottom: 0; left: 0; width: 210mm; height: 4px; background: #1A2F4E; }
+  /* the two decorative discs from .cover::before / ::after */
+  .cv-disc-a { position: absolute; right: -80px; top: -80px; width: 300px; height: 300px;
+               background: #F6E3D8; border-radius: 50%; }
+  .cv-disc-b { position: absolute; left: -60px; bottom: -80px; width: 260px; height: 260px;
+               background: #E9E7E4; border-radius: 50%; }
+  .cv-logo { position: absolute; top: 52px; left: 58px; }
+  .cv-mid { position: absolute; top: 300px; left: 58px; right: 58px; }
+  .cv-badge { display: inline-block; padding: 5px 16px; border-radius: 3px; font-size: 9.5px;
+              font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+              background: #FCE6DC; color: #F15C22; border: 1px solid #F7C4AC; margin-bottom: 20px;
+              white-space: nowrap; }
+  .cv-h1 { font-size: 36px; font-weight: 700; margin: 0; line-height: 1.15;
+           letter-spacing: .01em; color: #1A2F4E; }
+  .cv-divider { width: 48px; height: 3px; background: #F15C22; border-radius: 2px; margin: 20px 0; }
+  .cv-for { font-size: 13px; color: #6B7280; margin-top: 10px; }
+  .cv-for strong { color: #1A2F4E; font-weight: 700; }
+  .cv-meta { position: absolute; bottom: 92px; left: 58px; right: 58px; }
+  .cv-meta table, .cv-bottom table { width: 100%; margin: 0; border-collapse: collapse; }
+  .cv-meta td { width: 33.33%; border-top: 2px solid #EDE8DF; padding: 12px 16px 0 0;
+                vertical-align: top; }
+  .cv-meta .lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: .09em;
+                  color: #9CA3AF; font-weight: 800; margin-bottom: 5px; }
+  .cv-meta .val { font-size: 14px; font-weight: 700; color: #1A2F4E; }
+  .cv-bottom { position: absolute; bottom: 44px; left: 58px; right: 58px;
+               border-top: 1px solid #EDE8DF; padding-top: 14px; }
+  .cv-bottom td { font-size: 10px; color: #9CA3AF; vertical-align: middle; }
+  .cv-conf-cell { text-align: right; }
+  .cv-conf { display: inline-block; font-size: 8.5px; font-weight: 700; letter-spacing: .1em;
+             text-transform: uppercase; color: #F15C22; background: #FDEDE5;
+             padding: 4px 12px; border-radius: 3px; border: 1px solid #F8CDB8; }
+
+  /* ── Content ───────────────────────────────────────────────────────────── */
+  h2 { color: #1A2F4E; font-size: 20px; font-weight: 700; margin: 0 0 12px;
+       padding-bottom: 10px; border-bottom: 2px solid #EDE8DF; page-break-after: avoid; }
+  h3 { color: #1A2F4E; font-size: 13px; font-weight: 700; margin: 16px 0 7px;
+       page-break-after: avoid; }
+  .section-break { page-break-before: always; }
+
+  /* Parties block — the two-column grid as a table */
+  .parties { background: #FAFAF7; border: 1px solid #EDE8DF; border-radius: 8px;
+             padding: 18px; margin: 0 0 24px; }
+  .parties td { width: 50%; vertical-align: top; padding: 0 10px 0 0; }
+  .parties td + td { padding: 0 0 0 10px; }
+  .party-h { font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+             color: #9CA3AF; margin: 0 0 6px; font-weight: 700; }
+  .party-name { font-weight: 700; font-size: 14px; color: #1A2F4E; margin-bottom: 4px; }
+  .party-p { font-size: 12px; line-height: 1.65; color: #4A4A4A; margin: 1px 0; }
+
+  /* Numbered clause cards */
+  .clause { margin-bottom: 14px; page-break-inside: avoid; border: 1px solid #EDE8DF;
+            border-radius: 6px; overflow: hidden; }
+  .clause-head { background: #1A2F4E; padding: 9px 14px; }
+  .clause-no { display: inline-block; background: #F15C22; color: #fff; font-size: 10px;
+               font-weight: 800; padding: 3px 7px; border-radius: 3px; margin-right: 10px;
+               vertical-align: middle; }
+  .clause-title { font-size: 12.5px; font-weight: 700; color: #fff; vertical-align: middle; }
+  .clause-body { padding: 10px 14px; background: #FBFBF2; }
+  .clause-body p { font-size: 11.5px; line-height: 1.75; color: #4A4A4A; margin: 0; }
+
+  /* Section headings — orange rule, matching the proposal */
+  .sec-h { margin: 0 0 14px; padding-left: 14px; border-left: 4px solid #F15C22;
+           page-break-after: avoid; }
+  .sec-num { font-size: 10px; font-weight: 800; text-transform: uppercase;
+             letter-spacing: .1em; color: #F15C22; margin-bottom: 3px; }
+  .sec-title { color: #1A2F4E; font-size: 20px; font-weight: 700; line-height: 1.1;
+               margin: 0; border: 0; padding: 0; }
+
+  /* Schedule A service cards */
+  .svc { margin-bottom: 16px; page-break-inside: avoid; border: 1px solid #EDE8DF;
+         border-radius: 6px; overflow: hidden; }
+  .svc-head { background: #1A2F4E; padding: 9px 14px; }
+  .svc-code { display: inline-block; background: #F15C22; color: #fff; font-size: 10px;
+              font-weight: 800; padding: 3px 8px; border-radius: 3px; margin-right: 10px;
+              vertical-align: middle; }
+  .svc-name { font-size: 12.5px; font-weight: 700; color: #fff; vertical-align: middle; }
+  .svc-scope { margin: 0; padding: 10px 14px 10px 30px; background: #FBFBF2; }
+  .svc-scope li { font-size: 12px; color: #4A4A4A; margin-bottom: 4px; line-height: 1.7; }
+
+  /* Schedule B */
+  .fee-wrap { border: 1px solid #EDE8DF; border-radius: 6px; overflow: hidden; margin-bottom: 12px; }
+  .fee-wrap table { margin: 0; }
+  .fee-code { padding: 9px 14px; font-size: 12px; font-weight: 700; color: #F15C22;
+              border-bottom: 1px solid #EDE8DF; white-space: nowrap; width: 120px; }
+  .fee-name { padding: 9px 14px; font-size: 12px; color: #4A4A4A; border-bottom: 1px solid #EDE8DF; }
+  .fee-amt { padding: 9px 14px; font-size: 12px; font-weight: 600; text-align: right;
+             border-bottom: 1px solid #EDE8DF; color: #1A2F4E; }
+  .alt { background: #FAFAF7; }
+  .pay-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px;
+               margin-left: 6px; white-space: nowrap; }
+  .pay-one { color: #0369a1; background: #e0f2fe; }
+  .pay-rec { color: #7c3aed; background: #f5f3ff; }
+  .totals { margin: 16px 0 0 auto; width: 300px; border: 1px solid #EDE8DF;
+            border-radius: 6px; overflow: hidden; }
+  .totals td { font-size: 12.5px; padding: 8px 14px; border-bottom: 1px solid #EDE8DF;
+               color: #4A4A4A; }
+  .totals td.v { text-align: right; font-weight: 600; color: #1F1F1F; }
+  .totals tr.vat td { background: #FAFAF7; }
+  .totals tr.grand td { background: #1A2F4E; color: #fff; font-weight: 800; font-size: 14px;
+                        border-bottom: none; }
+
+  /* Schedules D / E */
+  .kv td { padding: 8px 12px; border-bottom: 1px solid #EDE8DF; font-size: 12.5px; color: #4A4A4A;
+           vertical-align: top; }
+  .kv td.k { background: #FAFAF7; font-size: 12px; color: #F15C22; font-weight: 700; width: 38%; }
+  .ph th { background: #1A2F4E; color: #fff; padding: 10px 14px; text-align: left;
+           font-size: 12px; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  .ph td { padding: 10px 14px; border-bottom: 1px solid #EDE8DF; font-size: 12.5px; color: #4A4A4A;
+           vertical-align: top; }
+  .ph td.p { font-weight: 700; color: #1A2F4E; }
+  .ph td.n { font-size: 11.5px; color: #6B7280; }
+
+  /* Execution + footer */
+  .sig { margin-top: 40px; }
+  .sig td { width: 50%; vertical-align: top; }
+  .sig td.l { padding-right: 18px; }
+  .sig td.r { padding-left: 18px; }
+  .sig-box { border-top: 2px solid #EDE8DF; padding-top: 12px; }
+  .sig-for { font-size: 12px; color: #F15C22; font-weight: 700; margin-bottom: 16px; }
+  .sig-line { height: 50px; border-bottom: 1px solid #EDE8DF; width: 220px; }
+  .doc-footer { margin-top: 32px; border-top: 1px solid #EDE8DF; padding-top: 14px;
+                text-align: center; color: #9CA3AF; font-size: 11px; }
+  .doc-footer p { color: #9CA3AF; font-size: 11px; margin: 0 0 4px; text-align: center; }
+</style>
+</template>
+
+
+<!-- Section heading helper (pdf.js `secH` inside seHtml) -->
+<template id="se_section_heading">
+    <div class="sec-h">
+        <div class="sec-num"><t t-out="sec_num"/></div>
+        <h2 class="sec-title"><t t-out="sec_title"/></h2>
+    </div>
+</template>
+
+
+<!-- ══════════════ COVER (zero page margins) ══════════════ -->
+<template id="report_se_cover">
+<t t-call="web.html_container">
+<t t-foreach="docs" t-as="o">
+<t t-set="d" t-value="se[o.id]"/>
+<div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+<t t-call="proposal_workflow_extended_rk.se_styles"/>
+
+<div class="se-cover">
+  <div class="cv-disc-a"/>
+  <div class="cv-disc-b"/>
+  <div class="cv-top"/>
+
+  <div class="cv-logo">
+    <img t-if="logo" t-att-src="logo" style="height:68px;width:auto;display:block;"/>
+    <div t-else="" style="font-size:32px;font-weight:900;color:#F15C22;letter-spacing:4px;">KGRN</div>
+  </div>
+
+  <div class="cv-mid">
+    <div class="cv-badge">Service Engagement Agreement</div>
+    <h1 class="cv-h1"><t t-out="d['agreement_type']"/></h1>
+    <div class="cv-divider"/>
+    <div class="cv-for">Between <strong>KGRN Chartered Accountants LLC</strong> and
+      <strong><t t-out="d['client_legal']"/></strong></div>
+  </div>
+
+  <div class="cv-meta"><table>
+    <tr>
+      <td>
+        <div class="lbl">Agreement No.</div>
+        <div class="val"><t t-out="d['se_ref']"/></div>
+      </td>
+      <td>
+        <div class="lbl">Effective Date</div>
+        <div class="val"><t t-out="d['effective_date']"/></div>
+      </td>
+      <td>
+        <div class="lbl">Duration</div>
+        <div class="val"><t t-out="d['duration']"/></div>
+      </td>
+    </tr>
+  </table></div>
+
+  <div class="cv-bottom"><table>
+    <tr>
+      <td>KGRN Chartered Accountants LLC · kgrnaudit.com · info@kgrnaudit.com</td>
+      <td class="cv-conf-cell"><span class="cv-conf">Confidential</span></td>
+    </tr>
+  </table></div>
+  <div class="cv-accent"/>
+</div>
+
+</div>
+</t>
+</t>
+</template>
+
+
+<!-- ══════════════ TERMS AND SCHEDULES (20mm margins) ══════════════ -->
+<template id="report_se_content">
+<t t-call="web.html_container">
+<t t-foreach="docs" t-as="o">
+<t t-set="d" t-value="se[o.id]"/>
+<div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+<t t-call="proposal_workflow_extended_rk.se_styles"/>
+
+<!-- Parties -->
+<table class="parties">
+  <tr>
+    <td>
+      <div class="party-h">Service Provider</div>
+      <div class="party-name">KGRN Chartered Accountants LLC</div>
+      <div class="party-p">Dubai, United Arab Emirates</div>
+      <div class="party-p">info@kgrnaudit.com | kgrnaudit.com</div>
+    </td>
+    <td>
+      <div class="party-h">Client</div>
+      <div class="party-name"><t t-out="d['client_legal']"/></div>
+      <div t-if="d['client_person']" class="party-p"><t t-out="d['client_person']"/></div>
+      <div t-if="d['client_email']" class="party-p"><t t-out="d['client_email']"/></div>
+      <div t-if="d['client_address']" class="party-p"><t t-out="d['client_address']"/></div>
+    </td>
+  </tr>
+</table>
+
+<!-- Agreement clauses -->
+<h2>Agreement Terms and Conditions</h2>
+<p style="color:#6B7280;margin-bottom:20px;">The following clauses govern the engagement
+   between KGRN and the Client. By signing this Agreement, both parties agree to be bound
+   by these terms and conditions, together with the schedules incorporated herein.</p>
+
+<div t-foreach="d['clauses']" t-as="clause" class="clause">
+  <div class="clause-head">
+    <span class="clause-no"><t t-out="clause['number']"/></span>
+    <span class="clause-title"><t t-out="clause['title']"/></span>
+  </div>
+  <div class="clause-body">
+    <p><t t-out="clause['text']"/></p>
+  </div>
+</div>
+
+<t t-if="d['services']">
+
+  <!-- ── Schedule A — Scope of Services ── -->
+  <div class="section-break">
+    <t t-set="sec_num" t-value="'Schedule A'"/>
+    <t t-set="sec_title" t-value="'Scope of Services'"/>
+    <t t-call="proposal_workflow_extended_rk.se_section_heading"/>
+    <p style="margin-bottom:16px;">This schedule sets out the agreed scope of services for
+       each selected service line. The scope below defines the activities that fall within
+       the engagement boundary. Any work outside this boundary is subject to a separate
+       scope review and commercial alignment.</p>
+
+    <div t-foreach="d['services']" t-as="svc" class="svc">
+      <div class="svc-head">
+        <span class="svc-code">Service <t t-out="svc['code']"/></span>
+        <span class="svc-name"><t t-out="svc['name']"/></span>
+      </div>
+      <ul class="svc-scope">
+        <li t-foreach="svc['scope']" t-as="item"><t t-out="item"/></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Schedule B — Commercials and Billing Structure ── -->
+  <div class="section-break">
+    <t t-set="sec_num" t-value="'Schedule B'"/>
+    <t t-set="sec_title" t-value="'Commercials and Billing Structure'"/>
+    <t t-call="proposal_workflow_extended_rk.se_section_heading"/>
+    <p style="margin-bottom:10px;">The fees set out in this schedule are based on the agreed
+       scope, service model, entity structure, and the commercially accepted proposal. Any
+       material change in scope or assumptions may require separate commercial review and
+       adjustment.</p>
+
+    <div class="fee-wrap">
+      <table>
+        <tbody>
+          <tr t-if="not d['commercial_rows']">
+            <td colspan="3" style="padding:12px;color:#9ca3af;text-align:center;">
+              Fees to be confirmed per agreed proposal.
+            </td>
+          </tr>
+          <tr t-foreach="d['commercial_rows']" t-as="row"
+              t-att-class="'alt' if row_index % 2 == 1 else ''">
+            <td class="fee-code">
+              <t t-if="row['code']">Service <t t-out="row['code']"/></t>
+              <t t-else=""><t t-out="row['name']"/></t>
+            </td>
+            <td class="fee-name">
+              <t t-out="row['name']"/>
+              <span t-attf-class="pay-badge #{'pay-rec' if row['fee_structure']['recurring'] else 'pay-one'}">
+                <t t-out="'Annual · Recurring' if row['fee_structure']['recurring'] else 'One-time'"/>
+              </span>
+            </td>
+            <td class="fee-amt"><t t-out="d['currency']"/> <t t-out="row['fee']"/></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <table class="totals">
+      <tr>
+        <td>Subtotal (excl. VAT)</td>
+        <td class="v"><t t-out="d['currency']"/> <t t-out="d['subtotal']"/></td>
+      </tr>
+      <tr class="vat">
+        <td>VAT</td>
+        <td class="v"><t t-out="d['currency']"/> <t t-out="d['vat']"/></td>
+      </tr>
+      <tr class="grand">
+        <td>Total (incl. VAT)</td>
+        <td class="v" style="color:#fff;"><t t-out="d['currency']"/> <t t-out="d['total']"/></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ── Schedule C — Assumptions and Dependencies ── -->
+  <div class="section-break">
+    <t t-set="sec_num" t-value="'Schedule C'"/>
+    <t t-set="sec_title" t-value="'Assumptions and Dependencies'"/>
+    <t t-call="proposal_workflow_extended_rk.se_section_heading"/>
+    <p style="margin-bottom:16px;">The delivery approach, timelines, and fees reflected in
+       this Agreement are based on the following assumptions and dependencies. Where any of
+       these assumptions prove materially incorrect or change during the engagement, the
+       parties will review the impact on scope, timelines, and commercial terms.</p>
+    <ul style="margin:0;padding-left:20px;">
+      <li t-foreach="d['assumptions']" t-as="item" style="margin-bottom:7px;">
+        <t t-out="item"/>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ── Schedule D — Support Model (service code D only) ── -->
+  <div t-if="d['show_support_model']" class="section-break">
+    <t t-set="sec_num" t-value="'Schedule D'"/>
+    <t t-set="sec_title" t-value="'Support Model and Service Level Framework'"/>
+    <t t-call="proposal_workflow_extended_rk.se_section_heading"/>
+    <p style="margin-bottom:16px;">This schedule applies to the Managed Services engagement
+       (Service D) and sets out the ongoing support model, service level expectations, and
+       governance structure applicable to this service line.</p>
+    <table class="kv">
+      <tr t-foreach="d['support_model']" t-as="row"
+          t-att-class="'alt' if row_index % 2 == 1 else ''">
+        <td class="k"><t t-out="row[0]"/></td>
+        <td><t t-out="row[1]"/></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ── Schedule E — Enterprise Rollout Phasing (service code E only) ── -->
+  <div t-if="d['show_rollout']" class="section-break">
+    <t t-set="sec_num" t-value="'Schedule E'"/>
+    <t t-set="sec_title" t-value="'Enterprise Rollout Phasing'"/>
+    <t t-call="proposal_workflow_extended_rk.se_section_heading"/>
+    <p style="margin-bottom:16px;">This schedule applies to the Enterprise Multi-Entity
+       engagement (Service E) and sets out the phased rollout approach, entity onboarding
+       structure, and phasing governance framework applicable to this service line.</p>
+    <table class="ph">
+      <thead>
+        <tr><th>Phase</th><th>Activities</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr t-foreach="d['rollout_phases']" t-as="phase"
+            t-att-class="'alt' if phase_index % 2 == 1 else ''">
+          <td class="p"><t t-out="phase[0]"/></td>
+          <td><t t-out="phase[1]"/></td>
+          <td class="n"><t t-out="phase[2]"/></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:11.5px;color:#6B7280;margin-top:10px;"><t t-out="d['rollout_note']"/></p>
+  </div>
+</t>
+
+<!-- ── Execution ── -->
+<div class="section-break" style="page-break-inside:avoid;">
+  <h2>Execution</h2>
+  <p style="margin-bottom:24px;">This Agreement is entered into as of the Effective Date set
+     out on the cover page. Each party confirms that it has read, understood, and agrees to
+     be bound by the terms of this Agreement and all incorporated schedules.</p>
+  <table class="sig">
+    <tr>
+      <td class="l">
+        <div class="sig-box">
+          <div class="sig-for">For and on behalf of <t t-out="d['client_legal']"/></div>
+          <p>Authorised Name: <strong>______________________________</strong></p>
+          <p>Title: ______________________________</p>
+          <p>Date: <strong>______________________________</strong></p>
+          <p style="margin-bottom:6px;">Signature:</p>
+          <div class="sig-line"/>
+        </div>
+      </td>
+      <td class="r">
+        <div class="sig-box">
+          <div class="sig-for">For and on behalf of KGRN Chartered Accountants LLC</div>
+          <p>Authorised Name: ______________________________</p>
+          <p>Title: ______________________________</p>
+          <p>Date: ______________________________</p>
+          <p style="margin-bottom:6px;">Signature:</p>
+          <div class="sig-line"/>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<div class="doc-footer">
+  <p>© <t t-out="d['year']"/> KGRN Chartered Accountants LLC | kgrnaudit.com</p>
+  <p>Agreement No. <t t-out="d['se_ref']"/> — This agreement is legally binding once signed
+     by both parties. Electronic signatures are valid under applicable law.</p>
+</div>
+
+</div>
+</t>
+</t>
+</template>
+
+</odoo>

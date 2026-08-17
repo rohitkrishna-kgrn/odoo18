@@ -1,0 +1,45 @@
+{
+    'name': 'Proposal Workflow Extended RK',
+    'version': '18.0.1.0',
+    'license': 'LGPL-3',
+    'author': 'Rohit',
+    'category': 'Sales',
+    'summary': 'Product scope/methodology, quotation proposal builder and KGRN proposal PDF',
+    'description': """
+Proposal workflow
+=================
+* Scope of work, methodology and deliverables maintained on the product, plus an
+  eInvoicing reporting flag.
+* A Proposal tab on the quotation that collects the scope and methodology of every
+  service on the order, together with the overall terms & conditions — all editable
+  per proposal.
+* Download Proposal on quotations, producing the KGRN eInvoicing Services Proposal PDF.
+* Download SE once the linked pipeline record reaches Service Engagement.
+* A mandatory CRM Pipeline link on new quotations, with a logged override, and a
+  CRM reference (CRM0000001) on every pipeline record.
+""",
+    'depends': [
+        'sale',
+        'sale_crm',
+        'crm',
+        'mail',
+        'product',
+        'crm_extended_rk',
+        'sale_order_approval',
+        'sale_renewal_rk',
+    ],
+    'data': [
+        'security/ir.model.access.csv',
+        'data/ir_sequence_data.xml',
+        'report/report_paperformat.xml',
+        'report/report_proposal.xml',
+        'report/report_proposal_templates.xml',
+        'report/report_se_templates.xml',
+        'views/product_template_views.xml',
+        'views/crm_lead_views.xml',
+        'views/sale_order_views.xml',
+    ],
+    'post_init_hook': 'post_init_hook',
+    'installable': True,
+    'application': False,
+}

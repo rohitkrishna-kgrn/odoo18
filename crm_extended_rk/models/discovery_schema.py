@@ -13,7 +13,7 @@ Field spec keys
 key       : machine key used in the submitted JSON payload
 label     : question shown to the client
 type      : text | email | phone | number | select | radio | checkbox |
-            checkbox_single | textarea | signature
+            checkbox_single | textarea | signature | file
 required  : bool
 options   : list of str OR list of {'value', 'label'} (for select/radio/checkbox)
 help      : sub-text / description shown under the label
@@ -22,6 +22,9 @@ prefill   : optional key into the lead's prefill dict (company_name / contact_na
             email / phone) used to pre-populate the field from the opportunity
 show_if   : optional {'field': <sibling key>, 'contains': [values]} -> conditional
             visibility
+required_alt : optional sibling field key. When set, this field is only enforced as
+            required if the sibling field is also empty — i.e. either one of the pair
+            satisfies the requirement (used for Signature / Attach signed document).
 
 Multiple named forms
 ---------------------
@@ -80,7 +83,13 @@ def confirmation_section(section_id):
              'type': 'checkbox_single', 'required': True,
              'help': 'Must be checked to enable submission'},
             {'key': 'signatureData', 'label': 'Signature', 'type': 'signature', 'required': True,
-             'help': 'Draw your signature to authorise the submission'},
+             'required_alt': 'signatureAttachment',
+             'help': 'Draw your signature, or attach a signed document instead, to authorise '
+                     'the submission'},
+            {'key': 'signatureAttachment', 'label': 'Attach signed document', 'type': 'file',
+             'required': True, 'required_alt': 'signatureData',
+             'help': 'Attach a scanned or digitally signed copy instead of drawing a signature '
+                     'above (PDF, JPG or PNG, max 5MB)'},
         ],
     }
 
@@ -854,9 +863,18 @@ DISCOVERY_FORMS = {
 }
 
 
+# Retired from the "Discovery Form" dropdown, but kept in DISCOVERY_FORMS so
+# forms already submitted under these types still render correctly (PDF,
+# notebook summary) instead of falling back to eInvoicing's fields.
+RETIRED_FORM_TYPES = {
+    'valuation', 'liquidation', 'inventory_count', 'adgm_audit', 'bookkeeping_tax',
+}
+
+
 def form_selection():
     """(value, label) pairs for the crm.lead 'Discovery Form' selection field."""
-    return [(key, spec['label']) for key, spec in DISCOVERY_FORMS.items()]
+    return [(key, spec['label']) for key, spec in DISCOVERY_FORMS.items()
+            if key not in RETIRED_FORM_TYPES]
 
 
 def get_sections(form_type):

@@ -45,9 +45,23 @@
                 </button>
             </xpath>
 
-            <!-- Source becomes mandatory once the lead has left the New stage. -->
+            <!-- Mandatory lead information: Company Name, Email, Phone, Tags (Lead
+                 Source) and Source must all be filled in before a lead/opportunity
+                 can be created or saved. -->
+            <xpath expr="//page[@name='lead']//field[@name='partner_name']" position="attributes">
+                <attribute name="required">1</attribute>
+            </xpath>
+            <xpath expr="//group[@name='opportunity_partner']//field[@name='email_from']" position="attributes">
+                <attribute name="required">1</attribute>
+            </xpath>
+            <xpath expr="//group[@name='opportunity_partner']//field[@name='phone']" position="attributes">
+                <attribute name="required">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='tag_ids']" position="attributes">
+                <attribute name="required">1</attribute>
+            </xpath>
             <xpath expr="//page[@name='lead']//field[@name='source_id']" position="attributes">
-                <attribute name="required">not is_stage_new</attribute>
+                <attribute name="required">1</attribute>
             </xpath>
 
             <!-- Stage may only be changed through buttons: make the statusbar

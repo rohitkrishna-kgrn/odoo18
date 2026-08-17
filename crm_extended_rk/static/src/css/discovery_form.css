@@ -132,6 +132,7 @@
 .disc-field.is-hidden, .disc-efield.is-hidden { display: none; }
 .disc-label { display: block; font-size: .92rem; font-weight: 600; color: #374151; margin-bottom: .5rem; }
 .disc-req { color: var(--disc-err); margin-left: 2px; }
+.disc-req.is-hidden { display: none; }
 .disc-help { font-size: .8rem; color: var(--disc-muted); margin: .4rem 0 0; }
 
 .disc-input {
@@ -218,6 +219,26 @@ textarea.disc-input { resize: vertical; min-height: 90px; }
     padding: .35rem .8rem; font-size: .82rem; cursor: pointer; color: var(--disc-text);
 }
 .disc-sign-clear:hover { border-color: var(--disc-blue); color: var(--disc-blue); }
+
+/* ── File attachment ────────────────────────────────────── */
+.disc-file-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; }
+.disc-file-btn {
+    background: #eef5fa; color: var(--disc-blue); border: 1.5px dashed var(--disc-blue-2);
+    padding: .6rem 1rem; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: .88rem;
+    transition: background .15s;
+}
+.disc-file-btn:hover { background: #e3eef6; }
+.disc-file-btn input[type="file"] {
+    position: absolute; opacity: 0; width: 0; height: 0; overflow: hidden;
+}
+.disc-file-info { display: flex; align-items: center; gap: .6rem; }
+.disc-file-name { font-size: .85rem; color: var(--disc-muted); word-break: break-all; }
+.disc-file-clear {
+    background: none; border: 1px solid var(--disc-border); border-radius: 8px;
+    padding: .35rem .8rem; font-size: .82rem; cursor: pointer; color: var(--disc-text);
+}
+.disc-file-clear:hover { border-color: var(--disc-err); color: var(--disc-err); }
+.disc-file-clear.is-hidden { display: none; }
 
 /* ── Validation ─────────────────────────────────────────── */
 .disc-field.has-error .disc-input,

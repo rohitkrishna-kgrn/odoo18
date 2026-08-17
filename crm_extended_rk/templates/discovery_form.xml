@@ -11,6 +11,7 @@
              t-att-data-key="field['key']"
              t-att-data-type="field['type']"
              t-att-data-required="'1' if field.get('required') else '0'"
+             t-att-data-required-alt="field.get('required_alt')"
              t-att-data-showif-field="field['show_if']['field'] if field.get('show_if') else None"
              t-att-data-showif-values="'|'.join(field['show_if']['contains']) if field.get('show_if') else None">
 
@@ -90,6 +91,21 @@
                         <button type="button" class="disc-sign-clear">Clear</button>
                     </div>
                     <input type="hidden" class="disc-value disc-sign-data"/>
+                </div>
+            </t>
+
+            <!-- File attachment (e.g. a signed document to accompany the signature) -->
+            <t t-if="field['type'] == 'file'">
+                <div class="disc-file-wrap">
+                    <label class="disc-file-btn">
+                        Choose file
+                        <input type="file" class="disc-file-input" accept=".pdf,.jpg,.jpeg,.png"/>
+                    </label>
+                    <div class="disc-file-info">
+                        <span class="disc-file-name">No file selected</span>
+                        <button type="button" class="disc-file-clear is-hidden">Remove</button>
+                    </div>
+                    <input type="hidden" class="disc-value disc-file-data"/>
                 </div>
             </t>
 

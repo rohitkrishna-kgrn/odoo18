@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- wkhtmltopdf clips all painting to the margin box, so a full-bleed cover
+         and inset content pages cannot come from a single run. The proposal is
+         rendered twice — once per geometry below — and merged in
+         SaleOrder.action_download_proposal. -->
+
+    <!-- Cover and closing pages: edge-to-edge. -->
+    <record id="paperformat_proposal_bleed" model="report.paperformat">
+        <field name="name">KGRN Proposal A4 (full bleed)</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">0</field>
+        <field name="margin_bottom">0</field>
+        <field name="margin_left">0</field>
+        <field name="margin_right">0</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+        <field name="disable_shrinking" eval="True"/>
+    </record>
+
+    <!-- Content pages: the 18mm/16mm inset from pdf.js `@page content`. -->
+    <record id="paperformat_proposal_content" model="report.paperformat">
+        <field name="name">KGRN Proposal A4 (content)</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">18</field>
+        <field name="margin_bottom">16</field>
+        <field name="margin_left">18</field>
+        <field name="margin_right">18</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+        <field name="disable_shrinking" eval="True"/>
+    </record>
+
+    <!-- Service Engagement Agreement terms and schedules: the 20mm inset from
+         `@page { margin: 20mm 20mm }` in pdf.js seHtml. Its cover reuses the
+         full-bleed format above (`@page :first { margin: 0 }`). -->
+    <record id="paperformat_se_content" model="report.paperformat">
+        <field name="name">KGRN Service Engagement A4 (content)</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">20</field>
+        <field name="margin_bottom">20</field>
+        <field name="margin_left">20</field>
+        <field name="margin_right">20</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+        <field name="disable_shrinking" eval="True"/>
+    </record>
+
+</odoo>

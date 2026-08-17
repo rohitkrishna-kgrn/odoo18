@@ -137,26 +137,48 @@ class DiscoveryFormController(http.Controller):
         values = val if isinstance(val, list) else [val]
         return any(v in show_if['contains'] for v in values)
 
+    @staticmethod
+    def _has_value(field, val):
+        """Whether a single answer counts as filled in, per field type."""
+        if field['type'] == 'signature':
+            return isinstance(val, str) and val.startswith('data:image')
+        if field['type'] == 'file':
+            return isinstance(val, dict) and isinstance(val.get('data'), str) \
+                and val['data'].startswith('data:')
+        if field['type'] == 'checkbox_single':
+            return bool(val)
+        return val not in (None, '', [], {})
+
     def _validate(self, sections, payload):
         errors = []
+        reported_alt_pairs = set()
+        fields_by_key = {f['key']: f for _s, f in iter_fields(sections, include_entities=False)}
+
         for _section, field in iter_fields(sections, include_entities=False):
             if not field.get('required'):
                 continue
             if not self._field_visible(field.get('show_if'), payload):
                 continue
             key = field['key']
-            if field['type'] == 'signature':
-                val = payload.get(key)
-                if not (isinstance(val, str) and val.startswith('data:image')):
-                    errors.append(field['label'])
+            if self._has_value(field, payload.get(key)):
                 continue
-            if field['type'] == 'checkbox_single':
-                if not payload.get(key):
-                    errors.append(field['label'])
+
+            # Either/or pair (e.g. Signature / Attach signed document): satisfied
+            # if the sibling field has a value; report once for the pair otherwise.
+            alt_key = field.get('required_alt')
+            if alt_key:
+                alt_field = fields_by_key.get(alt_key)
+                if alt_field and self._has_value(alt_field, payload.get(alt_key)):
+                    continue
+                pair = frozenset((key, alt_key))
+                if pair in reported_alt_pairs:
+                    continue
+                reported_alt_pairs.add(pair)
+                errors.append(_("%(a)s or %(b)s") % {
+                    'a': field['label'], 'b': alt_field['label'] if alt_field else alt_key})
                 continue
-            val = payload.get(key)
-            if val in (None, '', [], {}):
-                errors.append(field['label'])
+
+            errors.append(field['label'])
 
         # Entity sub-form (only for schemas that define one): at least one
         # entity, each with its required (and currently visible) fields.

@@ -1,6 +1,7 @@
 from . import sale_order
 from . import sale_order_invoice_wizard
 from . import crm_lead
+from . import crm_stage
 from . import crm_lead_stage_reason
 from . import crm_lead_discovery_form
 from . import crm_lead_source_wizard

@@ -26,7 +26,7 @@
         <field name="paperformat_id" ref="paperformat_discovery"/>
         <field name="binding_model_id" ref="model_crm_lead_discovery_form"/>
         <field name="binding_type">report</field>
-        <field name="print_report_name">'Discovery Form - %s - %s' % (object.form_label or '', object.lead_id.name or '').replace('/', '-')</field>
+        <field name="print_report_name">('Discovery Form - %s - %s' % (object.form_label or '', object.lead_id.name or '')).replace('/', '-')</field>
     </record>
 
     <template id="report_discovery_form_document">
@@ -230,6 +230,12 @@
                             <div class="disc-sign" t-if="section['signature']">
                                 <div class="disc-ent-label">Signature</div>
                                 <img t-att-src="section['signature']"/>
+                            </div>
+
+                            <!-- Attached signed document -->
+                            <div class="disc-sign" t-if="section['attachment_name']">
+                                <div class="disc-ent-label">Attached Document</div>
+                                <p><t t-esc="section['attachment_name']"/></p>
                             </div>
                         </div>
                     </t>

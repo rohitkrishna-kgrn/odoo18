@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Two halves of one document; SaleOrder.action_download_proposal renders
+         both and merges cover + content + closing. Neither is bound to the
+         Print menu on its own, since neither is a complete proposal. -->
+
+    <record id="action_report_proposal_bleed" model="ir.actions.report">
+        <field name="name">Proposal (cover &amp; closing)</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">proposal_workflow_extended_rk.report_proposal_bleed</field>
+        <field name="report_file">proposal_workflow_extended_rk.report_proposal_bleed</field>
+        <field name="paperformat_id" ref="paperformat_proposal_bleed"/>
+        <field name="binding_model_id" eval="False"/>
+    </record>
+
+    <record id="action_report_proposal_content" model="ir.actions.report">
+        <field name="name">Proposal (content)</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">proposal_workflow_extended_rk.report_proposal_content</field>
+        <field name="report_file">proposal_workflow_extended_rk.report_proposal_content</field>
+        <field name="paperformat_id" ref="paperformat_proposal_content"/>
+        <field name="binding_model_id" eval="False"/>
+    </record>
+
+    <!-- Service Engagement Agreement, merged by SaleOrder.action_download_se. -->
+
+    <record id="action_report_se_cover" model="ir.actions.report">
+        <field name="name">Service Engagement (cover)</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">proposal_workflow_extended_rk.report_se_cover</field>
+        <field name="report_file">proposal_workflow_extended_rk.report_se_cover</field>
+        <field name="paperformat_id" ref="paperformat_proposal_bleed"/>
+        <field name="binding_model_id" eval="False"/>
+    </record>
+
+    <record id="action_report_se_content" model="ir.actions.report">
+        <field name="name">Service Engagement (terms &amp; schedules)</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">proposal_workflow_extended_rk.report_se_content</field>
+        <field name="report_file">proposal_workflow_extended_rk.report_se_content</field>
+        <field name="paperformat_id" ref="paperformat_se_content"/>
+        <field name="binding_model_id" eval="False"/>
+    </record>
+
+</odoo>

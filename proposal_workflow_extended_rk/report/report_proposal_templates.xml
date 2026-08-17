@@ -1,0 +1,664 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- Section heading — pdf.js `secH(num, title)`. Plain divs with a left border:
+     the orange rule without any surrounding box. -->
+<template id="proposal_section_heading">
+    <div class="sec-h">
+        <div class="sec-num"><t t-out="sec_num"/></div>
+        <h2 class="sec-title"><t t-out="sec_title"/></h2>
+    </div>
+</template>
+
+<!-- Service card — shared by Scope of Services and Delivery Methodology. -->
+<template id="proposal_service_card">
+    <div class="kp-card">
+        <div class="kp-card-head">
+            <span t-if="svc['code']" class="kp-badge"><t t-out="svc['code']"/></span>
+            <span class="kp-card-name"><t t-out="svc['name']"/></span>
+        </div>
+        <div class="kp-card-body">
+            <p t-if="card_desc" class="kp-card-desc"><t t-out="card_desc"/></p>
+            <div class="kp-card-label"><t t-out="card_label"/></div>
+            <ul>
+                <li t-foreach="card_items" t-as="item"><t t-out="item"/></li>
+            </ul>
+        </div>
+    </div>
+</template>
+
+
+<!-- Shared stylesheet: both halves of the proposal are rendered by separate
+     wkhtmltopdf runs (different page geometry) and merged, so each carries its
+     own copy of the styles. -->
+<template id="proposal_styles">
+<style>
+  /* Neutralise the Bootstrap container class that web.minimal_layout puts on the body. */
+  body.o_body_pdf { max-width: none !important; width: auto !important;
+                    padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1F1F1F; margin: 0; padding: 0;
+         font-size: 13px; -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #fff; }
+  body * { font-family: inherit; }
+  p { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.75; color: #4A4A4A;
+      margin: 0 0 10px; font-size: 12.5px; orphans: 3; widows: 3; }
+  ul { margin: 0 0 10px; padding-left: 22px; }
+  li { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; color: #4A4A4A;
+       margin-bottom: 5px; font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; page-break-inside: auto; }
+  /* The report stylesheet puts a light border on every cell; the design
+     draws its own borders where it wants them. */
+  /* Bootstrap's reboot (loaded by web.report_assets_common) leaves every table
+     part with `border-style: solid; border-width: 0`, and wkhtmltopdf paints
+     that as a hairline box around each cell. Resetting the *style* is what
+     removes it — zeroing the width is not enough. Scoped to .article so it
+     outranks the reboot without needing !important, and placed before the
+     rules below that deliberately draw borders. */
+  .article table, .article thead, .article tbody, .article tfoot,
+  .article tr, .article td, .article th { border-style: none; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  h2 { margin: 0; }
+
+  /* wkhtmltopdf paints nothing outside the margin box, so the paperformat runs
+     at zero margins and the content flow supplies its own inset. Horizontal
+     padding repeats on every page; vertical padding applies once, at the start
+     and end of the flow. */
+  .kp-content { padding: 0; }
+  .section { margin: 0 0 28px; page-break-before: always; }
+  .section.kp-first { page-break-before: auto; }   /* no blank leading page */
+  .page-break { page-break-before: always; }
+
+  /* ── Full-bleed pages escape the paperformat margins ── */
+  .fullpage { width: 210mm; height: 296mm; margin: 0; position: relative;
+              overflow: hidden; background: #F5EFE7;
+              background: -webkit-linear-gradient(290deg, #FBFBF2 0%, #F5EFE7 100%);
+              background: linear-gradient(160deg, #FBFBF2 0%, #F5EFE7 100%); }
+  .cover { page-break-after: always; }
+  .closing { page-break-before: always; }
+  .bar-top { position: absolute; top: 0; left: 0; width: 210mm; height: 6px; background: #F15C22; }
+  .bar-bot { position: absolute; bottom: 0; left: 0; width: 210mm; height: 6px; background: #F15C22; }
+  .cv-logo { position: absolute; top: 50px; left: 52px; }
+  .cv-title { position: absolute; top: 440px; left: 52px; right: 52px; }
+  .cv-kicker { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 9px; font-weight: 800;
+               text-transform: uppercase; letter-spacing: .18em; color: #F15C22; margin-bottom: 14px; }
+  .cv-h1 { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 42px; font-weight: 700;
+           color: #1A2F4E; margin: 0 0 6px; line-height: 1.05; letter-spacing: .01em; }
+  .cv-rule { width: 56px; height: 4px; background: #F15C22; border-radius: 2px; margin: 18px 0 20px; }
+  .cv-prepared { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #4A4A4A; margin-bottom: 6px; }
+  .cv-client { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 22px; font-weight: 700; color: #1A2F4E; }
+  .cv-attn { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; color: #4b5563; margin-top: 4px; }
+  .cv-meta { margin: 0; position: absolute; bottom: 96px; left: 52px; right: 52px;
+             border-top: 1px solid #D5CBBC; padding-top: 18px; }
+  .cv-meta td { width: 33.33%; vertical-align: top; }
+  .cv-meta-lbl { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 8px; font-weight: 700;
+                 text-transform: uppercase; letter-spacing: .12em; color: #9ca3af; margin-bottom: 5px; }
+  .cv-meta-val { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; font-weight: 700; color: #1A2F4E; }
+  .cv-foot { margin: 0; position: absolute; bottom: 28px; left: 52px; right: 52px;
+             border-top: 1px solid #D5CBBC; padding-top: 12px; }
+  .cv-foot td { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; color: #9ca3af; }
+  .cv-conf { text-align: right; font-size: 9px; font-weight: 700; color: #F15C22;
+             letter-spacing: .12em; text-transform: uppercase; }
+
+  /* ── Section heading ── */
+  /* The orange rule is a left border on the heading itself — no table, no box. */
+  .sec-h { margin: 0 0 14px; padding-left: 14px; border-left: 4px solid #F15C22;
+           page-break-after: avoid; }
+  .kp-t100 { width: 100%; margin: 0; border-collapse: collapse; }
+  .sec-num { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; font-weight: 800;
+             text-transform: uppercase; letter-spacing: .1em; color: #F15C22; margin-bottom: 3px; }
+  .sec-title { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1A2F4E; font-size: 20px;
+               font-weight: 700; line-height: 1.1; }
+
+  /* ── Data tables ── */
+  .tbl { border: 1px solid #EDE8DF; border-radius: 6px; overflow: hidden; }
+  .tbl thead tr { background: #1A2F4E; }
+  .tbl th { padding: 10px 14px; font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px;
+            text-transform: uppercase; letter-spacing: .05em; font-weight: 700; color: #fff;
+            text-align: left; border-bottom: 1px solid #EDE8DF; }
+  .tbl td { padding: 10px 14px; border-bottom: 1px solid #EDE8DF; font-size: 12px; color: #4A4A4A;
+            font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; vertical-align: top; }
+  .alt { background: #FAFAF7; }
+  .ref-cell { width: 56px; }
+  .svc-name { font-weight: 700; font-size: 12.5px; color: #1A2F4E; }
+  .kp-badge { display: inline-block; background: #F15C22; color: #fff; font-size: 10px; font-weight: 800;
+           padding: 3px 8px; border-radius: 3px; letter-spacing: .04em;
+           font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+  /* ── Discovery snapshot ── */
+  .ds-lbl { width: 42%; font-size: 12px; color: #6b7280; background: #FAFAF7; font-weight: 600; }
+  .ds-val { font-size: 12.5px; font-weight: 500; color: #1F1F1F; }
+
+  /* ── Service cards ── */
+  .kp-card { margin-bottom: 22px; page-break-inside: avoid; border: 1px solid #EDE8DF;
+          border-radius: 6px; overflow: hidden; }
+  .kp-card-head { background: #1A2F4E; padding: 12px 18px; }
+  .kp-card-head .kp-badge { padding: 4px 10px; letter-spacing: .05em; margin-right: 12px; vertical-align: middle; }
+  .kp-card-name { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; font-weight: 700;
+               color: #fff; vertical-align: middle; }
+  .kp-card-body { padding: 14px 18px 16px; background: #FBFBF2; }
+  .kp-card-desc { font-size: 12.5px; color: #4A4A4A; line-height: 1.75; margin: 0 0 12px; }
+  .kp-card-label { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; font-weight: 800;
+                text-transform: uppercase; letter-spacing: .08em; color: #F15C22; margin-bottom: 6px; }
+  .kp-card-body ul { margin: 0; padding-left: 20px; }
+  .kp-card-body li { font-size: 12.5px; line-height: 1.7; color: #4A4A4A; margin-bottom: 4px; }
+  .dlv { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #EDE8DF; }
+  .dlv-title { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12.5px; font-weight: 700;
+               color: #1A2F4E; margin-bottom: 3px; }
+  .dlv-desc { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; color: #4A4A4A; line-height: 1.65; }
+
+  /* ── Delivery phases ── */
+  .ph-num { text-align: center; font-weight: 800; color: #F15C22; font-size: 15px; width: 40px;
+            padding: 12px 10px; vertical-align: top; }
+  .ph-name { font-weight: 700; font-size: 12.5px; color: #1A2F4E; padding: 12px 14px; width: 130px;
+             vertical-align: top; }
+  .ph-obj { font-size: 12px; color: #4A4A4A; padding: 12px 14px; line-height: 1.7; }
+
+  /* ── Guiding principles ── */
+  .principle { border: 1px solid #EDE8DF; border-radius: 6px; padding: 14px 18px; margin-bottom: 12px;
+               background: #FBFBF2; page-break-inside: avoid; border-left: 4px solid #F15C22; }
+  .principle-title { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12.5px; font-weight: 700;
+                     color: #1A2F4E; margin-bottom: 5px; }
+
+  /* ── Commercials ── */
+  .note { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; color: #374151; line-height: 1.7;
+          background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 14px;
+          margin-bottom: 10px; }
+  .note strong.g { color: #15803d; }
+  .disclaimer { background: #FFF7F3; border-left: 4px solid #F15C22; border-radius: 0 4px 4px 0;
+                padding: 10px 14px; font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 11.5px;
+                color: #7C2D12; margin: 12px 0 16px; }
+  .fee-tag { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 11px; font-weight: 700;
+             padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+  .fee-one { color: #0369a1; background: #e0f2fe; }
+  .fee-rec { color: #7c3aed; background: #f5f3ff; }
+  .amount { text-align: right; font-weight: 600; font-size: 12.5px; color: #1F1F1F; }
+  .totals { margin: 16px 0 0 auto; width: 300px; border: 1px solid #EDE8DF;
+            border-radius: 6px; overflow: hidden; }
+  .totals td { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12.5px; padding: 8px 14px;
+               border-bottom: 1px solid #EDE8DF; color: #4A4A4A; }
+  .totals td.v { text-align: right; font-weight: 600; color: #1F1F1F; }
+  .totals tr.vat td { background: #FAFAF7; }
+  .totals tr.grand td { background: #1A2F4E; color: #fff; font-weight: 800; font-size: 14px;
+                        border-bottom: none; }
+  .totals tr.disc td.v { color: #F15C22; }
+
+  /* ── Editable terms ── */
+  .terms { margin-top: 20px; border-top: 2px solid #fef3ec; padding-top: 16px; page-break-inside: avoid; }
+  .terms-h { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; font-weight: 800; color: #c2410c;
+             margin-bottom: 14px; text-transform: uppercase; letter-spacing: .04em; }
+  .terms-body div { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12.5px; color: #111827;
+                    margin-bottom: 3px; }
+  .terms-body p, .terms-body li { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px;
+                                  color: #374151; line-height: 1.7; margin: 0 0 8px; }
+  .terms-body li { margin-bottom: 2px; }
+  .terms-body ul { margin: 4px 0 10px; padding-left: 18px; }
+
+  /* ── Acceptance ── */
+  .chk { width: 32px; text-align: center; font-size: 18px; }
+  .sig { margin: 36px 0 0; }
+  .sig td { width: 50%; vertical-align: top; }
+  .sig-inner { border-top: 3px solid #F15C22; padding-top: 14px; }
+  .sig-l { padding-right: 16px; }
+  .sig-r { padding-left: 16px; }
+  .sig-lbl { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; color: #667085;
+             margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  .sig-name { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; color: #374151;
+              margin-top: 40px; font-weight: 600; }
+  .sig-sub { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 11px; color: #9ca3af; margin-top: 3px; }
+
+  /* ── Closing page ── */
+  .cl-logo { position: absolute; top: 58px; left: 52px; }
+  .cl-body { position: absolute; top: 190px; left: 52px; right: 52px; }
+  .cl-h2 { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 52px; font-weight: 700;
+           color: #1A2F4E; line-height: 1.1; margin: 0 0 20px; }
+  .cl-tag { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; color: #4A4A4A;
+            line-height: 1.65; max-width: 480px; margin: 0 0 18px; font-style: italic; }
+  .cl-desc { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; color: #6b7280;
+             line-height: 1.7; max-width: 460px; margin: 0; }
+  .cl-contact { margin: 0; position: absolute; bottom: 40px; left: 52px; right: 52px;
+                border-top: 1px solid #D5CBBC; padding-top: 20px; }
+  .cl-contact td { width: 25%; vertical-align: top; padding-right: 14px; }
+  .cl-contact td + td { border-left: 1px solid #D5CBBC; padding-left: 14px; }
+  .cl-lbl { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 8px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .12em; color: #F15C22; margin-bottom: 8px; }
+  .cl-val { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; color: #4A4A4A; line-height: 1.65; }
+</style>
+</template>
+
+<!-- Cover and closing pages: rendered at zero margins so the gradient and the
+     orange bars reach the paper edge. wkhtmltopdf clips all painting to the
+     margin box, which is why these cannot share a run with the content pages. -->
+<template id="report_proposal_bleed">
+<t t-call="web.html_container">
+<t t-foreach="docs" t-as="o">
+<t t-set="p" t-value="proposal[o.id]"/>
+<div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+<t t-call="proposal_workflow_extended_rk.proposal_styles"/>
+
+<!-- ══════════════ COVER PAGE ══════════════ -->
+<div class="fullpage cover">
+  <div class="bar-top"/>
+  <div class="cv-logo">
+    <img t-if="logo" t-att-src="logo" style="height:68px;width:auto;display:block;"/>
+    <div t-else="" style="font-size:32px;font-weight:900;color:#F15C22;letter-spacing:4px;font-family:'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">KGRN</div>
+  </div>
+
+  <div class="cv-title">
+    <div class="cv-kicker">Commercial Proposal · eInvoicing Services</div>
+    <h1 class="cv-h1">eInvoicing Services<br/>Proposal</h1>
+    <div class="cv-rule"/>
+    <div class="cv-prepared">Prepared exclusively for</div>
+    <div class="cv-client"><t t-out="p['company_name']"/></div>
+    <div t-if="p['person_name']" class="cv-attn">Attn: <t t-out="p['person_name']"/></div>
+  </div>
+
+  <div class="cv-meta"><table class="kp-t100">
+    <tr>
+      <td>
+        <div class="cv-meta-lbl">Reference No.</div>
+        <div class="cv-meta-val"><t t-out="p['order_ref']"/></div>
+      </td>
+      <td>
+        <div class="cv-meta-lbl">Date Issued</div>
+        <div class="cv-meta-val"><t t-out="p['issued']"/></div>
+      </td>
+      <td>
+        <div class="cv-meta-lbl">Valid Until</div>
+        <div class="cv-meta-val"><t t-out="p['valid_until']"/></div>
+      </td>
+    </tr>
+  </table></div>
+
+  <div class="cv-foot"><table class="kp-t100">
+    <tr>
+      <td>KGRN Chartered Accountants LLC · kgrnaudit.com · info@kgrnaudit.com</td>
+      <td class="cv-conf">Confidential</td>
+    </tr>
+  </table></div>
+  <div class="bar-bot"/>
+</div>
+
+<!-- ══════════════ CLOSING PAGE ══════════════ -->
+<div class="fullpage closing">
+  <div class="bar-top"/>
+  <div class="cl-logo">
+    <img t-if="logo" t-att-src="logo" style="height:42px;width:auto;display:block;"/>
+    <div t-else="" style="font-size:28px;font-weight:900;color:#F15C22;letter-spacing:4px;font-family:'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">KGRN</div>
+  </div>
+  <div class="cl-body">
+    <h2 class="cl-h2">Thank You</h2>
+    <div class="cv-rule"/>
+    <p class="cl-tag">Built for compliance, structured for delivery, and committed to your
+       eInvoicing success.</p>
+    <p class="cl-desc">An eInvoicing services engagement for <t t-out="p['company_name']"/> —
+       from readiness advisory and gap analysis through platform implementation and ongoing
+       managed operations. KGRN remains your dedicated partner throughout every phase of the
+       compliance journey.</p>
+  </div>
+  <div class="cl-contact"><table class="kp-t100">
+    <tr>
+      <td>
+        <div class="cl-lbl">Address</div>
+        <div class="cl-val">1005, Oxford Tower<br/>Business Bay<br/>Dubai, UAE</div>
+      </td>
+      <td>
+        <div class="cl-lbl">Contact</div>
+        <div class="cl-val"><t t-out="p['salesperson'] or 'Engagement Manager'"/><br/>info@kgrnaudit.com</div>
+      </td>
+      <td>
+        <div class="cl-lbl">Telephone</div>
+        <div class="cl-val">+971 50 153 4658<br/>kgrnaudit.com</div>
+      </td>
+      <td>
+        <div class="cl-lbl">Web</div>
+        <div class="cl-val">kgrnaudit.com<br/>info@kgrnaudit.com</div>
+      </td>
+    </tr>
+  </table></div>
+  <div class="bar-bot"/>
+</div>
+</div>
+</t>
+</t>
+</template>
+
+<!-- Content pages: rendered with 18mm/16mm paperformat margins so every page,
+     including continuation pages, carries the inset. -->
+<template id="report_proposal_content">
+<t t-call="web.html_container">
+<t t-foreach="docs" t-as="o">
+<t t-set="p" t-value="proposal[o.id]"/>
+<div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+<t t-call="proposal_workflow_extended_rk.proposal_styles"/>
+
+<div class="kp-content">
+
+<!-- ══════════════ SECTION 1 — EXECUTIVE SUMMARY ══════════════ -->
+<div class="section kp-first">
+  <t t-set="sec_num" t-value="'Section 1'"/>
+  <t t-set="sec_title" t-value="'Executive Summary'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p><t t-out="p['exec_summary']"/></p>
+  <p><t t-out="p['exec_tail']"/></p>
+</div>
+
+<!-- ══════════════ SECTION 2 — UNDERSTANDING OF REQUIREMENTS ══════════════ -->
+<div t-if="p['ds_rows']" class="section">
+  <t t-set="sec_num" t-value="'Section 2'"/>
+  <t t-set="sec_title" t-value="'Understanding of Requirements'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p>The following inputs were captured during the discovery and scoping process with
+     <t t-out="p['company_name']"/>. These have directly informed the scope definition,
+     service selection, delivery sequencing, and commercial structure set out in this
+     proposal. Where inputs remain provisional or subject to confirmation, this has been
+     noted in the assumptions section.</p>
+  <table class="tbl" style="margin-top:10px;">
+    <tbody>
+      <tr t-foreach="p['ds_rows']" t-as="row">
+        <td class="ds-lbl"><t t-out="row[0]"/></td>
+        <td class="ds-val"><t t-out="row[1]"/></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════ SECTION 3 — SERVICE PORTFOLIO ══════════════ -->
+<div t-if="p['services']" class="section page-break">
+  <t t-set="sec_num" t-value="'Section 3'"/>
+  <t t-set="sec_title" t-value="'Service Portfolio'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p>Based on the discovery inputs and scoping discussions, the following service lines
+     have been identified as relevant to <t t-out="p['company_name']"/>'s current position
+     and requirements. Each service line is described in the context of its typical client
+     profile and engagement model.</p>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th class="ref-cell">Ref</th>
+        <th>Service Name</th>
+        <th>Typical Client Profile</th>
+        <th>Engagement Model</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr t-foreach="p['services']" t-as="svc" t-att-class="'alt' if svc_index % 2 == 0 else ''">
+        <td class="ref-cell"><span t-if="svc['code']" class="kp-badge"><t t-out="svc['code']"/></span></td>
+        <td class="svc-name"><t t-out="svc['name']"/></td>
+        <td><t t-out="svc['profile']"/></td>
+        <td><t t-out="svc['model']"/></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════ SECTION 4 — SCOPE OF SERVICES ══════════════ -->
+<div class="section page-break">
+  <t t-set="sec_num" t-value="'Section 4'"/>
+  <t t-set="sec_title" t-value="'Scope of Services'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p>The scope below reflects the activities within the agreed service boundary for each
+     selected service line. Any work outside this boundary is subject to a separate scope
+     review and commercial alignment before additional activities commence. KGRN maintains
+     clear scope discipline throughout — protecting both parties from scope creep and
+     ensuring that delivery commitments are realistic and achievable.</p>
+  <div style="margin-top:14px;">
+    <t t-foreach="p['services']" t-as="svc">
+      <t t-if="svc['scope']">
+        <t t-set="card_desc" t-value="svc['profile']"/>
+        <t t-set="card_label" t-value="'In Scope'"/>
+        <t t-set="card_items" t-value="svc['scope']"/>
+        <t t-call="proposal_workflow_extended_rk.proposal_service_card"/>
+      </t>
+    </t>
+  </div>
+</div>
+
+<!-- ══════════════ SECTION 5 — DELIVERABLES ══════════════ -->
+<div t-if="p['has_deliverables']" class="section page-break">
+  <t t-set="sec_num" t-value="'Section 5'"/>
+  <t t-set="sec_title" t-value="'Deliverables'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p>The deliverables set out below represent the primary tangible outputs to be produced
+     by KGRN under the agreed scope of each service line. All deliverables are subject to
+     the timely fulfilment of the assumptions and dependencies described in Section 8.
+     Deliverables are formal documents or confirmation artefacts that provide a structured
+     record of work completed.</p>
+  <div style="margin-top:14px;">
+    <t t-foreach="p['services']" t-as="svc">
+      <div t-if="svc['deliverables']" class="kp-card">
+        <div class="kp-card-head">
+          <span t-if="svc['code']" class="kp-badge"><t t-out="svc['code']"/></span>
+          <span class="kp-card-name"><t t-out="svc['name']"/></span>
+        </div>
+        <div class="kp-card-body">
+          <div t-foreach="svc['deliverables']" t-as="dlv" class="dlv">
+            <div class="dlv-title"><t t-out="dlv['title']"/></div>
+            <div class="dlv-desc"><t t-out="dlv['desc']"/></div>
+          </div>
+        </div>
+      </div>
+    </t>
+  </div>
+</div>
+
+<!-- ══════════════ SECTION 6 — DELIVERY METHODOLOGY ══════════════ -->
+<div class="section page-break">
+  <t t-set="sec_num" t-value="'Section 6'"/>
+  <t t-set="sec_title" t-value="'Delivery Methodology'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p>KGRN's delivery methodology is structured around a five-phase framework that provides
+     clear discipline, stakeholder transparency, and controlled progression across all
+     engagement types — regardless of scope size or complexity. Each phase has a defined
+     entry condition, core activities, and exit criteria that must be satisfied before
+     progression to the next phase.</p>
+
+  <div t-if="p['has_methodology']" style="margin-top:14px;">
+    <t t-foreach="p['services']" t-as="svc">
+      <t t-if="svc['methodology']">
+        <t t-set="card_desc" t-value="False"/>
+        <t t-set="card_label" t-value="'Methodology'"/>
+        <t t-set="card_items" t-value="svc['methodology']"/>
+        <t t-call="proposal_workflow_extended_rk.proposal_service_card"/>
+      </t>
+    </t>
+  </div>
+
+  <table class="tbl" style="margin-top:14px;">
+    <thead>
+      <tr>
+        <th style="text-align:center;width:44px;">#</th>
+        <th style="width:130px;">Phase</th>
+        <th>Objective &amp; Key Activities</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr t-foreach="delivery_phases" t-as="phase" t-att-class="'alt' if phase_index % 2 == 0 else ''">
+        <td class="ph-num"><t t-out="phase[0]"/></td>
+        <td class="ph-name"><t t-out="phase[1]"/></td>
+        <td class="ph-obj"><t t-out="phase[2]"/></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════ SECTION 7 — GUIDING PRINCIPLES ══════════════ -->
+<div class="section">
+  <t t-set="sec_num" t-value="'Section 7'"/>
+  <t t-set="sec_title" t-value="'Guiding Principles'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p>The following principles govern how KGRN approaches every engagement. They reflect the
+     practical behaviours and commitments that underpin successful delivery — not aspirational
+     statements, but active disciplines applied throughout the engagement lifecycle.</p>
+  <div style="margin-top:14px;">
+    <div t-foreach="guiding_principles" t-as="principle" class="principle">
+      <div class="principle-title"><t t-out="principle[0]"/></div>
+      <p style="margin:0;font-size:12px;"><t t-out="principle[1]"/></p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SECTION 8 — ASSUMPTIONS ══════════════ -->
+<div class="section">
+  <t t-set="sec_num" t-value="'Section 8'"/>
+  <t t-set="sec_title" t-value="'Key Assumptions &amp; Dependencies'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p>The scope, commercials, delivery sequencing, and timeline assumptions in this proposal
+     are based on the following assumptions. Where any assumption proves materially incorrect
+     or changes during the engagement, KGRN and the client will review the impact on scope,
+     timing, and commercial terms together.</p>
+  <ul style="margin-top:8px;">
+    <li t-foreach="assumptions" t-as="assumption"><t t-out="assumption"/></li>
+  </ul>
+</div>
+
+<!-- ══════════════ SECTION 9 — EXCLUSIONS ══════════════ -->
+<div class="section">
+  <t t-set="sec_num" t-value="'Section 9'"/>
+  <t t-set="sec_title" t-value="'Exclusions &amp; Out-of-Scope Activities'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p>The following activities fall outside the scope of this engagement and are not reflected
+     in the commercial structure set out in this proposal. Any client request to include
+     excluded activities will be assessed as a separate scope item subject to individual
+     commercial agreement.</p>
+  <ul style="margin-top:8px;">
+    <li t-foreach="exclusions" t-as="exclusion"><t t-out="exclusion"/></li>
+  </ul>
+</div>
+
+<!-- ══════════════ SECTION 10 — COMMERCIAL STRUCTURE ══════════════ -->
+<div class="section page-break">
+  <t t-set="sec_num" t-value="'Section 10'"/>
+  <t t-set="sec_title" t-value="'Commercial Structure'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p>The fee structure set out below reflects the agreed scope, service model, entity
+     coverage, and commercial terms applicable to this engagement.</p>
+  <div class="disclaimer">All fees below are subject to final scope confirmation, entity
+    coverage, and commercial alignment. Fees are exclusive of applicable taxes unless
+    otherwise stated.</div>
+
+  <table class="tbl" style="margin-top:0;">
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th style="width:160px;">Fee Structure</th>
+        <th style="text-align:right;width:130px;">Fees (<t t-out="p['currency']"/>)</th>
+        <th style="width:160px;">Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr t-if="not p['commercial_rows']">
+        <td colspan="4" style="text-align:center;color:#9ca3af;padding:14px;">
+          No services priced yet — to be confirmed.
+        </td>
+      </tr>
+      <tr t-foreach="p['commercial_rows']" t-as="row" t-att-class="'alt' if row_index % 2 == 0 else ''">
+        <td>
+          <span style="font-size:12.5px;font-weight:600;color:#1F1F1F;"><t t-out="row['name']"/></span>
+          <span t-if="row['code']" style="font-size:10.5px;color:#9ca3af;margin-left:6px;">(<t t-out="row['code']"/>)</span>
+        </td>
+        <td>
+          <span t-attf-class="fee-tag #{'fee-rec' if row['fee_structure']['recurring'] else 'fee-one'}">
+            <t t-out="row['fee_structure']['label']"/>
+          </span>
+        </td>
+        <td class="amount"><t t-out="p['currency']"/> <t t-out="row['fee']"/></td>
+        <td style="font-size:11.5px;color:#6b7280;"><t t-out="row['notes']"/></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr>
+      <td>Subtotal (excl. VAT)</td>
+      <td class="v"><t t-out="p['currency']"/> <t t-out="p['subtotal']"/></td>
+    </tr>
+    <tr t-if="p['discount']" class="disc">
+      <td>Discount<t t-if="p['discount_percent']"> (<t t-out="p['discount_percent']"/>%)</t></td>
+      <td class="v">− <t t-out="p['currency']"/> <t t-out="p['discount']"/></td>
+    </tr>
+    <tr class="vat">
+      <td>VAT</td>
+      <td class="v"><t t-out="p['currency']"/> <t t-out="p['vat']"/></td>
+    </tr>
+    <tr class="grand">
+      <td>Total (incl. VAT)</td>
+      <td class="v" style="color:#fff;"><t t-out="p['currency']"/> <t t-out="p['total']"/></td>
+    </tr>
+  </table>
+
+  <div class="terms">
+    <div class="terms-h">Payment Terms &amp; Engagement Conditions</div>
+    <div class="terms-body"><t t-out="p['terms']"/></div>
+  </div>
+</div>
+
+<!-- ══════════════ SECTION 11 — NEXT STEPS ══════════════ -->
+<div class="section">
+  <t t-set="sec_num" t-value="'Section 11'"/>
+  <t t-set="sec_title" t-value="'Next Steps'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p>To progress this engagement, KGRN proposes the following next steps. These are designed
+     to move efficiently from proposal acceptance into formal engagement commencement with
+     minimal friction.</p>
+  <ul style="margin-top:8px;">
+    <li t-foreach="next_steps" t-as="step"><t t-out="step"/></li>
+  </ul>
+</div>
+
+<!-- ══════════════ ACCEPTANCE &amp; AUTHORISATION ══════════════ -->
+<div class="section page-break" style="page-break-inside:avoid;">
+  <t t-set="sec_num" t-value="'Authorisation'"/>
+  <t t-set="sec_title" t-value="'Acceptance &amp; Authorisation'"/>
+  <t t-call="proposal_workflow_extended_rk.proposal_section_heading"/>
+  <p>By signing below, the authorised representative of <t t-out="p['company_name']"/> confirms
+     acceptance of this proposal and authorises KGRN Chartered Accountants LLC to proceed with
+     the agreed engagement on the terms, scope, and commercial structure set out in this document.</p>
+
+  <table t-if="p['services']" class="tbl" style="margin-bottom:20px;">
+    <thead>
+      <tr>
+        <th style="width:28px;"/>
+        <th class="ref-cell">Ref</th>
+        <th>Service Line</th>
+        <th>Engagement Model</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr t-foreach="p['services']" t-as="svc" t-att-class="'alt' if svc_index % 2 == 0 else ''">
+        <td class="chk">&#9744;</td>
+        <td class="ref-cell"><span t-if="svc['code']" class="kp-badge"><t t-out="svc['code']"/></span></td>
+        <td style="font-weight:600;font-size:12.5px;color:#1F1F1F;"><t t-out="svc['name']"/></td>
+        <td><t t-out="svc['model']"/></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="sig">
+    <tr>
+      <td class="sig-l">
+        <div class="sig-inner">
+          <div class="sig-lbl">Prepared by — KGRN Chartered Accountants LLC</div>
+          <div class="sig-name">Authorised Signatory</div>
+          <div t-if="p['salesperson']" class="sig-sub" style="color:#6b7280;font-size:12px;"><t t-out="p['salesperson']"/></div>
+          <div class="sig-sub">KGRN Chartered Accountants LLC<br/>Dubai, United Arab Emirates</div>
+        </div>
+      </td>
+      <td class="sig-r">
+        <div class="sig-inner">
+          <div class="sig-lbl">Accepted by — <t t-out="p['company_name']"/></div>
+          <div class="sig-name">___________________________</div>
+          <div class="sig-sub">Date: ___________________________</div>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+</div>
+</div>
+</t>
+</t>
+</template>
+
+</odoo>
