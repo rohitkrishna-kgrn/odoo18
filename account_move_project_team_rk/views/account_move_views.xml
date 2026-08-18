@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_invoice_tree_project_team" model="ir.ui.view">
+        <field name="name">account.move.list.project.team</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_invoice_tree"/>
+        <field name="arch" type="xml">
+            <field name="invoice_user_id" position="after">
+                <field name="project_manager_ids" string="Project Manager"
+                       widget="many2many_tags" optional="show" readonly="1"
+                       options="{'no_create': True, 'no_open': True}"/>
+                <field name="project_team_member_ids" string="Team Member"
+                       widget="many2many_tags" optional="show" readonly="1"
+                       options="{'no_create': True, 'no_open': True}"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>
