@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Daily refresh of the stored AR aging fields: the due date passing
+             and the client's outstanding balance moving on other invoices are
+             pure date-clock / cross-record events, so nothing else re-triggers
+             this compute. -->
+        <record id="cron_refresh_ar_aging" model="ir.cron">
+            <field name="name">Account Extended: Refresh AR Aging Fields</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_refresh_ar_aging()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+            <field name="nextcall" eval="(lambda n, t: t if t > n else t + timedelta(days=1))(datetime.now(), datetime.now().replace(hour=5, minute=55, second=0, microsecond=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        </record>
+
+    </data>
+</odoo>

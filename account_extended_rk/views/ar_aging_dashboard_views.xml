@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_account_move_ar_aging_search" model="ir.ui.view">
+            <field name="name">account.move.ar.aging.search</field>
+            <field name="model">account.move</field>
+            <field name="arch" type="xml">
+                <search string="AR Aging">
+                    <field name="name" string="Invoice"/>
+                    <field name="partner_id" string="Client"/>
+                    <field name="ar_responsible_id" string="AR Responsible"/>
+                    <field name="engagement_team_id" string="Team"/>
+                    <field name="engagement_pm_id" string="PM"/>
+                    <separator/>
+                    <filter string="0-30 Days" name="filter_bucket_0_30"
+                            domain="[('aging_bucket', '=', '0_30')]"/>
+                    <filter string="31-60 Days" name="filter_bucket_31_60"
+                            domain="[('aging_bucket', '=', '31_60')]"/>
+                    <filter string="61-90 Days" name="filter_bucket_61_90"
+                            domain="[('aging_bucket', '=', '61_90')]"/>
+                    <filter string="90+ Days" name="filter_bucket_90_plus"
+                            domain="[('aging_bucket', '=', '90_plus')]"/>
+                    <separator/>
+                    <filter string="Credit Hold" name="filter_credit_hold"
+                            domain="[('credit_hold', '=', True)]"/>
+                    <filter string="Follow-up Log Missing" name="filter_followup_missing"
+                            domain="[('followup_log_status', '=', 'missing')]"/>
+                    <separator/>
+                    <filter string="Advance" name="filter_type_advance"
+                            domain="[('invoice_type_classification', '=', 'advance')]"/>
+                    <filter string="Completion" name="filter_type_completion"
+                            domain="[('invoice_type_classification', '=', 'completion')]"/>
+                    <separator/>
+                    <filter string="Aging Bucket" name="group_aging_bucket"
+                            context="{'group_by': 'aging_bucket'}"/>
+                    <filter string="Team" name="group_team"
+                            context="{'group_by': 'engagement_team_id'}"/>
+                    <filter string="PM" name="group_pm"
+                            context="{'group_by': 'engagement_pm_id'}"/>
+                    <filter string="Client" name="group_client"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter string="AR Responsible" name="group_ar_responsible"
+                            context="{'group_by': 'ar_responsible_id'}"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="view_account_move_ar_aging_list" model="ir.ui.view">
+            <field name="name">account.move.ar.aging.list</field>
+            <field name="model">account.move</field>
+            <field name="arch" type="xml">
+                <list string="AR Aging" default_order="invoice_age_days desc"
+                      decoration-danger="credit_hold"
+                      decoration-warning="followup_log_status == 'missing' and not credit_hold">
+                    <field name="name" string="Invoice"/>
+                    <field name="partner_id" string="Client"/>
+                    <field name="engagement_team_id" string="Team" optional="show"/>
+                    <field name="engagement_pm_id" string="PM" optional="show"/>
+                    <field name="ar_responsible_id" string="AR Responsible"/>
+                    <field name="invoice_date_due" string="Due Date" optional="show"/>
+                    <field name="invoice_age_days" string="Age (Days)"/>
+                    <field name="aging_bucket" string="Aging Bucket"/>
+                    <field name="last_followup_date" string="Last Follow-up"/>
+                    <field name="followup_log_status" string="Follow-up Log"/>
+                    <field name="invoice_type_classification" string="Invoice Type"/>
+                    <field name="credit_hold" string="Credit Hold"/>
+                    <field name="amount_residual" string="Amount Due" sum="Total Due"/>
+                    <field name="currency_id" column_invisible="1"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_account_move_ar_aging_pivot" model="ir.ui.view">
+            <field name="name">account.move.ar.aging.pivot</field>
+            <field name="model">account.move</field>
+            <field name="arch" type="xml">
+                <pivot string="AR Aging">
+                    <field name="aging_bucket" type="row"/>
+                    <field name="engagement_team_id" type="col"/>
+                    <field name="amount_residual" type="measure"/>
+                </pivot>
+            </field>
+        </record>
+
+        <record id="action_ar_aging_dashboard" model="ir.actions.act_window">
+            <field name="name">AR Aging Dashboard</field>
+            <field name="res_model">account.move</field>
+            <field name="domain">[('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('payment_state', 'in', ('not_paid', 'partial'))]</field>
+            <field name="search_view_id" ref="view_account_move_ar_aging_search"/>
+            <field name="context">{'search_default_group_aging_bucket': 1}</field>
+        </record>
+
+        <record id="action_ar_aging_dashboard_view_list" model="ir.actions.act_window.view">
+            <field name="sequence">1</field>
+            <field name="view_mode">list</field>
+            <field name="view_id" ref="view_account_move_ar_aging_list"/>
+            <field name="act_window_id" ref="action_ar_aging_dashboard"/>
+        </record>
+
+        <record id="action_ar_aging_dashboard_view_pivot" model="ir.actions.act_window.view">
+            <field name="sequence">2</field>
+            <field name="view_mode">pivot</field>
+            <field name="view_id" ref="view_account_move_ar_aging_pivot"/>
+            <field name="act_window_id" ref="action_ar_aging_dashboard"/>
+        </record>
+
+        <menuitem id="menu_ar_aging_dashboard"
+                  name="AR Aging Dashboard"
+                  parent="account.menu_finance_receivables"
+                  action="action_ar_aging_dashboard"
+                  sequence="4"/>
+
+    </data>
+</odoo>

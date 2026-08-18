@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_account_invoice_followup_log_invoice,account.invoice.followup.log.invoice,model_account_invoice_followup_log,account.group_account_invoice,1,1,1,1
+access_account_invoice_followup_log_readonly,account.invoice.followup.log.readonly,model_account_invoice_followup_log,account.group_account_readonly,1,0,0,0
