@@ -1,6 +1,6 @@
 {
     'name': 'Account Extended RK',
-    'version': '1.4',
+    'version': '1.3',
     'category': 'Accounting',
     'summary': 'Mandatory AR Responsible and Service Engagement on invoices, locked late-payment penalty footer',
     'depends': [

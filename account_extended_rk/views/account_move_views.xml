@@ -57,12 +57,6 @@
                        column_invisible="context.get('default_move_type') not in ('out_invoice', 'out_refund')"/>
                 <field name="service_engagement_id" optional="show"
                        column_invisible="context.get('default_move_type') not in ('out_invoice', 'out_refund')"/>
-                <field name="project_manager_ids" string="Project Manager"
-                       widget="many2many_tags" optional="show" readonly="1"
-                       options="{'no_create': True, 'no_open': True}"/>
-                <field name="project_team_member_ids" string="Team Member"
-                       widget="many2many_tags" optional="show" readonly="1"
-                       options="{'no_create': True, 'no_open': True}"/>
             </field>
         </field>
     </record>
