@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="product_template_form_einvoicing" model="ir.ui.view">
+        <field name="name">product.template.form.einvoicing</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='general_information']" position="after">
+                <page string="eInvoicing" name="einvoicing"
+                      groups="einvoicing_extended_rk.group_einvoicing_user">
+                    <group>
+                        <group string="PINT-AE Classification">
+                            <field name="einv_item_type"/>
+                            <field name="einv_sac_code"
+                                   required="einv_item_type in ('S', 'B')"
+                                   placeholder="9983"/>
+                            <field name="einv_hs_code"
+                                   required="einv_item_type in ('G', 'B')"
+                                   placeholder="8471.50.00"/>
+                        </group>
+                        <group string="Identification">
+                            <field name="einv_type_of_goods" placeholder="DL8.48.3.3"/>
+                            <field name="einv_item_standard_id"/>
+                            <field name="einv_origin_country_id"
+                                   options="{'no_create': True}"/>
+                        </group>
+                    </group>
+                    <div class="text-muted">
+                        A services line without a Service Accounting Code fails rule
+                        VAL-ITEM-SAC; a goods line without an HS classification fails
+                        VAL-ITEM-CLASS. Setting them here keeps them off the invoice.
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

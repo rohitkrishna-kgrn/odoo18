@@ -36,6 +36,10 @@
             <!-- Proposal narrative -->
             <xpath expr="//notebook" position="inside">
                 <page string="Proposal" name="proposal">
+                    <group>
+                        <field name="proposal_name"
+                               placeholder="e.g. eInvoicing Services"/>
+                    </group>
                     <div class="d-flex align-items-center mb-2">
                         <button name="action_refresh_proposal_lines" type="object"
                                 string="Reload from Products" class="btn-link"

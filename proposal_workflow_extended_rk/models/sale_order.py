@@ -31,6 +31,11 @@ class SaleOrder(models.Model):
     crm_link_override_reason = fields.Text(string='Override Reason', copy=False)
 
     # ── Proposal narrative ────────────────────────────────────────────────
+    proposal_name = fields.Char(
+        string='Proposal Name',
+        help="Printed on the cover of the proposal and the agreement, e.g. "
+             "'eInvoicing Services' gives \"eInvoicing Services Proposal\". "
+             "Left empty, the documents fall back to 'eInvoicing Services'.")
     proposal_line_ids = fields.One2many(
         'sale.order.proposal.line', 'order_id',
         string='Proposal Services', copy=True)
@@ -72,6 +77,12 @@ class SaleOrder(models.Model):
             order.se_project_duration = (
                 '%s months (%s – %s)' % (months, start.strftime('%b %Y'), end.strftime('%b %Y'))
                 if months else start.strftime('%b %Y'))
+
+    # Stamped when each document is actually produced — drives the dashboard.
+    proposal_generated_on = fields.Datetime(
+        string='Proposal Generated On', copy=False, readonly=True)
+    se_generated_on = fields.Datetime(
+        string='Agreement Generated On', copy=False, readonly=True)
 
     is_service_engagement_stage = fields.Boolean(
         compute='_compute_is_service_engagement_stage')
@@ -254,6 +265,7 @@ class SaleOrder(models.Model):
                 "Add at least one product line to this quotation before "
                 "downloading the proposal."))
 
+        self.proposal_generated_on = fields.Datetime.now()
         filename = 'Proposal - %s.pdf' % self.name
         attachment = self.env['ir.attachment'].create({
             'name': filename,
@@ -302,6 +314,7 @@ class SaleOrder(models.Model):
         if not self.se_effective_date:
             self.se_effective_date = fields.Date.context_today(self)
 
+        self.se_generated_on = fields.Datetime.now()
         filename = 'Service Engagement - %s.pdf' % self.name
         attachment = self.env['ir.attachment'].create({
             'name': filename,

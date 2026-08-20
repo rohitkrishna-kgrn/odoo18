@@ -245,8 +245,8 @@
   </div>
 
   <div class="cv-title">
-    <div class="cv-kicker">Commercial Proposal · eInvoicing Services</div>
-    <h1 class="cv-h1">eInvoicing Services<br/>Proposal</h1>
+    <div class="cv-kicker">Commercial Proposal</div>
+    <h1 class="cv-h1"><t t-out="p['proposal_name']"/><br/>Proposal</h1>
     <div class="cv-rule"/>
     <div class="cv-prepared">Prepared exclusively for</div>
     <div class="cv-client"><t t-out="p['company_name']"/></div>

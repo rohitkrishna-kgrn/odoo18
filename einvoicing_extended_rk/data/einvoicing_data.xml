@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ============================================================
+             UN/ECE Rec 20 codes for the units Odoo ships, and the PINT-AE
+             emirate codes for the l10n_ae states.
+
+             Both are set in code rather than as data records: a database may
+             have archived or deleted some of the stock units, and the emirate
+             states are created per chart installation, so neither set of xml
+             ids is dependable.
+             ============================================================ -->
+        <function model="uom.uom" name="_einv_set_unece_codes"/>
+
+        <!-- ============================================================
+             PINT-AE emirate codes for the l10n_ae states.
+             Odoo ships AZ / DU / SH / AJ / UQ / RK / FU; PINT-AE expects
+             AUH / DXB / SHJ / AJM / UAQ / RAK / FUJ.
+             ============================================================ -->
+        <function model="res.country.state" name="_einv_set_emirate_codes"/>
+
+    </data>
+</odoo>

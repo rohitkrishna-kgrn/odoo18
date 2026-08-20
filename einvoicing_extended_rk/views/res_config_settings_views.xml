@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form_einvoicing" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.einvoicing</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="30"/>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='account']" position="inside">
+
+                <!-- ==============================================
+                     AR — outbound
+                     ============================================== -->
+                <block title="KGRN eInvoicing — AR outbound" id="einvoicing_ar_section"
+                       groups="einvoicing_extended_rk.group_einvoicing_manager">
+                    <setting id="einv_enabled_setting"
+                             string="KGRN eInvoicing"
+                             help="Push customer invoices and credit notes to the KGRN
+                                   eInvoicing platform for PINT-AE validation, FTA
+                                   clearance and Peppol delivery.">
+                        <field name="einv_enabled"/>
+                        <div class="content-group mt-2" invisible="not einv_enabled">
+                            <div class="row">
+                                <label for="einv_api_base_url" class="col-lg-4 o_light_label"/>
+                                <field name="einv_api_base_url"
+                                       placeholder="https://uat.kgrnaudit.com/api/v1"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_api_token" class="col-lg-4 o_light_label"/>
+                                <field name="einv_api_token" password="True"
+                                       placeholder="kgrn_out_..."/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_token_expiry" class="col-lg-4 o_light_label"/>
+                                <field name="einv_token_expiry"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_erp_name" class="col-lg-4 o_light_label"/>
+                                <field name="einv_erp_name"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_timeout" class="col-lg-4 o_light_label"/>
+                                <field name="einv_timeout"/>
+                            </div>
+                            <div class="mt-2">
+                                <button name="action_einv_test_connection" type="object"
+                                        string="Test Connection" icon="fa-plug"
+                                        class="btn-link"/>
+                                <button name="action_einv_generate_token" type="object"
+                                        string="Generate Token" icon="fa-key"
+                                        class="btn-link"/>
+                                <button name="action_einv_open_logs" type="object"
+                                        string="Transmission Log" icon="fa-list"
+                                        class="btn-link"/>
+                            </div>
+                            <div class="alert alert-success mt-2 mb-0" role="status"
+                                 invisible="einv_connection_state != 'ok'">
+                                <field name="einv_connection_message" readonly="1" nolabel="1"/>
+                            </div>
+                            <div class="alert alert-danger mt-2 mb-0" role="alert"
+                                 invisible="einv_connection_state != 'error'">
+                                <field name="einv_connection_message" readonly="1" nolabel="1"/>
+                            </div>
+                        </div>
+                    </setting>
+
+                    <setting id="einv_entity_setting"
+                             string="Entity &amp; Location"
+                             invisible="not einv_enabled"
+                             help="The token is bound to one entity and one location.
+                                   Copy the ids from the portal under
+                                   Settings ▸ Active tokens ▸ API identifiers.">
+                        <div class="content-group">
+                            <div class="row">
+                                <label for="einv_entity_id" class="col-lg-4 o_light_label"/>
+                                <field name="einv_entity_id"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_location_id" class="col-lg-4 o_light_label"/>
+                                <field name="einv_location_id"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_entity_name" class="col-lg-4 o_light_label"/>
+                                <field name="einv_entity_name"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_entity_trn" class="col-lg-4 o_light_label"/>
+                                <field name="einv_entity_trn"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_location_name" class="col-lg-4 o_light_label"/>
+                                <field name="einv_location_name"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_peppol_sender_id" class="col-lg-4 o_light_label"/>
+                                <field name="einv_peppol_sender_id"/>
+                            </div>
+                        </div>
+                    </setting>
+
+                    <setting id="einv_push_setting"
+                             string="Push Behaviour"
+                             invisible="not einv_enabled"
+                             help="Draft validates and stores on the platform without
+                                   contacting the Access Point. Submit also transmits a
+                                   valid invoice for FTA clearance.">
+                        <div class="content-group">
+                            <div class="row">
+                                <label for="einv_default_push_state" class="col-lg-4 o_light_label"/>
+                                <field name="einv_default_push_state"/>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <field name="einv_auto_push"/>
+                            <label for="einv_auto_push"/>
+                            <div class="text-muted">
+                                Send to ASP automatically when an invoice is posted.
+                                A failure never blocks posting — it is recorded on the
+                                invoice and can be resent.
+                            </div>
+                        </div>
+                        <div>
+                            <field name="einv_attach_pdf"/>
+                            <label for="einv_attach_pdf"/>
+                        </div>
+                    </setting>
+
+                    <setting id="einv_seller_setting"
+                             string="Seller Defaults"
+                             invisible="not einv_enabled"
+                             help="The platform always overrides the seller block from
+                                   the entity profile. These values are sent so the
+                                   payload mirrors the portal AR detail view.">
+                        <div class="content-group">
+                            <div class="row">
+                                <label for="einv_seller_scheme_id" class="col-lg-4 o_light_label"/>
+                                <field name="einv_seller_scheme_id"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_seller_electronic_address" class="col-lg-4 o_light_label"/>
+                                <field name="einv_seller_electronic_address"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_legal_reg_type" class="col-lg-4 o_light_label"/>
+                                <field name="einv_legal_reg_type"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_legal_reg_id" class="col-lg-4 o_light_label"/>
+                                <field name="einv_legal_reg_id"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_trade_license" class="col-lg-4 o_light_label"/>
+                                <field name="einv_trade_license"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_authority_name" class="col-lg-4 o_light_label"/>
+                                <field name="einv_authority_name"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_contact_point" class="col-lg-4 o_light_label"/>
+                                <field name="einv_contact_point"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_default_transaction_type" class="col-lg-4 o_light_label"/>
+                                <field name="einv_default_transaction_type"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_default_payment_means" class="col-lg-4 o_light_label"/>
+                                <field name="einv_default_payment_means"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_default_item_type" class="col-lg-4 o_light_label"/>
+                                <field name="einv_default_item_type"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+
+                <!-- ==============================================
+                     AP — inbound
+                     ============================================== -->
+                <block title="KGRN eInvoicing — AP inbound" id="einvoicing_ap_section"
+                       groups="einvoicing_extended_rk.group_einvoicing_manager">
+                    <setting id="einv_ap_enabled_setting"
+                             string="AP Inbound Webhook"
+                             help="Receive supplier documents pushed by the platform and
+                                   turn them into vendor bills and vendor credit notes
+                                   automatically.">
+                        <field name="einv_ap_enabled"/>
+                        <div class="content-group mt-2" invisible="not einv_ap_enabled">
+                            <div class="row">
+                                <label for="einv_ap_webhook_url" class="col-lg-4 o_light_label"/>
+                                <field name="einv_ap_webhook_url" readonly="1"/>
+                            </div>
+                            <div class="text-muted mb-2">
+                                Configure this URL on the KGRN side under
+                                Connectors ▸ ERP webhook (<code>apErpWebhook.url</code>).
+                            </div>
+                            <div class="row">
+                                <label for="einv_ap_auth_type" class="col-lg-4 o_light_label"/>
+                                <field name="einv_ap_auth_type"/>
+                            </div>
+                            <div class="row" invisible="einv_ap_auth_type not in ('bearer', 'apikey')">
+                                <label for="einv_ap_token" class="col-lg-4 o_light_label"/>
+                                <field name="einv_ap_token" password="True"/>
+                            </div>
+                            <div class="row" invisible="einv_ap_auth_type != 'apikey'">
+                                <label for="einv_ap_api_key_header" class="col-lg-4 o_light_label"/>
+                                <field name="einv_ap_api_key_header"/>
+                            </div>
+                            <div class="row" invisible="einv_ap_auth_type != 'basic'">
+                                <label for="einv_ap_username" class="col-lg-4 o_light_label"/>
+                                <field name="einv_ap_username"/>
+                            </div>
+                            <div class="row" invisible="einv_ap_auth_type != 'basic'">
+                                <label for="einv_ap_password" class="col-lg-4 o_light_label"/>
+                                <field name="einv_ap_password" password="True"/>
+                            </div>
+                            <div class="mt-2" invisible="einv_ap_auth_type not in ('bearer', 'apikey')">
+                                <button name="action_einv_generate_ap_token" type="object"
+                                        string="Generate Webhook Token" icon="fa-refresh"
+                                        class="btn-link"/>
+                            </div>
+                            <div class="alert alert-warning mt-2 mb-0" role="alert"
+                                 invisible="einv_ap_auth_type != 'none'">
+                                With no authentication anyone who reaches this URL can
+                                create vendor bills. Only use it behind a private network.
+                            </div>
+                            <div class="alert alert-danger mt-2 mb-0" role="alert"
+                                 invisible="einv_ap_last_status != 'error'">
+                                Last delivery failed:
+                                <field name="einv_ap_last_error" readonly="1" nolabel="1"/>
+                                (<field name="einv_ap_last_date" readonly="1" nolabel="1"/>)
+                            </div>
+                        </div>
+                    </setting>
+
+                    <setting id="einv_ap_booking_setting"
+                             string="Inbound Booking"
+                             invisible="not einv_ap_enabled"
+                             help="Where received supplier documents are booked, and what
+                                   to fall back on when a product, account or tax cannot
+                                   be matched.">
+                        <div class="content-group">
+                            <div class="row">
+                                <label for="einv_ap_journal_id" class="col-lg-4 o_light_label"/>
+                                <field name="einv_ap_journal_id"
+                                       domain="[('type', '=', 'purchase'), ('company_id', '=', company_id)]"
+                                       options="{'no_create': True}"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_ap_account_id" class="col-lg-4 o_light_label"/>
+                                <field name="einv_ap_account_id"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_ap_tax_id" class="col-lg-4 o_light_label"/>
+                                <field name="einv_ap_tax_id"/>
+                            </div>
+                            <div class="row">
+                                <label for="einv_ap_product_id" class="col-lg-4 o_light_label"/>
+                                <field name="einv_ap_product_id"/>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <field name="einv_ap_create_partner"/>
+                            <label for="einv_ap_create_partner"/>
+                        </div>
+                        <div>
+                            <field name="einv_ap_store_xml"/>
+                            <label for="einv_ap_store_xml"/>
+                        </div>
+                        <div>
+                            <field name="einv_ap_auto_post"/>
+                            <label for="einv_ap_auto_post"/>
+                            <div class="text-muted">
+                                Leave off to review each received document first — an
+                                inbound Peppol document is never rejected, so its
+                                accounts and taxes still need checking.
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_einvoicing_dashboard" model="ir.actions.client">
+        <field name="name">eInvoicing Dashboard</field>
+        <field name="tag">einvoicing_dashboard</field>
+        <field name="params" eval="{'scope': 'einvoicing',
+                                    'title': 'eInvoicing Dashboard',
+                                    'subtitle': 'Pipeline records tied to eInvoicing services, with quotation and agreement progress.'}"/>
+    </record>
+
+    <!-- One entry in CRM next to Dashboard, with both dashboards under it. -->
+    <menuitem id="menu_einvoicing_root"
+              name="eInvoicing"
+              parent="crm.crm_menu_root"
+              groups="proposal_workflow_extended_rk.group_einvoicing_dashboard"
+              sequence="0"/>
+
+    <menuitem id="menu_einvoicing_dashboard"
+              name="Dashboard"
+              parent="menu_einvoicing_root"
+              action="action_einvoicing_dashboard"
+              sequence="10"/>
+
+    <record id="action_einvoicing_analytics" model="ir.actions.client">
+        <field name="name">eInvoicing Analytics</field>
+        <field name="tag">einvoicing_analytics</field>
+        <field name="params" eval="{'scope': 'einvoicing',
+                                    'title': 'eInvoicing Analytics',
+                                    'subtitle': 'Pipeline, revenue mix and delivery progress across the selected period.'}"/>
+    </record>
+
+    <menuitem id="menu_einvoicing_analytics"
+              name="Analytics"
+              parent="menu_einvoicing_root"
+              action="action_einvoicing_analytics"
+              sequence="20"/>
+
+    <!-- ═══ Everything that is not eInvoicing ═══ -->
+
+    <record id="action_other_dashboard" model="ir.actions.client">
+        <field name="name">Other Services Dashboard</field>
+        <field name="tag">einvoicing_dashboard</field>
+        <field name="params" eval="{'scope': 'other',
+                                    'title': 'Other Services Dashboard',
+                                    'subtitle': 'Pipeline records for every service other than eInvoicing, with quotation and agreement progress.'}"/>
+    </record>
+
+    <record id="action_other_analytics" model="ir.actions.client">
+        <field name="name">Other Services Analytics</field>
+        <field name="tag">einvoicing_analytics</field>
+        <field name="params" eval="{'scope': 'other',
+                                    'title': 'Other Services Analytics',
+                                    'subtitle': 'Pipeline, revenue mix and delivery progress for non-eInvoicing services.'}"/>
+    </record>
+
+    <menuitem id="menu_other_root"
+              name="Other Services"
+              parent="crm.crm_menu_root"
+              groups="proposal_workflow_extended_rk.group_other_services_dashboard"
+              sequence="0"/>
+
+    <menuitem id="menu_other_dashboard"
+              name="Dashboard"
+              parent="menu_other_root"
+              action="action_other_dashboard"
+              sequence="10"/>
+
+    <menuitem id="menu_other_analytics"
+              name="Analytics"
+              parent="menu_other_root"
+              action="action_other_analytics"
+              sequence="20"/>
+
+</odoo>

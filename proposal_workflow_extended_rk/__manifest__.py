@@ -1,6 +1,6 @@
 {
     'name': 'Proposal Workflow Extended RK',
-    'version': '18.0.1.0',
+    'version': '18.0.1.3',
     'license': 'LGPL-3',
     'author': 'Rohit',
     'category': 'Sales',
@@ -29,6 +29,7 @@ Proposal workflow
         'sale_renewal_rk',
     ],
     'data': [
+        'security/einvoicing_security.xml',
         'security/ir.model.access.csv',
         'data/ir_sequence_data.xml',
         'report/report_paperformat.xml',
@@ -38,7 +39,17 @@ Proposal workflow
         'views/product_template_views.xml',
         'views/crm_lead_views.xml',
         'views/sale_order_views.xml',
+        'views/einvoicing_dashboard_views.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'proposal_workflow_extended_rk/static/src/scss/einvoicing_dashboard.scss',
+            'proposal_workflow_extended_rk/static/src/js/einvoicing_dashboard.js',
+            'proposal_workflow_extended_rk/static/src/js/einvoicing_analytics.js',
+            'proposal_workflow_extended_rk/static/src/xml/einvoicing_dashboard.xml',
+            'proposal_workflow_extended_rk/static/src/xml/einvoicing_analytics.xml',
+        ],
+    },
     'post_init_hook': 'post_init_hook',
     'installable': True,
     'application': False,

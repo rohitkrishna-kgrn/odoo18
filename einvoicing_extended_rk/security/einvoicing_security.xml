@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <record id="module_category_einvoicing" model="ir.module.category">
+            <field name="name">KGRN eInvoicing</field>
+            <field name="description">Access to the UAE FTA eInvoicing integration.</field>
+            <field name="sequence">25</field>
+        </record>
+
+        <record id="group_einvoicing_user" model="res.groups">
+            <field name="name">User</field>
+            <field name="category_id" ref="module_category_einvoicing"/>
+            <field name="comment">See the eInvoicing fields, send AR documents to the
+                ASP and read the transmission log.</field>
+            <field name="implied_ids" eval="[(4, ref('account.group_account_invoice'))]"/>
+        </record>
+
+        <record id="group_einvoicing_manager" model="res.groups">
+            <field name="name">Administrator</field>
+            <field name="category_id" ref="module_category_einvoicing"/>
+            <field name="comment">Configure the API token, the entity and the AP inbound
+                webhook, and force a submission to the FTA.</field>
+            <field name="implied_ids" eval="[(4, ref('einvoicing_extended_rk.group_einvoicing_user'))]"/>
+            <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+        </record>
+
+        <!-- Multi-company: a user only ever sees the logs and errors of the
+             companies they are allowed into. -->
+        <record id="einvoice_log_company_rule" model="ir.rule">
+            <field name="name">eInvoice Log: multi-company</field>
+            <field name="model_id" ref="model_einvoice_log"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="einvoice_error_company_rule" model="ir.rule">
+            <field name="name">eInvoice Error: multi-company</field>
+            <field name="model_id" ref="model_einvoice_error"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="einvoice_allowance_company_rule" model="ir.rule">
+            <field name="name">eInvoice Allowance: multi-company</field>
+            <field name="model_id" ref="model_einvoice_allowance"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+    </data>
+</odoo>

@@ -44,7 +44,9 @@ class ReportServiceEngagementMixin(models.AbstractModel):
             company.street, company.street2, company.city,
             company.country_id.name) if part)
 
+        proposal_name = (order.proposal_name or '').strip() or 'eInvoicing Services'
         return {
+            'proposal_name': proposal_name,
             'agreement_type': order.se_agreement_type or 'Service Engagement Agreement',
             'se_ref': order.name,
             'client_legal': client_legal,

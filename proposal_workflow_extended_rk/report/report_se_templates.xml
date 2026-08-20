@@ -187,8 +187,8 @@
   </div>
 
   <div class="cv-mid">
-    <div class="cv-badge">Service Engagement Agreement</div>
-    <h1 class="cv-h1"><t t-out="d['agreement_type']"/></h1>
+    <div class="cv-badge">Service Engagement</div>
+    <h1 class="cv-h1"><t t-out="d['proposal_name']"/><br/>Agreement</h1>
     <div class="cv-divider"/>
     <div class="cv-for">Between <strong>KGRN Chartered Accountants LLC</strong> and
       <strong><t t-out="d['client_legal']"/></strong></div>

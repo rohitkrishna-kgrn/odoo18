@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_einvoice_log_user,einvoice.log user,model_einvoice_log,einvoicing_extended_rk.group_einvoicing_user,1,0,0,0
+access_einvoice_log_manager,einvoice.log manager,model_einvoice_log,einvoicing_extended_rk.group_einvoicing_manager,1,1,1,1
+access_einvoice_error_user,einvoice.error user,model_einvoice_error,einvoicing_extended_rk.group_einvoicing_user,1,0,0,0
+access_einvoice_error_manager,einvoice.error manager,model_einvoice_error,einvoicing_extended_rk.group_einvoicing_manager,1,1,1,1
+access_einvoice_allowance_user,einvoice.allowance user,model_einvoice_allowance,einvoicing_extended_rk.group_einvoicing_user,1,1,1,1
+access_einvoice_allowance_account,einvoice.allowance accountant,model_einvoice_allowance,account.group_account_invoice,1,1,1,1
+access_einvoice_token_wizard,einvoice.token.wizard,model_einvoice_token_wizard,einvoicing_extended_rk.group_einvoicing_manager,1,1,1,1

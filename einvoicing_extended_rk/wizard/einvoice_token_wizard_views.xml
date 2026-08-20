@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_einvoice_token_wizard_form" model="ir.ui.view">
+        <field name="name">einvoice.token.wizard.form</field>
+        <field name="model">einvoice.token.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate Outbound API Token">
+                <div class="alert alert-info" role="status">
+                    This issues a <code>kgrn_out_</code> token from the portal
+                    credentials of an <b>entity administrator</b> — no one-time code is
+                    needed. The token is returned once and stored on the company; the
+                    password is used for this call only and is never saved.
+                </div>
+                <group>
+                    <group>
+                        <field name="company_id" options="{'no_create': True}"
+                               groups="base.group_multi_company"/>
+                        <field name="api_base_url"/>
+                        <field name="email"/>
+                        <field name="password" password="True"/>
+                    </group>
+                    <group>
+                        <field name="name"/>
+                        <field name="erp_name"/>
+                        <field name="expires_at"/>
+                        <field name="entity_id"/>
+                        <field name="location_id"/>
+                        <field name="reason"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_generate" type="object"
+                            string="Generate Token" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_einvoice_token_wizard" model="ir.actions.act_window">
+        <field name="name">Generate Outbound API Token</field>
+        <field name="res_model">einvoice.token.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

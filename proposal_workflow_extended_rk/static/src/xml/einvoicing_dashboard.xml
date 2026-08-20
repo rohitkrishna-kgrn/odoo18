@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="proposal_workflow_extended_rk.EinvoicingDashboard">
+    <div t-att-class="props.className" class="kgrn-shell">
+        <div class="o_content kgrn-dash">
+
+        <!-- ── Header ─────────────────────────────────────────────── -->
+        <div class="kgrn-dash-head">
+            <div class="kgrn-dash-title">
+                <h1><t t-esc="state.title"/></h1>
+                <span class="kgrn-dash-sub"><t t-esc="state.subtitle"/></span>
+            </div>
+            <div class="kgrn-dash-filters">
+                <div class="kgrn-field">
+                    <label>From</label>
+                    <input type="date" t-model="state.dateFrom" t-on-change="() => this.load()"/>
+                </div>
+                <div class="kgrn-field">
+                    <label>To</label>
+                    <input type="date" t-model="state.dateTo" t-on-change="() => this.load()"/>
+                </div>
+                <div class="kgrn-field">
+                    <label>Salesperson</label>
+                    <select t-model="state.salespersonId" t-on-change="() => this.load()">
+                        <option value="">All salespeople</option>
+                        <option t-foreach="state.salespersons" t-as="user" t-key="user.id"
+                                t-att-value="user.id">
+                            <t t-esc="user.name"/>
+                        </option>
+                    </select>
+                </div>
+                <div class="kgrn-quick">
+                    <button t-on-click="() => this.setRange(1)">1M</button>
+                    <button t-on-click="() => this.setRange(3)">3M</button>
+                    <button t-on-click="() => this.setRange(12)">1Y</button>
+                    <button class="kgrn-refresh" t-on-click="() => this.load()">
+                        <i class="fa fa-refresh"/> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── States ─────────────────────────────────────────────── -->
+        <div t-if="state.error" class="kgrn-alert">
+            <i class="fa fa-exclamation-triangle"/> <t t-esc="state.error"/>
+        </div>
+        <div t-elif="state.loading" class="kgrn-loading">
+            <i class="fa fa-circle-o-notch fa-spin"/> Loading…
+        </div>
+
+        <t t-else="">
+            <!-- ── KPI cards ──────────────────────────────────────── -->
+            <div class="kgrn-kpis">
+                <div class="kgrn-kpi">
+                    <div class="kgrn-kpi-label">Pipeline Records</div>
+                    <div class="kgrn-kpi-value"><t t-esc="state.kpis.leads"/></div>
+                </div>
+                <div class="kgrn-kpi">
+                    <div class="kgrn-kpi-label">Expected Value</div>
+                    <div class="kgrn-kpi-value">
+                        <t t-esc="formatMoney(state.kpis.pipeline_value)"/>
+                    </div>
+                </div>
+                <div class="kgrn-kpi">
+                    <div class="kgrn-kpi-label">Order Value</div>
+                    <div class="kgrn-kpi-value">
+                        <t t-esc="formatMoney(state.kpis.order_value)"/>
+                    </div>
+                </div>
+                <div class="kgrn-kpi">
+                    <div class="kgrn-kpi-label">Proposals Sent</div>
+                    <div class="kgrn-kpi-value"><t t-esc="state.kpis.proposals"/></div>
+                </div>
+                <div class="kgrn-kpi">
+                    <div class="kgrn-kpi-label">Agreements</div>
+                    <div class="kgrn-kpi-value"><t t-esc="state.kpis.agreements"/></div>
+                </div>
+                <div class="kgrn-kpi kgrn-kpi-alert" t-att-class="{ 'is-clear': !state.kpis.stale }">
+                    <div class="kgrn-kpi-label">
+                        No Activity &gt; <t t-esc="state.staleDays"/>d
+                    </div>
+                    <div class="kgrn-kpi-value"><t t-esc="state.kpis.stale"/></div>
+                </div>
+            </div>
+
+            <!-- ── Table ──────────────────────────────────────────── -->
+            <div class="kgrn-card">
+                <table class="kgrn-table">
+                    <thead>
+                        <tr>
+                            <th>CRM Ref</th>
+                            <th>Opportunity</th>
+                            <th>Customer</th>
+                            <th>Stage</th>
+                            <th>Salesperson</th>
+                            <th class="num">Expected</th>
+                            <th>Sale Orders</th>
+                            <th class="num">Order Value</th>
+                            <th class="mid">Docs</th>
+                            <th class="mid">Last Activity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-if="!state.rows.length">
+                            <td colspan="10" class="kgrn-empty">
+                                No pipeline records in this period.
+                            </td>
+                        </tr>
+                        <tr t-foreach="state.rows" t-as="row" t-key="row.id"
+                            t-att-class="{ 'is-stale': row.is_stale }"
+                            t-on-click="() => this.openLead(row)">
+                            <td class="kgrn-ref"><t t-esc="row.crm_ref"/></td>
+                            <td class="kgrn-name"><t t-esc="row.name"/></td>
+                            <td><t t-esc="row.partner"/></td>
+                            <td><span class="kgrn-stage"><t t-esc="row.stage"/></span></td>
+                            <td><t t-esc="row.salesperson"/></td>
+                            <td class="num"><t t-esc="formatMoney(row.expected_revenue)"/></td>
+                            <td>
+                                <a t-if="row.order_names.length" href="#"
+                                   t-on-click="(ev) => this.openOrders(row, ev)">
+                                    <t t-esc="row.order_names.join(', ')"/>
+                                </a>
+                                <span t-else="" class="kgrn-muted">—</span>
+                            </td>
+                            <td class="num"><t t-esc="formatMoney(row.order_total)"/></td>
+                            <td class="mid">
+                                <span t-if="row.proposal_count" class="kgrn-pill is-proposal"
+                                      title="Proposal generated">P</span>
+                                <span t-if="row.se_count" class="kgrn-pill is-se"
+                                      title="Service Engagement Agreement generated">SE</span>
+                                <span t-if="!row.proposal_count and !row.se_count"
+                                      class="kgrn-muted">—</span>
+                            </td>
+                            <td class="mid">
+                                <span t-att-class="row.is_stale ? 'kgrn-pill is-stale' : 'kgrn-muted'"
+                                      t-att-title="row.last_activity">
+                                    <t t-esc="activityLabel(row)"/>
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+    </div>
+    </div>
+</t>
+
+</templates>

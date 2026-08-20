@@ -209,6 +209,8 @@ class ReportProposalMixin(models.AbstractModel):
             "engagement." % (company.name or '')
         )
         values = {
+            # Cover title: "<Proposal Name> Proposal".
+            'proposal_name': (order.proposal_name or '').strip() or 'eInvoicing Services',
             'company_name': company.name or partner.name or '',
             'person_name': partner.name if partner != company else '',
             'order_ref': order.name,

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_einvoice_log_list" model="ir.ui.view">
+        <field name="name">einvoice.log.list</field>
+        <field name="model">einvoice.log</field>
+        <field name="arch" type="xml">
+            <list string="eInvoice Transmissions" create="false"
+                  decoration-success="success == True"
+                  decoration-danger="success == False">
+                <field name="create_date" string="When"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="direction"/>
+                <field name="operation"/>
+                <field name="move_id"/>
+                <field name="unique_invoice_number" optional="show"/>
+                <field name="http_status" string="HTTP"/>
+                <field name="success" widget="boolean_toggle"/>
+                <field name="error_code" optional="show"/>
+                <field name="request_id" optional="hide"/>
+                <field name="record_id" optional="hide"/>
+                <field name="instance_id" optional="hide"/>
+                <field name="message" optional="show"/>
+                <field name="user_id" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_einvoice_log_form" model="ir.ui.view">
+        <field name="name">einvoice.log.form</field>
+        <field name="model">einvoice.log</field>
+        <field name="arch" type="xml">
+            <form string="eInvoice Transmission" create="false" edit="false">
+                <header>
+                    <button name="action_open_document" type="object"
+                            string="Open Document" class="btn-secondary"
+                            invisible="not move_id"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="create_date" string="When"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="direction"/>
+                            <field name="operation"/>
+                            <field name="move_id"/>
+                            <field name="user_id"/>
+                        </group>
+                        <group>
+                            <field name="endpoint"/>
+                            <field name="http_status"/>
+                            <field name="success"/>
+                            <field name="error_code"/>
+                            <field name="request_id"/>
+                            <field name="unique_invoice_number"/>
+                            <field name="record_id"/>
+                            <field name="instance_id"/>
+                        </group>
+                    </group>
+                    <group string="Message">
+                        <field name="message" nolabel="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Request" name="request">
+                            <field name="request_body" nolabel="1" widget="ace"
+                                   options="{'mode': 'json'}"/>
+                        </page>
+                        <page string="Response" name="response">
+                            <field name="response_body" nolabel="1" widget="ace"
+                                   options="{'mode': 'json'}"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_einvoice_log_search" model="ir.ui.view">
+        <field name="name">einvoice.log.search</field>
+        <field name="model">einvoice.log</field>
+        <field name="arch" type="xml">
+            <search string="eInvoice Transmissions">
+                <field name="move_id"/>
+                <field name="unique_invoice_number"/>
+                <field name="request_id"/>
+                <field name="instance_id"/>
+                <field name="record_id"/>
+                <field name="message"/>
+                <filter string="Succeeded" name="ok" domain="[('success', '=', True)]"/>
+                <filter string="Failed" name="ko" domain="[('success', '=', False)]"/>
+                <separator/>
+                <filter string="AR — outbound" name="ar" domain="[('direction', '=', 'ar')]"/>
+                <filter string="AP — inbound" name="ap" domain="[('direction', '=', 'ap')]"/>
+                <separator/>
+                <filter string="Today" name="today"
+                        domain="[('create_date', '&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Direction" name="gb_direction" context="{'group_by': 'direction'}"/>
+                    <filter string="Operation" name="gb_operation" context="{'group_by': 'operation'}"/>
+                    <filter string="Error Code" name="gb_error" context="{'group_by': 'error_code'}"/>
+                    <filter string="Company" name="gb_company" context="{'group_by': 'company_id'}"/>
+                    <filter string="Date" name="gb_date" context="{'group_by': 'create_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_einvoice_log" model="ir.actions.act_window">
+        <field name="name">eInvoice Transmissions</field>
+        <field name="res_model">einvoice.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_einvoice_log_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No transmission recorded yet</p>
+            <p>Every AR push and every AP document received from the KGRN
+               eInvoicing platform is logged here with its full request and
+               response body. Quote the Request ID when raising a support ticket.</p>
+        </field>
+    </record>
+
+    <record id="view_einvoice_error_list" model="ir.ui.view">
+        <field name="name">einvoice.error.list</field>
+        <field name="model">einvoice.error</field>
+        <field name="arch" type="xml">
+            <list string="Validation Errors" create="false">
+                <field name="date"/>
+                <field name="move_id"/>
+                <field name="rule"/>
+                <field name="field_name"/>
+                <field name="message"/>
+                <field name="fix"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_einvoice_error" model="ir.actions.act_window">
+        <field name="name">Validation Errors</field>
+        <field name="res_model">einvoice.error</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No validation error outstanding</p>
+            <p>Errors returned by the platform's PINT-AE validation. Fix the
+               field named here and resend the same Unique Invoice Number.</p>
+        </field>
+    </record>
+
+</odoo>

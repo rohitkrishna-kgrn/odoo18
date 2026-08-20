@@ -24,3 +24,16 @@ def post_init_hook(env):
     _logger.info(
         "proposal_workflow_extended_rk: linked %s existing orders to their pipeline record",
         len(orders))
+
+    # 3. Someone has to be able to open the dashboard on day one; administrators
+    #    get it and can then tick the box for anyone else.
+    for xmlid in ('proposal_workflow_extended_rk.group_einvoicing_dashboard',
+                  'proposal_workflow_extended_rk.group_other_services_dashboard'):
+        dashboard_group = env.ref(xmlid, raise_if_not_found=False)
+        if not dashboard_group:
+            continue
+        admins = env.ref('base.group_system').users.filtered(
+            lambda user: dashboard_group not in user.groups_id)
+        admins.write({'groups_id': [(4, dashboard_group.id)]})
+        _logger.info("proposal_workflow_extended_rk: granted %s to %s administrator(s)",
+                     dashboard_group.name, len(admins))

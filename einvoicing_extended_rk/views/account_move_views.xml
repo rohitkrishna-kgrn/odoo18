@@ -1,0 +1,557 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Invoice / bill form
+         ================================================================ -->
+    <record id="view_move_form_einvoicing" model="ir.ui.view">
+        <field name="name">account.move.form.einvoicing</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Header: Send to ASP is the operator's one action. -->
+            <xpath expr="//header" position="inside">
+                <button name="action_einv_push"
+                        string="Send to ASP"
+                        type="object"
+                        class="btn-primary"
+                        groups="einvoicing_extended_rk.group_einvoicing_user"
+                        invisible="state != 'posted'
+                                   or move_type not in ('out_invoice', 'out_refund')
+                                   or not einv_applicable
+                                   or einv_state in ('submitted', 'cleared')"
+                        help="Push this document to the KGRN eInvoicing platform (ASP).
+                              The push mode decides whether it is stored as a draft
+                              or submitted to the FTA for clearance."/>
+                <button name="action_einv_push"
+                        string="Resend to ASP"
+                        type="object"
+                        class="btn-secondary"
+                        groups="einvoicing_extended_rk.group_einvoicing_user"
+                        invisible="state != 'posted'
+                                   or move_type not in ('out_invoice', 'out_refund')
+                                   or not einv_applicable
+                                   or einv_state not in ('draft', 'error', 'rejected')"
+                        help="Resend under the same Unique Invoice Number. The platform
+                              updates the same record — a retry never creates a duplicate."/>
+                <button name="action_einv_submit"
+                        string="Submit to FTA"
+                        type="object"
+                        class="btn-secondary"
+                        groups="einvoicing_extended_rk.group_einvoicing_manager"
+                        invisible="state != 'posted'
+                                   or move_type not in ('out_invoice', 'out_refund')
+                                   or not einv_applicable
+                                   or einv_state not in ('draft', 'error', 'rejected')"
+                        help="Push with PushState submit, whatever the configured default —
+                              validates and, if valid, transmits to the Access Point."/>
+                <button name="action_einv_check"
+                        string="Check eInvoice"
+                        type="object"
+                        groups="einvoicing_extended_rk.group_einvoicing_user"
+                        invisible="move_type not in ('out_invoice', 'out_refund')
+                                   or not einv_applicable
+                                   or einv_state in ('submitted', 'cleared')"
+                        help="Run the local mandatory-field checks without calling the platform."/>
+            </xpath>
+
+            <!-- Ribbons: green once the ASP has it, red when it refused it. -->
+            <xpath expr="//div[@name='button_box']" position="after">
+                <widget name="web_ribbon" title="Cleared by FTA"
+                        bg_color="text-bg-success"
+                        invisible="einv_state != 'cleared'"/>
+                <widget name="web_ribbon" title="Sent to ASP"
+                        bg_color="text-bg-success"
+                        invisible="einv_state != 'submitted'"/>
+                <widget name="web_ribbon" title="Draft on ASP"
+                        bg_color="text-bg-info"
+                        invisible="einv_state != 'draft'"/>
+                <widget name="web_ribbon" title="Received"
+                        bg_color="text-bg-info"
+                        invisible="einv_state != 'received'"/>
+                <widget name="web_ribbon" title="eInvoice Error"
+                        bg_color="text-bg-danger"
+                        invisible="einv_state not in ('error', 'rejected')"/>
+            </xpath>
+
+            <!-- Stat buttons for the stored responses. -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_einv_open_logs"
+                        class="oe_stat_button"
+                        icon="fa-exchange"
+                        type="object"
+                        groups="einvoicing_extended_rk.group_einvoicing_user"
+                        invisible="not einv_log_count">
+                    <field name="einv_log_count" string="ASP Log" widget="statinfo"/>
+                </button>
+            </xpath>
+
+            <!-- The platform's own answer, shown where the error was made. -->
+            <xpath expr="//sheet" position="inside">
+                <div class="alert alert-danger mt-3" role="alert"
+                     invisible="einv_state not in ('error', 'rejected') or not einv_message">
+                    <strong>eInvoicing: <field name="einv_error_code" class="oe_inline" readonly="1"/></strong>
+                    <field name="einv_message" class="oe_inline" readonly="1" nolabel="1"/>
+                </div>
+            </xpath>
+
+            <!-- Full PINT-AE field map, grouped the way the platform documents it. -->
+            <xpath expr="//notebook" position="inside">
+                <page string="eInvoicing"
+                      name="einvoicing"
+                      groups="einvoicing_extended_rk.group_einvoicing_user"
+                      invisible="not einv_applicable">
+                    <group>
+                        <group string="Status" name="einv_status">
+                            <field name="einv_direction" readonly="1"/>
+                            <field name="einv_state" readonly="1"/>
+                            <field name="einv_invoice_type_code"
+                                   readonly="einv_locked"/>
+                            <field name="einv_self_billed"
+                                   readonly="einv_locked"/>
+                            <field name="einv_unique_invoice_number"
+                                   readonly="einv_state != 'not_sent'"/>
+                            <field name="einv_push_state"
+                                   invisible="einv_direction != 'ar'"
+                                   readonly="einv_locked"/>
+                            <field name="einv_locked" invisible="1"/>
+                            <field name="einv_applicable" invisible="1"/>
+                        </group>
+                        <group string="Platform Response" name="einv_response">
+                            <field name="einv_record_id"/>
+                            <field name="einv_instance_id"/>
+                            <field name="einv_platform_status"/>
+                            <field name="einv_peppol_status"/>
+                            <field name="einv_request_id"/>
+                            <field name="einv_last_push_date"
+                                   invisible="einv_direction != 'ar'"/>
+                            <field name="einv_received_date"
+                                   invisible="einv_direction != 'ap'"/>
+                            <field name="einv_sender_id" invisible="einv_direction != 'ap'"/>
+                            <field name="einv_receiver_id" invisible="einv_direction != 'ap'"/>
+                        </group>
+                    </group>
+
+                    <field name="einv_error_ids" nolabel="1" readonly="1"
+                           invisible="not einv_error_ids">
+                        <list string="Validation Errors" create="false" delete="false">
+                            <field name="rule"/>
+                            <field name="field_name"/>
+                            <field name="message"/>
+                            <field name="fix"/>
+                        </list>
+                    </field>
+
+                    <group>
+                        <group string="Invoice Details" name="einv_details">
+                            <field name="einv_issue_time" placeholder="10:53:35"/>
+                            <field name="einv_transaction_type_code"/>
+                            <field name="einv_financial_year"/>
+                            <field name="einv_reference_number"/>
+                            <field name="einv_buyer_reference"/>
+                            <field name="einv_buyer_accounting_reference"/>
+                            <field name="einv_note"/>
+                        </group>
+                        <group string="Period &amp; Currency" name="einv_period">
+                            <field name="einv_period_start"/>
+                            <field name="einv_period_end"/>
+                            <field name="einv_billing_frequency"/>
+                            <field name="einv_vat_taxpoint_date"/>
+                            <field name="einv_vat_currency_id"
+                                   options="{'no_create': True}"/>
+                            <field name="einv_currency_exchange_rate"/>
+                            <field name="einv_principle_id"/>
+                            <field name="einv_beneficiary_id"/>
+                        </group>
+                    </group>
+
+                    <group string="Credit Note"
+                           invisible="einv_invoice_type_code not in ('381', '261')">
+                        <group>
+                            <field name="einv_preceding_invoice_number"
+                                   required="einv_invoice_type_code in ('381', '261')"/>
+                            <field name="einv_preceding_invoice_date"/>
+                        </group>
+                        <group>
+                            <field name="einv_credit_note_reason_code"
+                                   required="einv_invoice_type_code in ('381', '261')"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="References" name="einv_references">
+                            <field name="einv_po_reference"/>
+                            <field name="einv_so_reference"/>
+                            <field name="einv_despatch_advice_ref"/>
+                            <field name="einv_receiving_advice_ref"/>
+                            <field name="einv_customs_ref"/>
+                            <field name="einv_lot_reference"/>
+                            <field name="einv_project_reference"/>
+                            <field name="einv_contract_reference"/>
+                            <field name="einv_contract_value"/>
+                        </group>
+                        <group string="Supporting Documents" name="einv_documents">
+                            <field name="einv_additional_doc_ref_id"/>
+                            <field name="einv_additional_doc_scheme_id" placeholder="AAK"/>
+                            <field name="einv_document_type_code" placeholder="130"/>
+                            <field name="einv_document_description"/>
+                            <field name="einv_external_reference_id" widget="url"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Delivery" name="einv_delivery">
+                            <field name="einv_actual_delivery_date"/>
+                            <field name="einv_incoterms" placeholder="CIF"/>
+                            <field name="einv_deliver_to_location_id"/>
+                            <field name="einv_deliver_to_location_scheme" placeholder="0088"/>
+                            <field name="einv_delivery_party_name"/>
+                            <field name="einv_delivery_address1"/>
+                            <field name="einv_delivery_address2"/>
+                            <field name="einv_delivery_city"/>
+                            <field name="einv_delivery_country_subdivision" placeholder="DXB"/>
+                            <field name="einv_delivery_postal_zone"/>
+                            <field name="einv_delivery_country_code" placeholder="AE"/>
+                        </group>
+                        <group string="Payment" name="einv_payment">
+                            <field name="einv_payment_means_code"/>
+                            <field name="einv_payee_name"/>
+                            <field name="einv_payment_instructions"/>
+                            <field name="einv_payment_network_id" placeholder="BIC"/>
+                            <field name="einv_payment_terms_text"/>
+                            <field name="einv_payee_account_id"/>
+                            <field name="einv_payee_account_name"/>
+                            <field name="einv_payee_identifier"/>
+                            <field name="einv_payee_legal_reg_id"/>
+                            <field name="einv_card_holder_name"/>
+                            <field name="einv_card_pan"/>
+                            <field name="einv_prepaid_amount"/>
+                            <field name="einv_rounding_amount"/>
+                        </group>
+                    </group>
+
+                    <separator string="Document Allowances / Charges"/>
+                    <field name="einv_allowance_ids" nolabel="1"
+                           context="{'default_move_id': id}">
+                        <list editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="charge_indicator"/>
+                            <field name="reason_code"/>
+                            <field name="reason"/>
+                            <field name="percent"/>
+                            <field name="base_amount"/>
+                            <field name="amount"/>
+                            <field name="vat_category"/>
+                            <field name="vat_rate"/>
+                            <field name="currency_id" column_invisible="True"/>
+                        </list>
+                    </field>
+
+                    <!-- The two parties, exactly as they are transmitted.
+
+                         Auto-filled from the customer and the company and then
+                         editable per document, so a one-off detail (a passport
+                         on a walk-in sale, a different AP contact) can be set
+                         here without touching the address book. Use "Reload
+                         Parties" to pull the current master data back in. -->
+                    <separator string="Parties"/>
+                    <div class="mb-2">
+                        <button name="action_einv_reload_parties" type="object"
+                                string="Reload Parties from Customer / Company"
+                                class="btn-link" icon="fa-refresh"
+                                invisible="einv_locked"/>
+                    </div>
+                    <group>
+                        <group string="Buyer — identity" name="einv_buyer_identity">
+                            <field name="einv_buyer_name" required="einv_applicable"/>
+                            <field name="einv_buyer_vat" placeholder="15 digits"/>
+                            <field name="einv_buyer_identifier"/>
+                            <field name="einv_buyer_scheme_id" placeholder="0235"/>
+                            <field name="einv_buyer_electronic_address"/>
+                            <field name="einv_buyer_legal_reg_type"/>
+                            <field name="einv_buyer_legal_reg_id"/>
+                            <field name="einv_buyer_trade_license"/>
+                            <field name="einv_buyer_authority_name"/>
+                            <field name="einv_buyer_cabinet_decision"/>
+                            <field name="einv_buyer_emirates_id"/>
+                            <field name="einv_buyer_passport"/>
+                            <field name="einv_buyer_passport_country" placeholder="AE"/>
+                        </group>
+                        <group string="Buyer — address &amp; contact" name="einv_buyer_address">
+                            <field name="einv_buyer_address1"/>
+                            <field name="einv_buyer_address2"/>
+                            <field name="einv_buyer_city"/>
+                            <field name="einv_buyer_country_subdivision" placeholder="DXB"/>
+                            <field name="einv_buyer_postal_zone"/>
+                            <field name="einv_buyer_country_code" placeholder="AE"/>
+                            <field name="einv_buyer_contact_point"/>
+                            <field name="einv_buyer_phone"/>
+                            <field name="einv_buyer_email"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Seller — identity" name="einv_seller_identity">
+                            <field name="einv_seller_name"/>
+                            <field name="einv_seller_trn"/>
+                            <field name="einv_seller_scheme_id" placeholder="0235"/>
+                            <field name="einv_seller_electronic_address"/>
+                            <field name="einv_seller_legal_reg_type"/>
+                            <field name="einv_seller_legal_reg_id"/>
+                            <field name="einv_seller_trade_license"/>
+                            <field name="einv_seller_authority_name"/>
+                        </group>
+                        <group string="Seller — address &amp; contact" name="einv_seller_address">
+                            <field name="einv_seller_address1"/>
+                            <field name="einv_seller_address2"/>
+                            <field name="einv_seller_city"/>
+                            <field name="einv_seller_country_subdivision" placeholder="DXB"/>
+                            <field name="einv_seller_postal_zone"/>
+                            <field name="einv_seller_country_code" placeholder="AE"/>
+                            <field name="einv_seller_contact_point"/>
+                            <field name="einv_seller_phone"/>
+                            <field name="einv_seller_email"/>
+                        </group>
+                    </group>
+                    <div class="text-muted mb-3" invisible="einv_direction != 'ar'">
+                        The platform overrides the seller block from the entity
+                        profile behind the token, so editing it changes what is
+                        transmitted but not what the platform finally records.
+                        To change the seller for good, edit the organisation
+                        profile in the portal.
+                    </div>
+
+                    <separator string="Attachments"/>
+                    <group>
+                        <group name="einv_attachment_options">
+                            <field name="einv_attach_pdf" readonly="einv_locked"/>
+                            <field name="einv_attach_documents" readonly="einv_locked"/>
+                            <field name="einv_attachment_count"/>
+                        </group>
+                        <group>
+                            <div class="text-muted" colspan="2">
+                                Everything is base64-encoded into attachments[] on
+                                push: the rendered invoice PDF, the files attached
+                                to this invoice (chatter included), and anything
+                                added below. PDF, Word and Excel only — other types
+                                and files over 10 MB are skipped and noted in the log.
+                            </div>
+                        </group>
+                    </group>
+                    <field name="einv_attachment_ids" widget="many2many_binary"
+                           nolabel="1" readonly="einv_locked"
+                           string="Additional documents to send"/>
+
+                    <separator string="Totals"/>
+                    <group>
+                        <group name="einv_totals">
+                            <field name="einv_tax_exclusive_amount"/>
+                            <field name="einv_total_vat"/>
+                            <field name="einv_tax_inclusive_amount"/>
+                            <field name="einv_payable_amount"/>
+                        </group>
+                        <group>
+                            <div class="text-muted" colspan="2">
+                                The platform derives the totals from the lines and
+                                the allowances on submit, so these are shown for
+                                checking rather than sent as given. Amount Due is
+                                Total With VAT less Prepaid plus Rounding.
+                            </div>
+                        </group>
+                    </group>
+
+                    <group string="Received Payload"
+                           invisible="einv_direction != 'ap' or not einv_payload">
+                        <field name="einv_payload" nolabel="1" readonly="1"/>
+                    </group>
+
+
+                </page>
+            </xpath>
+
+            <!-- Line-level PINT-AE fields, as optional list columns. -->
+            <xpath expr="//field[@name='invoice_line_ids']/form/sheet" position="inside">
+                <group string="eInvoicing" name="einvoicing_line"
+                       groups="einvoicing_extended_rk.group_einvoicing_user">
+                    <group string="Item Classification">
+                        <field name="einv_line_identifier"/>
+                        <field name="einv_item_name"/>
+                        <field name="einv_item_type"/>
+                        <field name="einv_sac_code"/>
+                        <field name="einv_hs_code"/>
+                        <field name="einv_type_of_goods"/>
+                        <field name="einv_item_standard_id"/>
+                        <field name="einv_buyer_item_id"/>
+                        <field name="einv_seller_item_id"/>
+                        <field name="einv_origin_country_id" options="{'no_create': True}"/>
+                        <field name="einv_attribute_name"/>
+                        <field name="einv_attribute_value"/>
+                    </group>
+                    <group string="Price &amp; VAT">
+                        <field name="einv_vat_category"/>
+                        <field name="einv_vat_rate"/>
+                        <field name="einv_tax_exemption_reason_code"/>
+                        <field name="einv_tax_exemption_reason"/>
+                        <field name="einv_base_quantity"/>
+                        <field name="einv_gross_price"/>
+                        <field name="einv_price_discount"/>
+                        <field name="einv_order_line_id"/>
+                        <field name="einv_line_object_id"/>
+                        <field name="einv_line_object_scheme" placeholder="AWV"/>
+                        <field name="einv_line_object_type_code"/>
+                    </group>
+                </group>
+                <separator string="Line Allowances / Charges"/>
+                <field name="einv_allowance_ids" nolabel="1"
+                       groups="einvoicing_extended_rk.group_einvoicing_user">
+                    <list editable="bottom">
+                        <field name="charge_indicator"/>
+                        <field name="reason_code"/>
+                        <field name="reason"/>
+                        <field name="percent"/>
+                        <field name="base_amount"/>
+                        <field name="amount"/>
+                        <field name="vat_category"/>
+                        <field name="vat_rate"/>
+                    </list>
+                </field>
+            </xpath>
+
+            <!-- Every PINT-AE items[] key as a column on the line grid, all
+                 shown by default so the whole item map is editable in place.
+                 Any column can be turned off individually with the toggle at
+                 the right of the grid header — the choice is remembered per
+                 user, so each person keeps the set they actually use.
+
+                 allowances[] is the one key that cannot be a column: it is a
+                 list of rows per line, so it gets a total here and is edited
+                 in the line dialog. -->
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='quantity']"
+                   position="after">
+                <field name="einv_line_identifier" string="Line ID" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_item_name" string="Item Name" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_item_type" string="Item Type" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_sac_code" string="SAC" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_hs_code" string="HS Code" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_type_of_goods" string="Type of Goods" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_item_standard_id" string="Standard ID" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_buyer_item_id" string="Buyer Item ID" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_seller_item_id" string="Seller Item ID" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_origin_country_id" string="Origin" optional="show" options="{'no_create': True}"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_base_quantity" string="Base Qty" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_gross_price" string="Gross Price" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_price_discount" string="Price Discount" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_vat_category" string="VAT Cat." optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_vat_rate" string="VAT %" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_tax_exemption_reason_code" string="Exemption Code" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_tax_exemption_reason" string="Exemption Reason" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_attribute_name" string="Attribute" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_attribute_value" string="Attribute Value" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_order_line_id" string="Order Line Ref" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_line_object_id" string="Line Object" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_line_object_scheme" string="Line Object Scheme" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_line_object_type_code" string="Line Object Type" optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="einv_allowance_total" string="Line Allow./Charges"
+                       optional="show"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+                <field name="currency_id" column_invisible="True"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ================================================================
+         Lists — the eInvoice status where invoices are worked through
+         ================================================================ -->
+    <record id="view_out_invoice_tree_einvoicing" model="ir.ui.view">
+        <field name="name">account.move.list.einvoicing</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_out_invoice_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='status_in_payment']" position="before">
+                <field name="einv_state" string="eInvoice" optional="show"
+                       widget="badge"
+                       decoration-success="einv_state in ('cleared', 'submitted')"
+                       decoration-info="einv_state in ('draft', 'received')"
+                       decoration-danger="einv_state in ('error', 'rejected')"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_in_invoice_tree_einvoicing" model="ir.ui.view">
+        <field name="name">account.move.in.list.einvoicing</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_in_invoice_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='status_in_payment']" position="before">
+                <field name="einv_state" string="eInvoice" optional="show"
+                       widget="badge"
+                       decoration-success="einv_state in ('cleared', 'submitted')"
+                       decoration-info="einv_state in ('draft', 'received')"
+                       decoration-danger="einv_state in ('error', 'rejected')"
+                       groups="einvoicing_extended_rk.group_einvoicing_user"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Filters, so a finance user can work the exception list. -->
+    <record id="view_account_invoice_filter_einvoicing" model="ir.ui.view">
+        <field name="name">account.move.search.einvoicing</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='late']" position="after">
+                <separator/>
+                <filter string="eInvoice Not Sent" name="einv_not_sent"
+                        domain="[('einv_state', '=', 'not_sent')]"/>
+                <filter string="eInvoice Error" name="einv_error"
+                        domain="[('einv_state', 'in', ('error', 'rejected'))]"/>
+                <filter string="eInvoice Cleared" name="einv_cleared"
+                        domain="[('einv_state', '=', 'cleared')]"/>
+                <filter string="Received from ASP" name="einv_received"
+                        domain="[('einv_state', '=', 'received')]"/>
+            </xpath>
+            <xpath expr="//filter[@name='salesperson']" position="after">
+                <filter string="eInvoice Status" name="groupby_einv_state"
+                        context="{'group_by': 'einv_state'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ================================================================
+         Server actions — bulk push from the invoice list
+         ================================================================ -->
+    <record id="action_einv_push_server" model="ir.actions.server">
+        <field name="name">Send to ASP</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_view_types">list</field>
+        <field name="groups_id" eval="[(4, ref('einvoicing_extended_rk.group_einvoicing_user'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records.action_einv_push()</field>
+    </record>
+
+</odoo>

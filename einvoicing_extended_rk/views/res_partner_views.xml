@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_partner_form_einvoicing" model="ir.ui.view">
+        <field name="name">res.partner.form.einvoicing</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="eInvoicing" name="einvoicing"
+                      groups="einvoicing_extended_rk.group_einvoicing_user"
+                      invisible="parent_id">
+                    <group>
+                        <group string="Peppol Identity">
+                            <field name="einv_peppol_scheme" placeholder="0235"/>
+                            <field name="einv_peppol_id"
+                                   placeholder="1010101012"
+                                   help="Scheme + address form the Peppol UID, e.g.
+                                         0235:1010101012. This is not the TRN — when it
+                                         is empty the platform falls back to the TRN."/>
+                            <field name="einv_buyer_identifier"/>
+                            <field name="einv_emirate_code"/>
+                        </group>
+                        <group string="Registration">
+                            <field name="einv_legal_reg_type"/>
+                            <field name="einv_legal_reg_id"/>
+                            <field name="einv_trade_license"/>
+                            <field name="einv_authority_name"/>
+                            <field name="einv_cabinet_decision"/>
+                        </group>
+                    </group>
+                    <group string="Individual Identification"
+                           invisible="is_company">
+                        <group>
+                            <field name="einv_emirates_id" placeholder="784-1990-1234567-1"/>
+                        </group>
+                        <group>
+                            <field name="einv_passport"/>
+                            <field name="einv_passport_country_id"
+                                   options="{'no_create': True}"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

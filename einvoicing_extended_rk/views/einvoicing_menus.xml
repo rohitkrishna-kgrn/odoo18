@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- eInvoicing operations, under Accounting. -->
+    <menuitem id="menu_einvoicing_root"
+              name="eInvoicing"
+              parent="account.menu_finance"
+              sequence="95"
+              groups="einvoicing_extended_rk.group_einvoicing_user"/>
+
+    <menuitem id="menu_einvoicing_logs"
+              name="Transmissions"
+              parent="menu_einvoicing_root"
+              action="action_einvoice_log"
+              sequence="10"/>
+
+    <menuitem id="menu_einvoicing_errors"
+              name="Validation Errors"
+              parent="menu_einvoicing_root"
+              action="action_einvoice_error"
+              sequence="20"/>
+
+    <record id="action_einvoice_ar_pending" model="ir.actions.act_window">
+        <field name="name">AR — To Send</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('move_type', 'in', ('out_invoice', 'out_refund')),
+                              ('state', '=', 'posted'),
+                              ('einv_state', 'in', ('not_sent', 'draft', 'error', 'rejected'))]</field>
+        <field name="context">{'search_default_einv_error': 1}</field>
+        <field name="search_view_id" ref="account.view_account_invoice_filter"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Everything has been sent</p>
+            <p>Posted customer invoices and credit notes the platform has not yet
+               accepted. Select them and use <b>Send to ASP</b>.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_einvoicing_ar_pending"
+              name="AR — To Send"
+              parent="menu_einvoicing_root"
+              action="action_einvoice_ar_pending"
+              sequence="5"/>
+
+    <record id="action_einvoice_ap_received" model="ir.actions.act_window">
+        <field name="name">AP — Received</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('move_type', 'in', ('in_invoice', 'in_refund')),
+                              ('einv_state', '=', 'received')]</field>
+        <field name="search_view_id" ref="account.view_account_invoice_filter"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing received yet</p>
+            <p>Vendor bills and vendor credit notes delivered by the KGRN platform
+               over Peppol. Check the accounts and taxes, then post them.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_einvoicing_ap_received"
+              name="AP — Received"
+              parent="menu_einvoicing_root"
+              action="action_einvoice_ap_received"
+              sequence="30"/>
+
+    <menuitem id="menu_einvoicing_token"
+              name="Generate API Token"
+              parent="menu_einvoicing_root"
+              action="action_einvoice_token_wizard"
+              sequence="90"
+              groups="einvoicing_extended_rk.group_einvoicing_manager"/>
+
+    <!-- ================================================================
+         Vendor credit notes as a first-class document
+
+         Odoo carries the in_refund move type but exposes no menu for it: a
+         vendor credit note is otherwise only reachable by filtering the bill
+         list. AP inbound creates them (PINT-AE 381, or 261 when self-billed),
+         so they need a place of their own alongside Bills and Refunds.
+         ================================================================ -->
+    <record id="action_vendor_credit_notes" model="ir.actions.act_window">
+        <field name="name">Vendor Credit Notes</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('move_type', '=', 'in_refund')]</field>
+        <field name="context">{'default_move_type': 'in_refund'}</field>
+        <field name="search_view_id" ref="account.view_account_invoice_filter"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Record a new vendor credit note</p>
+            <p>
+                A vendor credit note reverses or reduces a vendor bill. Credit
+                notes received over Peppol arrive here automatically — PINT-AE
+                type <b>381</b>, or <b>261</b> when the document is self-billed.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_vendor_credit_notes"
+              name="Credit Notes"
+              parent="account.menu_finance_payables"
+              action="action_vendor_credit_notes"
+              sequence="15"/>
+
+</odoo>

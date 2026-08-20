@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- A category holding a single group renders as a plain checkbox on the
+             user form (Settings > Users > Access Rights), which is what makes
+             the dashboard opt-in per user. -->
+        <record id="module_category_einvoicing" model="ir.module.category">
+            <field name="name">eInvoicing</field>
+            <field name="description">Access to the eInvoicing dashboard.</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <record id="group_einvoicing_dashboard" model="res.groups">
+            <field name="name">eInvoicing Dashboard</field>
+            <field name="category_id" ref="module_category_einvoicing"/>
+            <field name="comment">Lets the user open the eInvoicing Dashboard under Services.</field>
+        </record>
+
+        <!-- A second, independent checkbox. Each group needs its own category:
+             two groups in one category would render as a dropdown instead. -->
+        <record id="module_category_other_services" model="ir.module.category">
+            <field name="name">Other Services</field>
+            <field name="description">Access to the other-services dashboard.</field>
+            <field name="sequence">21</field>
+        </record>
+
+        <record id="group_other_services_dashboard" model="res.groups">
+            <field name="name">Other Services Dashboard</field>
+            <field name="category_id" ref="module_category_other_services"/>
+            <field name="comment">Lets the user open the Other Services dashboards under Services.</field>
+        </record>
+
+    </data>
+</odoo>

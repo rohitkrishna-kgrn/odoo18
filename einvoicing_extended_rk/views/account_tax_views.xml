@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_tax_form_einvoicing" model="ir.ui.view">
+        <field name="name">account.tax.form.einvoicing</field>
+        <field name="model">account.tax</field>
+        <field name="inherit_id" ref="account.view_tax_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='advanced_options']" position="inside">
+                <group string="eInvoicing"
+                       groups="einvoicing_extended_rk.group_einvoicing_user">
+                    <field name="einv_vat_category"/>
+                    <field name="einv_exemption_reason_code"
+                           invisible="einv_vat_category in ('S', 'N')"/>
+                    <field name="einv_exemption_reason"
+                           invisible="einv_vat_category in ('S', 'N')"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
