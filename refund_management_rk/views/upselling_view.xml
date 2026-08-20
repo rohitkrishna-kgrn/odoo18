@@ -13,13 +13,17 @@
                     <button name="action_approve" string="Approve" type="object"
                             invisible="state != 'approval'" class="btn-success"
                             groups="refund_management_rk.group_reimbursement_approver"/>
+                    <button name="action_reject" string="Reject Upselling" type="object"
+                            invisible="state not in ('review', 'approval')" class="btn-danger"
+                            groups="refund_management_rk.group_reimbursement_reviewer,refund_management_rk.group_reimbursement_approver"/>
                     <button name="action_submit_review" string="Reset to Review" type="object"
                             invisible="state not in ('approval',)" class="btn-secondary"
                             groups="refund_management_rk.group_reimbursement_reviewer"/>
                     <button name="action_resubmit" string="Resubmission" type="object"
                             invisible="state != 'review'" class="btn-warning"
                             groups="refund_management_rk.group_reimbursement_reviewer"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,review,approval,approved"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,review,approval,approved"/>
                 </header>
                 <sheet>
                     <!-- Smart Buttons -->
@@ -28,12 +32,25 @@
                                 icon="fa-file-text-o" invisible="invoice_count == 0">
                             <field name="invoice_count" widget="statinfo" string="Invoices"/>
                         </button>
+                        <button name="action_view_previous_claims" type="object" class="oe_stat_button"
+                                icon="fa-history" invisible="previous_claim_count == 0">
+                            <field name="previous_claim_count" widget="statinfo" string="Previous Claims"/>
+                        </button>
                     </div>
+
+                    <widget name="web_ribbon" title="Rejected" bg_color="text-bg-danger"
+                            invisible="state != 'rejected'"/>
 
                     <div class="oe_title">
                         <h1>
                             <field name="sequence" readonly="1"/>
                         </h1>
+                    </div>
+
+                    <!-- Mandatory document warning (frontend validation) -->
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'draft' or not document_warning">
+                        <field name="document_warning" nolabel="1" readonly="1"/>
                     </div>
 
                     <!-- Basic Info -->
@@ -45,22 +62,41 @@
                             <field name="create_date" string="Created Date" readonly="1"/>
                         </group>
                         <group>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="claim_amount"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
 
                     <group string="Description">
-                        <field name="description" nolabel="1" placeholder="Describe the upselling opportunity..."/>
+                        <field name="description" nolabel="1"
+                               placeholder="Describe the upselling opportunity..."/>
                     </group>
 
-                    <!-- Documents -->
-                    <group string="Documents">
+                    <!-- Rejection details -->
+                    <group string="Rejection Details" invisible="state != 'rejected'">
                         <group>
-                            <field name="proposal_file" filename="proposal_filename" widget="binary"/>
-                            <field name="proposal_filename" invisible="1"/>
+                            <field name="rejected_by_id"/>
+                            <field name="rejection_date"/>
                         </group>
                         <group>
-                            <field name="engagement_file" filename="engagement_filename" widget="binary"/>
+                            <field name="rejection_reason"/>
+                        </group>
+                    </group>
+
+                    <!-- Documents (all mandatory before submission) -->
+                    <group string="Mandatory Documents">
+                        <group>
+                            <field name="proposal_file" filename="proposal_filename" widget="binary"
+                                   required="state != 'draft'"/>
+                            <field name="proposal_filename" invisible="1"/>
+                            <field name="receipt_voucher_file" filename="receipt_voucher_filename"
+                                   widget="binary" required="state != 'draft'"/>
+                            <field name="receipt_voucher_filename" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="engagement_file" filename="engagement_filename" widget="binary"
+                                   required="state != 'draft'"/>
                             <field name="engagement_filename" invisible="1"/>
                         </group>
                     </group>
@@ -68,7 +104,11 @@
                     <!-- Payment Info -->
                     <group string="Payment Details">
                         <group>
-                            <field name="payment_received_datetime"/>
+                            <field name="payment_received_datetime"
+                                   help="Only payments received during the last completed claim cycle (25th to 24th) can be claimed."/>
+                            <div class="text-muted" colspan="2">
+                                <field name="allowed_payment_period" nolabel="1" readonly="1"/>
+                            </div>
                         </group>
                         <group>
                             <field name="payment_reference"/>
@@ -76,6 +116,30 @@
                     </group>
 
                     <notebook>
+                        <page string="Previous Claims &amp; Invoices" name="previous_claims">
+                            <div class="alert alert-info" role="alert"
+                                 invisible="previous_claim_count != 0">
+                                No previous upselling claim was found for this customer.
+                            </div>
+                            <field name="previous_claim_ids" readonly="1" nolabel="1"
+                                   invisible="previous_claim_count == 0">
+                                <list create="false" delete="false" edit="false">
+                                    <field name="sequence" string="Claim Reference"/>
+                                    <field name="create_date" string="Claim Date"/>
+                                    <field name="customer_id" string="Customer" optional="hide"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="claim_amount" string="Claim Amount" sum="Total Claimed"/>
+                                    <field name="invoice_number" string="Invoice Number"/>
+                                    <field name="invoice_date" string="Invoice Date"/>
+                                    <field name="invoice_amount" string="Invoice Amount" sum="Total Invoiced"/>
+                                    <field name="state" string="Current Status" widget="badge"
+                                           decoration-info="state == 'review'"
+                                           decoration-warning="state == 'approval'"
+                                           decoration-success="state == 'approved'"
+                                           decoration-danger="state == 'rejected'"/>
+                                </list>
+                            </field>
+                        </page>
                         <page string="Invoices" name="invoice_details">
                             <field name="invoice_ids" readonly="1">
                                 <list>
@@ -99,18 +163,49 @@
         <field name="name">Upselling Tree</field>
         <field name="model">upselling</field>
         <field name="arch" type="xml">
-            <list>
+            <list decoration-muted="state == 'rejected'">
                 <field name="sequence"/>
                 <field name="user_id"/>
                 <field name="sale_order_id"/>
                 <field name="customer_id"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="claim_amount" optional="show" sum="Total Claimed"/>
                 <field name="payment_received_datetime"/>
                 <field name="payment_reference"/>
+                <field name="rejected_by_id" optional="hide"/>
+                <field name="rejection_date" optional="hide"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'review'"
                        decoration-warning="state == 'approval'"
-                       decoration-success="state == 'approved'"/>
+                       decoration-success="state == 'approved'"
+                       decoration-danger="state == 'rejected'"/>
             </list>
+        </field>
+    </record>
+
+    <record id="view_search_upselling" model="ir.ui.view">
+        <field name="name">Upselling Search</field>
+        <field name="model">upselling</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="sequence"/>
+                <field name="customer_id"/>
+                <field name="sale_order_id"/>
+                <field name="user_id"/>
+                <filter name="filter_draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="filter_review" string="Under Review" domain="[('state','=','review')]"/>
+                <filter name="filter_approval" string="Awaiting Approval" domain="[('state','=','approval')]"/>
+                <filter name="filter_approved" string="Approved" domain="[('state','=','approved')]"/>
+                <filter name="filter_rejected" string="Rejected" domain="[('state','=','rejected')]"/>
+                <separator/>
+                <filter name="filter_not_rejected" string="Excluding Rejected"
+                        domain="[('state','!=','rejected')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_customer" string="Customer" context="{'group_by': 'customer_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_user" string="Submitted By" context="{'group_by': 'user_id'}"/>
+                </group>
+            </search>
         </field>
     </record>
 
@@ -118,6 +213,7 @@
         <field name="name">Upselling</field>
         <field name="res_model">upselling</field>
         <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_search_upselling"/>
         <field name="domain">[('user_id','=',uid)]</field>
     </record>
 
@@ -125,6 +221,7 @@
         <field name="name">All Upselling</field>
         <field name="res_model">upselling</field>
         <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_search_upselling"/>
     </record>
 
     <menuitem id="menu_upselling_user"

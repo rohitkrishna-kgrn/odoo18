@@ -1,0 +1,22 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Document standards for upselling uploads. Editable under
+             Settings > Technical > System Parameters. -->
+        <record id="param_upselling_allowed_extensions" model="ir.config_parameter">
+            <field name="key">refund_management_rk.upselling_allowed_extensions</field>
+            <field name="value">pdf,doc,docx,xls,xlsx,png,jpg,jpeg,gif,msg,eml</field>
+        </record>
+
+        <record id="param_upselling_max_file_size_mb" model="ir.config_parameter">
+            <field name="key">refund_management_rk.upselling_max_file_size_mb</field>
+            <field name="value">10</field>
+        </record>
+
+        <!-- Day of month a claim cycle opens on. 25 gives 25th..24th cycles;
+             set to 1 for plain calendar months. Clamped to 1-28. -->
+        <record id="param_upselling_cycle_start_day" model="ir.config_parameter">
+            <field name="key">refund_management_rk.upselling_cycle_start_day</field>
+            <field name="value">25</field>
+        </record>
+    </data>
+</odoo>
