@@ -116,6 +116,18 @@ class Upselling(models.Model):
     )
     is_approver = fields.Boolean(compute='_compute_is_approver')
 
+    # Full workflow history shown in the "Log" tab.
+    log_ids = fields.One2many(
+        'upselling.log', 'upselling_id', string='Log', readonly=True
+    )
+    # Set the first time the request is sent back from approval to review. The
+    # reviewer then gets "Re-Submit for Approval" instead of "Submit for Approval".
+    was_reset_to_review = fields.Boolean(
+        string='Reset to Review', default=False, copy=False, readonly=True,
+        help='Technical flag: True once this request has been reset from '
+             'Submitted for Approval back to Submitted for Review.'
+    )
+
     # ------------------------------------------------------------------
     # ORM overrides
     # ------------------------------------------------------------------
@@ -463,16 +475,45 @@ class Upselling(models.Model):
                     'through the approval workflow.'
                 ) % rec.sequence)
 
+    def _add_log(self, action, reason=False):
+        """Persist one workflow action in the Log tab (model ``upselling.log``).
+
+        Created with sudo so the audit trail is written whatever the actor's
+        rights are, and so it stays read-only from the UI.
+        """
+        self.ensure_one()
+        return self.env['upselling.log'].sudo().create({
+            'upselling_id': self.id,
+            'action': action,
+            'user_id': self.env.user.id,
+            'log_date': fields.Datetime.now(),
+            'reason': (reason or '').strip() or False,
+        })
+
+    def _post_action_note(self, log, extra_reason=False):
+        """Mirror a logged action into the chatter."""
+        self.ensure_one()
+        body = Markup('<b>%(action)s</b> by %(user)s.') % {
+            'action': log.action_label(),
+            'user': log.user_id.name,
+        }
+        if extra_reason:
+            body += Markup(
+                '<br/><span style="color:#1a73e8;">Reason :</span> %s'
+            ) % extra_reason
+        self.message_post(
+            body=body,
+            message_type='notification',
+            subtype_xmlid='mail.mt_note',
+        )
+
     def action_submit_review(self):
+        """Draft -> Submitted for Review. No reason/remark is asked."""
         self._check_not_rejected()
         for rec in self:
             rec._check_documents_complete()
-            rec.state = 'review'
-            rec.message_post(
-                body=Markup(_('<b>Submitted for Review</b> by %s.')) % rec.user_id.name,
-                message_type='notification',
-                subtype_xmlid='mail.mt_note',
-            )
+            rec.write({'state': 'review', 'was_reset_to_review': False})
+            rec._post_action_note(rec._add_log('submit_review'))
             # Notify all reviewers by email
             reviewer_group = self.env.ref(
                 'refund_management_rk.group_reimbursement_reviewer', raise_if_not_found=False
@@ -490,30 +531,78 @@ class Upselling(models.Model):
                         ).format(rec.sequence, rec.user_id.name),
                     )
 
-    def action_submit_approval(self):
+    def _check_ready_for_approval(self):
+        """Everything that must be in place before leaving the review stage."""
+        self.ensure_one()
+        if not self.env.user.has_group('refund_management_rk.group_reimbursement_reviewer'):
+            raise UserError(_('Only Reimbursement Reviewers can submit for approval.'))
+        if self.state != 'review':
+            raise UserError(_(
+                'Only a request submitted for review can be sent for approval.'
+            ))
+        missing_fields = []
+        if not self.description:
+            missing_fields.append('Description')
+        if not self.sale_order_id:
+            missing_fields.append('Sale Order')
+        if not self.customer_id:
+            missing_fields.append('Customer')
+        if not self.proposal_file:
+            missing_fields.append('Proposal File')
+        if not self.engagement_file:
+            missing_fields.append('Engagement Letter')
+        if not self.receipt_voucher_file:
+            missing_fields.append('Receipt Voucher')
+        if not self.payment_received_datetime:
+            missing_fields.append('Payment Received Date/Time')
+        if not self.payment_reference:
+            missing_fields.append('Payment Reference')
+        if missing_fields:
+            raise UserError(_(
+                'Cannot submit for approval. Please fill in all required fields: %s'
+            ) % ', '.join(missing_fields))
+        self._check_documents_complete()
+
+    def _do_submit_approval(self, log_action):
+        """Submitted for Review -> Submitted for Approval, without any popup."""
         self.ensure_one()
         self._check_not_rejected()
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Submit for Approval',
-            'res_model': 'upselling.approval.remark.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {'default_upselling_id': self.id},
-        }
+        self._check_ready_for_approval()
+        self.state = 'approval'
+        self._post_action_note(self._add_log(log_action))
+        self._notify_approver()
+        return True
+
+    def action_submit_approval(self):
+        """First submission for approval (no reason/remark required)."""
+        return self._do_submit_approval('submit_approval')
+
+    def action_resubmit_approval(self):
+        """Submission for approval after a Reset to Review (no reason required)."""
+        return self._do_submit_approval('resubmit_approval')
+
+    def _notify_approver(self):
+        self.ensure_one()
+        approver = self.company_id.approver_user_id
+        if approver and approver.partner_id:
+            self.message_notify(
+                partner_ids=[approver.partner_id.id],
+                subject=f'Upselling {self.sequence} - Submitted for Approval',
+                body=Markup(
+                    'Dear {},<br/><br/>'
+                    'Upselling request <b>{}</b> has been submitted for your approval.<br/><br/>'
+                    'Please review and take action.'
+                ).format(approver.name, self.sequence),
+            )
 
     def action_approve(self):
         self._check_not_rejected()
         for rec in self:
             if not rec.is_approver:
-                raise UserError("You are not authorized to approve this upselling request.")
+                raise UserError(_('You are not authorized to approve this upselling request.'))
             rec._check_documents_complete()
             rec.state = 'approved'
-            rec.message_post(
-                body=Markup(_('<b>Approved</b> by %s.')) % self.env.user.name,
-                message_type='notification',
-                subtype_xmlid='mail.mt_note',
-            )
+            rec._post_action_note(rec._add_log('approve'))
 
     def action_reject(self):
         self.ensure_one()
@@ -524,7 +613,7 @@ class Upselling(models.Model):
         self._check_reject_authorisation()
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Reject Upselling',
+            'name': _('Reject Upselling'),
             'res_model': 'upselling.reject.wizard',
             'view_mode': 'form',
             'target': 'new',
@@ -544,19 +633,63 @@ class Upselling(models.Model):
                     'Only the Reimbursement Approver can reject a request submitted for approval.'
                 ))
 
-    def action_resubmit(self):
+    def _check_reset_authorisation(self):
         self.ensure_one()
-        if not self.env.user.has_group('refund_management_rk.group_reimbursement_reviewer'):
-            raise UserError("Only Reimbursement Reviewers can request a resubmission.")
+        user = self.env.user
+        if not (
+            self.is_approver
+            or user.has_group('refund_management_rk.group_reimbursement_reviewer')
+            or user.has_group('refund_management_rk.group_reimbursement_approver')
+        ):
+            raise UserError(_(
+                'Only a Reimbursement Reviewer or Approver can reset a request to review.'
+            ))
+
+    def action_reset_to_review(self):
+        """Ask for the mandatory reason before sending the request back to review."""
+        self.ensure_one()
         self._check_not_rejected()
+        if self.state != 'approval':
+            raise UserError(_(
+                'Only a request submitted for approval can be reset to review.'
+            ))
+        self._check_reset_authorisation()
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Request Resubmission',
-            'res_model': 'upselling.resubmit.wizard',
+            'name': _('Reset to Review'),
+            'res_model': 'upselling.reset.wizard',
             'view_mode': 'form',
             'target': 'new',
             'context': {'default_upselling_id': self.id},
         }
+
+    def _reset_to_review(self, reason):
+        """Submitted for Approval -> Submitted for Review, called by the wizard."""
+        self.ensure_one()
+        self._check_not_rejected()
+        if self.state != 'approval':
+            raise UserError(_(
+                'Only a request submitted for approval can be reset to review.'
+            ))
+        self._check_reset_authorisation()
+        reason = (reason or '').strip()
+        if not reason:
+            raise UserError(_(
+                'A reason/remark is mandatory to reset the request to review.'
+            ))
+        self.write({'state': 'review', 'was_reset_to_review': True})
+        self._post_action_note(self._add_log('reset_review', reason), extra_reason=reason)
+        # Let the submitter know the request came back for another pass.
+        if self.user_id.partner_id:
+            self.message_notify(
+                partner_ids=[self.user_id.partner_id.id],
+                subject=f'Upselling {self.sequence} - Reset to Review',
+                body=Markup(
+                    'Dear {},<br/><br/>'
+                    'Upselling request <b>{}</b> has been reset to review by {}.<br/><br/>'
+                    '<b>Reason:</b> {}'
+                ).format(self.user_id.name, self.sequence, self.env.user.name, reason),
+            )
 
     def action_view_invoices(self):
         self.ensure_one()

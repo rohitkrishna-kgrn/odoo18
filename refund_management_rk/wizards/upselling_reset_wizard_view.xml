@@ -1,0 +1,24 @@
+<odoo>
+    <record id="view_upselling_reset_wizard_form" model="ir.ui.view">
+        <field name="name">upselling.reset.wizard.form</field>
+        <field name="model">upselling.reset.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reset to Review">
+                <div class="alert alert-info" role="alert">
+                    This request will be sent back from Submitted for Approval to
+                    Submitted for Review. A reason/remark is mandatory.
+                </div>
+                <group>
+                    <field name="upselling_id" invisible="1"/>
+                    <field name="reason" nolabel="1" required="1"
+                           placeholder="Enter the reason for resetting this request to review (mandatory)..."/>
+                </group>
+                <footer>
+                    <button name="action_confirm_reset" string="Confirm Reset to Review"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -34,6 +34,7 @@ class UpsellingRejectWizard(models.TransientModel):
             'rejected_by_id': self.env.user.id,
             'rejection_date': fields.Datetime.now(),
         })
+        rec._add_log('reject', reason)
         rec.message_post(
             body=Markup(
                 '<b style="color:#d9534f;">Upselling Rejected</b><br/>'

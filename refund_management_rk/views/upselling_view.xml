@@ -5,10 +5,16 @@
         <field name="arch" type="xml">
             <form string="Upselling">
                 <header>
+                    <field name="was_reset_to_review" invisible="1"/>
                     <button name="action_submit_review" string="Submit for Review" type="object"
                             invisible="state != 'draft'" class="btn-primary"/>
+                    <!-- First pass through review: plain "Submit for Approval" -->
                     <button name="action_submit_approval" string="Submit for Approval" type="object"
-                            invisible="state != 'review'" class="btn-primary"
+                            invisible="state != 'review' or was_reset_to_review" class="btn-primary"
+                            groups="refund_management_rk.group_reimbursement_reviewer"/>
+                    <!-- Back in review after a Reset to Review: "Re-Submit for Approval" -->
+                    <button name="action_resubmit_approval" string="Re-Submit for Approval" type="object"
+                            invisible="state != 'review' or not was_reset_to_review" class="btn-primary"
                             groups="refund_management_rk.group_reimbursement_reviewer"/>
                     <button name="action_approve" string="Approve" type="object"
                             invisible="state != 'approval'" class="btn-success"
@@ -16,11 +22,8 @@
                     <button name="action_reject" string="Reject Upselling" type="object"
                             invisible="state not in ('review', 'approval')" class="btn-danger"
                             groups="refund_management_rk.group_reimbursement_reviewer,refund_management_rk.group_reimbursement_approver"/>
-                    <button name="action_submit_review" string="Reset to Review" type="object"
-                            invisible="state not in ('approval',)" class="btn-secondary"
-                            groups="refund_management_rk.group_reimbursement_reviewer"/>
-                    <button name="action_resubmit" string="Resubmission" type="object"
-                            invisible="state != 'review'" class="btn-warning"
+                    <button name="action_reset_to_review" string="Reset to Review" type="object"
+                            invisible="state != 'approval'" class="btn-secondary"
                             groups="refund_management_rk.group_reimbursement_reviewer"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,review,approval,approved"/>
@@ -149,6 +152,21 @@
                                     <field name="amount_total"/>
                                     <field name="payment_state"/>
                                     <field name="state" string="Status"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Log" name="upselling_log">
+                            <div class="alert alert-info" role="alert"
+                                 invisible="log_ids">
+                                No action has been recorded for this upselling request yet.
+                            </div>
+                            <field name="log_ids" nolabel="1" readonly="1"
+                                   invisible="not log_ids">
+                                <list create="false" edit="false" delete="false">
+                                    <field name="log_date" string="Date/Time"/>
+                                    <field name="user_id" string="User"/>
+                                    <field name="action" string="Action"/>
+                                    <field name="reason_display" string="Reason/Remark"/>
                                 </list>
                             </field>
                         </page>
