@@ -415,7 +415,7 @@
                                         </t>
                                     </td>
                                 </tr>
-                                <tr style="background:#e8eaf6;">
+                                <tr style="background:#fdeee7;">
                                     <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">#</th>
                                     <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Full Name</th>
                                     <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Position</th>
@@ -447,7 +447,7 @@
                                         </t>
                                     </td>
                                 </tr>
-                                <tr style="background:#e8eaf6;">
+                                <tr style="background:#fdeee7;">
                                     <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">#</th>
                                     <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Shareholder Name</th>
                                     <th style="padding:5px 8px; border:1px solid #ddd; text-align:left;">Type</th>

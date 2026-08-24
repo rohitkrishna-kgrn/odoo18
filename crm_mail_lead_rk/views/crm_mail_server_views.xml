@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="crm_mail_server_view_list" model="ir.ui.view">
+        <field name="name">crm.mail.server.list</field>
+        <field name="model">crm.mail.server</field>
+        <field name="arch" type="xml">
+            <list string="CRM Incoming Mail Servers" decoration-muted="state == 'draft'">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="tag_id" widget="badge"/>
+                <field name="user"/>
+                <field name="server"/>
+                <field name="port"/>
+                <field name="last_fetch_date"/>
+                <field name="mail_lead_count" string="Mail Leads"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'done'"
+                       decoration-warning="state == 'draft'"/>
+                <field name="company_id" column_invisible="True" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="crm_mail_server_view_form" model="ir.ui.view">
+        <field name="name">crm.mail.server.form</field>
+        <field name="model">crm.mail.server</field>
+        <field name="arch" type="xml">
+            <form string="CRM Incoming Mail Server">
+                <header>
+                    <button name="button_confirm_login" type="object" string="Test &amp; Confirm"
+                            class="btn-primary" invisible="state == 'done'"/>
+                    <button name="button_fetch_now" type="object" string="Fetch Now"
+                            class="btn-primary" invisible="state != 'done'"/>
+                    <button name="button_set_draft" type="object" string="Reset"
+                            invisible="state != 'done'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_mail_leads" type="object" class="oe_stat_button"
+                                icon="fa-envelope-o">
+                            <field name="mail_lead_count" widget="statinfo" string="Mail Leads"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger"
+                            invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. DM Inbox"/></h1>
+                    </div>
+                    <group>
+                        <group string="Routing">
+                            <field name="tag_id" options="{'no_quick_create': True}"/>
+                            <field name="company_id" groups="base.group_multi_company"
+                                   options="{'no_create': True}"/>
+                            <field name="active" invisible="1"/>
+                            <field name="sequence" groups="base.group_no_one"/>
+                        </group>
+                        <group string="Polling">
+                            <field name="fetch_window_minutes"/>
+                            <field name="max_lookback_hours"/>
+                            <field name="mark_as_read"/>
+                            <field name="keep_attachments"/>
+                            <field name="last_fetch_date"/>
+                        </group>
+                    </group>
+                    <group string="IMAP Connection">
+                        <group>
+                            <field name="server" placeholder="imap.gmail.com"/>
+                            <field name="port"/>
+                            <field name="is_ssl"/>
+                            <field name="folder"/>
+                        </group>
+                        <group>
+                            <field name="user" placeholder="dm@yourdomain.com"/>
+                            <field name="password" password="True"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-info" role="alert" colspan="2">
+                        <b>Gmail:</b> enable IMAP in Gmail
+                        (<i>Settings &gt; See all settings &gt; Forwarding and POP/IMAP</i>),
+                        turn on 2-Step Verification on the account, then generate a
+                        16-character <b>App Password</b> and paste it above. A normal
+                        account password will be rejected. This configuration is
+                        independent of <i>Settings &gt; Technical &gt; Incoming Mail Servers</i>
+                        and only ever feeds CRM Mail Leads.
+                    </div>
+                    <group string="Last Error" invisible="not last_error">
+                        <field name="last_error" nolabel="1" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="crm_mail_server_view_search" model="ir.ui.view">
+        <field name="name">crm.mail.server.search</field>
+        <field name="model">crm.mail.server</field>
+        <field name="arch" type="xml">
+            <search string="CRM Incoming Mail Servers">
+                <field name="name"/>
+                <field name="user"/>
+                <field name="tag_id"/>
+                <filter name="filter_confirmed" string="Confirmed" domain="[('state', '=', 'done')]"/>
+                <filter name="filter_draft" string="Not Confirmed" domain="[('state', '=', 'draft')]"/>
+                <separator/>
+                <filter name="filter_inactive" string="Archived" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_tag" string="Tag" context="{'group_by': 'tag_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="crm_mail_server_action" model="ir.actions.act_window">
+        <field name="name">Incoming Mail Servers (CRM)</field>
+        <field name="res_model">crm.mail.server</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="crm_mail_server_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Configure a CRM mailbox
+            </p>
+            <p>
+                Add one record per Gmail inbox that should feed CRM Mail Leads,
+                and give each one the tag that identifies it — for example
+                <b>DM</b> and <b>Einvoicing</b>. Every 5 minutes Odoo pulls the
+                unread mail that arrived since the previous check.
+            </p>
+        </field>
+    </record>
+
+</odoo>

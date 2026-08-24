@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="crm_mail_lead_assign_wizard_view_form" model="ir.ui.view">
+        <field name="name">crm.mail.lead.assign.wizard.form</field>
+        <field name="model">crm.mail.lead.assign.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Assign to Salesperson">
+                <field name="mail_lead_count" invisible="1"/>
+                <group>
+                    <field name="user_id" options="{'no_create': True, 'no_open': True}"
+                           widget="many2one_avatar_user"/>
+                </group>
+                <field name="mail_lead_ids" nolabel="1">
+                    <list string="Mail Leads" create="false" edit="false" delete="false">
+                        <field name="date_received"/>
+                        <field name="tag_id" widget="badge"/>
+                        <field name="name" string="Subject"/>
+                        <field name="email_from"/>
+                    </list>
+                </field>
+                <div class="text-muted mt-2">
+                    A CRM pipeline record is created for the chosen salesperson,
+                    carrying the subject, sender, message body, attachments and
+                    the mailbox tag.
+                </div>
+                <footer>
+                    <button name="action_assign" type="object" string="Assign"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

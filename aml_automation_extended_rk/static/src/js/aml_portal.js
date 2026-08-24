@@ -21,11 +21,11 @@ class SignaturePad {
     _setupEvents() {
         const c = this.canvas;
         c.addEventListener('mousedown',  e => { this.drawing = true; const p = this._pos(e); this.ctx.beginPath(); this.ctx.moveTo(p.x, p.y); });
-        c.addEventListener('mousemove',  e => { if (!this.drawing) return; const p = this._pos(e); this.ctx.lineWidth = 2; this.ctx.lineCap = 'round'; this.ctx.strokeStyle = '#1a237e'; this.ctx.lineTo(p.x, p.y); this.ctx.stroke(); this.isEmpty = false; });
+        c.addEventListener('mousemove',  e => { if (!this.drawing) return; const p = this._pos(e); this.ctx.lineWidth = 2; this.ctx.lineCap = 'round'; this.ctx.strokeStyle = '#2a2420'; this.ctx.lineTo(p.x, p.y); this.ctx.stroke(); this.isEmpty = false; });
         c.addEventListener('mouseup',    () => { this.drawing = false; });
         c.addEventListener('mouseleave', () => { this.drawing = false; });
         c.addEventListener('touchstart', e => { e.preventDefault(); this.drawing = true; const p = this._pos(e); this.ctx.beginPath(); this.ctx.moveTo(p.x, p.y); });
-        c.addEventListener('touchmove',  e => { e.preventDefault(); if (!this.drawing) return; const p = this._pos(e); this.ctx.lineWidth = 2; this.ctx.lineCap = 'round'; this.ctx.strokeStyle = '#1a237e'; this.ctx.lineTo(p.x, p.y); this.ctx.stroke(); this.isEmpty = false; });
+        c.addEventListener('touchmove',  e => { e.preventDefault(); if (!this.drawing) return; const p = this._pos(e); this.ctx.lineWidth = 2; this.ctx.lineCap = 'round'; this.ctx.strokeStyle = '#2a2420'; this.ctx.lineTo(p.x, p.y); this.ctx.stroke(); this.isEmpty = false; });
         c.addEventListener('touchend',   () => { this.drawing = false; });
     }
     clear() { this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); this.isEmpty = true; }
@@ -239,6 +239,12 @@ const amlForm = (function () {
         const pct = (idx / (totalPages() - 1)) * 100;
         const bar = document.getElementById('aml-progress-bar');
         if (bar) bar.style.width = pct + '%';
+
+        // Section eyebrow ("Section 2 of 7") – counts only the visible steps
+        if (pageEl) {
+            const eyebrow = pageEl.querySelector('.aml-page-num');
+            if (eyebrow) eyebrow.textContent = 'Section ' + (idx + 1) + ' of ' + totalPages();
+        }
 
         // If review page – build review and pre-fill today's date
         if (getPageId(idx) === 'page-6') {
@@ -555,10 +561,11 @@ const amlForm = (function () {
                 <span style="font-size:11px;color:#555;font-weight:600;">${dtLabels[dt]} <span style="color:#c62828;">*</span></span>
                 ${dt === 'proof_of_residence' ? `
                 <div style="margin:2px 0;padding-top:2px;border-top:1px dashed #ccc;">
-                    <a href="${dirSampleUrl}" download target="_blank" style="font-size:11px;font-weight:700;color:#1565c0;text-decoration:none;">⬇ Declaration of proof of residence Download</a>
+                    <a href="${dirSampleUrl}" download target="_blank" style="font-size:11px;font-weight:700;color:#c24a1c;text-decoration:none;">⬇ Declaration of proof of residence Download</a>
                     <p style="font-size:10px;color:#777;margin:2px 0 0;line-height:1.4;">Declaration of Proof of Residence is for applicants who do not have proof of residence in their own name and must be submitted along with a supporting document, issued within the last 3 months, showing the address of the respective individual.</p>
+                    <p style="font-size:10px;color:#777;margin:2px 0 0;line-height:1.4;"><strong style="color:red;">(POR is mandatory for shareholder, manager, director in case if the entity is registered in ADGM or DIFC)</strong></p>
                 </div>` : ''}
-                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:500;color:#1565c0;">
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#fdeee7;border:1px solid #f5b78e;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:500;color:#c24a1c;">
                     &#128206; Upload
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none;"
                         onchange="amlForm.uploadDirectorDoc(this,'${rowId}','${dt}')"/>
@@ -571,7 +578,7 @@ const amlForm = (function () {
         docsTr.className = 'dir-docs-row';
         docsTr.dataset.rowId = rowId;
         docsTr.innerHTML = `
-            <td colspan="9" style="background:#f5f9ff;padding:8px 16px;border-top:none;">
+            <td colspan="9" style="background:#fdeee7;padding:8px 16px;border-top:none;">
                 <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
                     <span style="font-size:12px;font-weight:600;color:#555;padding-top:6px;white-space:nowrap;">Documents:</span>
                     ${docsHtml}
@@ -672,8 +679,9 @@ const amlForm = (function () {
         const shSampleUrl = '/aml_automation_extended_rk/static/src/files/proof_of_residence_sample.pdf';
         const sampleBlock = dt === 'proof_of_residence' ? `
             <div style="margin:2px 0;padding-top:2px;border-top:1px dashed #ccc;">
-                <a href="${shSampleUrl}" download target="_blank" style="font-size:11px;font-weight:700;color:#1565c0;text-decoration:none;">⬇ Declaration of proof of residence Download</a>
+                <a href="${shSampleUrl}" download target="_blank" style="font-size:11px;font-weight:700;color:#c24a1c;text-decoration:none;">⬇ Declaration of proof of residence Download</a>
                 <p style="font-size:10px;color:#777;margin:2px 0 0;line-height:1.4;">Declaration of Proof of Residence is for applicants who do not have proof of residence in their own name and must be submitted along with a supporting document, issued within the last 3 months, showing the address of the respective individual.</p>
+                <p style="font-size:10px;color:#777;margin:2px 0 0;line-height:1.4;"><strong style="color:red;">(POR is mandatory for shareholder, manager, director in case if the entity is registered in ADGM or DIFC)</strong></p>
             </div>` : '';
         const statusHtml = existing
             ? `✔ ${esc(existing.filename)} <button type="button" class="aml-doc-remove-btn" title="Remove attachment" onclick="amlForm.removeShareholderDoc('${rowId}','${dt}',${existing.attachment_id})">&#10005;</button>`
@@ -682,7 +690,7 @@ const amlForm = (function () {
             <div id="sh-doc-wrap-${rowId}-${dt}" style="display:flex;flex-direction:column;gap:4px;min-width:180px;max-width:280px;border-radius:4px;padding:2px;">
                 <span style="font-size:11px;color:#555;font-weight:600;">${label} <span style="color:#c62828;">*</span></span>
                 ${sampleBlock}
-                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:500;color:#1565c0;">
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#fdeee7;border:1px solid #f5b78e;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:500;color:#c24a1c;">
                     &#128206; Upload
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none;"
                         onchange="amlForm.uploadShareholderDoc(this,'${rowId}','${dt}')"/>
@@ -759,7 +767,7 @@ const amlForm = (function () {
         docsTr.className = 'sh-docs-row';
         docsTr.dataset.rowId = rowId;
         docsTr.innerHTML = `
-            <td colspan="10" style="background:#f5f9ff;padding:8px 16px;border-top:none;">
+            <td colspan="10" style="background:#fdeee7;padding:8px 16px;border-top:none;">
                 <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;" id="sh-docs-content-${rowId}">
                     ${_buildShDocsContent(rowId, shType, s.uploaded_docs)}
                 </div>
@@ -1394,7 +1402,7 @@ const amlForm = (function () {
             toast.style.cssText = 'position:fixed;top:24px;right:24px;z-index:9999;padding:14px 22px;border-radius:8px;font-size:14px;font-weight:600;max-width:360px;box-shadow:0 4px 18px rgba(0,0,0,.18);transition:opacity .3s;';
             document.body.appendChild(toast);
         }
-        toast.style.background = type === 'error' ? '#c62828' : '#1565c0';
+        toast.style.background = type === 'error' ? '#c62828' : '#c24a1c';
         toast.style.color = '#fff';
         toast.textContent = msg;
         toast.style.opacity = '1';

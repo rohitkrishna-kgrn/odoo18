@@ -10,17 +10,17 @@
         <field name="arch" type="xml">
             <form string="AML Process – User Manual">
                 <sheet>
-                    <div style="max-width:820px;margin:0 auto;font-family:Arial,sans-serif;font-size:14px;line-height:1.7;color:#1c2340;">
+                    <div style="max-width:820px;margin:0 auto;font-family:Arial,sans-serif;font-size:14px;line-height:1.7;color:#2a2420;">
 
                         <!-- Title -->
-                        <div style="background:linear-gradient(135deg,#1a237e,#283593);border-radius:10px;padding:28px 36px;margin-bottom:28px;color:#fff;">
+                        <div style="background:linear-gradient(135deg,#f25d23,#f58b54);border-radius:10px;padding:28px 36px;margin-bottom:28px;color:#fff;">
                             <h1 style="margin:0 0 6px;font-size:22px;font-weight:700;">AML / KYC Automation – User Manual</h1>
-                            <p style="margin:0;color:#c5cae9;font-size:13px;">KGRN Internal Reference Guide for AML Officers and Managers</p>
+                            <p style="margin:0;color:#f5cbab;font-size:13px;">KGRN Internal Reference Guide for AML Officers and Managers</p>
                         </div>
 
                         <!-- Overview -->
-                        <div style="background:#f4f6fb;border-left:4px solid #1a237e;border-radius:0 8px 8px 0;padding:16px 20px;margin-bottom:24px;">
-                            <strong style="color:#1a237e;">Purpose</strong>
+                        <div style="background:#faf5f2;border-left:4px solid #f25d23;border-radius:0 8px 8px 0;padding:16px 20px;margin-bottom:24px;">
+                            <strong style="color:#f25d23;">Purpose</strong>
                             <p style="margin:6px 0 0;">
                                 This system automates the AML/KYC onboarding process for KGRN clients.
                                 When a Sale Order is approved, the client automatically receives a secure
@@ -30,51 +30,51 @@
                         </div>
 
                         <!-- Section 1 -->
-                        <h2 style="color:#1a237e;font-size:16px;border-bottom:2px solid #dde3f0;padding-bottom:8px;margin-bottom:16px;">
+                        <h2 style="color:#f25d23;font-size:16px;border-bottom:2px solid #ecdfd3;padding-bottom:8px;margin-bottom:16px;">
                             1. Complete AML Workflow Overview
                         </h2>
                         <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-                            <tr style="background:#1a237e;color:#fff;">
+                            <tr style="background:#f25d23;color:#fff;">
                                 <th style="padding:10px 14px;text-align:left;border-radius:6px 0 0 0;">Step</th>
                                 <th style="padding:10px 14px;text-align:left;">Action</th>
                                 <th style="padding:10px 14px;text-align:left;border-radius:0 6px 0 0;">Responsible</th>
                             </tr>
                             <tr style="background:#fff;">
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;font-weight:700;">1</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">Sale Order is approved by the salesperson. KYC Type (Entity / Individual) is selected on the order.</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">Salesperson</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;font-weight:700;">1</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">Sale Order is approved by the salesperson. KYC Type (Entity / Individual) is selected on the order.</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">Salesperson</td>
                             </tr>
-                            <tr style="background:#f8faff;">
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;font-weight:700;">2</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">System automatically creates a Draft AML Request and sends a secure KYC web form link to the client by email.</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">System (Automatic)</td>
-                            </tr>
-                            <tr style="background:#fff;">
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;font-weight:700;">3</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">Client fills and submits the 7-page KYC web form (no login required). AML Request status changes to New.</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">Client</td>
-                            </tr>
-                            <tr style="background:#f8faff;">
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;font-weight:700;">4</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">AML Manager reviews the submission and takes one of three actions: Accept, Bypass, or Cancel.</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">AML Manager</td>
+                            <tr style="background:#fdeee7;">
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;font-weight:700;">2</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">System automatically creates a Draft AML Request and sends a secure KYC web form link to the client by email.</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">System (Automatic)</td>
                             </tr>
                             <tr style="background:#fff;">
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;font-weight:700;">5</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">If Accepted: AML Officer starts the investigation using the Pipeline. Clicks Start Investigation.</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">AML Officer</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;font-weight:700;">3</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">Client fills and submits the 7-page KYC web form (no login required). AML Request status changes to New.</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">Client</td>
                             </tr>
-                            <tr style="background:#f8faff;">
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;font-weight:700;">6</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">After investigation, AML Officer clicks No HIT (clean) or HIT Detected (match found).</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">AML Officer</td>
+                            <tr style="background:#fdeee7;">
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;font-weight:700;">4</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">AML Manager reviews the submission and takes one of three actions: Accept, Bypass, or Cancel.</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">AML Manager</td>
                             </tr>
                             <tr style="background:#fff;">
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;font-weight:700;">7</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">If HIT Detected: A wizard opens to request specific additional documents from the client. Client receives another secure upload link.</td>
-                                <td style="padding:10px 14px;border-bottom:1px solid #dde3f0;">AML Officer + Client</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;font-weight:700;">5</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">If Accepted: AML Officer starts the investigation using the Pipeline. Clicks Start Investigation.</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">AML Officer</td>
                             </tr>
-                            <tr style="background:#f8faff;">
+                            <tr style="background:#fdeee7;">
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;font-weight:700;">6</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">After investigation, AML Officer clicks No HIT (clean) or HIT Detected (match found).</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">AML Officer</td>
+                            </tr>
+                            <tr style="background:#fff;">
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;font-weight:700;">7</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">If HIT Detected: A wizard opens to request specific additional documents from the client. Client receives another secure upload link.</td>
+                                <td style="padding:10px 14px;border-bottom:1px solid #ecdfd3;">AML Officer + Client</td>
+                            </tr>
+                            <tr style="background:#fdeee7;">
                                 <td style="padding:10px 14px;font-weight:700;">8</td>
                                 <td style="padding:10px 14px;">Once additional documents are received, AML Manager/Officer reviews and clicks Approve or Reject.</td>
                                 <td style="padding:10px 14px;">AML Manager</td>
@@ -82,13 +82,13 @@
                         </table>
 
                         <!-- Section 2 -->
-                        <h2 style="color:#1a237e;font-size:16px;border-bottom:2px solid #dde3f0;padding-bottom:8px;margin-bottom:16px;">
+                        <h2 style="color:#f25d23;font-size:16px;border-bottom:2px solid #ecdfd3;padding-bottom:8px;margin-bottom:16px;">
                             2. AML Manager Actions
                         </h2>
                         <p>The AML Manager menu shows <strong>New AML Requests</strong> and <strong>All Records</strong>. The following actions are available on each request:</p>
                         <ul style="margin:0 0 20px;padding-left:20px;">
                             <li style="margin-bottom:10px;">
-                                <strong style="color:#1565c0;">Accept</strong> – Moves the request to the AML Pipeline for investigation.
+                                <strong style="color:#c24a1c;">Accept</strong> – Moves the request to the AML Pipeline for investigation.
                                 The AML Officer is notified by email.
                             </li>
                             <li style="margin-bottom:10px;">
@@ -106,13 +106,13 @@
                         </ul>
 
                         <!-- Section 3 -->
-                        <h2 style="color:#1a237e;font-size:16px;border-bottom:2px solid #dde3f0;padding-bottom:8px;margin-bottom:16px;">
+                        <h2 style="color:#f25d23;font-size:16px;border-bottom:2px solid #ecdfd3;padding-bottom:8px;margin-bottom:16px;">
                             3. AML Officer (Pipeline) Actions
                         </h2>
                         <p>The AML Pipeline (Kanban view) shows all active AML requests grouped by status stage.</p>
                         <ul style="margin:0 0 20px;padding-left:20px;">
                             <li style="margin-bottom:10px;">
-                                <strong style="color:#1565c0;">Start Investigation</strong> – Records the exact date and time the investigation began.
+                                <strong style="color:#c24a1c;">Start Investigation</strong> – Records the exact date and time the investigation began.
                             </li>
                             <li style="margin-bottom:10px;">
                                 <strong style="color:#2e7d32;">No HIT</strong> – Confirms the client is clean. A green ribbon appears on the record.
@@ -134,7 +134,7 @@
                         </ul>
 
                         <!-- Section 4 -->
-                        <h2 style="color:#1a237e;font-size:16px;border-bottom:2px solid #dde3f0;padding-bottom:8px;margin-bottom:16px;">
+                        <h2 style="color:#f25d23;font-size:16px;border-bottom:2px solid #ecdfd3;padding-bottom:8px;margin-bottom:16px;">
                             4. Client KYC Web Form – 7 Pages
                         </h2>
                         <ol style="margin:0 0 20px;padding-left:20px;">
@@ -148,41 +148,41 @@
                         </ol>
 
                         <!-- Section 5 -->
-                        <h2 style="color:#1a237e;font-size:16px;border-bottom:2px solid #dde3f0;padding-bottom:8px;margin-bottom:16px;">
+                        <h2 style="color:#f25d23;font-size:16px;border-bottom:2px solid #ecdfd3;padding-bottom:8px;margin-bottom:16px;">
                             5. Automated Email Notifications
                         </h2>
                         <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-                            <tr style="background:#1a237e;color:#fff;">
+                            <tr style="background:#f25d23;color:#fff;">
                                 <th style="padding:10px 14px;text-align:left;">Trigger</th>
                                 <th style="padding:10px 14px;text-align:left;">Recipients</th>
                             </tr>
-                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Sale Order approved → KYC form sent</td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Client</td></tr>
-                            <tr style="background:#f8faff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Client submits KYC form</td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">AML Managers</td></tr>
-                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Manager Accepts request</td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">AML Officers</td></tr>
-                            <tr style="background:#f8faff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Manager Bypasses or Cancels</td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Management + Salesperson</td></tr>
-                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">HIT Detected – additional docs requested</td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Client</td></tr>
-                            <tr style="background:#f8faff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Client submits additional documents</td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">AML Managers + Management</td></tr>
-                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">No HIT confirmed</td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">AML Managers + Management</td></tr>
-                            <tr style="background:#f8faff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Approved or Rejected</td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">AML Managers + Management</td></tr>
-                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Every 2 days – pending requests older than 1 day</td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">AML Managers (scheduled report)</td></tr>
-                            <tr style="background:#f8faff;"><td style="padding:9px 14px;">Weekly – all pending requests</td><td style="padding:9px 14px;">Management (scheduled report)</td></tr>
+                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Sale Order approved → KYC form sent</td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Client</td></tr>
+                            <tr style="background:#fdeee7;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Client submits KYC form</td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">AML Managers</td></tr>
+                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Manager Accepts request</td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">AML Officers</td></tr>
+                            <tr style="background:#fdeee7;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Manager Bypasses or Cancels</td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Management + Salesperson</td></tr>
+                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">HIT Detected – additional docs requested</td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Client</td></tr>
+                            <tr style="background:#fdeee7;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Client submits additional documents</td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">AML Managers + Management</td></tr>
+                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">No HIT confirmed</td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">AML Managers + Management</td></tr>
+                            <tr style="background:#fdeee7;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Approved or Rejected</td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">AML Managers + Management</td></tr>
+                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Every 2 days – pending requests older than 1 day</td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">AML Managers (scheduled report)</td></tr>
+                            <tr style="background:#fdeee7;"><td style="padding:9px 14px;">Weekly – all pending requests</td><td style="padding:9px 14px;">Management (scheduled report)</td></tr>
                         </table>
 
                         <!-- Section 6 -->
-                        <h2 style="color:#1a237e;font-size:16px;border-bottom:2px solid #dde3f0;padding-bottom:8px;margin-bottom:16px;">
+                        <h2 style="color:#f25d23;font-size:16px;border-bottom:2px solid #ecdfd3;padding-bottom:8px;margin-bottom:16px;">
                             6. Status Ribbons
                         </h2>
                         <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-                            <tr style="background:#1a237e;color:#fff;">
+                            <tr style="background:#f25d23;color:#fff;">
                                 <th style="padding:10px 14px;text-align:left;">Ribbon</th>
                                 <th style="padding:10px 14px;text-align:left;">Meaning</th>
                             </tr>
-                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;"><span style="background:#2e7d32;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">No HIT Detected</span></td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Investigation completed – client is clean</td></tr>
-                            <tr style="background:#f8faff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;"><span style="background:#c62828;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">HIT Detected</span></td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">A match was found – additional review in progress</td></tr>
-                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;"><span style="background:#2e7d32;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">Approved</span></td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Request approved after full review</td></tr>
-                            <tr style="background:#f8faff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;"><span style="background:#c62828;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">Rejected</span></td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">Request rejected – business relationship not proceeded</td></tr>
-                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;"><span style="background:#e65100;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">Bypassed</span></td><td style="padding:9px 14px;border-bottom:1px solid #dde3f0;">No AML check required for this client</td></tr>
-                            <tr style="background:#f8faff;"><td style="padding:9px 14px;"><span style="background:#9e9e9e;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">Cancelled</span></td><td style="padding:9px 14px;">Request was cancelled</td></tr>
+                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;"><span style="background:#2e7d32;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">No HIT Detected</span></td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Investigation completed – client is clean</td></tr>
+                            <tr style="background:#fdeee7;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;"><span style="background:#c62828;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">HIT Detected</span></td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">A match was found – additional review in progress</td></tr>
+                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;"><span style="background:#2e7d32;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">Approved</span></td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Request approved after full review</td></tr>
+                            <tr style="background:#fdeee7;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;"><span style="background:#c62828;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">Rejected</span></td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">Request rejected – business relationship not proceeded</td></tr>
+                            <tr style="background:#fff;"><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;"><span style="background:#e65100;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">Bypassed</span></td><td style="padding:9px 14px;border-bottom:1px solid #ecdfd3;">No AML check required for this client</td></tr>
+                            <tr style="background:#fdeee7;"><td style="padding:9px 14px;"><span style="background:#9e9e9e;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;">Cancelled</span></td><td style="padding:9px 14px;">Request was cancelled</td></tr>
                         </table>
 
                         <!-- Footer note -->

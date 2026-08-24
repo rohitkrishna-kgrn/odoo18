@@ -9,15 +9,34 @@
             <!-- Add KYC type after order fields -->
             <xpath expr="//field[@name='partner_id']" position="after">
                 <field name="kyc_type" widget="radio" options="{'horizontal': true}"/>
+                <field name="aml_gate_completed" readonly="1"/>
             </xpath>
 
             <!-- AML smart button -->
             <xpath expr="//div[@name='button_box']" position="inside">
+                <!-- Only AML staff can open the requests themselves, so the
+                     button is theirs; everyone else still sees the AML/KYC
+                     Completed flag above. -->
                 <button name="action_view_aml_requests" type="object"
                     class="oe_stat_button" icon="fa-shield"
+                    groups="aml_automation_extended_rk.group_aml_user,aml_automation_extended_rk.group_aml_manager"
                     invisible="aml_request_count == 0">
                     <field name="aml_request_count" widget="statinfo" string="AML"/>
                 </button>
+            </xpath>
+
+            <!-- Admin-only exception: allow project creation before AML/KYC is Completed -->
+            <xpath expr="//page[@name='other_information']" position="after">
+                <page string="AML Gate Override" name="aml_gate_override_page"
+                      groups="base.group_system" invisible="aml_gate_completed">
+                    <group>
+                        <field name="aml_gate_override"/>
+                        <field name="aml_gate_override_reason" invisible="not aml_gate_override"
+                               required="aml_gate_override"/>
+                        <field name="aml_gate_override_by" readonly="1" invisible="not aml_gate_override"/>
+                        <field name="aml_gate_override_date" readonly="1" invisible="not aml_gate_override"/>
+                    </group>
+                </page>
             </xpath>
         </field>
     </record>

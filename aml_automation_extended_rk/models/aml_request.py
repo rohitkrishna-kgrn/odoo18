@@ -300,8 +300,8 @@ class AmlRequest(models.Model):
     # =========================================================================
     # Branded Email Shell (shared header/footer/table look for every AML mail)
     # =========================================================================
-    _EMAIL_ACCENT = '#1a237e'
-    _EMAIL_NAVY = '#1c2340'
+    _EMAIL_ACCENT = '#f25d23'
+    _EMAIL_NAVY = '#2a2420'
     _EMAIL_BORDER = '#e2e6f0'
     _EMAIL_STRIPE = '#f7f8fc'
 
@@ -496,7 +496,7 @@ class AmlRequest(models.Model):
         </p>
         <p style="margin:0 0 18px;">
           <a href="%(form_url)s"
-             style="color:#1565c0;font-family:Arial,sans-serif;font-size:13px;word-break:break-all;">
+             style="color:#c24a1c;font-family:Arial,sans-serif;font-size:13px;word-break:break-all;">
             %(form_url)s
           </a>
         </p>

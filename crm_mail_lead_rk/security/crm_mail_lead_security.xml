@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="module_category_crm_mail_lead" model="ir.module.category">
+        <field name="name">CRM Mail Leads</field>
+        <field name="description">Access to the CRM &gt; Mail Leads menu.</field>
+        <field name="sequence">40</field>
+    </record>
+
+    <!--
+        The CRM app menu itself is gated by sales_team.group_sale_salesman, and
+        assigning a mail creates a crm.lead — so the new right implies the base
+        salesperson group rather than trying to stand completely alone.
+    -->
+    <record id="group_crm_mail_lead_user" model="res.groups">
+        <field name="name">Mail Leads</field>
+        <field name="category_id" ref="module_category_crm_mail_lead"/>
+        <field name="implied_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+        <field name="comment">Sees CRM &gt; Mail Leads and can assign incoming mail to a salesperson.</field>
+    </record>
+
+    <!-- Sales Managers administer the mailboxes and get the right implicitly. -->
+    <record id="sales_team.group_sale_manager" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('crm_mail_lead_rk.group_crm_mail_lead_user'))]"/>
+    </record>
+
+    <data noupdate="1">
+        <!-- Multi-company isolation, matching how crm.lead is scoped. -->
+        <record id="crm_mail_lead_company_rule" model="ir.rule">
+            <field name="name">CRM Mail Lead: multi-company</field>
+            <field name="model_id" ref="model_crm_mail_lead"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="crm_mail_server_company_rule" model="ir.rule">
+            <field name="name">CRM Mail Server: multi-company</field>
+            <field name="model_id" ref="model_crm_mail_server"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+    </data>
+
+</odoo>

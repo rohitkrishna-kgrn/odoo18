@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        noupdate: these are just starting points — rename them or point a
+        mailbox at a different tag without a module upgrade undoing it.
+    -->
+    <data noupdate="1">
+
+        <record id="crm_tag_dm" model="crm.tag">
+            <field name="name">DM</field>
+        </record>
+
+        <record id="crm_tag_einvoicing" model="crm.tag">
+            <field name="name">Einvoicing</field>
+        </record>
+
+    </data>
+</odoo>

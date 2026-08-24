@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_crm_mail_lead_user,crm.mail.lead.user,model_crm_mail_lead,group_crm_mail_lead_user,1,1,0,0
+access_crm_mail_lead_manager,crm.mail.lead.manager,model_crm_mail_lead,sales_team.group_sale_manager,1,1,1,1
+access_crm_mail_server_user,crm.mail.server.readonly,model_crm_mail_server,group_crm_mail_lead_user,1,0,0,0
+access_crm_mail_server_manager,crm.mail.server.manager,model_crm_mail_server,sales_team.group_sale_manager,1,1,1,1
+access_crm_mail_lead_assign_wizard,crm.mail.lead.assign.wizard,model_crm_mail_lead_assign_wizard,group_crm_mail_lead_user,1,1,1,1
