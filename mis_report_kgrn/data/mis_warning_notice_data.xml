@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ═══════════════════════════════════════════════════════════
+             Reference sequence: WN/2026/0001
+        ═══════════════════════════════════════════════════════════ -->
+        <record id="seq_mis_warning_notice" model="ir.sequence">
+            <field name="name">MIS Performance Warning Notice</field>
+            <field name="code">mis.warning.notice</field>
+            <field name="prefix">WN/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+            <field name="implementation">no_gap</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             Counter start floor.
+
+             mis.performance.line is a rolling 12-month view, so on go-live
+             most staff already carry a long below-target streak built from
+             months that pre-date this feature (collection data in this
+             database is sparse from March 2026 onward). Without a floor the
+             very first cron run would hand a 3rd-month Warning Notice to
+             essentially the whole firm at once.
+
+             The effective counter is therefore capped at the number of
+             months since this date, so the policy starts counting fresh:
+               Aug 2026 = month 1 (nothing), Sep = month 2 (HR flag),
+               Oct = month 3 (draft Warning Notice).
+
+             Clear the value (Settings > Technical > System Parameters) to
+             score the full 12-month history instead.
+        ═══════════════════════════════════════════════════════════ -->
+        <record id="param_mis_escalation_counter_start" model="ir.config_parameter">
+            <field name="key">mis_report_kgrn.escalation_counter_start</field>
+            <field name="value">2026-08-01</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             Monthly escalation run — 1st of the month, after the scorecard
+             cron (05:00 UTC = 09:00 Gulf), evaluating the month just closed.
+        ═══════════════════════════════════════════════════════════ -->
+        <record id="ir_cron_mis_warning_notice" model="ir.cron">
+            <field name="name">MIS: Performance Warning Notice Counter</field>
+            <field name="model_id" ref="model_mis_warning_notice"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_run_escalation()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">months</field>
+            <!-- 06:00 UTC = 10:00 Gulf Standard Time. Independent of the
+                 scorecard cron: both read the same view, neither feeds the other. -->
+            <field name="nextcall"
+                   eval="(datetime.now() + relativedelta(day=1, months=1)).strftime('%Y-%m-%d 06:00:00')"/>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             Manual re-run, for HR to trigger the check on demand.
+        ═══════════════════════════════════════════════════════════ -->
+        <record id="action_server_mis_run_escalation" model="ir.actions.server">
+            <field name="name">Run Warning Notice Check</field>
+            <field name="model_id" ref="model_mis_warning_notice"/>
+            <field name="state">code</field>
+            <field name="code">action = model.action_run_escalation_now()</field>
+        </record>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             HR notification email. NB: this rides alongside the in-system
+             activity, which is the authoritative flag — outgoing mail on
+             this instance has been failing since April 2026, so the policy
+             must not depend on delivery.
+        ═══════════════════════════════════════════════════════════ -->
+        <record id="mail_template_mis_warning_notice" model="mail.template">
+            <field name="name">MIS Performance — Warning Notice Escalation</field>
+            <field name="model_id" ref="model_mis_warning_notice"/>
+            <field name="subject">{{ object.stage == 'notice' and 'Draft Warning Notice' or 'Performance Flag' }} — {{ object.employee_name }} ({{ object.period_label }})</field>
+            <field name="body_html" type="html">
+                <div style="font-family: Arial, sans-serif; font-size: 13px; color: #333;">
+                    <p>Dear HR,</p>
+                    <t t-if="object.stage == 'notice'">
+                        <p>
+                            A <strong>draft Warning Notice</strong> has been generated for
+                            <strong t-out="object.employee_name"/>, who has missed the minimum
+                            monthly obligation for <t t-out="object.consecutive_months"/>
+                            consecutive months (latest: <t t-out="object.period_label"/>).
+                        </p>
+                        <p>Please review the draft in Odoo and issue it if appropriate. Nothing is issued automatically.</p>
+                    </t>
+                    <t t-else="">
+                        <p>
+                            <strong t-out="object.employee_name"/> has now missed the minimum
+                            monthly obligation for <t t-out="object.consecutive_months"/>
+                            consecutive months (latest: <t t-out="object.period_label"/>) and has
+                            been flagged for HR. A draft Warning Notice will be generated if the
+                            shortfall continues into a third month.
+                        </p>
+                    </t>
+                    <p>Reference: <t t-out="object.name"/></p>
+                    <p>Regards,<br/>MIS Dashboard (Automated)</p>
+                </div>
+            </field>
+            <field name="auto_delete" eval="False"/>
+        </record>
+
+    </data>
+</odoo>

@@ -1,6 +1,12 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError
-from datetime import timedelta, date, datetime
+
+from .leave_period import (
+    leave_month_anchor,
+    leave_month_bounds,
+    leave_month_label,
+    shift_leave_month,
+)
 
 
 class LeaveType(models.Model):
@@ -20,11 +26,62 @@ class LeaveBalance(models.Model):
     user_id = fields.Many2one('res.users', string='User', required=True)
     leave_type_id = fields.Many2one('leave.type', string='Leave Type', required=True)
     balance = fields.Float(string='Balance', default=0.0)
-    date = fields.Date(string='Month (First Day)')
+    date = fields.Date(
+        string='Leave Month',
+        help="Anchor of the leave month this balance belongs to: the 1st of the "
+             "month the period is named after. The period itself runs from the "
+             "26th of the previous month to the 25th of this one.")
+    period_start = fields.Date(
+        string='Period Start', compute='_compute_period', store=False)
+    period_end = fields.Date(
+        string='Period End', compute='_compute_period', store=False)
+    period_label = fields.Char(
+        string='Leave Period', compute='_compute_period', store=False)
+    is_current_period = fields.Boolean(
+        string='Current Leave Month',
+        compute='_compute_is_current_period',
+        search='_search_is_current_period',
+        store=False)
 
     _sql_constraints = [
         ('user_leave_unique', 'unique(user_id, leave_type_id, date)', 'Leave balance already exists for this user, leave type, and date.'),
     ]
+
+    @api.depends('date')
+    def _compute_period(self):
+        for rec in self:
+            if rec.date:
+                rec.period_start, rec.period_end = leave_month_bounds(rec.date)
+                rec.period_label = leave_month_label(rec.date)
+            else:
+                rec.period_start = rec.period_end = False
+                rec.period_label = ''
+
+    @api.depends('date')
+    def _compute_is_current_period(self):
+        current = leave_month_anchor(fields.Date.today())
+        for rec in self:
+            rec.is_current_period = rec.date == current
+
+    def _search_is_current_period(self, operator, value):
+        if operator not in ('=', '!=') or not isinstance(value, bool):
+            raise UserError("Unsupported search on 'Current Leave Month'.")
+        current = leave_month_anchor(fields.Date.today())
+        matches = (operator == '=') == bool(value)
+        return [('date', '=' if matches else '!=', current)]
+
+    @api.depends('user_id', 'leave_type_id', 'date')
+    def _compute_display_name(self):
+        for rec in self:
+            parts = [rec.user_id.name or '', rec.leave_type_id.name or '']
+            if rec.date:
+                parts.append(rec.date.strftime('%B %Y'))
+            rec.display_name = ' - '.join(p for p in parts if p)
+
+    @api.model
+    def current_leave_month(self, any_date=None):
+        """Anchor of the leave month covering ``any_date`` (default: today)."""
+        return leave_month_anchor(any_date or fields.Date.today())
 
     def _get_leave_types(self):
         LeaveType = self.env['leave.type']
@@ -42,9 +99,10 @@ class LeaveBalance(models.Model):
         if not (types['casual'] and types['sick'] and types['lop'] and types['comp']):
             raise ValueError("One or more required leave types are missing.")
 
+        # Runs on the 26th: that date already belongs to the new leave month,
+        # so the anchor helper returns the period being opened.
         today = fields.Date.today()
-        first_of_this_month = today.replace(day=1)
-        last_month_date = (first_of_this_month - timedelta(days=1)).replace(day=1)
+        first_of_this_month = leave_month_anchor(today)
 
         users = self.env['res.users'].search([('country', 'in', ['india', 'dubai'])])
 
@@ -120,10 +178,9 @@ class LeaveBalance(models.Model):
         if not (types['casual'] and types['sick'] and types['lop'] and types['comp']):
             return
 
-        today = date.today()
+        current_anchor = leave_month_anchor(fields.Date.today())
         for i in range(4):
-            month_date = (today.replace(day=1) + timedelta(days=31 * i)).replace(day=1)
-            prev_month = (month_date - timedelta(days=1)).replace(day=1)
+            month_date = shift_leave_month(current_anchor, i)
 
             last_casual = self.search([('user_id', '=', user.id), ('leave_type_id', '=', types['casual'].id), ('date', '<', month_date)], order='date desc', limit=1)
             last_casual_balance = last_casual.balance if last_casual else 0
@@ -162,10 +219,19 @@ class LeaveBalance(models.Model):
 
     @api.model
     def reset_leave_balances_dec31(self):
-        """Cron runs on Dec 31 23:59 - creates Jan 1 next year balances."""
+        """Year-end reset - seeds the January leave month (26 Dec -> 25 Jan).
+
+        The cron now fires on 25 Dec 23:59 rather than 31 Dec 23:59, keeping it
+        immediately ahead of the monthly accrual that opens the January period
+        at 26 Dec 00:00 - the same ordering it had against the 1 Jan cron.
+        Kept working whichever side of the 26th it is triggered from.
+        """
         types = self._get_leave_types()
-        today = fields.Date.today()
-        jan_first_next_year = today.replace(year=today.year + 1, month=1, day=1)
+        anchor = leave_month_anchor(fields.Date.today())
+        jan_first_next_year = (
+            anchor if anchor.month == 1
+            else anchor.replace(year=anchor.year + 1, month=1, day=1)
+        )
 
         users = self.env['res.users'].search([('country', 'in', ['india', 'dubai'])])
 
@@ -195,13 +261,15 @@ class LeaveBalance(models.Model):
 
     @api.model
     def action_manual_reset_leaves(self):
-        """Manual reset button - System Admin only. Resets current month to defaults."""
+        """Manual reset button - System Admin only.
+
+        Resets the leave month currently in progress (26th -> 25th) to defaults.
+        """
         if not self.env.user.has_group('base.group_system'):
             raise UserError("Only System Administrators can perform manual leave resets.")
 
         types = self._get_leave_types()
-        today = fields.Date.today()
-        first_of_month = today.replace(day=1)
+        first_of_month = leave_month_anchor(fields.Date.today())
 
         users = self.env['res.users'].search([('country', 'in', ['india', 'dubai'])])
 

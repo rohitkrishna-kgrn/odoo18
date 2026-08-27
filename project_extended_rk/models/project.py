@@ -4,6 +4,23 @@ from odoo.tools.float_utils import float_compare
 from datetime import timedelta
 import logging
 
+HOLD_TAG_XMLID = 'project_extended_rk.project_tag_on_hold'
+# A task is considered finished if any of the three disagreeing "done" signals
+# in this codebase says so (core state, custom state_additional, folded stage).
+CLOSED_TASK_STATES = ('1_done', '1_canceled')
+
+
+class ProjectProjectStage(models.Model):
+    _inherit = 'project.project.stage'
+
+    is_hold_stage = fields.Boolean(
+        string="Counts as On Hold",
+        help="Projects sitting in this stage are treated as On Hold: every open "
+             "task under them is automatically tagged 'On Hold' and dropped from "
+             "the PM workload views.",
+    )
+
+
 class ProjectProject(models.Model):
     _inherit = 'project.project'
 
@@ -70,6 +87,32 @@ class ProjectProject(models.Model):
     billable_type = fields.Selection([('billable', 'Billable'),('non_billable', 'Non-Billable')], string="Billing Type", default='billable')
 
     completed_date = fields.Datetime(string='Completed Date', readonly=True)
+
+    is_on_hold = fields.Boolean(
+        string="On Hold",
+        compute='_compute_is_on_hold',
+        store=True,
+        help="True when the project stage is flagged as a hold stage, or the "
+             "project update status is set to On Hold.",
+    )
+
+    @api.depends('stage_id', 'stage_id.is_hold_stage', 'last_update_status')
+    def _compute_is_on_hold(self):
+        for project in self:
+            project.is_on_hold = bool(project.stage_id.is_hold_stage) or \
+                project.last_update_status == 'on_hold'
+
+    def _sync_task_hold_tag(self):
+        """Push the project hold status down onto its tasks."""
+        tasks = self.env['project.task'].search([('project_id', 'in', self.ids)])
+        for project in self:
+            project_tasks = tasks.filtered(lambda t: t.project_id == project)
+            if project.is_on_hold:
+                project_tasks.filtered(
+                    lambda t: not t._is_task_closed()
+                )._apply_hold_tag()
+            else:
+                project_tasks._release_hold_tag()
 
     @api.depends("create_date")
     def _compute_project_created_date(self):
@@ -160,7 +203,14 @@ class ProjectProject(models.Model):
         # Allow only users in group_project_manager to create projects
         if not self.env.user.has_group('project.group_project_manager'):
             raise UserError("You do not have the access rights to create projects.")
-        return super().create(vals)
+        # New client engagement: block until AML/KYC is marked Completed
+        # (or an Administrator has recorded an override) for the linked order.
+        if vals.get('sale_order_id'):
+            self.env['sale.order'].browse(vals['sale_order_id'])._check_aml_gate()
+        project = super().create(vals)
+        if project.is_on_hold:
+            project.sudo()._sync_task_hold_tag()
+        return project
 
     @api.model
     def is_admin(self):
@@ -177,7 +227,18 @@ class ProjectProject(models.Model):
         # if 'allocated_hours' in vals:
         #     raise UserError(_("You cannot modify the 'Allocated Hours' field directly."))
 
-        return super(ProjectProject, self).write(vals)
+        # Snapshot the keys *before* super(): core project.write() pops
+        # 'last_update_status' out of this very dict when it converts the value
+        # into a project.update record, so checking vals afterwards misses it.
+        hold_keys_written = bool({'stage_id', 'last_update_status', 'active'} & set(vals))
+
+        res = super(ProjectProject, self).write(vals)
+
+        # Project put On Hold (or released) -> mirror it onto every child task.
+        if hold_keys_written:
+            self.sudo()._sync_task_hold_tag()
+
+        return res
 
         
 class ProjectTask(models.Model):
@@ -221,6 +282,65 @@ class ProjectTask(models.Model):
         readonly=True,
     )
     billable_type = fields.Selection([('billable', 'Billable'),('non_billable', 'Non-Billable')], string="Billing Type", default='billable')
+
+    is_on_hold = fields.Boolean(
+        string="On Hold",
+        compute='_compute_is_on_hold',
+        store=True,
+        index=True,
+        help="Set when the task carries the 'On Hold' tag. On-hold tasks are "
+             "excluded by default from the All Tasks / My Tasks workload views.",
+    )
+    hold_tag_auto = fields.Boolean(
+        string="On Hold Tag Set Automatically",
+        default=False,
+        copy=False,
+        help="Technical: the 'On Hold' tag was applied by the project hold "
+             "automation, so the automation is allowed to remove it again when "
+             "the project comes off hold. Tags added by hand are never removed.",
+    )
+
+    @api.model
+    def _get_hold_tag(self):
+        return self.env.ref(HOLD_TAG_XMLID, raise_if_not_found=False)
+
+    @api.depends('tag_ids')
+    def _compute_is_on_hold(self):
+        hold_tag = self._get_hold_tag()
+        for task in self:
+            task.is_on_hold = bool(hold_tag) and hold_tag in task.tag_ids
+
+    def _is_task_closed(self):
+        """Tasks carry three disagreeing 'finished' signals - trust any of them."""
+        self.ensure_one()
+        return (
+            self.state in CLOSED_TASK_STATES
+            or self.stage_id.fold
+            or self.state_additional in ('completed', 'cancelled')
+        )
+
+    def _apply_hold_tag(self):
+        hold_tag = self._get_hold_tag()
+        if not hold_tag:
+            return
+        todo = self.filtered(lambda t: hold_tag not in t.tag_ids)
+        if todo:
+            todo.with_context(skip_team_member_notification=True).write({
+                'tag_ids': [(4, hold_tag.id)],
+                'hold_tag_auto': True,
+            })
+
+    def _release_hold_tag(self):
+        hold_tag = self._get_hold_tag()
+        if not hold_tag:
+            return
+        # Only strip the tag off tasks the automation tagged itself.
+        todo = self.filtered(lambda t: t.hold_tag_auto and hold_tag in t.tag_ids)
+        if todo:
+            todo.with_context(skip_team_member_notification=True).write({
+                'tag_ids': [(3, hold_tag.id)],
+                'hold_tag_auto': False,
+            })
 
     @api.depends('completed_date')
     def _compute_completed_periods(self):
@@ -279,13 +399,18 @@ class ProjectTask(models.Model):
         # Allow only users in group_project_manager to create tasks
         if not self.env.user.has_group('project.group_project_manager'):
             raise UserError("You do not have the access rights to create tasks.")
-        return super().create(vals)
+        task = super().create(vals)
+        # A task created under an already-held project inherits the hold tag.
+        if task.project_id.is_on_hold and not task._is_task_closed():
+            task.sudo()._apply_hold_tag()
+        return task
     
     def write(self, vals):
         # Skip assignment notifications when called from the transfer wizard
         # (the wizard sends its own, more informative transfer emails)
         if self.env.context.get('skip_team_member_notification'):
             return super(ProjectTask, self).write(vals)
+
 
         # Track the original team members before write
         old_team_members = {
@@ -294,6 +419,14 @@ class ProjectTask(models.Model):
         }
 
         result = super(ProjectTask, self).write(vals)
+
+        # Moved to another project -> take that project's hold status.
+        if 'project_id' in vals:
+            for task in self.sudo():
+                if task.project_id.is_on_hold and not task._is_task_closed():
+                    task._apply_hold_tag()
+                else:
+                    task._release_hold_tag()
 
         if 'team_member_ids' in vals:
             for task in self:

@@ -123,30 +123,30 @@ class MisOutstandingLine(models.Model):
                     SELECT
                         pt.project_id,
                         COUNT(pt.id)                                                AS tasks_total,
-                        SUM(CASE WHEN pt.state_additional = 'completed'
+                        SUM(CASE WHEN (ptt.name->>'en_US') = 'Done'
                             THEN 1 ELSE 0 END)                                      AS tasks_completed,
 
-                        SUM(CASE WHEN pt.state_additional = 'completed'
+                        SUM(CASE WHEN (ptt.name->>'en_US') = 'Done'
                             THEN COALESCE(sol.price_subtotal, 0)
                                  / NULLIF(sol.product_uom_qty, 0)
                             ELSE 0 END)                                             AS completed_value_ex_vat,
 
                         /* completed + PAID */
-                        SUM(CASE WHEN pt.state_additional = 'completed'
+                        SUM(CASE WHEN (ptt.name->>'en_US') = 'Done'
                                       AND isp.sale_line_id IS NOT NULL
                             THEN 1 ELSE 0 END)                                      AS completed_invoiced_qty,
-                        SUM(CASE WHEN pt.state_additional = 'completed'
+                        SUM(CASE WHEN (ptt.name->>'en_US') = 'Done'
                                       AND isp.sale_line_id IS NOT NULL
                             THEN COALESCE(sol.price_subtotal, 0)
                                  / NULLIF(sol.product_uom_qty, 0)
                             ELSE 0 END)                                             AS completed_invoiced_amount,
 
                         /* completed + POSTED but NOT PAID */
-                        SUM(CASE WHEN pt.state_additional = 'completed'
+                        SUM(CASE WHEN (ptt.name->>'en_US') = 'Done'
                                       AND iso.sale_line_id IS NOT NULL
                                       AND isp.sale_line_id IS NULL
                             THEN 1 ELSE 0 END)                                      AS completed_posted_not_paid_qty,
-                        SUM(CASE WHEN pt.state_additional = 'completed'
+                        SUM(CASE WHEN (ptt.name->>'en_US') = 'Done'
                                       AND iso.sale_line_id IS NOT NULL
                                       AND isp.sale_line_id IS NULL
                             THEN COALESCE(sol.price_subtotal, 0)
@@ -154,15 +154,16 @@ class MisOutstandingLine(models.Model):
                             ELSE 0 END)                                             AS completed_posted_not_paid_amount,
 
                         /* completed + NO POSTED INVOICE */
-                        SUM(CASE WHEN pt.state_additional = 'completed'
+                        SUM(CASE WHEN (ptt.name->>'en_US') = 'Done'
                                       AND iso.sale_line_id IS NULL
                             THEN 1 ELSE 0 END)                                      AS completed_not_invoiced_qty,
-                        SUM(CASE WHEN pt.state_additional = 'completed'
+                        SUM(CASE WHEN (ptt.name->>'en_US') = 'Done'
                                       AND iso.sale_line_id IS NULL
                             THEN COALESCE(sol.price_subtotal, 0)
                                  / NULLIF(sol.product_uom_qty, 0)
                             ELSE 0 END)                                             AS completed_not_invoiced_amount
                     FROM   project_task       pt
+                    LEFT JOIN project_task_type ptt ON ptt.id = pt.stage_id
                     LEFT JOIN sale_order_line sol  ON sol.id = pt.sale_line_id
                     LEFT JOIN inv_sol_posted  iso  ON iso.sale_line_id = pt.sale_line_id
                     LEFT JOIN inv_sol_paid    isp  ON isp.sale_line_id = pt.sale_line_id

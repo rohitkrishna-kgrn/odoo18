@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="salesperson_performance_wizard_form" model="ir.ui.view">
+        <field name="name">crm.salesperson.performance.wizard.form</field>
+        <field name="model">crm.salesperson.performance.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Download Performance Report">
+                <group>
+                    <group>
+                        <field name="period" widget="radio"/>
+                        <field name="date_from" readonly="period != 'custom'"/>
+                        <field name="date_to" readonly="period != 'custom'"/>
+                    </group>
+                    <group>
+                        <field name="user_ids" widget="many2many_tags"
+                               options="{'no_create': True, 'no_create_edit': True}"
+                               placeholder="Everyone"/>
+                        <field name="include_detail"/>
+                    </group>
+                </group>
+                <div class="text-muted mt8">
+                    One line per salesperson with leads, discovery forms, proposals,
+                    invoices, collections and outstanding for the chosen period.
+                    The Sales Team list offers only users with Sales Team ticked on
+                    their user form. Leave it empty to include everyone.
+                </div>
+                <footer>
+                    <button name="action_download" type="object" string="Download XLSX"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_salesperson_performance_download" model="ir.actions.act_window">
+        <field name="name">Download Performance Report</field>
+        <field name="res_model">crm.salesperson.performance.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_other_salesperson_performance_download"
+              name="Download Performance Report"
+              parent="menu_other_root"
+              action="action_salesperson_performance_download"
+              sequence="40"/>
+
+</odoo>

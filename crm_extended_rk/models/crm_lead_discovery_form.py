@@ -77,6 +77,13 @@ class CrmLeadDiscoveryForm(models.Model):
             sub._send_email(url)
 
             verb = _("resent") if is_resend else _("sent")
+            lead._log_journey_event(
+                'discovery_sent',
+                _("%(form)s discovery form %(verb)s") % {
+                    'form': sub.form_label, 'verb': verb},
+                note=_("Sent to %s") % lead.email_from,
+                discovery_form_id=sub.id)
+            lead._journey_on_discovery_sent()
             lead.message_post(
                 body=Markup(
                     '<p>📋 <strong>%s</strong> discovery form <strong>%s</strong> to '
@@ -179,6 +186,11 @@ class CrmLeadDiscoveryForm(models.Model):
             vals['signature_attachment_filename'] = attach_name
         self.write(vals)
 
+        self.lead_id._log_journey_event(
+            'discovery_received',
+            _("%s discovery form received back from client") % self.form_label,
+            discovery_form_id=self.id)
+        self.lead_id._journey_on_discovery_received()
         self.lead_id.message_post(
             body=Markup(
                 '<p>✅ <strong>%s discovery form submitted</strong> by the client.</p>'

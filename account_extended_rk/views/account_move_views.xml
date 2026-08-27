@@ -1,21 +1,117 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Applied after view_move_form_ar_responsible (priority 20 vs its 16)
+         because they extend a field it adds, but loaded before it so an
+         upgrade never leaves a stale arch pointing at a removed field. -->
+    <record id="view_move_form_ar_close_lock" model="ir.ui.view">
+        <field name="name">account.move.form.ar.close.lock</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <button name="action_post" position="before">
+                <button name="action_confirm_ar_responsible" type="object"
+                        string="Confirm AR Responsible" class="oe_highlight"
+                        invisible="not ar_close_lock_required or ar_responsible_confirmed"/>
+            </button>
+
+            <div name="button_box" position="before">
+                <div class="alert alert-warning" role="alert"
+                     invisible="not ar_close_blocked">
+                    <strong>Locked for settlement.</strong>
+                    This invoice is more than 180 days outstanding. Before it can
+                    be marked as paid or closed:
+                    <field name="ar_close_block_reason" readonly="1" nolabel="1"
+                           class="oe_inline"/>
+                </div>
+            </div>
+
+            <field name="last_followup_method" position="after">
+                <field name="ar_close_lock_required" invisible="1"/>
+                <field name="ar_close_blocked" invisible="1"/>
+                <field name="ar_responsible_confirmed" readonly="1"
+                       invisible="not ar_close_lock_required"/>
+                <field name="ar_responsible_confirmed_by_id" readonly="1"
+                       invisible="not ar_responsible_confirmed"/>
+                <field name="ar_responsible_confirmed_date" readonly="1"
+                       invisible="not ar_responsible_confirmed"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_move_form_no_followup_banner" model="ir.ui.view">
+        <field name="name">account.move.form.no.followup.banner</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <div name="button_box" position="before">
+                <!-- Visibility is driven off the non-stored warning text rather
+                     than the stored ar_no_followup_flag, so the banner is right
+                     the moment the invoice crosses 30 days past due instead of
+                     waiting for the nightly AR aging cron. -->
+                <div class="alert alert-danger" role="alert"
+                     invisible="not ar_no_followup_warning">
+                    <strong>No Follow-Up Logged.</strong>
+                    <field name="ar_no_followup_warning" readonly="1" nolabel="1"
+                           class="oe_inline"/>
+                    Record the collection follow-up in the Follow-up Log tab.
+                </div>
+            </div>
+
+            <field name="last_followup_method" position="after">
+                <field name="ar_no_followup_flag" invisible="1"/>
+                <field name="ar_no_followup_warning" invisible="1"/>
+            </field>
+        </field>
+    </record>
+
     <record id="view_move_form_ar_responsible" model="ir.ui.view">
         <field name="name">account.move.form.ar.responsible</field>
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
-            <field name="invoice_user_id" position="after">
+            <!-- AR Responsible sits in the header next to Journal so it is
+                 visible without opening the Other Info tab. -->
+            <xpath expr="//div[@name='journal_div']" position="after">
                 <field name="ar_responsible_id"
                        domain="[('share', '=', False)]"
                        widget="many2one_avatar_user"
                        required="move_type in ('out_invoice', 'out_refund')"/>
-                <field name="service_engagement_id"
-                       domain="[('partner_id', '=', partner_id)]"
-                       required="move_type in ('out_invoice', 'out_refund')"/>
-                <field name="invoice_type_classification"
-                       required="move_type in ('out_invoice', 'out_refund')"
-                       invisible="move_type not in ('out_invoice', 'out_refund')"/>
+            </xpath>
+
+            <field name="advance_invoice" position="after">
+                <!-- Two fields, one label, never both at once. The derived
+                     one shows (locked) when the document classifies itself as
+                     Advance / Retainer / Credit Note; otherwise the editable
+                     one shows, blank, for someone to mark it a Completion. -->
+                <field name="invoice_type_is_automatic" invisible="1"/>
+                <field name="invoice_type_classification" readonly="1"
+                       invisible="not invoice_type_is_automatic or move_type not in ('out_invoice', 'out_refund')"/>
+                <!-- Editable on posted invoices too, not just drafts. 2,065
+                     of the 2,581 unclassified documents are already posted, so
+                     a draft-only dropdown would leave the entire back
+                     catalogue permanently unclassifiable. This carries no
+                     accounting weight, moving no amount, account or date, and
+                     every change is tracked in the chatter. -->
+                <!-- Locks itself once Completion is picked. Marking the
+                     invoice that closes the engagement is a one-way call: it
+                     is what the billing-plan gate measures against, so it must
+                     not be quietly taken back once the gate has passed. -->
+                <field name="invoice_type_manual"
+                       readonly="state == 'cancel' or invoice_type_manual == 'completion'"
+                       invisible="invoice_type_is_automatic or move_type not in ('out_invoice', 'out_refund')"/>
+            </field>
+
+            <!-- Advance Amount and Completion are contradictory answers to the
+                 same question, and the tick feeds _compute_invoice_type_
+                 classification. Freeze it once the invoice is a Completion so
+                 nobody can flip a confirmed completion back into an advance. -->
+            <field name="advance_invoice" position="attributes">
+                <attribute name="readonly">invoice_type_classification == 'completion'</attribute>
+            </field>
+
+            <field name="invoice_user_id" position="after">
                 <field name="last_followup_date" readonly="1"
                        invisible="move_type not in ('out_invoice', 'out_refund')"/>
                 <field name="last_followup_method" readonly="1"
@@ -37,7 +133,8 @@
                             <field name="date"/>
                             <field name="method"/>
                             <field name="response"/>
-                            <field name="user_id" readonly="1" force_save="1"/>
+                            <field name="user_id" readonly="1" force_save="1"
+                                   options="{'no_open': True}"/>
                         </list>
                     </field>
                 </page>
@@ -55,7 +152,7 @@
                        column_invisible="context.get('default_move_type') not in ('out_invoice', 'out_refund')"/>
                 <field name="ar_responsible_id" optional="show"
                        column_invisible="context.get('default_move_type') not in ('out_invoice', 'out_refund')"/>
-                <field name="service_engagement_id" optional="show"
+                <field name="sale_order_line_id" optional="show"
                        column_invisible="context.get('default_move_type') not in ('out_invoice', 'out_refund')"/>
             </field>
         </field>
@@ -92,4 +189,99 @@
             </xpath>
         </field>
     </record>
+
+    <record id="view_account_invoice_filter_ar_close_lock" model="ir.ui.view">
+        <field name="name">account.invoice.select.ar.close.lock</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter string="Aged AR (180+ Days)" name="filter_ar_close_lock"
+                        domain="[('ar_close_lock_required', '=', True)]"/>
+                <filter string="Blocked From Closing" name="filter_ar_close_blocked"
+                        domain="[('ar_close_blocked', '=', True)]"/>
+                <filter string="No Follow-Up Logged" name="filter_no_followup_logged"
+                        domain="[('ar_no_followup_flag', '=', True)]"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- The Sale Order Line replaces the engagement picker on customer
+         invoices: it is what the engagement is derived from, so it is the
+         field that has to be filled in. Priority 20 so this applies after
+         project_extended_rk's view, which is what adds the field. -->
+    <record id="view_move_form_sale_order_line_required" model="ir.ui.view">
+        <field name="name">account.move.form.sale.order.line.required</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <field name="sale_order_line_id" position="attributes">
+                <attribute name="domain">[('order_partner_id', '=', partner_id)]</attribute>
+                <attribute name="required">move_type in ('out_invoice', 'out_refund')</attribute>
+                <attribute name="options">{'no_create': True}</attribute>
+            </field>
+        </field>
+    </record>
+
+    <!-- Unapproved-draft auto-archive: countdown banner on the invoice form,
+         plus the archived ribbon (account.move has no `active` field in stock
+         Odoo 18, so nothing else supplies one). -->
+    <record id="view_move_form_stale_draft_banner" model="ir.ui.view">
+        <field name="name">account.move.form.stale.draft.banner</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <widget name="web_ribbon" title="Archived"
+                        bg_color="text-bg-danger" invisible="active"/>
+            </div>
+
+            <div name="button_box" position="before">
+                <field name="active" invisible="1"/>
+                <!-- Visibility is driven off the non-stored warning text rather
+                     than a stored flag, so the countdown is right on the day
+                     even before the nightly cron has run. -->
+                <div class="alert alert-warning" role="alert"
+                     invisible="not stale_draft_warning or not active">
+                    <strong>Approval deadline.</strong>
+                    <field name="stale_draft_warning" readonly="1" nolabel="1"
+                           class="oe_inline"/>
+                </div>
+            </div>
+
+            <field name="invoice_date_due" position="after">
+                <field name="stale_draft_deadline" readonly="1"
+                       invisible="not stale_draft_deadline"/>
+                <field name="stale_draft_warned_date" readonly="1"
+                       invisible="not stale_draft_warned_date"/>
+                <field name="stale_draft_archived_date" readonly="1"
+                       invisible="not stale_draft_archived_date"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_invoice_filter_stale_draft" model="ir.ui.view">
+        <field name="name">account.invoice.select.stale.draft</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter string="Draft Approval Due Soon" name="filter_stale_draft_due_soon"
+                        domain="[('state', '=', 'draft'),
+                                 ('stale_draft_deadline', '!=', False),
+                                 ('stale_draft_deadline', '&lt;=', (context_today() + relativedelta(days=2)).strftime('%Y-%m-%d'))]"/>
+                <!-- Naming `active` in the domain is what switches off the
+                     implicit active=True filter for these two. -->
+                <filter string="Archived" name="filter_archived"
+                        domain="[('active', '=', False)]"/>
+                <filter string="Auto-Archived Drafts" name="filter_auto_archived_drafts"
+                        domain="[('active', '=', False), ('stale_draft_archived_date', '!=', False)]"/>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>

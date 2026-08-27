@@ -1,6 +1,6 @@
 {
     'name': 'MIS Dashboard',
-    'version': '18.0.3.0.0',
+    'version': '18.0.3.5.1',
     'summary': 'Project-wise MIS Dashboard & Outstanding Report',
     'category': 'Project',
     'author': 'KGRN',
@@ -14,6 +14,7 @@
         'hr',
         'hr_timesheet',
         'hr_contract',
+        'project_extended_rk',
     ],
     'data': [
         'security/groups.xml',
@@ -27,6 +28,9 @@
         'views/mis_project_revenue_views.xml',
         'views/mis_performance_views.xml',
         'views/mis_performance_report_log_views.xml',
+        'report/mis_warning_notice_report.xml',
+        'views/mis_warning_notice_views.xml',
+        'data/mis_warning_notice_data.xml',
         'views/mis_menus.xml',
         'data/mis_performance_scorecard_data.xml',
     ],

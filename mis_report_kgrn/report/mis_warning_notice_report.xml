@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="action_report_mis_warning_notice" model="ir.actions.report">
+        <field name="name">Warning Notice</field>
+        <field name="model">mis.warning.notice</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">mis_report_kgrn.report_mis_warning_notice_doc</field>
+        <field name="report_file">mis_report_kgrn.report_mis_warning_notice_doc</field>
+        <field name="print_report_name">'Warning_Notice_%s' % (object.name or '').replace('/', '_')</field>
+        <field name="binding_model_id" ref="model_mis_warning_notice"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+
+    <!-- The body is whatever HR has in notice_body: the generated draft, or
+         their edit of it. Only DejaVu fonts exist on this box, so the stack
+         names 'DejaVu Sans' explicitly rather than relying on Arial. -->
+    <template id="report_mis_warning_notice_doc">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page"
+                         style="font-family:'DejaVu Sans',Arial,Helvetica,sans-serif;font-size:12px;color:#333;">
+
+                        <table width="100%" cellpadding="0" cellspacing="0"
+                               style="border-collapse:collapse;margin-bottom:18px;">
+                            <tr>
+                                <td style="background:#714B67;padding:14px 20px;">
+                                    <h2 style="color:#ffffff;font-size:15px;font-weight:700;margin:0 0 2px;">
+                                        Warning Notice
+                                    </h2>
+                                    <p style="color:#e0d5dd;font-size:10px;margin:0;">
+                                        Performance Management Policy HR-PMS-001 &#8226; Human Resources
+                                    </p>
+                                </td>
+                                <td style="background:#714B67;padding:14px 20px;text-align:right;vertical-align:middle;">
+                                    <span style="color:#ffffff;font-size:12px;font-weight:700;"
+                                          t-out="doc.name"/><br/>
+                                    <span style="color:#e0d5dd;font-size:10px;">
+                                        <t t-if="doc.issued_date">Issued <span t-field="doc.issued_date"/></t>
+                                        <t t-else="">DRAFT — not yet issued</t>
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div t-if="doc.state != 'issued'"
+                             style="border:1px dashed #9c0006;color:#9c0006;padding:6px 10px;
+                                    margin-bottom:14px;font-size:11px;font-weight:700;">
+                            DRAFT — for HR review. This notice has not been issued.
+                        </div>
+
+                        <div t-field="doc.notice_body"/>
+
+                        <table width="100%" cellpadding="0" cellspacing="0"
+                               style="border-collapse:collapse;margin-top:36px;font-size:11px;">
+                            <tr>
+                                <td width="45%" style="border-top:1px solid #666;padding-top:6px;">
+                                    Human Resources — signature &amp; date
+                                </td>
+                                <td width="10%"/>
+                                <td width="45%" style="border-top:1px solid #666;padding-top:6px;">
+                                    Employee acknowledgement — signature &amp; date
+                                </td>
+                            </tr>
+                        </table>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

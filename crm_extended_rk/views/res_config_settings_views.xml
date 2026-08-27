@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_journey" model="ir.ui.view">
+        <field name="name">res.config.settings.form.crm.journey</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="crm.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='crm']//block[@name='generate_lead_setting_container']" position="after">
+                <block title="Lead Journey Reminders" name="crm_journey_reminders">
+                    <setting id="journey_reminders_setting"
+                             string="Automatic Follow-up Reminders"
+                             help="Schedule activities for the salesperson as a lead moves through the pipeline: send the discovery form, chase it, share the proposal, chase feedback.">
+                        <field name="journey_reminders_active"/>
+                        <div class="content-group" invisible="not journey_reminders_active">
+                            <div class="mt16 text-muted">
+                                Leads created before the date below are never
+                                reminded about, so switching this on does not
+                                flood the team with the existing backlog.
+                            </div>
+                            <div class="mt16 row">
+                                <label for="journey_reminders_start_date" class="col-lg-6 o_light_label"/>
+                                <field name="journey_reminders_start_date"/>
+                            </div>
+                            <div class="mt16 row">
+                                <label for="journey_delay_send_discovery" class="col-lg-6 o_light_label"/>
+                                <field name="journey_delay_send_discovery"/>
+                            </div>
+                            <div class="row">
+                                <label for="journey_delay_chase_discovery" class="col-lg-6 o_light_label"/>
+                                <field name="journey_delay_chase_discovery"/>
+                            </div>
+                            <div class="row">
+                                <label for="journey_delay_prepare_proposal" class="col-lg-6 o_light_label"/>
+                                <field name="journey_delay_prepare_proposal"/>
+                            </div>
+                            <div class="row">
+                                <label for="journey_delay_chase_feedback" class="col-lg-6 o_light_label"/>
+                                <field name="journey_delay_chase_feedback"/>
+                            </div>
+                            <div class="row">
+                                <label for="journey_nudge_hours" class="col-lg-6 o_light_label"/>
+                                <field name="journey_nudge_hours"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

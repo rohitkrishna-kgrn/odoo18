@@ -95,6 +95,12 @@
                                                                     <span class="mis_chip mis_chip_outstanding">
                                                                         Outstanding: <strong t-esc="fmt(mgr.total_outstanding_ex_vat)"/>
                                                                     </span>
+                                                                    <span class="mis_chip mis_chip_completed">
+                                                                        Work Completed: <strong t-esc="fmt(mgr.total_completed_value_ex_vat)"/>
+                                                                    </span>
+                                                                    <span t-att-class="'mis_chip mis_chip_rate' + (mgr.collection_rate &lt; 50 ? ' mis_chip_rate_low' : '')">
+                                                                        Collection Rate: <strong t-esc="mgr.collection_rate.toFixed(1)"/>%
+                                                                    </span>
                                                                 </div>
                                                             </div>
 

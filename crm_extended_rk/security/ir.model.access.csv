@@ -4,3 +4,6 @@ access_crm_lead_set_source_wizard,crm.lead.set.source.wizard,model_crm_lead_set_
 access_crm_lead_discovery_form,crm.lead.discovery.form,model_crm_lead_discovery_form,,1,1,1,1
 access_crm_lead_set_reason_wizard,crm.lead.set.reason.wizard,model_crm_lead_set_reason_wizard,,1,1,1,1
 access_crm_lead_stage_reason,crm.lead.stage.reason,model_crm_lead_stage_reason,,1,0,1,0
+access_crm_lead_event_user,crm.lead.event.user,model_crm_lead_event,sales_team.group_sale_salesman,1,0,1,0
+access_crm_lead_event_manager,crm.lead.event.manager,model_crm_lead_event,sales_team.group_sale_manager,1,1,1,1
+access_crm_lead_journey_report,crm.lead.journey.report,model_crm_lead_journey_report,sales_team.group_sale_salesman,1,0,0,0

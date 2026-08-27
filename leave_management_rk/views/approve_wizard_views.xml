@@ -6,6 +6,10 @@
             <form string="Approve Leave Request">
                 <field name="is_permission" invisible="1"/>
                 <sheet>
+                    <group>
+                        <field name="leave_month_label" readonly="1"
+                               string="Leave Month Charged"/>
+                    </group>
                     <group string="Employee Current Leave Balances">
                         <field name="balance_line_ids" nolabel="1" readonly="1">
                             <list>

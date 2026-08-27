@@ -1,6 +1,6 @@
 {
     'name': 'CRM Extended RK',
-    'version': '1.10',
+    'version': '1.24',
     'depends': [
         'account',
         'sale',              # For sale.order and sale.order.line
@@ -19,14 +19,20 @@
         'security/ir.model.access.csv',
         'data/crm_stage_data.xml',
         'data/crm_tag_data.xml',
+        'data/crm_tag_access_data.xml',
+        'data/crm_journey_activity_data.xml',
         'views/res_users_views.xml',
         'views/sale_order_views.xml',
         'views/crm_lead_discovery_form_views.xml',
         'views/crm_lead_views.xml',
+        'views/crm_lead_event_views.xml',
+        'views/crm_lead_journey_report_views.xml',
+        'views/res_config_settings_views.xml',
         'views/crm_lead_source_wizard_views.xml',
         'views/crm_lead_reason_wizard_views.xml',
         'reports/discovery_report.xml',
         'templates/discovery_form.xml',
+        'data/crm_lead_journey_backfill.xml',
     ],
     'assets': {
         'web.assets_backend': [

@@ -18,8 +18,8 @@
                     <attribute name="decoration-warning">overdue_category == '30_60'</attribute>
                     <!-- amber  : 60–90 days overdue (muted-warning maps to info in bootstrap) -->
                     <attribute name="decoration-info">overdue_category == '60_90'</attribute>
-                    <!-- red    : more than 90 days overdue -->
-                    <attribute name="decoration-danger">overdue_category == 'gt90'</attribute>
+                    <!-- red    : more than 90 days overdue, or deadline missed with no delay log -->
+                    <attribute name="decoration-danger">overdue_category == 'gt90' or delay_log_missing</attribute>
                 </xpath>
 
                 <!-- Hidden carrier fields required for decoration expressions -->
@@ -27,6 +27,7 @@
                     <field name="overdue_category" column_invisible="1"/>
                     <field name="overdue_days" column_invisible="1"/>
                     <field name="state_additional" column_invisible="1"/>
+                    <field name="delay_log_missing" column_invisible="1"/>
                 </xpath>
 
             </field>
@@ -74,6 +75,44 @@
                             title="Overdue &gt; 90 days"
                             bg_color="bg-danger"
                             invisible="overdue_category != 'gt90'"/>
+                </xpath>
+
+            </field>
+        </record>
+
+
+        <!-- ══════════════════════════════════════════════
+             2b. FORM VIEW — Delay Reason & Communication Log
+             ══════════════════════════════════════════════ -->
+        <record id="view_task_form_delay_log_inherit" model="ir.ui.view">
+            <field name="name">project.task.form.delay.log.inherit</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.view_task_form2"/>
+            <field name="arch" type="xml">
+
+                <!-- Warning banner: deadline missed, log still empty -->
+                <xpath expr="//t[@name='warning_section']" position="after">
+                    <field name="delay_log_missing" invisible="1"/>
+                    <div class="alert alert-danger d-flex align-items-center mb-0"
+                         role="alert"
+                         invisible="not delay_log_missing">
+                        <i class="fa fa-exclamation-triangle me-2"/>
+                        <span>This task's deadline has passed and no Delay Reason &amp;
+                            Communication Log has been recorded. Please document the
+                            delay explanation, revised delivery date, and communication
+                            evidence in the "Delay Log" tab.</span>
+                    </div>
+                </xpath>
+
+                <!-- Delay Reason & Communication Log tab -->
+                <xpath expr="//page[@name='description_page']" position="after">
+                    <page name="delay_log_page" string="Delay Log">
+                        <group string="Delay Reason &amp; Communication Log">
+                            <field name="delay_reason" placeholder="Explain the reason for the delay..."/>
+                            <field name="delay_revised_date"/>
+                            <field name="delay_evidence_ids" widget="many2many_binary" string="Communication Evidence"/>
+                        </group>
+                    </page>
                 </xpath>
 
             </field>
@@ -153,6 +192,15 @@
                         name="no_deadline"
                         string="No Deadline"
                         domain="[('date_deadline', '=', False)]"
+                    />
+
+                    <separator/>
+
+                    <!-- Deadline missed with no Delay Reason & Communication Log recorded -->
+                    <filter
+                        name="delay_log_missing"
+                        string="Delay Log Missing"
+                        domain="[('delay_log_missing', '=', True)]"
                     />
 
                     <separator/>

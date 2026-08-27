@@ -128,16 +128,38 @@ class SaleOrder(models.Model):
         for activity in activities:
             activity.action_feedback(_("Approved by %s") % self.env.user.name)
 
+class ResUsers(models.Model):
+    _inherit = 'res.users'
+
+    can_manage_products = fields.Boolean(
+        string='Create / Edit Products',
+        help="Allows this user to create and modify products. Without it, saving "
+             "a product raises an error — regardless of the user's other rights.")
+
+
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
-    @api.model
-    def create(self, vals):
-        if not self.env.user.has_group('base.group_system'):
-            raise UserError(_("Only administrators can create products."))
-        return super().create(vals)
+    def _check_product_management_rights(self, action):
+        """Product maintenance is granted per user, not by being an administrator.
+
+        Module data loading is exempt so installs and upgrades can still ship
+        products of their own.
+        """
+        if self.env.su or self.env.context.get('install_module'):
+            return
+        if not self.env.user.can_manage_products:
+            raise UserError(_(
+                "You are not allowed to %s products.\n\n"
+                "Ask an administrator to tick 'Create / Edit Products' on your "
+                "user record (Settings > Users > Access Rights).",
+                action))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        self._check_product_management_rights(_("create"))
+        return super().create(vals_list)
 
     def write(self, vals):
-        if not self.env.user.has_group('base.group_system'):
-            raise UserError(_("Only administrators can modify products."))
+        self._check_product_management_rights(_("modify"))
         return super().write(vals)

@@ -185,6 +185,9 @@ class AccountLedgerExtended(models.AbstractModel):
         moves = self.env['account.move'].search(
             domain, order='invoice_date asc, name asc')
 
+        method_labels = dict(
+            self.env['account.invoice.followup.log']._fields['method'].selection)
+
         rows = []
         total_due = total_residual = 0.0
         for move in moves:
@@ -203,6 +206,11 @@ class AccountLedgerExtended(models.AbstractModel):
                 'residual': move.amount_residual * sign,
                 'overdue': bool(move.invoice_date_due and
                                 move.invoice_date_due < fields.Date.context_today(self)),
+                'last_followup_date': format_date(
+                    self.env, move.last_followup_date) if move.last_followup_date else '',
+                'last_followup_method': method_labels.get(
+                    move.last_followup_method, ''),
+                'last_followup_response': move.last_followup_response or '',
             })
         return {
             'partner': {'id': partner.id, 'name': partner.display_name},
@@ -352,16 +360,19 @@ class AccountLedgerExtended(models.AbstractModel):
         f = self._xlsx_formats(wb)
         sheet.set_column(0, 1, 14)
         sheet.set_column(2, 2, 18)
-        sheet.set_column(3, 3, 40)
+        sheet.set_column(3, 3, 34)
         sheet.set_column(4, 5, 16)
-        sheet.merge_range('A1:F1', _('Outstanding Ledger'), f['title'])
+        sheet.set_column(6, 7, 16)
+        sheet.set_column(8, 8, 34)
+        sheet.merge_range('A1:I1', _('Outstanding Ledger'), f['title'])
         sheet.merge_range(
-            'A2:F2',
+            'A2:I2',
             '%s  |  as on %s' % (content['partner']['name'],
                                  content['date_to']),
             f['sub'])
         headers = ['Date', 'Due Date', 'Invoice', 'Narration', 'Invoice Amount',
-                   'Outstanding']
+                   'Outstanding', 'Last Follow-up Date', 'Last Follow-up Method',
+                   'Last Client Response']
         row = 3
         for col, h in enumerate(headers):
             sheet.write(row, col, h, f['head'])
@@ -374,6 +385,9 @@ class AccountLedgerExtended(models.AbstractModel):
             sheet.write(row, 3, r['narration'], f['cell'])
             sheet.write(row, 4, self._dc(r['amount_total'], currency=cur), f['num'])
             sheet.write(row, 5, self._dc(r['residual'], currency=cur), f['num'])
+            sheet.write(row, 6, r['last_followup_date'], f['cell'])
+            sheet.write(row, 7, r['last_followup_method'], f['cell'])
+            sheet.write(row, 8, r['last_followup_response'], f['cell'])
             row += 1
         sheet.write(row, 3, _('Total Outstanding'), f['total_lbl'])
         sheet.write(row, 4, self._dc(content['total_amount'], currency=cur), f['total'])

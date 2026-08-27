@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         List
+    ═══════════════════════════════════════════════════════════ -->
+    <record id="view_mis_warning_notice_list" model="ir.ui.view">
+        <field name="name">mis.warning.notice.list</field>
+        <field name="model">mis.warning.notice</field>
+        <field name="arch" type="xml">
+            <list string="Performance Escalations" create="0"
+                  decoration-danger="state in ('draft','issued')"
+                  decoration-warning="state == 'flagged'"
+                  decoration-muted="state in ('closed','cancelled')">
+                <field name="name"/>
+                <field name="employee_name"/>
+                <field name="department_id"/>
+                <field name="performance_team"/>
+                <field name="office_location"/>
+                <field name="period_label" string="Latest Month"/>
+                <field name="consecutive_months" string="Months Below"/>
+                <field name="stage"/>
+                <field name="min_ctc_obligation" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="payments_collected" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                <field name="total_shortfall" widget="monetary" options="{'currency_field': 'currency_id'}"
+                       sum="Cumulative Shortfall"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state == 'flagged'"
+                       decoration-danger="state in ('draft','issued')"
+                       decoration-success="state == 'closed'"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="activity_ids" widget="list_activity" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Form
+    ═══════════════════════════════════════════════════════════ -->
+    <record id="view_mis_warning_notice_form" model="ir.ui.view">
+        <field name="name">mis.warning.notice.form</field>
+        <field name="model">mis.warning.notice</field>
+        <field name="arch" type="xml">
+            <form string="Performance Escalation" create="0">
+                <header>
+                    <button name="action_regenerate_notice" type="object"
+                            string="Generate / Regenerate Draft" class="btn-primary"
+                            invisible="state not in ('flagged','draft')"
+                            confirm="Rebuild the notice from current data? Any edits you made to the draft will be discarded."/>
+                    <button name="action_issue" type="object"
+                            string="Issue Notice" class="btn-primary"
+                            invisible="state != 'draft'"
+                            confirm="Issue this Warning Notice? Print or download the PDF to hand it to the employee."/>
+                    <button name="%(action_report_mis_warning_notice)d" type="action"
+                            string="Print Notice" class="btn-secondary"
+                            invisible="state not in ('draft','issued')"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state in ('closed','cancelled')"/>
+                    <button name="action_reset_to_draft" type="object" string="Reset to Draft"
+                            invisible="state not in ('issued','cancelled')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="flagged,draft,issued"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_performance" type="object"
+                                class="oe_stat_button" icon="fa-line-chart">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Performance</span>
+                                <span class="o_stat_text">History</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                        <h2><field name="employee_name" readonly="1"/></h2>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'flagged'">
+                        Month <field name="consecutive_months" class="oe_inline" readonly="1"/> below the
+                        minimum monthly obligation. Flagged for HR — a draft Warning Notice is
+                        generated automatically if the shortfall continues into a third month.
+                    </div>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="state != 'draft'">
+                        Draft Warning Notice — review the text below, edit if needed, then
+                        <strong>Issue Notice</strong>. Nothing is sent to the employee automatically.
+                    </div>
+                    <group>
+                        <group string="Employee">
+                            <field name="employee_id" readonly="1"/>
+                            <field name="job_title" readonly="1"/>
+                            <field name="department_id" readonly="1"/>
+                            <field name="performance_team" readonly="1"/>
+                            <field name="office_location" readonly="1"/>
+                            <field name="user_id" readonly="1"/>
+                        </group>
+                        <group string="Escalation">
+                            <field name="stage" readonly="1"/>
+                            <field name="consecutive_months" readonly="1"/>
+                            <field name="streak_start_label" readonly="1"/>
+                            <field name="period_label" string="Latest Month" readonly="1"/>
+                            <field name="flagged_date" readonly="1"/>
+                            <field name="notice_date" readonly="1" invisible="not notice_date"/>
+                            <field name="issued_date" readonly="1" invisible="not issued_date"/>
+                            <field name="issued_by_id" readonly="1" invisible="not issued_by_id"/>
+                            <field name="closed_date" readonly="1" invisible="not closed_date"/>
+                            <field name="closed_period_label" readonly="1" invisible="not closed_period_label"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Latest Month Figures">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="monthly_ctc" widget="monetary" readonly="1"/>
+                            <field name="min_ctc_obligation" widget="monetary" readonly="1"/>
+                            <field name="payments_collected" widget="monetary" readonly="1"/>
+                            <field name="shortfall" widget="monetary" readonly="1"/>
+                        </group>
+                        <group string="Streak">
+                            <field name="total_shortfall" widget="monetary" readonly="1"/>
+                            <field name="hr_notified" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Below-Target Months" name="months">
+                            <field name="month_ids" readonly="1">
+                                <list create="0" edit="0" delete="0">
+                                    <field name="period_label"/>
+                                    <field name="monthly_ctc" widget="monetary"/>
+                                    <field name="min_ctc_obligation" widget="monetary"/>
+                                    <field name="payments_collected" widget="monetary"/>
+                                    <field name="shortfall" widget="monetary" sum="Total"/>
+                                    <field name="performance_status"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Draft Warning Notice" name="notice"
+                              invisible="stage != 'notice'">
+                            <field name="notice_body" widget="html"
+                                   readonly="state not in ('draft',)"
+                                   options="{'style-inline': true}"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Search
+    ═══════════════════════════════════════════════════════════ -->
+    <record id="view_mis_warning_notice_search" model="ir.ui.view">
+        <field name="name">mis.warning.notice.search</field>
+        <field name="model">mis.warning.notice</field>
+        <field name="arch" type="xml">
+            <search string="Performance Escalations">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="employee_name"/>
+                <field name="department_id"/>
+                <filter name="filter_open" string="Open"
+                        domain="[('state','in',['flagged','draft','issued'])]"/>
+                <filter name="filter_flagged" string="Flagged for HR (Month 2)"
+                        domain="[('state','=','flagged')]"/>
+                <filter name="filter_draft" string="Draft Notice (Month 3+)"
+                        domain="[('state','=','draft')]"/>
+                <filter name="filter_issued" string="Issued" domain="[('state','=','issued')]"/>
+                <separator/>
+                <filter name="filter_closed" string="Closed — Minimum Met"
+                        domain="[('state','=','closed')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_stage" string="Escalation Stage" context="{'group_by': 'stage'}"/>
+                    <filter name="group_department" string="Department" context="{'group_by': 'department_id'}"/>
+                    <filter name="group_team" string="Team" context="{'group_by': 'performance_team'}"/>
+                    <filter name="group_period" string="Month" context="{'group_by': 'period_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_mis_warning_notice" model="ir.actions.act_window">
+        <field name="name">Warning Notices</field>
+        <field name="res_model">mis.warning.notice</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_mis_warning_notice_search"/>
+        <field name="context">{'search_default_filter_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No performance escalations</p>
+            <p>
+                The counter runs on the 1st of every month. A team member who
+                misses the minimum monthly obligation for 2 consecutive months is
+                flagged here for HR; at 3 months a draft Warning Notice is
+                generated for HR to review and issue. Meeting the minimum resets
+                the counter and closes the case.
+            </p>
+        </field>
+    </record>
+
+</odoo>

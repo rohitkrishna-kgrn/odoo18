@@ -3,7 +3,7 @@
     'version': '1.4',
     'category': 'Project',
     'summary': 'Automatically cancel projects and tasks when a linked sale order is cancelled',
-    'depends': ['project', 'sale', 'project_extended_rk', 'base_automation'],
+    'depends': ['project', 'sale', 'project_extended_rk', 'base_automation', 'account_extended_rk'],
     'data': [
         'data/project_stages.xml',
         'data/automation.xml',

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Monday report: must land by 8:00 AM Gulf Standard Time.
+             Monday 07:00 GST (UTC+4, no DST) = 03:00 UTC, an hour of buffer. -->
+        <record id="cron_generate_weekly_overdue_report" model="ir.cron">
+            <field name="name">Weekly Overdue Invoice Report: Generate &amp; Send (Monday)</field>
+            <field name="model_id" ref="model_weekly_overdue_invoice_report_log"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_generate_weekly_report()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">weeks</field>
+            <field name="active" eval="True"/>
+            <field name="nextcall"
+                   eval="(lambda base: base if base &gt; datetime.now() else base + timedelta(days=7))((datetime.now() + timedelta(days=(0 - datetime.now().weekday()) % 7)).replace(hour=3, minute=0, second=0, microsecond=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        </record>
+
+    </data>
+</odoo>

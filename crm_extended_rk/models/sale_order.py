@@ -1,8 +1,13 @@
 from odoo import api, models, fields, _
+
+from .crm_tag import APPROVED_TAG_DOMAIN
 from odoo.exceptions import UserError, ValidationError
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
+
+    # Same approved list as the pipeline - see models/crm_tag.py.
+    tag_ids = fields.Many2many(domain=APPROVED_TAG_DOMAIN)
 
     reminder_date = fields.Date(string='Reminder Date')
     advance_amount = fields.Float(string='Advance Amount', default=0.00)
@@ -113,7 +118,28 @@ class SaleOrder(models.Model):
             if (proposition and order.state == 'draft'
                     and lead.stage_id.sequence < proposition.sequence):
                 lead.stage_id = proposition.id
+            lead._log_journey_event(
+                'proposal_created',
+                _("Proposal %s created") % order.name,
+                order_id=order.id)
         return orders
+
+    def write(self, vals):
+        # "Proposal shared" is the moment the quotation leaves draft for sent.
+        # Hooking state here catches every route: the send wizard, the portal
+        # share link and any server action, which action_quotation_send alone
+        # would miss.
+        newly_sent = self.env['sale.order']
+        if vals.get('state') == 'sent':
+            newly_sent = self.filtered(lambda o: o.state != 'sent')
+        res = super().write(vals)
+        for order in newly_sent:
+            order.opportunity_id._log_journey_event(
+                'proposal_sent',
+                _("Proposal %s shared with client") % order.name,
+                order_id=order.id)
+            order.opportunity_id._journey_on_proposal_sent()
+        return res
 
     @api.constrains('approval_state', 'tag_ids')
     def _check_tag_required_before_approval(self):
@@ -134,20 +160,36 @@ class SaleOrder(models.Model):
     def action_approve_order(self):
         res = super().action_approve_order()
         # Approved quotation -> opportunity moves to "Service Engagement".
-        self.filtered(lambda o: o.approval_state == 'approved')._set_opportunity_stage(
+        approved = self.filtered(lambda o: o.approval_state == 'approved')
+        approved._set_opportunity_stage(
             'crm_extended_rk.stage_service_engagement')
+        for order in approved:
+            order.opportunity_id._log_journey_event(
+                'proposal_approved',
+                _("Proposal %s approved") % order.name,
+                order_id=order.id)
         return res
 
     def action_confirm(self):
         res = super().action_confirm()
         # Confirmed order -> opportunity moves to "Won".
         self._set_opportunity_stage('crm.stage_lead4')
+        for order in self:
+            order.opportunity_id._log_journey_event(
+                'proposal_confirmed',
+                _("Order %s confirmed - lead converted") % order.name,
+                order_id=order.id)
         return res
 
     def action_cancel(self):
         res = super().action_cancel()
         # Cancelled order -> opportunity moves to "Lost".
         self._set_opportunity_stage('crm_extended_rk.stage_lost')
+        for order in self:
+            order.opportunity_id._log_journey_event(
+                'proposal_cancelled',
+                _("Proposal %s cancelled") % order.name,
+                order_id=order.id)
         return res
 
     # def _create_advance_invoice(self):

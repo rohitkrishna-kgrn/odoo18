@@ -26,6 +26,8 @@
                             domain="[('credit_hold', '=', True)]"/>
                     <filter string="Follow-up Log Missing" name="filter_followup_missing"
                             domain="[('followup_log_status', '=', 'missing')]"/>
+                    <filter string="No Follow-Up Logged" name="filter_no_followup_logged"
+                            domain="[('ar_no_followup_flag', '=', True)]"/>
                     <separator/>
                     <filter string="Advance" name="filter_type_advance"
                             domain="[('invoice_type_classification', '=', 'advance')]"/>
@@ -42,6 +44,10 @@
                             context="{'group_by': 'partner_id'}"/>
                     <filter string="AR Responsible" name="group_ar_responsible"
                             context="{'group_by': 'ar_responsible_id'}"/>
+                    <filter string="No Follow-Up Logged" name="group_no_followup_logged"
+                            context="{'group_by': 'ar_no_followup_flag'}"/>
+                    <filter string="Last Follow-up Method" name="group_last_followup_method"
+                            context="{'group_by': 'last_followup_method'}"/>
                 </search>
             </field>
         </record>
@@ -51,8 +57,8 @@
             <field name="model">account.move</field>
             <field name="arch" type="xml">
                 <list string="AR Aging" default_order="invoice_age_days desc"
-                      decoration-danger="credit_hold"
-                      decoration-warning="followup_log_status == 'missing' and not credit_hold">
+                      decoration-danger="ar_no_followup_flag or credit_hold"
+                      decoration-warning="followup_log_status == 'missing' and not ar_no_followup_flag and not credit_hold">
                     <field name="name" string="Invoice"/>
                     <field name="partner_id" string="Client"/>
                     <field name="engagement_team_id" string="Team" optional="show"/>
@@ -62,7 +68,15 @@
                     <field name="invoice_age_days" string="Age (Days)"/>
                     <field name="aging_bucket" string="Aging Bucket"/>
                     <field name="last_followup_date" string="Last Follow-up"/>
+                    <field name="last_followup_method" string="Method" optional="show"/>
+                    <field name="followup_count" string="Follow-ups" optional="show"/>
+                    <field name="last_followup_response" string="Client Response" optional="hide"/>
+                    <!-- Hidden by default and carried for the export: the
+                         whole chase history in one cell, so an AR sheet is not
+                         limited to the last line of the log. -->
+                    <field name="followup_history" string="Follow-up History" optional="hide"/>
                     <field name="followup_log_status" string="Follow-up Log"/>
+                    <field name="ar_no_followup_flag" string="No Follow-Up Logged"/>
                     <field name="invoice_type_classification" string="Invoice Type"/>
                     <field name="credit_hold" string="Credit Hold"/>
                     <field name="amount_residual" string="Amount Due" sum="Total Due"/>
@@ -105,11 +119,57 @@
             <field name="act_window_id" ref="action_ar_aging_dashboard"/>
         </record>
 
+        <record id="action_ar_no_followup_logged" model="ir.actions.act_window">
+            <field name="name">No Follow-Up Logged</field>
+            <field name="res_model">account.move</field>
+            <field name="domain">[('ar_no_followup_flag', '=', True)]</field>
+            <field name="view_mode">list,pivot,form</field>
+            <field name="search_view_id" ref="view_account_move_ar_aging_search"/>
+            <field name="context">{'search_default_group_ar_responsible': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No invoices are missing follow-up.
+                </p>
+                <p>
+                    Invoices more than 30 days past due with nothing recorded in
+                    their Follow-up Log appear here.
+                </p>
+            </field>
+        </record>
+
+        <record id="action_ar_no_followup_logged_view_list" model="ir.actions.act_window.view">
+            <field name="sequence">1</field>
+            <field name="view_mode">list</field>
+            <field name="view_id" ref="view_account_move_ar_aging_list"/>
+            <field name="act_window_id" ref="action_ar_no_followup_logged"/>
+        </record>
+
+        <record id="action_ar_no_followup_logged_view_pivot" model="ir.actions.act_window.view">
+            <field name="sequence">2</field>
+            <field name="view_mode">pivot</field>
+            <field name="view_id" ref="view_account_move_ar_aging_pivot"/>
+            <field name="act_window_id" ref="action_ar_no_followup_logged"/>
+        </record>
+
+        <!-- No view_id: drill-down uses the standard invoice form, which is
+             where the red banner lives. -->
+        <record id="action_ar_no_followup_logged_view_form" model="ir.actions.act_window.view">
+            <field name="sequence">3</field>
+            <field name="view_mode">form</field>
+            <field name="act_window_id" ref="action_ar_no_followup_logged"/>
+        </record>
+
         <menuitem id="menu_ar_aging_dashboard"
                   name="AR Aging Dashboard"
                   parent="account.menu_finance_receivables"
                   action="action_ar_aging_dashboard"
                   sequence="4"/>
+
+        <menuitem id="menu_ar_no_followup_logged"
+                  name="No Follow-Up Logged"
+                  parent="account.menu_finance_receivables"
+                  action="action_ar_no_followup_logged"
+                  sequence="5"/>
 
     </data>
 </odoo>

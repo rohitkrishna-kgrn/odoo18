@@ -7,14 +7,13 @@ import { Dialog } from "@web/core/dialog/dialog";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { formatMonetary, formatFloat, formatInteger } from "@web/views/fields/formatters";
 
-// Last day (as 'YYYY-MM-DD') of the calendar month a 1st-of-month bucket
-// date falls in — used to test whether a monthly-bucketed row (e.g. a
-// Performance Management row keyed by month) overlaps a selected range
-// whose "from" bound falls after the 1st of that month.
-function monthEndStr(monthStart) {
-    const [y, m] = monthStart.split("-").map(Number);
-    const lastDay = new Date(y, m, 0).getDate();
-    return `${monthStart.slice(0, 8)}${String(lastDay).padStart(2, "0")}`;
+// 'YYYY-MM' slice of a 'YYYY-MM-DD' date string — used to compare a
+// monthly-bucketed row (e.g. a Performance Management row keyed by the
+// 1st of its month) against a selected date range at whole-month
+// granularity, so a mid-month "from"/"to" bound still includes/excludes
+// exactly the right months.
+function rowMonth(dateStr) {
+    return dateStr.slice(0, 7);
 }
 
 // Dialog showing the sales & delivery revenue breakdown for one employee-month.
@@ -91,10 +90,12 @@ const REPORT_CONFIGS = {
             { name: "days_overdue", label: "Days Overdue", type: "integer" },
             { name: "product_uom_qty", label: "Ordered Qty", type: "float" },
             { name: "qty_delivered", label: "Delivered Qty", type: "float" },
-            { name: "so_total_ex_vat", label: "SO Total (Ex VAT)", type: "monetary", agg: true },
+            { name: "so_total_ex_vat", label: "SO Total (Ex VAT)", type: "monetary", agg: true, aggDistinct: "sale_order_id" },
+            { name: "work_completed_value_ex_vat", label: "Work Completed (Ex VAT)", type: "monetary", agg: true },
             { name: "invoiced_ex_vat", label: "Invoiced (Ex VAT)", type: "monetary", agg: true },
             { name: "paid_ex_vat", label: "Paid (Ex VAT)", type: "monetary", agg: true },
             { name: "outstanding_ex_vat", label: "Outstanding (Ex VAT)", type: "monetary", agg: true },
+            { name: "collection_rate", label: "Collection Rate", type: "percent", ratio: ["paid_ex_vat", "invoiced_ex_vat"] },
             { name: "advance_amount", label: "Advance (SO)", type: "monetary" },
             { name: "last_invoice_date", label: "Last Invoice", type: "date" },
             { name: "is_completed", label: "Completed", type: "boolean" },
@@ -137,7 +138,8 @@ const REPORT_CONFIGS = {
             },
             {
                 title: "Invoicing",
-                fields: ["invoiced_ex_vat", "invoiced_inc_vat",
+                fields: ["work_completed_value_ex_vat",
+                         "invoiced_ex_vat", "invoiced_inc_vat",
                          "paid_ex_vat", "paid_inc_vat",
                          "outstanding_ex_vat", "outstanding_inc_vat",
                          "advance_amount", "advance_per_line"],
@@ -182,7 +184,7 @@ const REPORT_CONFIGS = {
             { name: "deadline", label: "Deadline", type: "date" },
             { name: "days_overdue", label: "Days Overdue", type: "integer" },
             { name: "project_value_ex_vat", label: "Project Value (Ex VAT)", type: "monetary", agg: true },
-            { name: "so_total_ex_vat", label: "SO Total (Ex VAT)", type: "monetary", agg: true },
+            { name: "so_total_ex_vat", label: "SO Total (Ex VAT)", type: "monetary", agg: true, aggDistinct: "sale_order_id" },
             { name: "advance_amount", label: "Advance (SO)", type: "monetary" },
             { name: "tasks_total", label: "Total Tasks", type: "integer", agg: true },
             { name: "tasks_completed", label: "Completed Tasks", type: "integer", agg: true },
@@ -295,6 +297,16 @@ const REPORT_CONFIGS = {
     },
 };
 
+// Selection labels for hr.employee.mis_performance_team — see mis_employee.py.
+const PERFORMANCE_TEAM_LABELS = {
+    sales: "Sales",
+    audit: "Audit",
+    tax: "Tax",
+    accounting: "Accounting",
+    einvoicing: "E-Invoicing",
+    other: "Other",
+};
+
 // ── Performance Management dashboards (shared shape, filtered by team) ──
 // `team` is either one team code ("sales") or an array of codes sharing a
 // screen (Operations groups its four sub-teams: Audit / Tax / Accounting /
@@ -310,9 +322,32 @@ function makePerformanceConfig(team, title) {
         selectable: true,
         performanceManagementReport: true,
         baseDomain: [["performance_team", "in", teams]],
-        searchFields: ["employee_name", "escalation_stage"],
+        // ramp_stage is searchable so typing "Month 1" pulls up every joiner
+        // on a reduced target: grouping by it nests under the locked
+        // Department/Employee grouping, which is no way to survey them.
+        searchFields: ["employee_name", "performance_status", "escalation_stage",
+                       "ramp_stage"],
         titleFields: ["employee_id", "period_label"],
         dateFilters: [{ field: "period_date", label: "Date" }],
+        // Narrowing (not just grouping) dropdowns. Team is only shown when
+        // the screen actually spans more than one team (e.g. Operations).
+        selectFilters: [
+            ...(teams.length > 1
+                ? [{
+                      field: "performance_team",
+                      label: "Team",
+                      options: teams.map((t) => ({ value: t, label: PERFORMANCE_TEAM_LABELS[t] || t })),
+                  }]
+                : []),
+            {
+                field: "office_location",
+                label: "Office",
+                options: [
+                    { value: "UAE", label: "UAE" },
+                    { value: "India", label: "India" },
+                ],
+            },
+        ],
         // When both bounds are set, recompute Sales/Delivery/Total Revenue
         // restricted to that exact date range (instead of each row's whole
         // calendar month) via the server — same pattern as Project Wise's
@@ -323,14 +358,17 @@ function makePerformanceConfig(team, title) {
             dateField: "period_date",
             monthBucket: true,
             method: "get_period_revenue_amounts",
-            columns: ["sales_revenue", "delivery_revenue", "total_revenue"],
-            hint: "Sales/Delivery/Total Revenue now reflect only this exact date range, not the full month.",
+            columns: ["sales_revenue", "delivery_revenue", "total_revenue",
+                      "work_completed_value"],
+            hint: "Sales/Delivery/Total Revenue reflect cash collected in this exact date range; Work Delivered reflects work completed in it. Neither covers the full month.",
         },
         groupBy: [
             { field: "department_id", label: "Department" },
             { field: "employee_id", label: "Employee" },
             { field: "office_location", label: "Office" },
+            { field: "performance_status", label: "Status" },
             { field: "escalation_stage", label: "Escalation Stage" },
+            { field: "ramp_stage", label: "Ramp-up Stage" },
         ],
         defaultGroupBy: ["department_id", "employee_id"],
         columns: [
@@ -340,11 +378,18 @@ function makePerformanceConfig(team, title) {
             { name: "period_label", label: "Month", type: "char" },
             { name: "monthly_ctc", label: "Monthly CTC", type: "monetary", currency: "ctc_currency_id" },
             { name: "monthly_obligation", label: "Obligation", type: "monetary", currency: "ctc_currency_id" },
+            // Why the Obligation is reduced — blank-looking low targets on a
+            // new joiner are otherwise indistinguishable from a data error.
+            { name: "ramp_stage", label: "Ramp-up", type: "char" },
+            { name: "work_completed_value", label: "Work Delivered (AED)", type: "monetary", agg: true },
+            { name: "invoices_raised_amount", label: "Invoices Raised (AED)", type: "monetary", agg: true },
+            { name: "payments_collected_amount", label: "Payments Collected (AED)", type: "monetary", agg: true },
             { name: "sales_revenue", label: "Sales Revenue", type: "monetary", agg: true },
             { name: "delivery_revenue", label: "Delivery Revenue", type: "monetary", agg: true },
             { name: "total_revenue", label: "Total Revenue", type: "monetary", agg: true },
             { name: "achievement_pct", label: "Achievement", type: "percent" },
             { name: "is_met", label: "Met", type: "boolean" },
+            { name: "performance_status", label: "Status", type: "char" },
             { name: "escalation_stage", label: "Escalation Stage", type: "char" },
         ],
         formFieldDefs: {
@@ -354,11 +399,16 @@ function makePerformanceConfig(team, title) {
             annual_ctc: { label: "Annual CTC", type: "monetary", currency: "ctc_currency_id" },
             annual_target: { label: "Annual Target", type: "monetary", currency: "ctc_currency_id" },
             consecutive_non_perf: { label: "Consecutive Non-Perf Months", type: "integer" },
+            min_ctc_obligation: { label: "Min. CTC Obligation", type: "monetary", currency: "ctc_currency_id" },
+            ramp_stage: { label: "Ramp-up Stage", type: "char" },
+            ramp_start_date: { label: "Ramp-up Start", type: "date" },
+            months_employed: { label: "Month No.", type: "integer" },
+            consecutive_below_target: { label: "Consecutive Below-Target Months", type: "integer" },
             period_date: { label: "Month (date)", type: "date" },
             invoices_raised_count: { label: "Invoices Raised (No.)", type: "integer" },
             invoices_raised_amount: { label: "Invoices Raised (AED)", type: "monetary" },
             payments_collected_amount: { label: "Payments Collected (AED)", type: "monetary" },
-            work_completed_value: { label: "Work Completed – Value (AED)", type: "monetary" },
+            work_completed_value: { label: "Work Delivered (AED)", type: "monetary" },
         },
         form: [
             {
@@ -369,7 +419,8 @@ function makePerformanceConfig(team, title) {
             {
                 title: "Cost & Targets",
                 fields: ["monthly_ctc", "annual_ctc",
-                         "monthly_obligation", "annual_target"],
+                         "monthly_obligation", "annual_target",
+                         "ramp_stage", "ramp_start_date", "months_employed"],
             },
             {
                 title: "Revenue (this month)",
@@ -383,7 +434,9 @@ function makePerformanceConfig(team, title) {
             },
             {
                 title: "Status & Escalation",
-                fields: ["is_met", "consecutive_non_perf", "escalation_stage"],
+                fields: ["is_met", "consecutive_non_perf",
+                         "min_ctc_obligation", "performance_status",
+                         "consecutive_below_target", "escalation_stage"],
             },
         ],
     };
@@ -434,6 +487,9 @@ export class MisReportView extends Component {
             dates: Object.fromEntries(
                 this.config.dateFilters.map((d) => [d.field, { from: "", to: "" }])
             ),
+            selects: Object.fromEntries(
+                (this.config.selectFilters || []).map((f) => [f.field, ""])
+            ),
             expanded: {},
             detailCache: {},
             periodOverlay: null,
@@ -449,11 +505,21 @@ export class MisReportView extends Component {
 
     // ── Data loading ─────────────────────────────────────────────────────
     get fieldNames() {
-        const names = new Set(Object.keys(this._fieldDefMap));
+        // Ratio columns (e.g. Collection Rate) are computed client-side from
+        // other columns' totals — they aren't real fields on the model, so
+        // they must never be sent to the ORM as a field to fetch.
+        const names = new Set(
+            Object.entries(this._fieldDefMap)
+                .filter(([, d]) => !d.ratio)
+                .map(([name]) => name)
+        );
         this.config.searchFields.forEach((f) => names.add(f));
         this.config.dateFilters.forEach((d) => names.add(d.field));
+        (this.config.selectFilters || []).forEach((f) => names.add(f.field));
         // per-field currency fields (e.g. ctc_currency_id)
         Object.values(this._fieldDefMap).forEach((d) => d.currency && names.add(d.currency));
+        // dedup keys for order-level aggregates (e.g. SO Total -> sale_order_id)
+        Object.values(this._fieldDefMap).forEach((d) => d.aggDistinct && names.add(d.aggDistinct));
         if (this.config.currencyField) names.add(this.config.currencyField);
         if (this.config.decorationField) names.add(this.config.decorationField);
         return [...names];
@@ -497,15 +563,28 @@ export class MisReportView extends Component {
         const pr0 = this.config.periodRecompute;
         for (const [field, range] of Object.entries(this.state.dates)) {
             const isMonthBucket = pr0 && pr0.dateField === field && pr0.monthBucket;
-            if (range.from) {
+            if (isMonthBucket) {
                 // Month-bucket fields (e.g. Performance's period_date) store
-                // the 1st of the month: a row still overlaps the range as
-                // long as its month doesn't END before the "from" date.
-                recs = recs.filter((r) =>
-                    r[field] && (isMonthBucket ? monthEndStr(r[field]) >= range.from : r[field] >= range.from)
-                );
+                // the 1st of the month: compare at 'YYYY-MM' granularity so
+                // only months whose range actually overlaps [from, to] are
+                // kept — a row from a later month must never leak through
+                // just because "to" falls mid-month.
+                if (range.from) {
+                    const fromMonth = rowMonth(range.from);
+                    recs = recs.filter((r) => r[field] && rowMonth(r[field]) >= fromMonth);
+                }
+                if (range.to) {
+                    const toMonth = rowMonth(range.to);
+                    recs = recs.filter((r) => r[field] && rowMonth(r[field]) <= toMonth);
+                }
+            } else {
+                if (range.from) recs = recs.filter((r) => r[field] && r[field] >= range.from);
+                if (range.to) recs = recs.filter((r) => r[field] && r[field] <= range.to);
             }
-            if (range.to) recs = recs.filter((r) => r[field] && r[field] <= range.to);
+        }
+
+        for (const [field, value] of Object.entries(this.state.selects)) {
+            if (value) recs = recs.filter((r) => r[field] === value);
         }
 
         // Overlay period-scoped Invoiced/Paid/Outstanding when active — see
@@ -572,11 +651,40 @@ export class MisReportView extends Component {
     aggregate(records) {
         const totals = {};
         for (const col of this.columns) {
-            if (col.agg) {
+            if (!col.agg) continue;
+            if (col.aggDistinct) {
+                // Order-level amounts (e.g. SO Total) are carried on every
+                // row of the same sale order, so a plain row-by-row sum
+                // multiplies a multi-line order by its line count. Count
+                // each distinct order once instead. Rows with no key can't
+                // be deduplicated, so each one still counts on its own.
+                const seen = new Set();
+                let sum = 0;
+                for (const r of records) {
+                    const v = r[col.aggDistinct];
+                    const key = Array.isArray(v) ? v[0] : v;
+                    if (key !== undefined && key !== null && key !== false) {
+                        if (seen.has(key)) continue;
+                        seen.add(key);
+                    }
+                    sum += Number(r[col.name]) || 0;
+                }
+                totals[col.name] = sum;
+            } else {
                 totals[col.name] = records.reduce(
                     (s, r) => s + (Number(r[col.name]) || 0),
                     0
                 );
+            }
+        }
+        // Ratio columns (e.g. Collection Rate) are group-level weighted
+        // rates, not summable — derive from the already-aggregated
+        // numerator/denominator totals rather than averaging per-row rates.
+        for (const col of this.columns) {
+            if (col.ratio) {
+                const [numName, denomName] = col.ratio;
+                const denom = totals[denomName] || 0;
+                totals[col.name] = denom ? (totals[numName] || 0) / denom * 100 : 0;
             }
         }
         return totals;
@@ -588,9 +696,20 @@ export class MisReportView extends Component {
         this.applyFilters();
     }
 
-    async onDateChange(field, bound, ev) {
+    onDateChange(field, bound, ev) {
         this.state.dates[field][bound] = ev.target.value;
-        await this.maybeRecomputePeriod(field);
+        // Apply the row filter immediately — it only needs local data, so it
+        // must never wait on the network. The period-scoped revenue overlay
+        // (below) is a separate, slower refinement of a few columns; running
+        // it in the background and re-applying filters when it resolves
+        // keeps the visible row set from ever depending on how long that
+        // request takes.
+        this.applyFilters();
+        this.maybeRecomputePeriod(field).then(() => this.applyFilters());
+    }
+
+    onSelectChange(field, ev) {
+        this.state.selects[field] = ev.target.value;
         this.applyFilters();
     }
 
@@ -645,6 +764,9 @@ export class MisReportView extends Component {
         this.state.search = "";
         for (const field of Object.keys(this.state.dates)) {
             this.state.dates[field] = { from: "", to: "" };
+        }
+        for (const field of Object.keys(this.state.selects)) {
+            this.state.selects[field] = "";
         }
         this.state.periodOverlay = null;
         this.applyFilters();
@@ -877,7 +999,9 @@ export class MisReportView extends Component {
                 payments_collected_amount: r.payments_collected_amount,
                 work_completed_value: completed,
                 vs_obligation: obligation > 0 ? (completed / obligation) * 100 : 0,
-                status: r.escalation_stage,
+                // This sheet's "Status" column now reads the real Status
+                // field; escalation_stage is blank for compliant employees.
+                status: r.performance_status,
             });
 
             const t = teamTotals[teamCode] || (teamTotals[teamCode] = {
@@ -1060,19 +1184,25 @@ export class MisReportView extends Component {
     }
 
     formatCell(col, rec) {
+        if (col.ratio) {
+            const [numName, denomName] = col.ratio;
+            const denom = Number(rec[denomName]) || 0;
+            const value = denom ? ((Number(rec[numName]) || 0) / denom) * 100 : 0;
+            return this._format(col, value, this.currencyId(rec, col.currency));
+        }
         // a column may pin its own currency field (e.g. CTC in local currency)
         return this._format(col, rec[col.name], this.currencyId(rec, col.currency));
     }
 
     formatAgg(col, node) {
-        if (!col.agg) return "";
+        if (!col.agg && !col.ratio) return "";
         const cur =
             node.records && node.records.length ? this.currencyId(node.records[0]) : undefined;
         return this._format(col, node.aggregates[col.name], cur);
     }
 
     formatTotal(col) {
-        if (!col.agg) return "";
+        if (!col.agg && !col.ratio) return "";
         const cur =
             this.state.allRecords.length ? this.currencyId(this.state.allRecords[0]) : undefined;
         return this._format(col, this.state.totals[col.name], cur);

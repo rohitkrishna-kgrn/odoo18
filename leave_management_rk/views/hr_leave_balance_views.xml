@@ -7,6 +7,8 @@
                 <sheet>
                     <group>
                         <field name="user_id" string="Select Employee"/>
+                        <field name="leave_month_label" readonly="1"
+                               string="Leave Month"/>
                     </group>
                     <field name="line_ids">
                         <list editable="bottom" create="false" delete="false">
@@ -23,7 +25,7 @@
                             name="action_reset_all_leaves"
                             class="btn-danger"
                             groups="base.group_system"
-                            confirm="This will reset ALL employees' leave balances to default values for the current month. Are you sure?"/>
+                            confirm="This will reset ALL employees' leave balances to default values for the leave month currently in progress (26th to 25th). Are you sure?"/>
                     <button string="Close" special="cancel" class="btn-secondary"/>
                 </footer>
             </form>
@@ -36,5 +38,57 @@
         <field name="view_mode">form</field>
         <field name="view_id" ref="view_hr_leave_balance_wizard_form"/>
         <field name="target">new</field>
+    </record>
+
+    <!-- Read-only view of stored balances, one row per leave month (26th-25th) -->
+    <record id="view_leave_balance_list" model="ir.ui.view">
+        <field name="name">leave.balance.list</field>
+        <field name="model">leave.balance</field>
+        <field name="arch" type="xml">
+            <list string="Leave Balances" create="false" delete="false" edit="false">
+                <field name="user_id"/>
+                <field name="leave_type_id"/>
+                <field name="balance"/>
+                <field name="period_label" string="Leave Month"/>
+                <field name="period_start" string="From" optional="show"/>
+                <field name="period_end" string="To" optional="show"/>
+                <field name="date" string="Anchor" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_leave_balance_search" model="ir.ui.view">
+        <field name="name">leave.balance.search</field>
+        <field name="model">leave.balance</field>
+        <field name="arch" type="xml">
+            <search string="Leave Balances">
+                <field name="user_id"/>
+                <field name="leave_type_id"/>
+                <filter name="filter_current_period" string="Current Leave Month"
+                        domain="[('is_current_period', '=', True)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_leave_month" string="Leave Month"
+                            context="{'group_by': 'date'}"/>
+                    <filter name="group_employee" string="Employee"
+                            context="{'group_by': 'user_id'}"/>
+                    <filter name="group_leave_type" string="Leave Type"
+                            context="{'group_by': 'leave_type_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_leave_balance" model="ir.actions.act_window">
+        <field name="name">Leave Balances by Month</field>
+        <field name="res_model">leave.balance</field>
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="view_leave_balance_search"/>
+        <field name="context">{'search_default_filter_current_period': 1,
+                               'search_default_group_employee': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No leave balances for this period yet.</p>
+            <p>A leave month runs from the 26th of one month to the 25th of the
+               next, and is named after the month it ends in.</p>
+        </field>
     </record>
 </odoo>

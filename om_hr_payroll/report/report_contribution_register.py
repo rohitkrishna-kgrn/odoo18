@@ -3,6 +3,7 @@ from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
+from odoo.addons.leave_management_rk.models.leave_period import current_leave_month_bounds
 
 
 class ContributionRegisterReport(models.AbstractModel):
@@ -32,8 +33,10 @@ class ContributionRegisterReport(models.AbstractModel):
 
         register_ids = self.env.context.get('active_ids', [])
         contrib_registers = self.env['hr.contribution.register'].browse(register_ids)
-        date_from = data['form'].get('date_from', fields.Date.today())
-        date_to = data['form'].get('date_to', str(datetime.now() + relativedelta(months=+1, day=1, days=-1))[:10])
+        # Fallbacks match the wizard: the leave month in progress (26th -> 25th).
+        period_start, period_end = current_leave_month_bounds()
+        date_from = data['form'].get('date_from', period_start)
+        date_to = data['form'].get('date_to', period_end)
         lines_data = self._get_payslip_lines(register_ids, date_from, date_to)
         lines_total = {}
         for register in contrib_registers:

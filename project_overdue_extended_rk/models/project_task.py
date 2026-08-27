@@ -57,3 +57,51 @@ class ProjectTask(models.Model):
                 task.overdue_category = '60_90'
             else:
                 task.overdue_category = 'gt90'
+
+    delay_reason = fields.Text(string='Delay Explanation')
+
+    delay_revised_date = fields.Date(string='Revised Delivery Date')
+
+    delay_evidence_ids = fields.Many2many(
+        'ir.attachment',
+        'project_task_delay_evidence_rel',
+        'task_id',
+        'attachment_id',
+        string='Communication Evidence',
+    )
+
+    delay_log_missing = fields.Boolean(
+        string='Delay Log Missing',
+        compute='_compute_delay_log_missing',
+        store=True,
+        help="True when the deadline has passed and no delay reason, revised date, "
+             "or communication evidence has been logged.",
+    )
+
+    @api.depends(
+        'date_deadline', 'stage_id.fold', 'state_additional',
+        'delay_reason', 'delay_revised_date', 'delay_evidence_ids',
+    )
+    def _compute_delay_log_missing(self):
+        today = fields.Date.today()
+        for task in self:
+            is_done = (
+                task.state_additional in ('completed', 'cancelled')
+                or (task.stage_id and task.stage_id.fold)
+            )
+            if is_done or not task.date_deadline:
+                task.delay_log_missing = False
+                continue
+
+            deadline = fields.Date.to_date(task.date_deadline)
+            log_populated = bool(
+                task.delay_reason or task.delay_revised_date or task.delay_evidence_ids
+            )
+            task.delay_log_missing = deadline < today and not log_populated
+
+    @api.model
+    def _cron_refresh_delay_log_flags(self):
+        """date_deadline passing doesn't itself trigger recompute of the stored
+        delay_log_missing field, so a daily cron nudges it."""
+        tasks = self.search([('date_deadline', '!=', False)])
+        tasks._compute_delay_log_missing()

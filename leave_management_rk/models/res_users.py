@@ -1,5 +1,6 @@
 from odoo import models, fields
-from datetime import timedelta
+
+from .leave_period import leave_month_bounds
 
 class ResUsers(models.Model):
     _inherit = 'res.users'
@@ -11,11 +12,9 @@ class ResUsers(models.Model):
 
     def took_leave(self, leave_type, month_date):
         LeaveRequest = self.env['leave.request']
-        start_date = month_date
-        if start_date.month == 12:
-            end_date = start_date.replace(year=start_date.year + 1, month=1, day=1) - timedelta(days=1)
-        else:
-            end_date = start_date.replace(month=start_date.month + 1, day=1) - timedelta(days=1)
+        # month_date is a leave-month anchor; the real window it covers runs
+        # from the 26th of the previous month to the 25th of this one.
+        start_date, end_date = leave_month_bounds(month_date)
 
         leave_taken = LeaveRequest.search([
             ('user_id', '=', self.id),

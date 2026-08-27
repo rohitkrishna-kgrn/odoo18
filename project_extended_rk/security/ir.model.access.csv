@@ -2,3 +2,4 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_project_team_user,access.project.team.user,model_project_team,base.group_user,1,1,1,1
 access_sale_order_advance_confirm_wizard,access.sale.order.advance.confirm.wizard,model_sale_order_advance_confirm_wizard,base.group_user,1,1,1,1
 access_sale_order_line_base_user,access.sale.order.line.base.user,sale.model_sale_order_line,base.group_user,1,1,1,1
+access_deadline_alert_test_wizard,access.deadline.alert.test.wizard,model_deadline_alert_test_wizard,project.group_project_manager,1,1,1,1

@@ -499,7 +499,9 @@ class CrmLead(models.Model):
     def _read_group_stage_ids(self, stages, domain):
         if self.env.context.get('default_x_is_referral'):
             return stages.search([('x_is_referral_stage', '=', True)])
-        return super()._read_group_stage_ids(stages, domain)
+        # Keep referral-only stages out of the main (non-referral) pipeline.
+        return super()._read_group_stage_ids(stages, domain).filtered(
+            lambda stage: not stage.x_is_referral_stage)
 
     @api.model
     def _get_default_referral_manager(self):

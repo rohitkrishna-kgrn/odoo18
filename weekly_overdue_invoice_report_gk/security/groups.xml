@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- No category_id: renders as a plain checkbox under "Other" on the
+         Access Rights tab of the user form (Settings > Users). Whoever
+         should receive the Monday overdue-invoice report — Gopu, Raja,
+         department heads, anyone else — gets this box ticked on their own
+         user record. This group controls email distribution only; it grants
+         no extra model access beyond read on the report log below. -->
+    <record id="group_weekly_overdue_invoice_report_recipient" model="res.groups">
+        <field name="name">Weekly Overdue Invoice Report Recipient</field>
+    </record>
+
+    <!-- Gates the per-PM email only. A user's invoices are still identified
+         the same way (Sale Order Line -> project ->
+         Project Manager) — this box just says "yes, actually email that
+         person their list", so being someone's project.project.user_id
+         alone is never enough on its own to start receiving mail. -->
+    <record id="group_weekly_overdue_invoice_report_pm" model="res.groups">
+        <field name="name">Weekly Overdue Invoice Report - Project Manager</field>
+    </record>
+</odoo>

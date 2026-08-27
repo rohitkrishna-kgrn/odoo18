@@ -543,7 +543,7 @@ class AgedReceivablePMReport(models.TransientModel):
 
         else:
             # Flat mode – same layout as base module
-            for partner_name in data.get('move_lines', []):
+            for partner_name in data.get('move_lines') or []:
                 ptotal = data['total'][partner_name]
                 sheet.write(row, 0, partner_name, txt)
                 sheet.write(row, 1, ' ', txt)

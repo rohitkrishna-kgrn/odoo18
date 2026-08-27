@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Credit hold banner on the quotation/proposal. The customer is picked
+         at the top of this form, so the warning sits directly under it. -->
+    <record id="view_order_form_credit_hold" model="ir.ui.view">
+        <field name="name">sale.order.form.credit.hold</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <sheet position="before">
+                <div class="alert alert-danger mb-0" role="alert"
+                     invisible="not partner_credit_hold">
+                    <field name="partner_credit_hold" invisible="1"/>
+                    <field name="partner_credit_hold_warning" readonly="1" nolabel="1"/>
+                </div>
+            </sheet>
+        </field>
+    </record>
+
+    <record id="view_quotation_list_credit_hold" model="ir.ui.view">
+        <field name="name">sale.order.list.credit.hold</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_quotation_tree_with_onboarding"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="partner_credit_hold" string="Credit Hold" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Same banner on the project. -->
+    <record id="view_project_form_credit_hold" model="ir.ui.view">
+        <field name="name">project.project.form.credit.hold</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <sheet position="before">
+                <div class="alert alert-danger mb-0" role="alert"
+                     invisible="not partner_credit_hold">
+                    <field name="partner_credit_hold" invisible="1"/>
+                    <field name="partner_credit_hold_warning" readonly="1" nolabel="1"/>
+                </div>
+            </sheet>
+        </field>
+    </record>
+
+</odoo>

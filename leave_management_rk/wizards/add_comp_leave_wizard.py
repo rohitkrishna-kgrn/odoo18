@@ -1,6 +1,7 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError
-from datetime import date
+
+from odoo.addons.leave_management_rk.models.leave_period import leave_month_anchor
 
 class AddCompLeaveWizard(models.TransientModel):
     _name = 'add.comp.leave.wizard'
@@ -17,8 +18,7 @@ class AddCompLeaveWizard(models.TransientModel):
         if not comp_leave:
             raise UserError("Compensation Leave type is not defined!")
 
-        today = date.today()
-        first_of_month = today.replace(day=1)
+        first_of_month = leave_month_anchor(fields.Date.today())
 
         balance_record = LeaveBalance.search([
             ('user_id', '=', self.user_id.id),

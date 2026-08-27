@@ -1,71 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
 
-    <record id="stage_referral_new" model="crm.stage">
-        <field name="name">New</field>
-        <field name="sequence">10</field>
-        <field name="x_color_hex">#3949AB</field>
-        <field name="x_is_referral_stage" eval="True"/>
-        <field name="x_is_referral_converted" eval="False"/>
-        <field name="x_is_referral_lost" eval="False"/>
-        <field name="x_entry_criteria">Portal submission received.</field>
-        <field name="x_stage_description">Lead created in Odoo. Not yet contacted. Salesperson to be assigned within same business day.</field>
-    </record>
-
-    <record id="stage_referral_contacted" model="crm.stage">
-        <field name="name">Contacted</field>
-        <field name="sequence">20</field>
-        <field name="x_color_hex">#1565C0</field>
-        <field name="x_is_referral_stage" eval="True"/>
-        <field name="x_is_referral_converted" eval="False"/>
-        <field name="x_is_referral_lost" eval="False"/>
-        <field name="x_entry_criteria">First outreach made to lead.</field>
-        <field name="x_stage_description">Call, email, or meeting attempted. Date of first contact logged. Lead qualified for further discussion.</field>
-    </record>
-
-    <record id="stage_referral_in_progress" model="crm.stage">
-        <field name="name">In Progress</field>
-        <field name="sequence">30</field>
-        <field name="x_color_hex">#F57F17</field>
-        <field name="x_is_referral_stage" eval="True"/>
-        <field name="x_is_referral_converted" eval="False"/>
-        <field name="x_is_referral_lost" eval="False"/>
-        <field name="x_entry_criteria">Active engagement underway.</field>
-        <field name="x_stage_description">Needs assessment complete. Proposal or quote issued. Follow-up activities scheduled.</field>
-    </record>
-
-    <record id="stage_referral_qualified" model="crm.stage">
-        <field name="name">Qualified</field>
-        <field name="sequence">40</field>
-        <field name="x_color_hex">#2E7D52</field>
-        <field name="x_is_referral_stage" eval="True"/>
-        <field name="x_is_referral_converted" eval="False"/>
-        <field name="x_is_referral_lost" eval="False"/>
-        <field name="x_entry_criteria">Lead confirmed as a viable opportunity.</field>
-        <field name="x_stage_description">Service scope agreed. Deal value estimated. Contract or engagement letter in preparation.</field>
-    </record>
-
-    <record id="stage_referral_converted" model="crm.stage">
-        <field name="name">Converted</field>
-        <field name="sequence">50</field>
-        <field name="x_color_hex">#2E7D52</field>
-        <field name="x_is_referral_stage" eval="True"/>
-        <field name="x_is_referral_converted" eval="True"/>
-        <field name="x_is_referral_lost" eval="False"/>
-        <field name="x_entry_criteria">Deal closed; client engaged.</field>
-        <field name="x_stage_description">Contract signed. Payment received (full or partial). Commission amount computed. Referrer tier updated.</field>
-    </record>
-
-    <record id="stage_referral_not_qualified" model="crm.stage">
-        <field name="name">Not Qualified</field>
-        <field name="sequence">60</field>
-        <field name="x_color_hex">#C62828</field>
-        <field name="fold" eval="True"/>
-        <field name="x_is_referral_stage" eval="True"/>
-        <field name="x_is_referral_converted" eval="False"/>
-        <field name="x_is_referral_lost" eval="True"/>
-        <field name="x_entry_criteria">Lead determined unsuitable.</field>
-        <field name="x_stage_description">No deal possible. Reason for disqualification should be logged in notes. No commission payable.</field>
-    </record>
+    <!-- Referral pipeline stages removed: the Referral app is not in use.
+         See crm_extended_rk for the stages actually used in the main pipeline. -->
 
 </odoo>

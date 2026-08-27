@@ -30,6 +30,26 @@
                                    invisible="not mis_performance_applicable"/>
                         </group>
                     </group>
+                    <!-- Warning Notice counter: the open escalation, if any -->
+                    <group string="Warning Notice Counter"
+                           invisible="not mis_performance_applicable">
+                        <group>
+                            <field name="mis_hr_flagged"/>
+                            <field name="mis_consecutive_below_target"
+                                   string="Consecutive Months Below Minimum"
+                                   invisible="not mis_hr_flagged"/>
+                        </group>
+                        <group>
+                            <field name="mis_warning_notice_count" invisible="1"/>
+                            <button name="action_open_mis_warning_notices" type="object"
+                                    string="View Escalations" class="btn-link"
+                                    icon="fa-exclamation-triangle"
+                                    invisible="mis_warning_notice_count == 0"/>
+                            <button name="action_run_mis_warning_notice_check" type="object"
+                                    string="Run Counter for this Employee" class="btn-link"
+                                    icon="fa-refresh"/>
+                        </group>
+                    </group>
                 </page>
             </xpath>
         </field>

@@ -5,6 +5,7 @@ from pytz import timezone
 from odoo import api, fields, models, tools, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.http import request
+from odoo.addons.leave_management_rk.models.leave_period import current_leave_month_bounds
 import base64
 from io import BytesIO
 from calendar import SUNDAY, SATURDAY
@@ -26,9 +27,9 @@ class HrPayslip(models.Model):
     number = fields.Char(string='Reference', copy=False)
     employee_id = fields.Many2one('hr.employee', string='Employee', required=True)
     date_from = fields.Date(string='Date From', required=True,
-        default=lambda self: fields.Date.to_string(date.today().replace(day=1)))
+        default=lambda self: current_leave_month_bounds()[0])
     date_to = fields.Date(string='Date To', required=True,
-        default=lambda self: fields.Date.to_string((datetime.now() + relativedelta(months=+1, day=1, days=-1)).date()))
+        default=lambda self: current_leave_month_bounds()[1])
     # this is chaos: 4 states are defined, 3 are used ('verify' isn't) and 5 exist ('confirm' seems to have existed)
     state = fields.Selection([
         ('draft', 'Draft'),
@@ -777,11 +778,11 @@ class HrPayslipRun(models.Model):
     ], string='Status', index=True, readonly=True, copy=False, default='draft')
     date_start = fields.Date(
         string='Date From', required=True,
-        default=lambda self: fields.Date.to_string(date.today().replace(day=1))
+        default=lambda self: current_leave_month_bounds()[0]
     )
     date_end = fields.Date(
         string='Date To', required=True,
-        default=lambda self: fields.Date.to_string((datetime.now() + relativedelta(months=+1, day=1, days=-1)).date())
+        default=lambda self: current_leave_month_bounds()[1]
     )
     credit_note = fields.Boolean(
         string='Credit Note',

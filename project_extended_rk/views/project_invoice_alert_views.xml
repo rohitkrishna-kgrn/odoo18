@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ==========================================================
+         Engagement-level overdue / unreconciled invoice indicator.
+
+         None of these fields are wrapped in an accounting group: the
+         whole point is that a Project Manager, team lead or department
+         head sees the flag on the engagement they already have open,
+         without any rights on the invoice module.
+         ========================================================== -->
+
+    <!-- Form: coloured banner + the invoice breakdown behind it -->
+    <record id="view_project_form_invoice_alert" model="ir.ui.view">
+        <field name="name">project.project.form.invoice.alert</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//div[hasclass('oe_title')]" position="before">
+                <field name="invoice_alert_state" invisible="1"/>
+
+                <div class="alert alert-danger d-flex align-items-center mb-3"
+                     role="alert"
+                     invisible="invoice_alert_state != 'overdue'">
+                    <i class="fa fa-exclamation-triangle fa-2x me-3" aria-hidden="true"/>
+                    <div>
+                        <b>Overdue invoices on this engagement</b>
+                        <div>
+                            <field name="overdue_invoice_count" nolabel="1" class="d-inline"/>
+                            invoice(s) past due, oldest by
+                            <field name="invoice_days_overdue" nolabel="1" class="d-inline"/>
+                            days —
+                            <field name="overdue_invoice_amount" nolabel="1" class="d-inline"/>
+                            still to collect.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning d-flex align-items-center mb-3"
+                     role="alert"
+                     invisible="invoice_alert_state != 'warning'">
+                    <i class="fa fa-clock-o fa-2x me-3" aria-hidden="true"/>
+                    <div>
+                        <b>Invoices awaiting settlement</b>
+                        <div>
+                            Nothing is past due yet, but
+                            <field name="unreconciled_invoice_count" nolabel="1" class="d-inline"/>
+                            unreconciled and
+                            <field name="draft_invoice_count" nolabel="1" class="d-inline"/>
+                            draft invoice(s) are open on this engagement.
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+
+            <xpath expr="//notebook" position="inside">
+                <page name="invoice_position" string="Invoice Position">
+                    <group>
+                        <group string="Flag">
+                            <field name="invoice_alert_state" readonly="1"
+                                   widget="badge"
+                                   decoration-danger="invoice_alert_state == 'overdue'"
+                                   decoration-warning="invoice_alert_state == 'warning'"
+                                   decoration-success="invoice_alert_state == 'ok'"
+                                   decoration-muted="invoice_alert_state == 'none'"/>
+                            <field name="invoice_days_overdue" readonly="1"
+                                   invisible="invoice_alert_state != 'overdue'"/>
+                        </group>
+                        <group string="Open Balance">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="overdue_invoice_count" readonly="1"/>
+                            <field name="overdue_invoice_amount" readonly="1"/>
+                            <field name="unreconciled_invoice_count" readonly="1"/>
+                            <field name="unreconciled_invoice_amount" readonly="1"/>
+                            <field name="draft_invoice_count" readonly="1"/>
+                        </group>
+                    </group>
+                    <separator string="Invoices Behind the Flag"/>
+                    <field name="invoice_alert_summary" readonly="1" nolabel="1"/>
+                    <div class="mt-3" groups="account.group_account_readonly">
+                        <button name="action_view_engagement_invoices"
+                                type="object"
+                                string="Open these invoices"
+                                class="btn btn-secondary"
+                                icon="fa-external-link"/>
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- List: badge column + red/amber row decoration -->
+    <record id="view_project_list_invoice_alert" model="ir.ui.view">
+        <field name="name">project.project.list.invoice.alert</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.project_list_view_group_stage"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                <attribute name="decoration-danger">invoice_alert_state == 'overdue'</attribute>
+                <attribute name="decoration-warning">invoice_alert_state == 'warning'</attribute>
+            </xpath>
+            <xpath expr="//list" position="inside">
+                <field name="invoice_alert_state"
+                       widget="badge"
+                       decoration-danger="invoice_alert_state == 'overdue'"
+                       decoration-warning="invoice_alert_state == 'warning'"
+                       decoration-success="invoice_alert_state == 'ok'"
+                       decoration-muted="invoice_alert_state == 'none'"
+                       optional="show"/>
+                <field name="overdue_invoice_amount" optional="show" sum="Overdue"/>
+                <field name="unreconciled_invoice_amount" optional="hide" sum="Unreconciled"/>
+                <field name="invoice_days_overdue" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Kanban: coloured pill on the card -->
+    <record id="view_project_kanban_invoice_alert" model="ir.ui.view">
+        <field name="name">project.project.kanban.invoice.alert</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.view_project_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//templates//field[@name='tag_ids']" position="before">
+                <div t-if="record.invoice_alert_state.raw_value == 'overdue'"
+                     class="text-danger fw-bold d-flex align-items-baseline"
+                     t-attf-title="#{record.overdue_invoice_count.value} invoice(s) overdue by up to #{record.invoice_days_overdue.value} days">
+                    <span class="fa fa-exclamation-triangle me-2" aria-label="Overdue invoices"/>
+                    <span>Invoice overdue</span>
+                </div>
+                <div t-elif="record.invoice_alert_state.raw_value == 'warning'"
+                     class="text-warning fw-bold d-flex align-items-baseline"
+                     title="Unreconciled or draft invoices open on this engagement">
+                    <span class="fa fa-clock-o me-2" aria-label="Unreconciled invoices"/>
+                    <span>Invoice unreconciled</span>
+                </div>
+            </xpath>
+            <xpath expr="//kanban" position="inside">
+                <field name="invoice_alert_state"/>
+                <field name="invoice_days_overdue"/>
+                <field name="overdue_invoice_count"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Search: filters and a group-by so a department head can triage -->
+    <record id="view_project_search_invoice_alert" model="ir.ui.view">
+        <field name="name">project.project.search.invoice.alert</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.view_project_project_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter name="filter_invoice_overdue"
+                        string="Overdue Invoices"
+                        domain="[('invoice_alert_state', '=', 'overdue')]"/>
+                <filter name="filter_invoice_unreconciled"
+                        string="Unreconciled Invoices"
+                        domain="[('unreconciled_invoice_count', '>', 0)]"/>
+                <filter name="filter_invoice_attention"
+                        string="Needs Attention (Red or Amber)"
+                        domain="[('invoice_alert_state', 'in', ['overdue', 'warning'])]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_by_invoice_alert_state"
+                            string="Invoice Flag"
+                            context="{'group_by': 'invoice_alert_state'}"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

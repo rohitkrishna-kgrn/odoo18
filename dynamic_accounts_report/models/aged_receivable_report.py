@@ -300,7 +300,7 @@ class AgeReceivableReport(models.TransientModel):
                 sheet.write(6, col + 13, 'Older', sub_heading)
                 sheet.write(6, col + 14, 'Total', sub_heading)
                 row = 6
-                for move_line in data['move_lines']:
+                for move_line in data.get('move_lines') or []:
                     row += 1
                     sheet.write(row, col, move_line, txt_name)
                     sheet.write(row, col + 1, ' ', txt_name)

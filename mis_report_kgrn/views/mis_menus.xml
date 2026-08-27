@@ -89,6 +89,22 @@
         sequence="4"
         groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
+    <menuitem
+        id="menu_mis_warning_notice"
+        name="Warning Notices"
+        parent="menu_mis_performance_root"
+        action="mis_report_kgrn.action_mis_warning_notice"
+        sequence="5"
+        groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
+
+    <menuitem
+        id="menu_mis_run_escalation"
+        name="Run Warning Notice Check"
+        parent="menu_mis_performance_root"
+        action="mis_report_kgrn.action_server_mis_run_escalation"
+        sequence="6"
+        groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
+
     <!-- Configuration (Admin only) -->
     <menuitem
         id="menu_mis_config_root"

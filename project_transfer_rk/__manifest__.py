@@ -3,7 +3,7 @@
     "version": "18.0.1.0.0",
     "summary": "Transfer projects from one user to another",
     "author": "Rohit",
-    "depends": ["project"],
+    "depends": ["project", "project_extended_rk"],
     "data": [
         'security/project_transfer_groups.xml',
         "security/ir.model.access.csv",

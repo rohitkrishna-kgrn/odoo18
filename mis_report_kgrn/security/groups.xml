@@ -34,5 +34,17 @@
             <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         </record>
 
+        <!-- Performance Scorecard Recipient: plain checkbox on the user form
+             (no category_id -> renders under "Other" on the Access Rights
+             tab). Tick this for every department head, the Managing Partner,
+             and anyone else who should receive the automated monthly
+             Performance Scorecard email. The cron reads this group's members
+             at send time, so recipients can be changed by an admin from the
+             user form with no code change. Members of MIS HR continue to
+             receive it as well. -->
+        <record id="group_mis_scorecard_recipient" model="res.groups">
+            <field name="name">Performance Scorecard Recipient</field>
+        </record>
+
     </data>
 </odoo>

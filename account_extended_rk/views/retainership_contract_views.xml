@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_retainership_contract_list" model="ir.ui.view">
+            <field name="name">retainership.contract.list</field>
+            <field name="model">retainership.contract</field>
+            <field name="arch" type="xml">
+                <list string="Retainership Contracts"
+                      decoration-muted="state in ('cancelled', 'expired')"
+                      decoration-info="state == 'draft'"
+                      decoration-warning="state == 'paused'">
+                    <field name="name"/>
+                    <field name="partner_id" string="Client"/>
+                    <field name="product_id"/>
+                    <field name="sale_order_line_id" optional="show"/>
+                    <field name="interval"/>
+                    <field name="price_unit" string="Fee / Period" sum="Total per Period"/>
+                    <field name="date_start" optional="hide"/>
+                    <field name="date_end" optional="show"/>
+                    <field name="next_invoice_date"/>
+                    <field name="ar_responsible_id" optional="show"/>
+                    <field name="draft_invoice_count" string="Drafts to Review"/>
+                    <field name="state" widget="badge"
+                           decoration-success="state == 'running'"
+                           decoration-warning="state == 'paused'"/>
+                    <field name="currency_id" column_invisible="1"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_retainership_contract_form" model="ir.ui.view">
+            <field name="name">retainership.contract.form</field>
+            <field name="model">retainership.contract</field>
+            <field name="arch" type="xml">
+                <form string="Retainership Contract">
+                    <header>
+                        <button name="action_start" type="object" string="Start"
+                                class="btn-primary" invisible="state not in ('draft', 'paused')"/>
+                        <button name="action_generate_now" type="object"
+                                string="Generate Draft Now"
+                                invisible="state != 'running'"
+                                help="Raise the draft for the current due period without waiting for the nightly scheduler."/>
+                        <button name="action_pause" type="object" string="Pause"
+                                invisible="state != 'running'"/>
+                        <button name="action_cancel" type="object" string="Cancel"
+                                invisible="state in ('cancelled',)"/>
+                        <button name="action_reset_to_draft" type="object" string="Reset to Draft"
+                                invisible="state in ('draft', 'running')"/>
+                        <field name="state" widget="statusbar"
+                               statusbar_visible="draft,running,expired"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <button name="action_view_invoices" type="object"
+                                    class="oe_stat_button" icon="fa-file-text-o">
+                                <field name="invoice_count" widget="statinfo" string="Invoices"/>
+                            </button>
+                        </div>
+                        <widget name="web_ribbon" title="Cancelled" bg_color="text-bg-danger"
+                                invisible="state != 'cancelled'"/>
+                        <widget name="web_ribbon" title="Expired" bg_color="text-bg-secondary"
+                                invisible="state != 'expired'"/>
+                        <div class="oe_title">
+                            <h1><field name="name" readonly="1"/></h1>
+                        </div>
+                        <group>
+                            <group string="Client &amp; Engagement">
+                                <field name="partner_id"/>
+                                <field name="service_engagement_id" invisible="1"/>
+                                <field name="sale_order_line_id"
+                                       required="not service_engagement_id"
+                                       options="{'no_create': True}"/>
+                                <field name="ar_responsible_id"/>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                            </group>
+                            <group string="What Is Billed">
+                                <field name="product_id"/>
+                                <field name="description"/>
+                                <field name="quantity"/>
+                                <field name="price_unit"/>
+                                <field name="tax_ids" widget="many2many_tags"/>
+                                <field name="currency_id" groups="base.group_multi_currency"/>
+                                <field name="journal_id"/>
+                            </group>
+                            <group string="Schedule">
+                                <field name="interval"/>
+                                <field name="billing_day"/>
+                                <field name="generation_lead_days"/>
+                            </group>
+                            <group string="Term">
+                                <field name="date_start"/>
+                                <field name="date_end"/>
+                                <field name="next_invoice_date" readonly="state == 'expired'"/>
+                                <field name="last_generated_date"/>
+                                <field name="active" invisible="1"/>
+                            </group>
+                        </group>
+                        <div class="alert alert-info" role="status" invisible="state != 'running'">
+                            Every period this contract raises a <strong>draft</strong> invoice
+                            classified as <strong>Retainer</strong> and puts a review activity on it
+                            for the finance reviewers. Nothing reaches the client until someone
+                            posts and sends the invoice.
+                        </div>
+                        <notebook>
+                            <page string="Generated Invoices" name="invoices">
+                                <field name="invoice_ids" readonly="1">
+                                    <list>
+                                        <field name="name"/>
+                                        <field name="invoice_date"/>
+                                        <field name="retainership_period_start" string="Period From"/>
+                                        <field name="retainership_period_end" string="Period To"/>
+                                        <field name="amount_total"/>
+                                        <field name="amount_residual" string="Due"/>
+                                        <field name="state" widget="badge"/>
+                                        <field name="payment_state" widget="badge" optional="show"/>
+                                        <field name="currency_id" column_invisible="1"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_retainership_contract_search" model="ir.ui.view">
+            <field name="name">retainership.contract.search</field>
+            <field name="model">retainership.contract</field>
+            <field name="arch" type="xml">
+                <search string="Retainership Contracts">
+                    <field name="name"/>
+                    <field name="partner_id" string="Client"/>
+                    <field name="product_id"/>
+                    <field name="sale_order_line_id"/>
+                    <field name="ar_responsible_id"/>
+                    <separator/>
+                    <filter string="Running" name="filter_running"
+                            domain="[('state', '=', 'running')]"/>
+                    <filter string="Draft" name="filter_draft"
+                            domain="[('state', '=', 'draft')]"/>
+                    <filter string="Paused" name="filter_paused"
+                            domain="[('state', '=', 'paused')]"/>
+                    <filter string="Expired / Cancelled" name="filter_closed"
+                            domain="[('state', 'in', ('expired', 'cancelled'))]"/>
+                    <separator/>
+                    <filter string="Due in the Next 7 Days" name="filter_due_soon"
+                            domain="[('state', '=', 'running'),
+                                     ('next_invoice_date', '&lt;=', (context_today() + relativedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                    <filter string="Overdue Generation" name="filter_overdue_generation"
+                            domain="[('state', '=', 'running'),
+                                     ('next_invoice_date', '&lt;', context_today().strftime('%Y-%m-%d'))]"
+                            help="Running contracts whose period has started but which have no draft yet - check the contract's chatter for a generation error."/>
+                    <separator/>
+                    <filter string="Archived" name="filter_inactive"
+                            domain="[('active', '=', False)]"/>
+                    <group expand="0" string="Group By">
+                        <filter string="Client" name="group_partner"
+                                context="{'group_by': 'partner_id'}"/>
+                        <filter string="Product" name="group_product"
+                                context="{'group_by': 'product_id'}"/>
+                        <filter string="Billing Period" name="group_interval"
+                                context="{'group_by': 'interval'}"/>
+                        <filter string="Status" name="group_state"
+                                context="{'group_by': 'state'}"/>
+                        <filter string="Next Invoice Date" name="group_next_invoice"
+                                context="{'group_by': 'next_invoice_date'}"/>
+                        <filter string="AR Responsible" name="group_ar_responsible"
+                                context="{'group_by': 'ar_responsible_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_retainership_contract" model="ir.actions.act_window">
+            <field name="name">Retainership Contracts</field>
+            <field name="res_model">retainership.contract</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_retainership_contract_search"/>
+            <field name="context">{'search_default_filter_running': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">Set up a retainership</p>
+                <p>
+                    A retainership contract bills one client a fixed fee every period
+                    for a retainership product. Each period the scheduler raises a
+                    draft invoice for finance to review and post - it is never sent
+                    to the client on its own.
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_retainership_contract"
+                  name="Retainership Contracts"
+                  parent="account.menu_finance_receivables"
+                  action="action_retainership_contract"
+                  sequence="6"/>
+
+    </data>
+</odoo>

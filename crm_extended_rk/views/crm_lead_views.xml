@@ -35,6 +35,38 @@
                 </page>
             </xpath>
 
+            <!-- Journey tab: the automatic timeline of everything that has
+                 happened to this lead, with the gap between each step. -->
+            <xpath expr="//page[@name='qualification_reasons']" position="after">
+                <page name="lead_journey" string="Journey">
+                    <group>
+                        <group>
+                            <field name="lead_age_days"/>
+                            <field name="days_in_current_stage"/>
+                            <field name="days_to_conversion"
+                                   invisible="days_to_conversion == 0"/>
+                        </group>
+                        <group>
+                            <field name="activity_done_count"/>
+                            <field name="activity_pending_count"/>
+                            <field name="journey_event_count"/>
+                        </group>
+                    </group>
+                    <field name="journey_event_ids" nolabel="1">
+                        <list string="Journey" create="false" edit="false" delete="false">
+                            <field name="event_date"/>
+                            <field name="event_type"/>
+                            <field name="name"/>
+                            <field name="stage_id"/>
+                            <field name="days_since_previous" string="Gap (Days)"/>
+                            <field name="days_since_created" string="Age at Event (Days)" optional="hide"/>
+                            <field name="user_id"/>
+                            <field name="note" optional="hide"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+
             <!-- Smart button: browse every discovery form sent for this opportunity -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_discovery_forms" type="object"
@@ -45,9 +77,9 @@
                 </button>
             </xpath>
 
-            <!-- Mandatory lead information: Company Name, Email, Phone, Tags (Lead
-                 Source) and Source must all be filled in before a lead/opportunity
-                 can be created or saved. -->
+            <!-- Mandatory lead information: Company Name, Email, Phone and Tags
+                 must all be filled in before a lead/opportunity can be created or
+                 saved. -->
             <xpath expr="//page[@name='lead']//field[@name='partner_name']" position="attributes">
                 <attribute name="required">1</attribute>
             </xpath>
@@ -60,9 +92,10 @@
             <xpath expr="//field[@name='tag_ids']" position="attributes">
                 <attribute name="required">1</attribute>
             </xpath>
-            <xpath expr="//page[@name='lead']//field[@name='source_id']" position="attributes">
-                <attribute name="required">1</attribute>
-            </xpath>
+            <!-- Source is no longer shown on the form; it is captured by the
+                 "Select a Source" wizard raised from the Move to Qualified button. -->
+            <xpath expr="//page[@name='lead']//field[@name='source_id']" position="replace"/>
+            <xpath expr="//page[@name='extra']//field[@name='source_id']" position="replace"/>
 
             <!-- Stage may only be changed through buttons: make the statusbar
                  readonly / non-clickable (drag &amp; drop is disabled in the kanban below). -->
@@ -105,6 +138,24 @@
         </field>
     </record>
 
+    <!-- Pipeline kanban quick-create popup: Tags, mandatory.
+         Required is set on the view (not the model) so it only applies to this
+         popup - the full lead form and every other entry point keep tag_ids
+         optional. -->
+    <record id="quick_create_opportunity_form_tags" model="ir.ui.view">
+        <field name="name">crm.lead.form.quick_create.tags</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.quick_create_opportunity_form"/>
+        <field name="arch" type="xml">
+            <field name="phone" position="after">
+                <field name="tag_ids" string="Tags" widget="many2many_tags"
+                       options="{'color_field': 'color', 'no_create': True, 'no_create_edit': True}"
+                       required="1"
+                       placeholder="e.g. DIRECT, MAINLAND"/>
+            </field>
+        </field>
+    </record>
+
     <!-- Disable drag &amp; drop between stages in the pipeline kanban -->
     <record id="crm_case_kanban_view_leads_no_drag" model="ir.ui.view">
         <field name="name">crm.lead.kanban.no.drag</field>
@@ -140,6 +191,67 @@
                 <filter string="Stage: Lost" name="stage_lost_stage"
                         domain="[('stage_id.name', '=', 'Lost')]"/>
             </filter>
+        </field>
+    </record>
+
+    <!-- Tags: no "Create" link anywhere the field appears. The list itself is
+         restricted by the domain on crm.lead.tag_ids (models/crm_tag.py), so
+         these views only need the option that hides the create link. -->
+    <record id="crm_lead_view_form_tags_no_create" model="ir.ui.view">
+        <field name="name">crm.lead.form.tags.no.create</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="(//field[@name='tag_ids'])[1]" position="attributes">
+                <attribute name="options">{'color_field': 'color', 'no_create': True, 'no_create_edit': True}</attribute>
+            </xpath>
+            <xpath expr="(//field[@name='tag_ids'])[2]" position="attributes">
+                <attribute name="options">{'color_field': 'color', 'no_create': True, 'no_create_edit': True}</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="crm_case_kanban_view_leads_tags_no_create" model="ir.ui.view">
+        <field name="name">crm.lead.kanban.tags.no.create</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_kanban_view_leads"/>
+        <field name="arch" type="xml">
+            <field name="tag_ids" position="attributes">
+                <attribute name="options">{'color_field': 'color', 'no_create': True, 'no_create_edit': True}</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_crm_lead_kanban_tags_no_create" model="ir.ui.view">
+        <field name="name">crm.lead.kanban.lead.tags.no.create</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.view_crm_lead_kanban"/>
+        <field name="arch" type="xml">
+            <field name="tag_ids" position="attributes">
+                <attribute name="options">{'color_field': 'color', 'no_create': True, 'no_create_edit': True}</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="crm_case_tree_view_oppor_tags_no_create" model="ir.ui.view">
+        <field name="name">crm.lead.list.oppor.tags.no.create</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_oppor"/>
+        <field name="arch" type="xml">
+            <field name="tag_ids" position="attributes">
+                <attribute name="options">{'color_field': 'color', 'no_create': True, 'no_create_edit': True}</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="crm_case_tree_view_leads_tags_no_create" model="ir.ui.view">
+        <field name="name">crm.lead.list.leads.tags.no.create</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_tree_view_leads"/>
+        <field name="arch" type="xml">
+            <field name="tag_ids" position="attributes">
+                <attribute name="options">{'color_field': 'color', 'no_create': True, 'no_create_edit': True}</attribute>
+            </field>
         </field>
     </record>
 

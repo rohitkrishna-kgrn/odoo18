@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- No category_id: renders as a plain checkbox under "Other" on the
+             Access Rights tab of the user form (Settings > Users), the same
+             convention weekly_overdue_invoice_report_gk uses. Whoever on the
+             finance team should review retainership drafts gets this box
+             ticked; the scheduler reads group.users at generation time, so
+             adding or removing a reviewer never needs a code change. -->
+        <record id="group_retainership_reviewer" model="res.groups">
+            <field name="name">Retainership Invoice Reviewer</field>
+        </record>
+
+    </data>
+</odoo>

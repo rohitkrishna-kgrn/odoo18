@@ -3,6 +3,69 @@ from dateutil.relativedelta import relativedelta
 from odoo import models, fields, api, tools
 
 
+# ── Timesheet-weighted revenue allocation (HR-PMS-001 §E1) ────────────────
+# The single agreed rule for splitting one task's revenue between the several
+# people who worked on it: each contributor's share is the hours THEY logged
+# to that task divided by the total hours logged to it by everyone, so a
+# cross-PM/cross-team engagement pays out in proportion to effort instead of
+# being sliced evenly. Hours are scaled by the contributor's MIS Revenue Role
+# multiplier (Partner 3x … Trainee 0.5x) when one is set on their employee
+# record — no employee has one today, so the split is currently pure logged
+# hours — which is the same weighted-hours formula the Task Revenue report
+# (mis.project.revenue) already uses, so the two reports never disagree.
+#
+# Shares always sum to 1 per task, so no payment is ever duplicated or lost
+# across employees. Hours are counted over the LIFE of the task, not per
+# month: revenue is bucketed by the month it was COLLECTED, which is usually
+# months after the work, and a month-scoped denominator would drop the
+# revenue of anyone who logged nothing that month.
+_TASK_WEIGHT_CTES = """
+emp_role AS (
+    /* one Revenue Role multiplier per user. DISTINCT ON guards against a
+       user holding more than one active employee record — none do today,
+       but a plain join would silently double that user's weight. */
+    SELECT DISTINCT ON (he.user_id)
+           he.user_id                     AS user_id,
+           COALESCE(mrr.multiplier, 1.0)  AS multiplier
+    FROM   hr_employee he
+    LEFT   JOIN mis_revenue_role mrr ON mrr.id = he.mis_revenue_role_id
+    WHERE  he.active = TRUE AND he.user_id IS NOT NULL
+    ORDER  BY he.user_id, he.id
+),
+task_user_weight AS (
+    /* per (task, contributor): hours logged to the task x the contributor's
+       role multiplier — the numerator of that person's share */
+    SELECT
+        aal.task_id                                          AS task_id,
+        aal.user_id                                          AS user_id,
+        SUM(aal.unit_amount)                                 AS hours,
+        SUM(aal.unit_amount) * COALESCE(er.multiplier, 1.0)  AS user_weighted
+    FROM   account_analytic_line aal
+    LEFT   JOIN emp_role er ON er.user_id = aal.user_id
+    WHERE  aal.task_id   IS NOT NULL
+      AND  aal.user_id   IS NOT NULL
+      AND  aal.unit_amount > 0
+    GROUP  BY aal.task_id, aal.user_id, er.multiplier
+),
+task_weight AS (
+    /* per task: the sum of every contributor's weight — the denominator, so
+       user_weighted / total_weighted is that person's fraction of the task
+       and the fractions of any one payment add up to exactly 1 */
+    SELECT task_id, SUM(user_weighted) AS total_weighted
+    FROM   task_user_weight
+    GROUP  BY task_id
+)"""
+
+
+def _task_weight_ctes(indent):
+    """_TASK_WEIGHT_CTES re-indented to sit inside a WITH clause at `indent`
+    spaces. Must be placed before any CTE that references task_user_weight /
+    task_weight — Postgres only resolves backwards within a WITH."""
+    pad = ' ' * indent
+    return '\n'.join(pad + ln if ln else ln
+                     for ln in _TASK_WEIGHT_CTES.strip('\n').split('\n'))
+
+
 class MisPerformanceLine(models.Model):
     """
     KGRN Performance Management Framework (HR-PMS-001).
@@ -12,29 +75,48 @@ class MisPerformanceLine(models.Model):
     both sourced from posted customer invoices that have actually been
     (at least partially) COLLECTED, bucketed by the month the payment/
     reconciliation happened (not invoice date, not order date, not
-    timesheet date), and both split across a task's contributors in
-    proportion to their lifetime hours × role_multiplier share of the
-    task's total weighted hours — the same non-duplicating split for
-    both, differing only in WHEN the collection happened relative to
-    project_task.completed_date (set once when a task is approved /
-    marked Completed; NULL if never completed):
+    timesheet date), and both split across a task's members in proportion
+    to the TIME each of them logged to that task (see _TASK_WEIGHT_CTES —
+    hours logged ÷ total hours logged by everyone, scaled by the employee's
+    MIS Revenue Role multiplier where one is set) — the same
+    non-duplicating split for both, differing only in WHEN the collection
+    happened relative to the date the task's PROJECT reached the "Done"
+    stage (see the project_done CTE; NULL for projects not yet Done):
 
-      • sales_revenue — amount collected while the task was still not
-        yet completed (payment date < completed_date, or completed_date
-        is NULL) — an advance against work in progress.
+      • sales_revenue — amount collected while the project was still
+        open (payment date < the project's Done date, or the project has
+        never been Done) — an advance against work in progress.
 
-      • delivery_revenue — amount collected on or after the task's
-        completed_date — the final settlement once work is delivered.
+      • delivery_revenue — amount collected on or after the project's
+        Done date — the final settlement once work is delivered.
 
     Shares of a given payment sum to exactly the collected amount, so the
     same payment is never duplicated across employees, projects, or the
-    sales/delivery split. Partial payments count pro-rata (a 60%-paid
+    sales/delivery split — a cross-PM engagement pays each contributor for
+    their measured effort, and the slices still add up to the whole. Partial payments count pro-rata (a 60%-paid
     invoice contributes 60% of its value) via the same reconciliation-based
     split used by the Payments Collected column.
 
     Obligation & target follow the office location (UAE 3×/5×, India 5×/10×)
-    with a new-joiner ramp-up (month 1 = 1×, month 2 = 2×, month 3+ = full).
+    with a new-joiner ramp-up: a joiner's monthly obligation is 1× CTC in
+    their first calendar month, 2× in their second and the full location
+    multiplier from their third month on, anchored on the employee's
+    Ramp-up Start Date or, when HR has not set one, their first contract
+    start date. Months before that start date keep their row and are scored
+    at the standard obligation, exactly as they were before the ramp-up
+    existed — the report never drops history.
     Consecutive non-performance months drive the escalation stage.
+
+    Status and Escalation Stage are a SEPARATE, independent pair scored on
+    payments_collected_amount ("Payment Collected") — NOT on Achievement %,
+    Delivered Value or Invoices Raised — but against the SAME ramped
+    threshold, so a new joiner is never escalated toward a Warning Notice on
+    a target that has not taken effect yet. Status is this
+    month alone (Below Minimum < CTC, At Risk < CTC x mult, else On Track);
+    Escalation Stage counts consecutive below-target months (Below Minimum
+    OR At Risk — i.e. anything short of On Track) and is
+    cleared and reset to zero by any On Track month, so escalation never
+    carries across an On Track month.
     """
     _name = 'mis.performance.line'
     _description = 'MIS Performance Management'
@@ -60,6 +142,15 @@ class MisPerformanceLine(models.Model):
     monthly_obligation  = fields.Float(string='Monthly Obligation', readonly=True)
     annual_target       = fields.Float(string='Annual Target',      readonly=True)
 
+    # ── New-joiner ramp-up (HR-PMS-001 §E1) ──────────────────────────────
+    # Why this month's obligation is what it is. Sourced from the employee's
+    # Ramp-up Start Date when HR has set one, otherwise their first contract
+    # start date; blank for the handful of employees with neither, who are
+    # scored at the full obligation.
+    ramp_start_date  = fields.Date(string='Ramp-up Start',   readonly=True)
+    months_employed  = fields.Integer(string='Month No.',    readonly=True)
+    ramp_stage       = fields.Char(string='Ramp-up Stage',   readonly=True)
+
     # ── Revenue ──────────────────────────────────────────────────────────
     sales_revenue    = fields.Float(string='Sales Revenue',     readonly=True)
     delivery_revenue = fields.Float(string='Delivery Revenue',  readonly=True)
@@ -71,16 +162,33 @@ class MisPerformanceLine(models.Model):
     invoices_raised_amount    = fields.Float(string='Invoices Raised (AED)',    readonly=True)
     payments_collected_amount = fields.Float(string='Payments Collected (AED)', readonly=True)
 
-    # ── Work completed (raw, unweighted contracted value of completed
-    #    tasks — for the Performance Management Report's "Work Completed –
-    #    Value" column; independent of the role-weighted, invoiced-basis
-    #    delivery_revenue used for the obligation/escalation check) ───────
-    work_completed_value = fields.Float(string='Work Completed – Value (AED)', readonly=True)
+    # ── Work delivered: the VALUE OF THE WORK COMPLETED in the month —
+    #    each task's share of its sale-order line (contracted, ex-VAT),
+    #    recognised in the month its PROJECT reached the "Done" stage and
+    #    split among the task's members in proportion to the hours each
+    #    logged to it. Independent of whether the client has paid: a job
+    #    finished in January and settled in March is January's delivery.
+    #    Follows the dashboard's date filter on the same completion-date
+    #    basis (see get_period_revenue_amounts). ─────────────────────────────
+    work_completed_value = fields.Float(string='Work Delivered (AED)', readonly=True)
 
     # ── Status / escalation ──────────────────────────────────────────────
     is_met               = fields.Boolean(string='Met Obligation',      readonly=True)
     consecutive_non_perf = fields.Integer(string='Consec. Non-Perf Months', readonly=True)
     escalation_stage     = fields.Char(string='Escalation Stage',        readonly=True)
+    rag_status           = fields.Char(string='Status',                  readonly=True)
+
+    # ── Payment-Collected status & escalation (HR-PMS-001 §Status) ───────
+    # Independent of the is_met / consecutive_non_perf pair above: those
+    # score total_revenue against monthly_obligation, whereas these score
+    # payments_collected_amount ("Payment Collected"). Both are measured
+    # against the same ramp-adjusted CTC x multiplier threshold, so
+    # min_ctc_obligation and monthly_obligation now carry the same number
+    # and differ only in which revenue figure is held up against them.
+    min_ctc_obligation      = fields.Float(string='Min. CTC Obligation',   readonly=True)
+    performance_status      = fields.Char(string='Status',                 readonly=True)
+    consecutive_below_target = fields.Integer(
+        string='Consec. Below-Target Months', readonly=True)
 
     currency_id     = fields.Many2one('res.currency', string='Currency', readonly=True)
     ctc_currency_id = fields.Many2one('res.currency', string='CTC Currency', readonly=True)
@@ -127,7 +235,17 @@ class MisPerformanceLine(models.Model):
                         ) AS annual_ctc,
                         (SELECT id FROM res_currency WHERE name = 'AED' ORDER BY id LIMIT 1) AS ctc_currency_id,
                         u.create_date            AS user_created,
-                        he.mis_ramp_start_date  AS ramp_start
+                        /* New-joiner ramp-up anchor. The manual MIS field wins
+                           so HR can correct a re-hire or a mid-contract
+                           transfer, but it is left blank for everyone in
+                           practice, so the real source is hr.employee's
+                           first_contract_date (stored, and verified equal to
+                           MIN(hr_contract.date_start) for every applicable
+                           employee). Without this fallback the whole ramp-up
+                           is dead code: no employee has the manual date set,
+                           so every month scored as 999 = full obligation. */
+                        COALESCE(he.mis_ramp_start_date,
+                                 he.first_contract_date) AS ramp_start
                     FROM hr_employee he
                     LEFT JOIN LATERAL (
                         SELECT c.wage, c.company_id
@@ -154,83 +272,38 @@ class MisPerformanceLine(models.Model):
                     JOIN   project_task pt ON pt.sale_line_id = sol.id
                     GROUP  BY sol.id
                 ),
-                inv_agg AS (
-                    /* posted invoiced (ex-VAT) amount per SO line — same
-                       revenue basis as the Project Wise / Outstanding menus */
-                    SELECT solr.order_line_id AS sol_id,
-                           SUM(CASE WHEN am.state = 'posted'
-                                    THEN aml.price_subtotal ELSE 0 END) AS invoiced_ex_vat
-                    FROM   sale_order_line_invoice_rel solr
-                    JOIN   account_move_line aml ON aml.id = solr.invoice_line_id
-                    JOIN   account_move      am  ON am.id  = aml.move_id
-                    WHERE  am.move_type = 'out_invoice'
-                    GROUP  BY solr.order_line_id
-                ),
-                task_weight AS (
-                    /* per task: recognised value = invoiced ex-VAT (like Project
-                       Wise) and total weighted hours (z) */
+                project_done AS (
+                    /* the date each project reached the "Done" stage — the
+                       delivery boundary for Sales vs Delivery Revenue and the
+                       month a task's value counts as Work Delivered.
+                       project_project.completed_date is only stamped by the
+                       "Mark as Done" / task-approval buttons and is empty for
+                       every project in this database, so the authoritative
+                       source is the chatter's tracked stage change into Done
+                       (the most recent one, in case a project was reopened).
+                       Projects not currently in the Done stage are excluded
+                       altogether: their collections all count as Sales. */
                     SELECT
-                        pt.id AS task_id,
-                        COALESCE(ia.invoiced_ex_vat, 0) AS task_value,
-                        SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS total_weighted
-                    FROM project_task pt
-                    JOIN sale_order_line sol ON sol.id = pt.sale_line_id
-                    LEFT JOIN inv_agg ia ON ia.sol_id = sol.id
-                    JOIN account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
-                    LEFT JOIN hr_employee he2 ON he2.user_id = aal.user_id AND he2.active = TRUE
-                    LEFT JOIN mis_revenue_role mrr ON mrr.id = he2.mis_revenue_role_id
-                    GROUP BY pt.id, ia.invoiced_ex_vat
+                        pp.id AS project_id,
+                        COALESCE(
+                            pp.completed_date,
+                            (SELECT MAX(mm.date)
+                             FROM   mail_tracking_value mtv
+                             JOIN   mail_message mm ON mm.id = mtv.mail_message_id
+                             JOIN   ir_model_fields imf ON imf.id = mtv.field_id
+                             WHERE  mm.model  = 'project.project'
+                               AND  mm.res_id = pp.id
+                               AND  imf.model = 'project.project'
+                               AND  imf.name  = 'stage_id'
+                               AND  mtv.new_value_char = 'Done')
+                        ) AS done_date
+                    FROM   project_project pp
+                    JOIN   project_project_stage pps ON pps.id = pp.stage_id
+                    WHERE  (CASE WHEN LEFT(pps.name::text, 1) = '{'
+                                 THEN (pps.name::jsonb) ->> 'en_US'
+                                 ELSE pps.name::text END) = 'Done'
                 ),
-                task_user_weight AS (
-                    /* per (task, employee): lifetime weighted hours — same
-                       weighting as task_weight's denominator, split out per
-                       contributor so a task's invoiced amount can be divided
-                       among contributors without double-counting */
-                    SELECT
-                        pt.id AS task_id,
-                        aal.user_id,
-                        SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS user_weighted
-                    FROM project_task pt
-                    JOIN account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
-                    LEFT JOIN hr_employee he6 ON he6.user_id = aal.user_id AND he6.active = TRUE
-                    LEFT JOIN mis_revenue_role mrr ON mrr.id = he6.mis_revenue_role_id
-                    GROUP BY pt.id, aal.user_id
-                ),
-                task_completed AS (
-                    /* raw (unweighted) contracted value of COMPLETED tasks,
-                       independent of invoicing/role-weighting — basis for
-                       the "Work Completed – Value" report column */
-                    SELECT
-                        pt.id AS task_id,
-                        (sol.price_subtotal / NULLIF(sol.product_uom_qty, 0))
-                            / NULLIF(stc.task_count, 0) AS task_value,
-                        SUM(aal.unit_amount) AS total_hours
-                    FROM   project_task pt
-                    JOIN   sale_order_line sol ON sol.id = pt.sale_line_id
-                    JOIN   sol_task_count stc ON stc.sol_id = sol.id
-                    JOIN   account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
-                    WHERE  pt.state_additional = 'completed'
-                    GROUP  BY pt.id, sol.price_subtotal, sol.product_uom_qty, stc.task_count
-                ),
-                work_completed AS (
-                    /* per (user, month): raw-hours share of completed
-                       tasks' contracted value */
-                    SELECT
-                        aal.user_id,
-                        date_trunc('month', aal.date)::date AS period_date,
-                        SUM(
-                            aal.unit_amount
-                            * CASE WHEN tc.total_hours > 0
-                                   THEN tc.task_value / tc.total_hours
-                                   ELSE 0 END
-                        ) AS work_completed_value
-                    FROM   account_analytic_line aal
-                    JOIN   task_completed tc ON tc.task_id = aal.task_id
-                    WHERE  aal.task_id IS NOT NULL
-                      AND  aal.unit_amount > 0
-                      AND  aal.date IS NOT NULL
-                    GROUP  BY aal.user_id, date_trunc('month', aal.date)
-                ),
+%(task_weights)s,
                 task_sol AS (
                     SELECT pt.id AS task_id, sol.id AS sol_id
                     FROM   project_task pt
@@ -296,13 +369,13 @@ class MisPerformanceLine(models.Model):
                        sharing that line, so a shared retainer line isn't
                        counted in full for every task), at full
                        (non-truncated) payment-date granularity, tagged
-                       with the task's completed_date — needed to tell
-                       which side of "done" each payment falls on before
-                       bucketing by month below */
+                       with the date its PROJECT reached the Done stage —
+                       needed to tell which side of "done" each payment
+                       falls on before bucketing by month below */
                     SELECT
                         ts.task_id,
                         r.max_date AS payment_date,
-                        pt7.completed_date,
+                        pd.done_date,
                         (il.price_subtotal * COALESCE(r.amount, 0)
                          / NULLIF(il.amount_total, 0))
                         / NULLIF(stc.task_count, 0) AS paid_ex_vat
@@ -310,20 +383,21 @@ class MisPerformanceLine(models.Model):
                     JOIN   inv_lines il ON il.sol_id = ts.sol_id
                     JOIN   recon r ON r.invoice_move_id = il.move_id
                     JOIN   project_task pt7 ON pt7.id = ts.task_id
+                    LEFT JOIN project_done pd ON pd.project_id = pt7.project_id
                     JOIN   sol_task_count stc ON stc.sol_id = ts.sol_id
                 ),
                 task_paid_split AS (
                     /* per (task, payment month): collected amount split into
-                       "sales" (paid before the task was completed, or the
-                       task has never been completed — an advance) vs
-                       "delivery" (paid on/after completed_date — the final
-                       settlement) */
+                       "sales" (paid while the project was still open, or the
+                       project has never reached Done — an advance) vs
+                       "delivery" (paid on/after the project's Done date —
+                       the final settlement) */
                     SELECT
                         task_id,
                         date_trunc('month', payment_date)::date AS period_date,
-                        SUM(CASE WHEN completed_date IS NULL OR payment_date < completed_date
+                        SUM(CASE WHEN done_date IS NULL OR payment_date < done_date
                                  THEN paid_ex_vat ELSE 0 END) AS sales_paid,
-                        SUM(CASE WHEN completed_date IS NOT NULL AND payment_date >= completed_date
+                        SUM(CASE WHEN done_date IS NOT NULL AND payment_date >= done_date
                                  THEN paid_ex_vat ELSE 0 END) AS delivery_paid
                     FROM   paid_task_events
                     GROUP  BY task_id, date_trunc('month', payment_date)
@@ -331,8 +405,8 @@ class MisPerformanceLine(models.Model):
                 delivery AS (
                     /* final-settlement (post-completion) collected revenue
                        per (user, payment month): each task's delivery_paid
-                       for the month is split among its contributors by
-                       their lifetime hours × role-multiplier share —
+                       for the month is split among its members in proportion
+                       to the hours each logged to the task —
                        shares sum to exactly the collected amount, so the
                        same payment is never duplicated across employees or
                        projects */
@@ -392,56 +466,89 @@ class MisPerformanceLine(models.Model):
                     LEFT JOIN paid_period pp2 ON pp2.sol_id = ts.sol_id AND pp2.period_date = k.period_date
                 ),
                 inv_pay_alloc AS (
-                    /* employee's weighted-hours share (this month's hours ÷
-                       task's lifetime weighted hours — same allocation basis
-                       as delivery_revenue) of invoices raised / paid for
-                       tasks they logged time to, restricted to invoice /
-                       payment activity dated within that same month */
+                    /* every task member's timesheet-weighted share
+                       (user_weighted ÷ total_weighted) of invoices raised /
+                       paid for that task, in whichever month the invoice/
+                       payment activity fell — same weighted basis as
+                       delivery_revenue/sales_revenue, just applied to the
+                       Invoices Raised / Payments Collected columns instead */
                     SELECT
-                        aal.user_id,
-                        date_trunc('month', aal.date)::date AS period_date,
+                        tuw.user_id,
+                        tp.period_date,
                         SUM(
-                            aal.unit_amount * COALESCE(mrr.multiplier, 1)
-                            * CASE WHEN tw.total_weighted > 0
-                                   THEN COALESCE(tpm.invoiced_ex_vat, 0) / tw.total_weighted
-                                   ELSE 0 END
+                            CASE WHEN tw.total_weighted > 0
+                                 THEN tuw.user_weighted / tw.total_weighted
+                                      * COALESCE(tp.invoiced_ex_vat, 0)
+                                 ELSE 0 END
                         ) AS invoices_raised_amount,
                         SUM(
-                            aal.unit_amount * COALESCE(mrr.multiplier, 1)
-                            * CASE WHEN tw.total_weighted > 0
-                                   THEN COALESCE(tpm.paid_ex_vat, 0) / tw.total_weighted
-                                   ELSE 0 END
+                            CASE WHEN tw.total_weighted > 0
+                                 THEN tuw.user_weighted / tw.total_weighted
+                                      * COALESCE(tp.paid_ex_vat, 0)
+                                 ELSE 0 END
                         ) AS payments_collected_amount
-                    FROM   account_analytic_line aal
-                    JOIN   task_weight tw ON tw.task_id = aal.task_id
-                    LEFT JOIN task_period tpm
-                           ON tpm.task_id = aal.task_id
-                          AND tpm.period_date = date_trunc('month', aal.date)::date
-                    LEFT JOIN hr_employee he5 ON he5.user_id = aal.user_id AND he5.active = TRUE
-                    LEFT JOIN mis_revenue_role mrr ON mrr.id = he5.mis_revenue_role_id
-                    WHERE  aal.task_id IS NOT NULL
-                      AND  aal.unit_amount > 0
-                      AND  aal.date IS NOT NULL
-                    GROUP  BY aal.user_id, date_trunc('month', aal.date)
+                    FROM   task_user_weight tuw
+                    JOIN   task_weight tw ON tw.task_id = tuw.task_id
+                    JOIN   task_period tp ON tp.task_id = tuw.task_id
+                    GROUP  BY tuw.user_id, tp.period_date
+                ),
+                task_delivered AS (
+                    /* WORK DELIVERED — the value of work COMPLETED in the
+                       month, which is a different question from any of the
+                       cash columns above and must not be derived from them.
+
+                       A task's delivered value is its share of its sale-order
+                       line (the contracted, ex-VAT price, divided by the
+                       number of tasks sharing that line — same
+                       sol_task_count rule used everywhere else), and it is
+                       recognised ONCE, in the month the task's PROJECT
+                       reached the "Done" stage. Nothing here depends on
+                       whether the client has paid: a job finished in January
+                       and settled in March is January's delivery, which is
+                       exactly what the earlier payment-date version got
+                       wrong. Projects that have never reached Done deliver
+                       nothing yet, so they simply do not appear. */
+                    SELECT
+                        ts.task_id,
+                        date_trunc('month', pd.done_date)::date AS period_date,
+                        sol.price_subtotal / NULLIF(stc.task_count, 0) AS delivered_value
+                    FROM   task_sol ts
+                    JOIN   sale_order_line sol ON sol.id = ts.sol_id
+                    JOIN   sol_task_count stc  ON stc.sol_id = ts.sol_id
+                    JOIN   project_task pt8    ON pt8.id = ts.task_id
+                    JOIN   project_done pd     ON pd.project_id = pt8.project_id
+                    WHERE  pd.done_date IS NOT NULL
+                ),
+                delivered_alloc AS (
+                    /* per (user, completion month): each contributor's slice
+                       of the tasks delivered that month, on the same
+                       hours-logged split as every other allocated column, so
+                       the shares of one task still sum to its whole value */
+                    SELECT
+                        tuw.user_id,
+                        td.period_date,
+                        SUM(
+                            CASE WHEN tw.total_weighted > 0
+                                 THEN tuw.user_weighted / tw.total_weighted * td.delivered_value
+                                 ELSE 0 END
+                        ) AS work_completed_value
+                    FROM   task_user_weight tuw
+                    JOIN   task_weight tw ON tw.task_id = tuw.task_id
+                    JOIN   task_delivered td ON td.task_id = tuw.task_id
+                    GROUP  BY tuw.user_id, td.period_date
                 ),
                 invoice_count_alloc AS (
                     /* plain (non-fractional) count: distinct invoices raised
-                       this month for any task this employee logged hours to
-                       this month */
-                    SELECT user_id, period_date, COUNT(*) AS invoices_raised_count
-                    FROM (
-                        SELECT DISTINCT aal.user_id,
-                               ti.period_date,
-                               ti.move_id
-                        FROM   account_analytic_line aal
-                        JOIN   task_invoices ti
-                               ON ti.task_id = aal.task_id
-                              AND ti.period_date = date_trunc('month', aal.date)::date
-                        WHERE  aal.task_id IS NOT NULL
-                          AND  aal.unit_amount > 0
-                          AND  aal.date IS NOT NULL
-                    ) x
-                    GROUP BY user_id, period_date
+                       this month for any task this employee is a member of
+                       — every member counts, not just whoever logged hours
+                       that specific month. Deliberately a plain count, NOT
+                       weighted: a fractional invoice count is meaningless,
+                       so an invoice counts once for everyone who worked the
+                       task while its VALUE is split by hours above. */
+                    SELECT tuw.user_id, ti.period_date, COUNT(DISTINCT ti.move_id) AS invoices_raised_count
+                    FROM   task_user_weight tuw
+                    JOIN   task_invoices ti ON ti.task_id = tuw.task_id
+                    GROUP  BY tuw.user_id, ti.period_date
                 ),
                 base AS (
                     SELECT
@@ -463,7 +570,11 @@ class MisPerformanceLine(models.Model):
                         COALESCE(ipa.invoices_raised_amount, 0)    AS invoices_raised_amount,
                         COALESCE(ipa.payments_collected_amount, 0) AS payments_collected_amount,
                         COALESCE(ica.invoices_raised_count, 0)     AS invoices_raised_count,
-                        COALESCE(wc.work_completed_value, 0)       AS work_completed_value
+                        /* Work Delivered = the contracted value of the work
+                           COMPLETED this month (see task_delivered), NOT a
+                           cash figure and NOT a restatement of
+                           delivery_revenue. */
+                        COALESCE(da.work_completed_value, 0)       AS work_completed_value
                     FROM emp e
                     /* per-employee month series: from the later of the rolling
                        12-month floor and the user's creation month, up to now */
@@ -479,7 +590,7 @@ class MisPerformanceLine(models.Model):
                     LEFT JOIN sales    s ON s.user_id = e.user_id AND s.period_date = gs.period_date::date
                     LEFT JOIN inv_pay_alloc ipa ON ipa.user_id = e.user_id AND ipa.period_date = gs.period_date::date
                     LEFT JOIN invoice_count_alloc ica ON ica.user_id = e.user_id AND ica.period_date = gs.period_date::date
-                    LEFT JOIN work_completed wc ON wc.user_id = e.user_id AND wc.period_date = gs.period_date::date
+                    LEFT JOIN delivered_alloc da ON da.user_id = e.user_id AND da.period_date = gs.period_date::date
                 ),
                 calc AS (
                     SELECT b.*,
@@ -487,40 +598,91 @@ class MisPerformanceLine(models.Model):
                         CASE b.office_location WHEN 'uae' THEN 3 WHEN 'india' THEN 5 ELSE 3 END AS base_monthly_mult,
                         CASE b.office_location WHEN 'uae' THEN 5 WHEN 'india' THEN 10 ELSE 5 END AS annual_mult
                     FROM base b
-                    WHERE b.months_employed >= 1
+                    /* NO row filter here on purpose. An earlier version
+                       dropped months before the ramp start date, on the
+                       reasoning that the person was not employed yet — but
+                       that silently removed history from the report, so the
+                       rows stay and pre-start months simply fall through to
+                       the full obligation below, exactly as they scored
+                       before the ramp-up existed. */
                 ),
-                fin AS (
+                ramp AS (
+                    /* THE new-joiner ramp-up, resolved exactly once so every
+                       threshold below is guaranteed to agree. A joiner's
+                       target climbs 1x CTC in their first calendar month,
+                       2x in their second, then the full location minimum
+                       (UAE 3x, India 5x) from their third month on.
+                       months_employed is 999 when no start date can be
+                       resolved, and 0 or negative for months that fall
+                       before the start date; both land on ELSE and are
+                       scored at the full obligation. Only an exact 1 or 2
+                       earns a reduced target. */
                     SELECT c.*,
-                        /* obligation & target in AED (CTC already converted) */
-                        (c.monthly_ctc * CASE
+                        CASE
                             WHEN c.months_employed = 1 THEN 1
                             WHEN c.months_employed = 2 THEN 2
-                            ELSE c.base_monthly_mult END) AS monthly_obligation,
-                        (c.annual_ctc * c.annual_mult) AS annual_target,
-                        CASE
-                            WHEN (c.monthly_ctc * CASE
-                                WHEN c.months_employed = 1 THEN 1
-                                WHEN c.months_employed = 2 THEN 2
-                                ELSE c.base_monthly_mult END) > 0
-                            THEN (c.total_revenue >= (c.monthly_ctc * CASE
-                                WHEN c.months_employed = 1 THEN 1
-                                WHEN c.months_employed = 2 THEN 2
-                                ELSE c.base_monthly_mult END))
-                            ELSE TRUE
-                        END AS is_met
+                            ELSE c.base_monthly_mult
+                        END AS effective_mult
                     FROM calc c
+                ),
+                fin AS (
+                    SELECT r.*,
+                        /* obligation & target in AED (CTC already converted) */
+                        (r.monthly_ctc * r.effective_mult) AS monthly_obligation,
+                        (r.annual_ctc * r.annual_mult) AS annual_target,
+                        CASE
+                            WHEN r.monthly_ctc * r.effective_mult > 0
+                            THEN (r.total_revenue >= r.monthly_ctc * r.effective_mult)
+                            ELSE TRUE
+                        END AS is_met,
+                        /* Minimum CTC obligation for the Status / Escalation
+                           Stage columns. Ramped on the SAME basis as
+                           monthly_obligation above, so the two are now the
+                           same number: a new joiner cannot be marked below
+                           target -- and cannot accrue a Warning Notice --
+                           against an obligation that does not apply to them
+                           yet. What still separates the two pairs is the
+                           revenue they are scored against, not the
+                           threshold: monthly_obligation is measured against
+                           total_revenue (Achievement %% / RAG) while
+                           min_ctc_obligation is measured against
+                           payments_collected_amount (Status / Escalation). */
+                        (r.monthly_ctc * r.effective_mult) AS min_ctc_obligation,
+                        /* Is this an On Track month? i.e. did PAYMENT COLLECTED
+                           reach the minimum? Everything short of that (both
+                           'Below Minimum' and 'At Risk') is a below-target
+                           month that advances the escalation cycle, and only
+                           On Track resets it. Employees with no CTC on record
+                           (no open contract) count as on track so they never
+                           accrue an escalation off a zero threshold. */
+                        CASE
+                            WHEN r.monthly_ctc > 0
+                            THEN (r.payments_collected_amount >= r.monthly_ctc * r.effective_mult)
+                            ELSE TRUE
+                        END AS status_on_track
+                    FROM ramp r
                 ),
                 streak1 AS (
                     SELECT f.*,
                         SUM(CASE WHEN f.is_met THEN 1 ELSE 0 END)
                             OVER (PARTITION BY f.employee_id ORDER BY f.period_date
-                                  ROWS UNBOUNDED PRECEDING) AS island
+                                  ROWS UNBOUNDED PRECEDING) AS island,
+                        /* second, independent gaps-and-islands pass on the
+                           Payment-Collected basis — a new island starts on
+                           every On Track month, which is exactly what resets
+                           the escalation counter, so nothing before the most
+                           recent On Track month can carry forward */
+                        SUM(CASE WHEN f.status_on_track THEN 1 ELSE 0 END)
+                            OVER (PARTITION BY f.employee_id ORDER BY f.period_date
+                                  ROWS UNBOUNDED PRECEDING) AS esc_island
                     FROM fin f
                 ),
                 streak2 AS (
                     SELECT s1.*,
                         ROW_NUMBER() OVER (PARTITION BY s1.employee_id, s1.island
-                                           ORDER BY s1.period_date) AS pos
+                                           ORDER BY s1.period_date) AS pos,
+                        ROW_NUMBER() OVER (PARTITION BY s1.employee_id, s1.esc_island
+                                           ORDER BY s1.period_date) AS esc_pos
                     FROM streak1 s1
                 )
                 SELECT
@@ -541,6 +703,20 @@ class MisPerformanceLine(models.Model):
                     annual_ctc,
                     monthly_obligation,
                     annual_target,
+                    /* ── New-joiner ramp-up, surfaced so a reduced target is
+                       auditable instead of looking like a data error. 999 is
+                       the "no start date on record" sentinel and is reported
+                       as NULL rather than a nonsense tenure. */
+                    ramp_start AS ramp_start_date,
+                    CASE WHEN ramp_start IS NULL THEN NULL
+                         ELSE months_employed END AS months_employed,
+                    CASE
+                        WHEN ramp_start IS NULL       THEN 'No Start Date'
+                        WHEN months_employed = 1      THEN 'Month 1 — 1x CTC'
+                        WHEN months_employed = 2      THEN 'Month 2 — 2x CTC'
+                        WHEN months_employed < 1      THEN 'Before Start Date'
+                        ELSE 'Full Obligation'
+                    END AS ramp_stage,
                     sales_revenue,
                     delivery_revenue,
                     total_revenue,
@@ -551,15 +727,60 @@ class MisPerformanceLine(models.Model):
                     CASE WHEN monthly_obligation > 0
                          THEN total_revenue / monthly_obligation * 100
                          ELSE 0 END AS achievement_pct,
+                    /* RAG status: Green = obligation met (>=100%%),
+                       Amber = 75-99.99%%, Red = under 75%%. Rows with no
+                       obligation on record (no open contract / zero CTC)
+                       report 'N/A' rather than a misleading Green. */
+                    CASE
+                        WHEN monthly_obligation <= 0 THEN 'N/A'
+                        WHEN total_revenue >= monthly_obligation THEN 'Green'
+                        WHEN total_revenue >= monthly_obligation * 0.75 THEN 'Amber'
+                        ELSE 'Red'
+                    END AS rag_status,
                     is_met,
                     CASE WHEN is_met THEN 0
                          WHEN island = 0 THEN pos
                          ELSE pos - 1 END AS consecutive_non_perf,
+                    /* ── Status (current month's Payment Collected only) ──
+                       PAYMENT COLLECTED for the month scored against Monthly
+                       CTC and the location minimum (CTC x 3 UAE / x 5 India).
+                       Deliberately NOT Achievement %%, Delivered Value or
+                       Invoices Raised:
+                         PC <  CTC                   -> Below Minimum
+                         CTC <= PC <  min_obligation -> At Risk
+                         PC >= min_obligation        -> On Track
+                       'Below Minimum' is the WORSE of the two failing bands:
+                       the employee did not collect even 1x their own cost.
+                       'At Risk' is the milder one: their own cost is covered
+                       but the location minimum (3x UAE / 5x India) is not.
+                       Both are still short of the minimum and both advance
+                       the escalation counter identically — only the wording
+                       differs, so no warning-notice streak changes.
+                       Rows with no CTC on record report 'N/A' rather than a
+                       misleading 'On Track' off a zero threshold. */
+                    min_ctc_obligation,
                     CASE
-                        WHEN is_met THEN 'On Track'
-                        WHEN (CASE WHEN island = 0 THEN pos ELSE pos - 1 END) = 1
+                        WHEN monthly_ctc <= 0                                THEN 'N/A'
+                        WHEN payments_collected_amount <  monthly_ctc        THEN 'Below Minimum'
+                        WHEN payments_collected_amount <  min_ctc_obligation THEN 'At Risk'
+                        ELSE 'On Track'
+                    END AS performance_status,
+                    /* ── Escalation Stage (Status history, not this month) ─
+                       Count of CONSECUTIVE below-target months — a month
+                       counts when its Status is Below Minimum OR At Risk
+                       (both are simply PC < min_ctc_obligation) — up to and
+                       including this row's month. An On Track month resets
+                       the count to 0 and clears the stage, so no escalation
+                       can be based on months preceding the most recent On
+                       Track month. */
+                    CASE WHEN status_on_track THEN 0
+                         WHEN esc_island = 0 THEN esc_pos
+                         ELSE esc_pos - 1 END AS consecutive_below_target,
+                    CASE
+                        WHEN status_on_track THEN NULL
+                        WHEN (CASE WHEN esc_island = 0 THEN esc_pos ELSE esc_pos - 1 END) = 1
                             THEN '1st Month — Verbal Flag'
-                        WHEN (CASE WHEN island = 0 THEN pos ELSE pos - 1 END) = 2
+                        WHEN (CASE WHEN esc_island = 0 THEN esc_pos ELSE esc_pos - 1 END) = 2
                             THEN '2nd Month — Written Advisory'
                         ELSE '3rd+ Month — Warning + PIP'
                     END AS escalation_stage,
@@ -567,7 +788,8 @@ class MisPerformanceLine(models.Model):
                     ctc_currency_id
                 FROM streak2
             )
-        """ % self._table)
+        """.replace('%(task_weights)s', _task_weight_ctes(16))
+                             % self._table)
 
     # ── Revenue breakdown (for the OWL wizard) ───────────────────────────
     @api.model
@@ -576,9 +798,13 @@ class MisPerformanceLine(models.Model):
         (pre-completion / advance) and Delivery (post-completion / final
         settlement) revenue for the given month — same definition as
         init()/get_period_revenue_amounts: collected (payment/
-        reconciliation-date) basis, split at each task's completed_date,
-        both attributed to contributors by lifetime hours × role-multiplier
-        share. `period_date` is any date within the month ('YYYY-MM-DD')."""
+        reconciliation-date) basis, split at the Done date of each
+        task's project, both divided among the task's members in proportion
+        to the hours each logged to it. Each row therefore also carries the
+        employee's own hours, the task's total hours and the resulting
+        share_pct, so the number on the scorecard can be traced back to the
+        timesheets behind it. `period_date` is any date within the month
+        ('YYYY-MM-DD')."""
         uid = user_id or 0
         cr = self.env.cr
 
@@ -610,6 +836,30 @@ class MisPerformanceLine(models.Model):
                 JOIN   account_account   aa ON aa.id = aml.account_id
                 WHERE  aa.account_type = 'asset_receivable'
             ),
+            project_done AS (
+                /* date each project reached the "Done" stage — the delivery
+                   boundary (same source as init(): the chatter's tracked
+                   stage change, since completed_date is never stamped) */
+                SELECT
+                    pp.id AS project_id,
+                    COALESCE(
+                        pp.completed_date,
+                        (SELECT MAX(mm.date)
+                         FROM   mail_tracking_value mtv
+                         JOIN   mail_message mm ON mm.id = mtv.mail_message_id
+                         JOIN   ir_model_fields imf ON imf.id = mtv.field_id
+                         WHERE  mm.model  = 'project.project'
+                           AND  mm.res_id = pp.id
+                           AND  imf.model = 'project.project'
+                           AND  imf.name  = 'stage_id'
+                           AND  mtv.new_value_char = 'Done')
+                    ) AS done_date
+                FROM   project_project pp
+                JOIN   project_project_stage pps ON pps.id = pp.stage_id
+                WHERE  (CASE WHEN LEFT(pps.name::text, 1) = '{'
+                             THEN (pps.name::jsonb) ->> 'en_US'
+                             ELSE pps.name::text END) = 'Done'
+            ),
             recon AS (
                 SELECT
                     rl.move_id AS invoice_move_id,
@@ -624,18 +874,18 @@ class MisPerformanceLine(models.Model):
             ),
             task_paid_split AS (
                 /* per task: this month's collected amount, split into
-                   "sales" (paid before the task's completed_date, or the
-                   task has never been completed — an advance) vs
-                   "delivery" (paid on/after completed_date — the final
-                   settlement); divided equally by the number of tasks
+                   "sales" (paid while its project was still open, or the
+                   project has never reached Done — an advance) vs
+                   "delivery" (paid on/after the project's Done date — the
+                   final settlement); divided equally by the number of tasks
                    sharing the SO line so a shared retainer line isn't
                    counted in full for every task */
                 SELECT
                     ts.task_id,
-                    SUM(CASE WHEN pt5.completed_date IS NULL OR r.max_date < pt5.completed_date
+                    SUM(CASE WHEN pd.done_date IS NULL OR r.max_date < pd.done_date
                              THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
                              ELSE 0 END) / NULLIF(stc.task_count, 0) AS sales_paid,
-                    SUM(CASE WHEN pt5.completed_date IS NOT NULL AND r.max_date >= pt5.completed_date
+                    SUM(CASE WHEN pd.done_date IS NOT NULL AND r.max_date >= pd.done_date
                              THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
                              ELSE 0 END) / NULLIF(stc.task_count, 0) AS delivery_paid
                 FROM   task_sol ts
@@ -643,28 +893,17 @@ class MisPerformanceLine(models.Model):
                 JOIN   recon r ON r.invoice_move_id = il.move_id
                               AND date_trunc('month', r.max_date) = date_trunc('month', %s::date)
                 JOIN   project_task pt5 ON pt5.id = ts.task_id
+                LEFT JOIN project_done pd ON pd.project_id = pt5.project_id
                 JOIN   sol_task_count stc ON stc.sol_id = ts.sol_id
                 GROUP  BY ts.task_id, stc.task_count
             ),
-            task_weight AS (
-                SELECT pt.id AS task_id,
-                       SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS total_weighted
-                FROM   project_task pt
-                JOIN   account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
-                LEFT JOIN hr_employee he2 ON he2.user_id = aal.user_id AND he2.active = TRUE
-                LEFT JOIN mis_revenue_role mrr ON mrr.id = he2.mis_revenue_role_id
-                GROUP  BY pt.id
-            ),
-            task_user_weight AS (
-                SELECT pt.id AS task_id, aal.user_id,
-                       SUM(aal.unit_amount) AS hours,
-                       SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS user_weighted
-                FROM   project_task pt
-                JOIN   account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
-                LEFT JOIN hr_employee he3 ON he3.user_id = aal.user_id AND he3.active = TRUE
-                LEFT JOIN mis_revenue_role mrr ON mrr.id = he3.mis_revenue_role_id
-                WHERE  aal.user_id = %s
-                GROUP  BY pt.id, aal.user_id
+%(task_weights)s,
+            task_hours AS (
+                /* total hours logged to each task by everyone — shown next to
+                   the employee's own hours so the share is self-evident */
+                SELECT task_id, SUM(hours) AS total_hours
+                FROM   task_user_weight
+                GROUP  BY task_id
             ),
             task_invoice_rows AS (
                 /* distinct posted invoices touching each task's SO line —
@@ -707,22 +946,29 @@ class MisPerformanceLine(models.Model):
                      ELSE 0 END AS sales_amount,
                 CASE WHEN tw.total_weighted > 0
                      THEN tuw.user_weighted / tw.total_weighted * tps.delivery_paid
-                     ELSE 0 END AS delivery_amount
+                     ELSE 0 END AS delivery_amount,
+                COALESCE(th.total_hours, 0) AS total_hours,
+                CASE WHEN tw.total_weighted > 0
+                     THEN tuw.user_weighted / tw.total_weighted * 100
+                     ELSE 0 END AS share_pct
             FROM   task_user_weight tuw
             JOIN   task_weight tw ON tw.task_id = tuw.task_id
             JOIN   task_paid_split tps ON tps.task_id = tuw.task_id
             JOIN   project_task pt ON pt.id = tuw.task_id
+            LEFT JOIN task_hours th ON th.task_id = tuw.task_id
             LEFT JOIN project_project pp ON pp.id = pt.project_id
             LEFT JOIN sale_order_line sol4 ON sol4.id = pt.sale_line_id
             LEFT JOIN sale_order      so4  ON so4.id  = sol4.order_id
             LEFT JOIN res_partner     rp4  ON rp4.id  = so4.partner_id
             LEFT JOIN task_inv_agg    tia  ON tia.task_id = pt.id
+            WHERE  tuw.user_id = %s
             ORDER  BY (
                 CASE WHEN tw.total_weighted > 0
                      THEN tuw.user_weighted / tw.total_weighted * (tps.sales_paid + tps.delivery_paid)
                      ELSE 0 END
             ) DESC
-        """, (period_date, uid))
+        """.replace('%(task_weights)s', _task_weight_ctes(12)),
+           (period_date, uid))
         rows = [{
             'project': r[0] or '',
             'task': r[1] or '',
@@ -732,6 +978,10 @@ class MisPerformanceLine(models.Model):
             'hours': round(r[6] or 0.0, 2),
             'sales_amount': r[8] or 0.0,
             'delivery_amount': r[9] or 0.0,
+            # the timesheet split itself, so the drill-down shows WHY the
+            # employee got this slice of the task
+            'total_hours': round(r[10] or 0.0, 2),
+            'share_pct': round(r[11] or 0.0, 2),
         } for r in cr.fetchall()]
 
         sales = [dict(row, amount=row['sales_amount']) for row in rows if row['sales_amount']]
@@ -759,23 +1009,31 @@ class MisPerformanceLine(models.Model):
     # ── Period-scoped Sales / Delivery / Total Revenue ────────────────────
     @api.model
     def get_period_revenue_amounts(self, ids, date_from, date_to):
-        """Recompute Sales/Delivery/Total Revenue from amounts actually
-        COLLECTED (payment/reconciliation date) within exactly
-        [date_from, date_to], instead of each row's full calendar month.
+        """Recompute Sales/Delivery/Total Revenue and Work Delivered from
+        amounts actually COLLECTED (payment/reconciliation date) within
+        exactly [date_from, date_to], instead of each row's full calendar
+        month.
 
         Each row still represents one (employee, month); the window used is
         the overlap between that row's month and the selected range (zero
         when there is no overlap), and only payments reconciled within that
         window count, pro-rata — same paid-basis as init(). A payment is
-        Sales revenue if it lands before the task's completed_date (or the
-        task was never completed — an advance), Delivery revenue if it
-        lands on/after completed_date (the final settlement) — same rule as
+        Sales revenue if it lands before the project's Done date (or the
+        project was never completed — an advance), Delivery revenue if it
+        lands on/after that Done date (the final settlement) — same rule as
         init(). Called by the dashboard whenever both bounds of the Date
         filter are set — the period-aware counterpart to the sales_revenue/
         delivery_revenue columns baked into the view, same convention as
         mis.project.wise's get_period_amounts.
 
-        Returns {row_id: {sales_revenue, delivery_revenue, total_revenue}}.
+        Work Delivered narrows on a DIFFERENT basis from the three cash
+        figures: a task counts when its project reached Done inside the
+        window, at its contracted share of the sale-order line — the same
+        completion-date basis as init()'s delivered_alloc, so the column
+        means the same thing whether or not a date filter is applied.
+
+        Returns {row_id: {sales_revenue, delivery_revenue, total_revenue,
+        work_completed_value}}.
         """
         if not ids or not date_from or not date_to:
             return {}
@@ -825,6 +1083,30 @@ class MisPerformanceLine(models.Model):
                 JOIN   account_account   aa ON aa.id = aml.account_id
                 WHERE  aa.account_type = 'asset_receivable'
             ),
+            project_done AS (
+                /* date each project reached the "Done" stage — the delivery
+                   boundary (same source as init(): the chatter's tracked
+                   stage change, since completed_date is never stamped) */
+                SELECT
+                    pp.id AS project_id,
+                    COALESCE(
+                        pp.completed_date,
+                        (SELECT MAX(mm.date)
+                         FROM   mail_tracking_value mtv
+                         JOIN   mail_message mm ON mm.id = mtv.mail_message_id
+                         JOIN   ir_model_fields imf ON imf.id = mtv.field_id
+                         WHERE  mm.model  = 'project.project'
+                           AND  mm.res_id = pp.id
+                           AND  imf.model = 'project.project'
+                           AND  imf.name  = 'stage_id'
+                           AND  mtv.new_value_char = 'Done')
+                    ) AS done_date
+                FROM   project_project pp
+                JOIN   project_project_stage pps ON pps.id = pp.stage_id
+                WHERE  (CASE WHEN LEFT(pps.name::text, 1) = '{'
+                             THEN (pps.name::jsonb) ->> 'en_US'
+                             ELSE pps.name::text END) = 'Done'
+            ),
             recon AS (
                 SELECT
                     rl.move_id AS invoice_move_id,
@@ -853,17 +1135,18 @@ class MisPerformanceLine(models.Model):
             paid_task_lines AS (
                 /* each row's window-restricted collected amount per task, by
                    reconciliation/payment date, split into "sales" (paid
-                   before the task's completed_date, or never completed —
-                   an advance) vs "delivery" (paid on/after completed_date —
-                   the final settlement) — same rule as init(); divided
-                   equally by the number of tasks sharing the SO line */
+                   while its project was still open, or the project never
+                   reached Done — an advance) vs "delivery" (paid on/after
+                   the project's Done date — the final settlement) — same
+                   rule as init(); divided equally by the number of tasks
+                   sharing the SO line */
                 SELECT
                     t.row_id,
                     ts.task_id,
-                    SUM(CASE WHEN pt7.completed_date IS NULL OR r.max_date < pt7.completed_date
+                    SUM(CASE WHEN pd.done_date IS NULL OR r.max_date < pd.done_date
                              THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
                              ELSE 0 END) / NULLIF(stc.task_count, 0) AS sales_paid,
-                    SUM(CASE WHEN pt7.completed_date IS NOT NULL AND r.max_date >= pt7.completed_date
+                    SUM(CASE WHEN pd.done_date IS NOT NULL AND r.max_date >= pd.done_date
                              THEN il.price_subtotal * COALESCE(r.amount, 0) / NULLIF(il.amount_total, 0)
                              ELSE 0 END) / NULLIF(stc.task_count, 0) AS delivery_paid
                 FROM targets t
@@ -871,38 +1154,16 @@ class MisPerformanceLine(models.Model):
                 JOIN inv_lines il ON il.move_id = r.invoice_move_id
                 JOIN task_sol ts ON ts.sol_id = il.sol_id
                 JOIN project_task pt7 ON pt7.id = ts.task_id
+                LEFT JOIN project_done pd ON pd.project_id = pt7.project_id
                 JOIN sol_task_count stc ON stc.sol_id = ts.sol_id
                 GROUP BY t.row_id, ts.task_id, stc.task_count
             ),
-            task_weight AS (
-                /* per task: lifetime total weighted hours — same denominator
-                   as init(), used only to derive each contributor's share */
-                SELECT
-                    pt.id AS task_id,
-                    SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS total_weighted
-                FROM project_task pt
-                JOIN account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
-                LEFT JOIN hr_employee he2 ON he2.user_id = aal.user_id AND he2.active = TRUE
-                LEFT JOIN mis_revenue_role mrr ON mrr.id = he2.mis_revenue_role_id
-                GROUP BY pt.id
-            ),
-            task_user_weight AS (
-                SELECT
-                    pt.id AS task_id,
-                    aal.user_id,
-                    SUM(aal.unit_amount * COALESCE(mrr.multiplier, 1)) AS user_weighted
-                FROM project_task pt
-                JOIN account_analytic_line aal ON aal.task_id = pt.id AND aal.unit_amount > 0
-                LEFT JOIN hr_employee he3 ON he3.user_id = aal.user_id AND he3.active = TRUE
-                LEFT JOIN mis_revenue_role mrr ON mrr.id = he3.mis_revenue_role_id
-                GROUP BY pt.id, aal.user_id
-            ),
+%(task_weights)s,
             delivery AS (
                 /* each row's window-restricted, post-completion (final
                    settlement) collected amount for a task, split among that
-                   task's contributors by their lifetime hours ×
-                   role-multiplier share — same non-duplicating split as
-                   init() */
+                   task's members in proportion to the hours each logged —
+                   same non-duplicating split as init() */
                 SELECT
                     t.row_id,
                     SUM(
@@ -932,14 +1193,41 @@ class MisPerformanceLine(models.Model):
                 JOIN task_weight tw ON tw.task_id = tuw.task_id
                 JOIN paid_task_lines ptl ON ptl.row_id = t.row_id AND ptl.task_id = tuw.task_id
                 GROUP BY t.row_id
+            ),
+            delivered AS (
+                /* WORK DELIVERED, narrowed to the selected range on the
+                   COMPLETION date — not the payment date, which is what the
+                   two CTEs above use. A task counts here when its project
+                   reached Done inside the window, at its contracted share of
+                   the sale-order line, split across contributors on the same
+                   hours-logged basis as init()'s delivered_alloc. */
+                SELECT
+                    t.row_id,
+                    SUM(
+                        CASE WHEN tw.total_weighted > 0
+                             THEN tuw.user_weighted / tw.total_weighted
+                                  * (sol.price_subtotal / NULLIF(stc.task_count, 0))
+                             ELSE 0 END
+                    ) AS value
+                FROM targets t
+                JOIN task_user_weight tuw ON tuw.user_id = t.user_id
+                JOIN task_weight tw ON tw.task_id = tuw.task_id
+                JOIN project_task pt9 ON pt9.id = tuw.task_id
+                JOIN project_done pd ON pd.project_id = pt9.project_id
+                                    AND pd.done_date BETWEEN t.eff_from AND t.eff_to
+                JOIN sale_order_line sol ON sol.id = pt9.sale_line_id
+                JOIN sol_task_count stc ON stc.sol_id = sol.id
+                GROUP BY t.row_id
             )
             SELECT t.row_id,
                    COALESCE(d.revenue, 0) AS delivery_revenue,
-                   COALESCE(s.revenue, 0) AS sales_revenue
+                   COALESCE(s.revenue, 0) AS sales_revenue,
+                   COALESCE(wd.value, 0)  AS work_completed_value
             FROM targets t
-            LEFT JOIN delivery d ON d.row_id = t.row_id
-            LEFT JOIN sales    s ON s.row_id = t.row_id
-        """, {
+            LEFT JOIN delivery  d  ON d.row_id  = t.row_id
+            LEFT JOIN sales     s  ON s.row_id  = t.row_id
+            LEFT JOIN delivered wd ON wd.row_id = t.row_id
+        """.replace('%(task_weights)s', _task_weight_ctes(12)), {
             'row_ids': row_ids,
             'user_ids': user_ids,
             'eff_froms': eff_froms,
@@ -954,6 +1242,10 @@ class MisPerformanceLine(models.Model):
                 'sales_revenue': sales_revenue,
                 'delivery_revenue': delivery_revenue,
                 'total_revenue': sales_revenue + delivery_revenue,
+                # Work Delivered is its own measure — the value of the work
+                # COMPLETED inside the window (completion date), not the cash
+                # collected in it.
+                'work_completed_value': row['work_completed_value'] or 0,
             }
         return result
 
@@ -985,7 +1277,11 @@ class MisPerformanceLine(models.Model):
                 am.last_followup_date
             FROM   account_move am
             LEFT JOIN res_partner rp   ON rp.id  = am.partner_id
-            LEFT JOIN project_project pp ON pp.id = am.service_engagement_id
+            -- The Sale Order Line is the engagement link now; service_engagement_id
+            -- is the project it resolves to and is still stamped on retainership
+            -- invoices, which have no sale order line of their own.
+            LEFT JOIN sale_order_line sol ON sol.id = am.sale_order_line_id
+            LEFT JOIN project_project pp ON pp.id = COALESCE(am.service_engagement_id, sol.project_id)
             LEFT JOIN hr_department hd ON hd.id  = pp.department_id
             LEFT JOIN res_users pmu    ON pmu.id = pp.user_id
             LEFT JOIN res_partner pmp  ON pmp.id = pmu.partner_id

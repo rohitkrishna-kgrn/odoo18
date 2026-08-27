@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- The plan lives on the engagement, next to the advance it is derived
+         from, so the two are never read apart. -->
+    <record id="view_order_form_billing_plan" model="ir.ui.view">
+        <field name="name">sale.order.form.billing.plan</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <field name="advance_amount" position="after">
+                <field name="billing_plan_code" readonly="1"/>
+                <field name="billing_plan_basis"/>
+                <field name="billing_plan_is_derived" invisible="1"/>
+            </field>
+
+            <notebook position="inside">
+                <page string="Billing Plan" name="billing_plan">
+                    <div class="alert alert-info" role="alert"
+                         invisible="not billing_plan_is_derived">
+                        <strong>This plan is derived, not entered.</strong>
+                        It is read from the advance recorded on this order:
+                        <field name="billing_plan_code" readonly="1" nolabel="1"
+                               class="oe_inline"/>.
+                        Completion invoices are already checked against it.
+                        Press <em>Set Up Billing Plan</em> to turn it into
+                        milestones you can edit — for a 25 / 25 / 50 split, or to
+                        say which project stage makes a stage billable.
+                    </div>
+                    <button name="action_setup_billing_plan" type="object"
+                            string="Set Up Billing Plan" class="btn-primary"
+                            invisible="not billing_plan_is_derived"/>
+                    <button name="action_reset_billing_plan" type="object"
+                            string="Reset to Derived Plan" class="btn-secondary"
+                            confirm="Delete the entered milestones and go back to the plan derived from the advance amount?"
+                            invisible="billing_plan_is_derived"/>
+                    <field name="billing_milestone_ids" nolabel="1"
+                           invisible="billing_plan_is_derived">
+                        <list editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="name"/>
+                            <field name="milestone_type"/>
+                            <field name="percentage" sum="Total %"/>
+                            <field name="planned_amount" sum="Planned"/>
+                            <field name="trigger"/>
+                            <field name="trigger_stage_id"
+                                   column_invisible="1"
+                                   optional="hide"/>
+                            <field name="invoiced_amount" readonly="1"/>
+                            <field name="collected_amount" readonly="1"/>
+                            <field name="state" widget="badge"
+                                   decoration-success="state == 'paid'"
+                                   decoration-info="state == 'invoiced'"
+                                   decoration-warning="state == 'partial'"
+                                   decoration-muted="state == 'pending'"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                </page>
+            </notebook>
+        </field>
+    </record>
+
+    <record id="view_order_tree_billing_plan" model="ir.ui.view">
+        <field name="name">sale.order.list.billing.plan</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <field name="amount_total" position="before">
+                <field name="billing_plan_code" string="Payment Plan" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>

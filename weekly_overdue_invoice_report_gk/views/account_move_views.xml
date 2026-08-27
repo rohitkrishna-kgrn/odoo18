@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_move_form_why_not_collected" model="ir.ui.view">
+        <field name="name">account.move.form.why.not.collected</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <field name="last_followup_method" position="after">
+                <field name="why_not_collected"
+                       invisible="move_type not in ('out_invoice', 'out_refund') or invoice_age_days &lt;= 30"
+                       placeholder="Why hasn't this invoice been collected yet? Required before the Monday overdue report goes out."/>
+                <field name="why_not_collected_date" readonly="1"
+                       invisible="not why_not_collected"/>
+                <field name="why_not_collected_needs_prompt" invisible="1"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_move_ar_aging_list_why_not_collected" model="ir.ui.view">
+        <field name="name">account.move.ar.aging.list.why.not.collected</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account_extended_rk.view_account_move_ar_aging_list"/>
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="js_class">ar_aging_excluded_list</attribute>
+                <attribute name="decoration-danger">credit_hold or why_not_collected_needs_prompt</attribute>
+                <attribute name="decoration-muted">overdue_report_excluded</attribute>
+            </list>
+            <field name="amount_residual" position="after">
+                <field name="why_not_collected" string="Why Not Collected" optional="show"/>
+                <field name="why_not_collected_needs_prompt" column_invisible="1"/>
+                <field name="overdue_report_excluded" string="Excluded" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_account_move_ar_aging_search_why_not_collected" model="ir.ui.view">
+        <field name="name">account.move.ar.aging.search.why.not.collected</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account_extended_rk.view_account_move_ar_aging_search"/>
+        <field name="arch" type="xml">
+            <filter name="filter_followup_missing" position="after">
+                <filter string="Why Not Collected Missing (&gt;30d)" name="filter_why_not_collected_missing"
+                        domain="[('invoice_age_days', '&gt;', 30), ('why_not_collected', '=', False)]"/>
+                <separator/>
+                <filter string="Excluded From Report" name="filter_overdue_report_excluded"
+                        domain="[('overdue_report_excluded', '=', True)]"/>
+            </filter>
+            <filter name="group_aging_bucket" position="attributes">
+                <attribute name="string">Included / Excluded</attribute>
+                <attribute name="context">{'group_by': 'overdue_report_inclusion'}</attribute>
+            </filter>
+            <filter name="group_aging_bucket" position="after">
+                <filter string="Aging Bucket (within group)" name="group_aging_bucket_detail"
+                        context="{'group_by': 'aging_bucket'}"/>
+            </filter>
+        </field>
+    </record>
+
+    <!-- Only the default context changes here — the dashboard action itself
+         still lives in account_extended_rk. Activating both group-by
+         filters together nests the list two levels deep: Included Invoices /
+         Excluded Invoices as the two top-level "side headings", each then
+         sub-grouped by aging_bucket (days) underneath. -->
+    <record id="account_extended_rk.action_ar_aging_dashboard" model="ir.actions.act_window">
+        <field name="context">{'search_default_group_aging_bucket': 1, 'search_default_group_aging_bucket_detail': 1}</field>
+    </record>
+</odoo>

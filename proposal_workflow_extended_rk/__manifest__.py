@@ -40,6 +40,8 @@ Proposal workflow
         'views/crm_lead_views.xml',
         'views/sale_order_views.xml',
         'views/einvoicing_dashboard_views.xml',
+        'views/salesperson_performance_views.xml',
+        'views/salesperson_performance_wizard_views.xml',
     ],
     'assets': {
         'web.assets_backend': [

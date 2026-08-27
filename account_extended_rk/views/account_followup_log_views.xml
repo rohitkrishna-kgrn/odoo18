@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- The log is entered on the invoice, but it reports one row per
+         follow-up, which an invoice-shaped list cannot do. This view is the
+         export surface: filter it, then Export All for a flat
+         invoice/date/method/response sheet. -->
+    <record id="view_invoice_followup_log_list" model="ir.ui.view">
+        <field name="name">account.invoice.followup.log.list</field>
+        <field name="model">account.invoice.followup.log</field>
+        <field name="arch" type="xml">
+            <list string="Invoice Follow-up Log" create="false" default_order="date desc, id desc">
+                <field name="date" string="Follow-up Date"/>
+                <field name="move_id" string="Invoice"/>
+                <field name="partner_id" string="Client"/>
+                <field name="method"/>
+                <field name="response" string="Client Response"/>
+                <field name="user_id" string="Logged By" widget="many2one_avatar_user"/>
+                <field name="ar_responsible_id" string="AR Responsible" optional="show"/>
+                <field name="invoice_date_due" string="Due Date" optional="hide"/>
+                <field name="aging_bucket" string="Aging Bucket" optional="hide"/>
+                <field name="move_state" string="Invoice Status" optional="hide"/>
+                <field name="amount_residual" string="Amount Due" sum="Total Due" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_invoice_followup_log_search" model="ir.ui.view">
+        <field name="name">account.invoice.followup.log.search</field>
+        <field name="model">account.invoice.followup.log</field>
+        <field name="arch" type="xml">
+            <search string="Invoice Follow-up Log">
+                <field name="move_id" string="Invoice"/>
+                <field name="partner_id" string="Client"/>
+                <field name="user_id" string="Logged By"/>
+                <field name="ar_responsible_id" string="AR Responsible"/>
+                <field name="response" string="Client Response"/>
+                <separator/>
+                <filter string="Email" name="filter_method_email"
+                        domain="[('method', '=', 'email')]"/>
+                <filter string="Call" name="filter_method_call"
+                        domain="[('method', '=', 'call')]"/>
+                <filter string="WhatsApp" name="filter_method_whatsapp"
+                        domain="[('method', '=', 'whatsapp')]"/>
+                <separator/>
+                <filter string="Last 7 Days" name="filter_last_7_days"
+                        domain="[('date', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <filter string="Last 30 Days" name="filter_last_30_days"
+                        domain="[('date', '&gt;=', (context_today() - datetime.timedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter string="Invoice Still Unpaid" name="filter_invoice_unpaid"
+                        domain="[('move_id.payment_state', 'in', ('not_paid', 'partial')),
+                                 ('move_id.state', '=', 'posted')]"/>
+                <separator/>
+                <filter string="Client" name="group_client"
+                        context="{'group_by': 'partner_id'}"/>
+                <filter string="Invoice" name="group_invoice"
+                        context="{'group_by': 'move_id'}"/>
+                <filter string="Method" name="group_method"
+                        context="{'group_by': 'method'}"/>
+                <filter string="Logged By" name="group_user"
+                        context="{'group_by': 'user_id'}"/>
+                <filter string="AR Responsible" name="group_ar_responsible"
+                        context="{'group_by': 'ar_responsible_id'}"/>
+                <filter string="Aging Bucket" name="group_aging_bucket"
+                        context="{'group_by': 'aging_bucket'}"/>
+                <filter string="Follow-up Month" name="group_date"
+                        context="{'group_by': 'date:month'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_invoice_followup_log_pivot" model="ir.ui.view">
+        <field name="name">account.invoice.followup.log.pivot</field>
+        <field name="model">account.invoice.followup.log</field>
+        <field name="arch" type="xml">
+            <pivot string="Invoice Follow-up Log">
+                <field name="ar_responsible_id" type="row"/>
+                <field name="method" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_invoice_followup_log" model="ir.actions.act_window">
+        <field name="name">Invoice Follow-up Log</field>
+        <field name="res_model">account.invoice.followup.log</field>
+        <field name="view_mode">list,pivot</field>
+        <field name="search_view_id" ref="view_invoice_followup_log_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No follow-ups have been logged yet.
+            </p>
+            <p>
+                Follow-ups are recorded on the invoice itself, in its
+                <em>Follow-up Log</em> tab. They are collected here so the
+                chase history can be filtered and exported.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_invoice_followup_log"
+              name="Invoice Follow-up Log"
+              parent="account.menu_finance_receivables"
+              action="action_invoice_followup_log"
+              sequence="6"/>
+
+</odoo>

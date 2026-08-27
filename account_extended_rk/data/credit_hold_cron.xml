@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Daily credit hold sweep: places holds on customers whose invoices
+             have just crossed 180 days past due, and releases customers whose
+             triggering invoices have all been settled. Scheduled at 06:30,
+             after the AR aging refresh (05:55) and the stale-draft sweep
+             (06:15), so it reads the same day's aging data. -->
+        <record id="cron_credit_hold_evaluate" model="ir.cron">
+            <field name="name">Account Extended: Customer Credit Hold Sweep</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_credit_hold_evaluate()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+            <field name="nextcall" eval="(lambda n, t: t if t > n else t + timedelta(days=1))(datetime.now(), datetime.now().replace(hour=6, minute=30, second=0, microsecond=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        </record>
+
+    </data>
+</odoo>

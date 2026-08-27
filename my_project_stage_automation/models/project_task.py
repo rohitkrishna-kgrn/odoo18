@@ -225,7 +225,10 @@ class ProjectTask(models.Model):
             'partner_id': self.partner_id.id,
             'invoice_origin': self.name,
             'invoice_user_id': self.user_id.id if self.user_id else self.env.user.id,
+            'ar_responsible_id': self.user_id.id if self.user_id else self.env.user.id,
+            'invoice_type_classification': 'completion',
             'currency_id': self.company_id.currency_id.id,
+            'service_engagement_id': self.project_id.id,
             'invoice_line_ids': [(0, 0, {
                 'name': f'Task Budget for {self.name}',
                 'quantity': 1,

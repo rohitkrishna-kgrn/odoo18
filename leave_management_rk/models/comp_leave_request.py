@@ -1,6 +1,7 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError
-from datetime import date
+
+from .leave_period import leave_month_anchor
 
 
 class LeaveCompRequest(models.Model):
@@ -132,8 +133,8 @@ class LeaveCompRequest(models.Model):
             comp_leave = LeaveType.search([('name', '=', 'Compensation Leave')], limit=1)
             if not comp_leave:
                 raise UserError("Compensation Leave type not found.")
-            today = date.today()
-            first_of_month = today.replace(day=1)
+            # Credited to the leave month in progress on the approval date.
+            first_of_month = leave_month_anchor(fields.Date.today())
             balance_record = LeaveBalance.search([
                 ('user_id', '=', rec.user_id.id),
                 ('leave_type_id', '=', comp_leave.id),

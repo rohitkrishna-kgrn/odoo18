@@ -1,6 +1,10 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError
-from datetime import date
+
+from odoo.addons.leave_management_rk.models.leave_period import (
+    leave_month_anchor,
+    leave_month_label as format_leave_month,
+)
 
 
 class HrLeaveBalanceWizard(models.TransientModel):
@@ -8,6 +12,12 @@ class HrLeaveBalanceWizard(models.TransientModel):
     _description = 'HR Leave Balance Management'
 
     user_id = fields.Many2one('res.users', string='Employee', required=True)
+    leave_month_label = fields.Char(
+        string='Leave Month',
+        default=lambda self: format_leave_month(leave_month_anchor(fields.Date.today())),
+        readonly=True,
+        help="Balances below belong to the 26th-to-25th leave month in progress."
+    )
     line_ids = fields.One2many('hr.leave.balance.wizard.line', 'wizard_id', string='Leave Balances')
 
     @api.onchange('user_id')
@@ -16,8 +26,7 @@ class HrLeaveBalanceWizard(models.TransientModel):
             self.line_ids = [(5, 0, 0)]
             return
 
-        today = date.today()
-        first_of_month = today.replace(day=1)
+        first_of_month = leave_month_anchor(fields.Date.today())
         LeaveBalance = self.env['leave.balance']
         LeaveType = self.env['leave.type']
 
@@ -38,8 +47,7 @@ class HrLeaveBalanceWizard(models.TransientModel):
         if not self.user_id:
             raise UserError("Please select an employee.")
 
-        today = date.today()
-        first_of_month = today.replace(day=1)
+        first_of_month = leave_month_anchor(fields.Date.today())
         LeaveBalance = self.env['leave.balance']
 
         for line in self.line_ids:

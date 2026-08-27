@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_product_template_form_retainership" model="ir.ui.view">
+            <field name="name">product.template.form.retainership</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="inside">
+                    <page string="Retainership" name="retainership">
+                        <group>
+                            <group string="Recurring Billing">
+                                <field name="is_retainership"/>
+                                <field name="retainership_interval"
+                                       invisible="not is_retainership"
+                                       required="is_retainership"/>
+                                <field name="retainership_billing_day"
+                                       invisible="not is_retainership"/>
+                            </group>
+                            <group>
+                                <div colspan="2" class="text-muted">
+                                    Ticking <strong>Retainership Product</strong> makes this
+                                    service available on a Retainership Contract
+                                    (Accounting &gt; Customers &gt; Retainership Contracts).
+                                    The contract raises a <strong>draft</strong> invoice each
+                                    period for finance to review and post - nothing is ever
+                                    sent to the client automatically.
+                                </div>
+                            </group>
+                        </group>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_product_template_search_retainership" model="ir.ui.view">
+            <field name="name">product.template.search.retainership</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_search_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//search" position="inside">
+                    <filter string="Retainership Products" name="filter_is_retainership"
+                            domain="[('is_retainership', '=', True)]"/>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

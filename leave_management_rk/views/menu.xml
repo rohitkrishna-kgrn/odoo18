@@ -58,6 +58,13 @@
               groups="leave_management_rk.group_hr_manager"
               sequence="7"/>
 
+    <!-- Leave Balances by leave month (HR only, read-only) -->
+    <menuitem id="menu_leave_balance" name="Leave Balances by Month"
+              parent="menu_leave_root"
+              action="leave_management_rk.action_leave_balance"
+              groups="leave_management_rk.group_hr_manager"
+              sequence="9"/>
+
     <!-- HR Leave Balance Wizard (HR only) -->
     <menuitem id="menu_hr_leave_balance" name="Employee Leave Balance"
               parent="menu_leave_root"

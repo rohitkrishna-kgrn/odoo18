@@ -1,3 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_task_timer_user,access_task_timer_user,model_task_timer,base.group_user,1,1,1,1
 access_task_end_wizard,access_task_end_wizard,model_task_end_wizard,,1,1,1,1
+access_timesheet_compliance_report,timesheet.compliance.report,model_timesheet_compliance_report,hr_timesheet.group_timesheet_manager,1,0,0,0
+access_timesheet_compliance_report_line,timesheet.compliance.report.line,model_timesheet_compliance_report_line,hr_timesheet.group_timesheet_manager,1,0,0,0
+access_timesheet_compliance_wizard,timesheet.compliance.wizard,model_timesheet_compliance_wizard,hr_timesheet.group_timesheet_manager,1,1,1,1

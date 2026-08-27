@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Only a Sales Administrator may add or remove tags, which is what
+         hides the "New" button in CRM > Configuration > Tags for everyone
+         else. Salespeople keep read access so they can still pick tags. -->
+    <record id="sales_team.access_crm_tag_salesman" model="ir.model.access">
+        <field name="perm_create" eval="False"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+</odoo>

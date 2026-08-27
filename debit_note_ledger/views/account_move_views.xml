@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Vendor Debit Note form: number display, mandatory Bill Reference,
+         mandatory Sale Order Line.
+         Priority 30 so the Sale Order Line attributes below land after
+         account_extended_rk's own priority-20 override of the same field. -->
+    <record id="view_move_form_vendor_debit_note" model="ir.ui.view">
+        <field name="name">account.move.form.vendor.debit.note</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+
+            <field name="move_type" position="after">
+                <field name="is_debit_note" invisible="1"/>
+            </field>
+
+            <field name="name" position="attributes">
+                <attribute name="invisible">is_debit_note or not (name or name_placeholder or quick_edit_mode)</attribute>
+            </field>
+            <xpath expr="//h1/span" position="attributes">
+                <attribute name="invisible">is_debit_note or name or name_placeholder or quick_edit_mode</attribute>
+            </xpath>
+            <xpath expr="//h1/span" position="after">
+                <field name="debit_note_number" invisible="not is_debit_note"/>
+            </xpath>
+
+            <field name="ref" position="attributes">
+                <attribute name="required">is_debit_note</attribute>
+            </field>
+
+            <!-- project_extended_rk drops the Sale Order Line into its own group on
+                 //sheet, which renders for every move type, so the field is already on
+                 the vendor debit note form; only its attributes need flipping.
+                 The partner domain account_extended_rk applies is dropped here: on a
+                 vendor document partner_id is the vendor, so it would match nothing. -->
+            <field name="sale_order_line_id" position="attributes">
+                <attribute name="required">move_type in ('out_invoice', 'out_refund') or is_debit_note</attribute>
+                <attribute name="domain">[] if is_debit_note else [('order_partner_id', '=', partner_id)]</attribute>
+            </field>
+
+        </field>
+    </record>
+
+    <!-- Vendor Debit Note list: show Total as a positive value (display only) -->
+    <record id="view_invoice_tree_vendor_debit_note_amount" model="ir.ui.view">
+        <field name="name">account.invoice.list.vendor.debit.note.amount</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_invoice_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="(//field[@name='amount_total_in_currency_signed'])[1]" position="before">
+                <field name="amount_total" string="Total" sum="Total" decoration-bf="1"
+                       column_invisible="not context.get('debit_note_positive_amount')"/>
+            </xpath>
+            <xpath expr="(//field[@name='amount_total_in_currency_signed'])[1]" position="attributes">
+                <attribute name="column_invisible">context.get('debit_note_positive_amount')</attribute>
+            </xpath>
+            <xpath expr="(//field[@name='amount_total_in_currency_signed'])[2]" position="attributes">
+                <attribute name="column_invisible">context.get('debit_note_positive_amount')</attribute>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

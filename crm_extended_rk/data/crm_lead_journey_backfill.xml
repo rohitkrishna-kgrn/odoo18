@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Rebuild the journey log from the history already in the database, so
+         the timeline and the reports are not empty on the day this ships.
+         The method skips any lead that already has events, so this running
+         again on every future upgrade is a no-op. -->
+    <function model="crm.lead" name="_backfill_journey_events"/>
+
+    <!-- A 48-hour promise needs a sweep more often than once a day. -->
+    <function model="crm.lead" name="_apply_journey_cron_schedule"/>
+</odoo>

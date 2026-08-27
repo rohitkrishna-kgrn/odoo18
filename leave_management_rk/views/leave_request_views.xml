@@ -34,6 +34,9 @@
                         <field name="leave_type_id" readonly="state != 'draft'"/>
                         <field name="available_balance" readonly="1"
                                string="Available Balance (Days / Hrs)"/>
+                        <field name="leave_month_label" readonly="1"
+                               string="Leave Month"
+                               invisible="not leave_month_label"/>
                         <field name="is_half_day"
                                invisible="is_permission_type"
                                readonly="state != 'draft'"/>
@@ -86,6 +89,7 @@
                 <field name="user_id"/>
                 <field name="leave_type_id"/>
                 <field name="available_balance" readonly="1" string="Balance"/>
+                <field name="leave_month_label" string="Leave Month" optional="show"/>
                 <field name="start_date"/>
                 <field name="end_date"/>
                 <field name="is_half_day"/>

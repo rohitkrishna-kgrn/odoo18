@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <record id="mis_revenue_role_partner" model="mis.revenue.role">
+            <field name="name">Partner</field>
+            <field name="multiplier">3.0</field>
+        </record>
+
+        <record id="mis_revenue_role_manager" model="mis.revenue.role">
+            <field name="name">Manager</field>
+            <field name="multiplier">2.0</field>
+        </record>
+
+        <record id="mis_revenue_role_senior_associate" model="mis.revenue.role">
+            <field name="name">Senior Associate</field>
+            <field name="multiplier">1.5</field>
+        </record>
+
+        <record id="mis_revenue_role_associate" model="mis.revenue.role">
+            <field name="name">Associate</field>
+            <field name="multiplier">1.0</field>
+        </record>
+
+        <record id="mis_revenue_role_trainee" model="mis.revenue.role">
+            <field name="name">Trainee</field>
+            <field name="multiplier">0.5</field>
+        </record>
+
+    </data>
+</odoo>

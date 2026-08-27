@@ -6,3 +6,4 @@ from . import mis_employee
 from . import mis_project_revenue
 from . import mis_performance
 from . import mis_performance_report_log
+from . import mis_warning_notice

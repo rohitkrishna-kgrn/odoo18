@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="weekly_overdue_invoice_report_gk.WhyNotCollectedDialog">
+        <Dialog title="title" size="'md'">
+            <t t-set-slot="header">
+                <h4 class="modal-title text-break flex-grow-1"><t t-esc="title"/></h4>
+            </t>
+            <div class="alert alert-warning d-flex align-items-start" role="alert">
+                <i class="fa fa-exclamation-triangle me-2 mt-1" title="Overdue"/>
+                <div>
+                    This invoice is <strong><t t-esc="props.daysOverdue"/> days overdue</strong>
+                    (AED <t t-esc="amountLabel"/> outstanding).
+                    Please record why it hasn't been collected yet before the
+                    Monday overdue report goes out.
+                </div>
+            </div>
+            <textarea class="o_input w-100"
+                      rows="4"
+                      t-model="state.reason"
+                      placeholder="e.g. Client disputes 2 line items, awaiting their finance sign-off"/>
+            <t t-set-slot="footer">
+                <button class="btn btn-primary"
+                        t-on-click="onSave"
+                        t-att-disabled="!state.reason.trim() || state.saving">
+                    Save
+                </button>
+                <button class="btn btn-secondary" t-on-click="onRemindLater">
+                    Remind Me Later
+                </button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="crm_lead_journey_report_view_pivot" model="ir.ui.view">
+        <field name="name">crm.lead.journey.report.pivot</field>
+        <field name="model">crm.lead.journey.report</field>
+        <field name="arch" type="xml">
+            <pivot string="Journey Analysis" sample="1">
+                <field name="stage_id" type="col"/>
+                <field name="user_id" type="row"/>
+                <field name="days_in_stage" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="crm_lead_journey_report_view_graph" model="ir.ui.view">
+        <field name="name">crm.lead.journey.report.graph</field>
+        <field name="model">crm.lead.journey.report</field>
+        <field name="arch" type="xml">
+            <graph string="Journey Analysis" type="bar" sample="1">
+                <field name="stage_id"/>
+                <field name="days_in_stage" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="crm_lead_journey_report_view_list" model="ir.ui.view">
+        <field name="name">crm.lead.journey.report.list</field>
+        <field name="model">crm.lead.journey.report</field>
+        <field name="arch" type="xml">
+            <list string="Journey Analysis" create="false" edit="false">
+                <field name="lead_id"/>
+                <field name="partner_id" optional="show"/>
+                <field name="lead_created_on" optional="hide"/>
+                <field name="stage_id"/>
+                <field name="entered_on"/>
+                <field name="left_on" optional="hide"/>
+                <field name="days_in_stage" sum="Total"/>
+                <field name="days_to_reach_stage" optional="hide"/>
+                <field name="is_current_stage" optional="hide"/>
+                <field name="days_to_conversion" optional="show"/>
+                <field name="user_id" optional="show"/>
+                <field name="team_id" optional="hide"/>
+                <field name="activity_done_count" optional="hide"/>
+                <field name="activity_pending_count" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="crm_lead_journey_report_view_search" model="ir.ui.view">
+        <field name="name">crm.lead.journey.report.search</field>
+        <field name="model">crm.lead.journey.report</field>
+        <field name="arch" type="xml">
+            <search string="Journey Analysis">
+                <field name="lead_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="stage_id"/>
+                <filter name="filter_open" string="Open Leads"
+                        domain="[('is_open', '=', True)]"/>
+                <filter name="filter_current" string="Current Stage Only"
+                        domain="[('is_current_stage', '=', True)]"/>
+                <filter name="filter_converted" string="Converted"
+                        domain="[('days_to_conversion', '&gt;', 0)]"/>
+                <separator/>
+                <filter name="filter_entered" string="Entered Stage" date="entered_on"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_stage" string="Stage"
+                            context="{'group_by': 'stage_id'}"/>
+                    <filter name="group_salesperson" string="Salesperson"
+                            context="{'group_by': 'user_id'}"/>
+                    <filter name="group_team" string="Sales Team"
+                            context="{'group_by': 'team_id'}"/>
+                    <filter name="group_customer" string="Customer"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_lead" string="Opportunity"
+                            context="{'group_by': 'lead_id'}"/>
+                    <filter name="group_entered" string="Entered Stage"
+                            context="{'group_by': 'entered_on:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="crm_lead_journey_report_action" model="ir.actions.act_window">
+        <field name="name">Journey Analysis</field>
+        <field name="res_model">crm.lead.journey.report</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_group_stage': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No journey data yet</p>
+            <p>How long leads sit in each stage, by salesperson, team and
+               customer - and how long they take to convert.</p>
+        </field>
+    </record>
+
+    <menuitem id="crm_lead_journey_report_menu"
+              name="Journey Analysis"
+              parent="crm.crm_menu_report"
+              action="crm_lead_journey_report_action"
+              sequence="26"/>
+
+    <!-- Per-client summary: one line per opportunity with its headline
+         timings, which is the shape the sales team asked to see. -->
+    <record id="crm_lead_view_list_journey" model="ir.ui.view">
+        <field name="name">crm.lead.list.journey</field>
+        <field name="model">crm.lead</field>
+        <field name="arch" type="xml">
+            <list string="Lead Journey Summary" create="false" edit="false">
+                <field name="create_date" string="Lead Created"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="stage_id"/>
+                <field name="lead_age_days"/>
+                <field name="days_in_current_stage"/>
+                <field name="days_to_conversion"/>
+                <field name="activity_done_count"/>
+                <field name="activity_pending_count"/>
+                <field name="journey_event_count"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="crm_lead_journey_summary_action" model="ir.actions.act_window">
+        <field name="name">Journey Summary</field>
+        <field name="res_model">crm.lead</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="crm_lead_view_list_journey"/>
+        <field name="context">{'search_default_group_by_salesperson': 1}</field>
+    </record>
+
+    <menuitem id="crm_lead_journey_summary_menu"
+              name="Journey Summary"
+              parent="crm.crm_menu_report"
+              action="crm_lead_journey_summary_action"
+              sequence="27"/>
+
+</odoo>

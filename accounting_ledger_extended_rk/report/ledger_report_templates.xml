@@ -111,6 +111,8 @@
                                 <th>Narration</th>
                                 <th class="rk-c">Invoice Amount</th>
                                 <th class="rk-c">Outstanding</th>
+                                <th>Last Follow-up</th>
+                                <th>Client Response</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -121,11 +123,18 @@
                                 <td t-out="r['narration']"/>
                                 <td class="rk-c"><span t-esc="'%s %.2f %s' % (cur, abs(r['amount_total']), 'Dr' if r['amount_total'] &gt;= 0 else 'Cr')"/></td>
                                 <td class="rk-c"><span t-esc="'%s %.2f %s' % (cur, abs(r['residual']), 'Dr' if r['residual'] &gt;= 0 else 'Cr')"/></td>
+                                <td>
+                                    <span t-out="r['last_followup_date']"/>
+                                    <t t-if="r['last_followup_method']"> (<span t-out="r['last_followup_method']"/>)</t>
+                                </td>
+                                <td t-out="r['last_followup_response']"/>
                             </tr>
                             <tr class="rk-tot">
                                 <td colspan="4" class="rk-c">Total Outstanding</td>
                                 <td class="rk-c"><span t-esc="'%s %.2f %s' % (cur, abs(docs['total_amount']), 'Dr' if docs['total_amount'] &gt;= 0 else 'Cr')"/></td>
                                 <td class="rk-c"><span t-esc="'%s %.2f %s' % (cur, abs(docs['total_residual']), 'Dr' if docs['total_residual'] &gt;= 0 else 'Cr')"/></td>
+                                <td/>
+                                <td/>
                             </tr>
                         </tbody>
                     </table>

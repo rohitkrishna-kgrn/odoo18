@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="salesperson_performance_view_list" model="ir.ui.view">
+        <field name="name">crm.salesperson.performance.list</field>
+        <field name="model">crm.salesperson.performance</field>
+        <field name="arch" type="xml">
+            <!-- Totals on every column: grouped by salesperson this reads as
+                 the scoreboard, and Export gives the same figures per person. -->
+            <list string="Salesperson Performance" create="false" edit="false"
+                  delete="false" sample="1">
+                <field name="date"/>
+                <field name="user_id"/>
+                <field name="leads_count" sum="Total"/>
+                <field name="discovery_sent" sum="Total"/>
+                <field name="discovery_received" sum="Total"/>
+                <field name="proposals_sent" sum="Total"/>
+                <field name="proposal_docs" sum="Total" optional="hide"/>
+                <field name="proposals_signed" sum="Total"/>
+                <field name="invoices_raised" sum="Total"/>
+                <field name="invoiced_amount" sum="Total" optional="show"/>
+                <field name="payments_count" sum="Total"/>
+                <field name="amount_collected" sum="Total" optional="show"/>
+                <field name="outstanding_amount" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="salesperson_performance_view_pivot" model="ir.ui.view">
+        <field name="name">crm.salesperson.performance.pivot</field>
+        <field name="model">crm.salesperson.performance</field>
+        <field name="arch" type="xml">
+            <pivot string="Salesperson Performance" sample="1">
+                <field name="user_id" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="leads_count" type="measure"/>
+                <field name="proposals_sent" type="measure"/>
+                <field name="proposals_signed" type="measure"/>
+                <field name="amount_collected" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="salesperson_performance_view_graph" model="ir.ui.view">
+        <field name="name">crm.salesperson.performance.graph</field>
+        <field name="model">crm.salesperson.performance</field>
+        <field name="arch" type="xml">
+            <graph string="Salesperson Performance" type="bar" sample="1">
+                <field name="user_id"/>
+                <field name="leads_count" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="salesperson_performance_view_search" model="ir.ui.view">
+        <field name="name">crm.salesperson.performance.search</field>
+        <field name="model">crm.salesperson.performance</field>
+        <field name="arch" type="xml">
+            <search string="Salesperson Performance">
+                <field name="user_id"/>
+                <filter name="filter_this_week" string="This Week"
+                        domain="[('date', '&gt;=', (context_today() + relativedelta(weeks=-1, days=1, weekday=0)).strftime('%Y-%m-%d')),
+                                 ('date', '&lt;=', (context_today() + relativedelta(weekday=6)).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_this_month" string="This Month"
+                        domain="[('date', '&gt;=', (context_today() + relativedelta(day=1)).strftime('%Y-%m-%d')),
+                                 ('date', '&lt;=', (context_today() + relativedelta(day=1, months=1, days=-1)).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_this_year" string="This Year"
+                        domain="[('date', '&gt;=', (context_today() + relativedelta(day=1, month=1)).strftime('%Y-%m-%d')),
+                                 ('date', '&lt;=', (context_today() + relativedelta(day=31, month=12)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="filter_last_month" string="Last Month"
+                        domain="[('date', '&gt;=', (context_today() + relativedelta(day=1, months=-1)).strftime('%Y-%m-%d')),
+                                 ('date', '&lt;=', (context_today() + relativedelta(day=1, days=-1)).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_date" string="Date" date="date"/>
+                <group expand="1" string="Group By">
+                    <filter name="group_salesperson" string="Salesperson"
+                            context="{'group_by': 'user_id'}"/>
+                    <filter name="group_week" string="Week"
+                            context="{'group_by': 'date:week'}"/>
+                    <filter name="group_month" string="Month"
+                            context="{'group_by': 'date:month'}"/>
+                    <filter name="group_year" string="Year"
+                            context="{'group_by': 'date:year'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_salesperson_performance" model="ir.actions.act_window">
+        <field name="name">Sales Performance</field>
+        <field name="res_model">crm.salesperson.performance</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="context">{'search_default_group_salesperson': 1,
+                               'search_default_filter_this_month': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing recorded in this period</p>
+            <p>Leads, discovery forms, proposals, invoices and collections for
+               each member of the sales team. Switch the period with the
+               filters, and use Export to download it per salesperson.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_other_salesperson_performance"
+              name="Sales Performance"
+              parent="menu_other_root"
+              action="action_salesperson_performance"
+              sequence="30"/>
+
+</odoo>

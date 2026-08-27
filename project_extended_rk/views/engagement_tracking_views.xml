@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============ The dashboard list ============ -->
+    <record id="view_engagement_tracking_list" model="ir.ui.view">
+        <field name="name">project.project.engagement.tracking.list</field>
+        <field name="model">project.project</field>
+        <field name="arch" type="xml">
+            <list string="Engagement Letter Tracking" create="false" default_order="date_start desc, id desc">
+                <field name="engagement_order_id" string="SE"/>
+                <field name="name" string="Engagement"/>
+                <field name="partner_id" string="Client"/>
+                <field name="user_id" string="Project Manager" widget="many2one_avatar_user"/>
+                <field name="department_id" string="Team"/>
+                <field name="engagement_letter_sent" string="Letter Sent" widget="boolean_toggle" readonly="1"/>
+                <field name="engagement_letter_signed" string="Client Signed" widget="boolean_toggle" readonly="1"/>
+                <field name="engagement_letter_signed_date" string="Date Signed"/>
+                <field name="engagement_signed_by" string="Signed By" optional="hide"/>
+                <field name="advance_invoice_status" string="Advance Invoice" widget="badge"
+                       decoration-success="advance_invoice_status == 'paid'"
+                       decoration-warning="advance_invoice_status in ('posted','partial','draft')"
+                       decoration-danger="advance_invoice_status == 'not_created'"/>
+                <field name="advance_invoice_id" string="Invoice" optional="hide"/>
+                <field name="date_start" string="Project Start"/>
+                <field name="engagement_status" string="Status" widget="badge"
+                       decoration-success="engagement_status == 'signed'"
+                       decoration-warning="engagement_status == 'awaiting_signature'"
+                       decoration-danger="engagement_status == 'not_sent'"/>
+                <field name="stage_id" string="Project Stage" optional="hide"/>
+                <field name="engagement_letter_sent_date" string="Letter Sent On" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ============ Search: filters by team, PM and status ============ -->
+    <record id="view_engagement_tracking_search" model="ir.ui.view">
+        <field name="name">project.project.engagement.tracking.search</field>
+        <field name="model">project.project</field>
+        <field name="arch" type="xml">
+            <search string="Engagement Letter Tracking">
+                <field name="name" string="Engagement"/>
+                <field name="engagement_order_id" string="SE Code"/>
+                <field name="partner_id" string="Client"/>
+                <field name="user_id" string="Project Manager"/>
+                <field name="department_id" string="Team"/>
+
+                <separator/>
+                <filter name="el_not_sent" string="Letter Not Sent"
+                        domain="[('engagement_letter_sent','=',False)]"/>
+                <filter name="el_sent" string="Letter Sent"
+                        domain="[('engagement_letter_sent','=',True)]"/>
+                <separator/>
+                <filter name="el_awaiting_signature" string="Awaiting Signature"
+                        domain="[('engagement_status','=','awaiting_signature')]"/>
+                <filter name="el_signed" string="Client Signed"
+                        domain="[('engagement_letter_signed','=',True)]"/>
+                <filter name="el_not_signed" string="Not Signed"
+                        domain="[('engagement_letter_signed','=',False)]"/>
+
+                <separator/>
+                <filter name="adv_outstanding" string="Advance Invoice Outstanding"
+                        domain="[('advance_invoice_status','in',('not_created','draft','posted','partial'))]"/>
+                <filter name="adv_paid" string="Advance Invoice Paid"
+                        domain="[('advance_invoice_status','=','paid')]"/>
+                <filter name="adv_not_raised" string="Advance Not Raised"
+                        domain="[('advance_invoice_status','=','not_created')]"/>
+
+                <separator/>
+                <filter name="my_engagements" string="My Engagements"
+                        domain="[('user_id','=',uid)]"/>
+                <filter name="no_order" string="No Engagement Linked"
+                        domain="[('engagement_order_id','=',False)]"/>
+
+                <group string="Project Start" expand="0">
+                    <filter name="start_this_year" string="Started This Year"
+                            domain="[('date_start','&gt;=', context_today().strftime('%Y-01-01'))]"/>
+                    <filter name="no_start_date" string="No Start Date"
+                            domain="[('date_start','=',False)]"/>
+                </group>
+
+                <group expand="0" string="Group By">
+                    <filter name="group_team" string="Team"
+                            context="{'group_by': 'department_id'}"/>
+                    <filter name="group_pm" string="Project Manager"
+                            context="{'group_by': 'user_id'}"/>
+                    <filter name="group_status" string="Engagement Status"
+                            context="{'group_by': 'engagement_status'}"/>
+                    <filter name="group_advance" string="Advance Invoice"
+                            context="{'group_by': 'advance_invoice_status'}"/>
+                    <filter name="group_client" string="Client"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_start" string="Project Start"
+                            context="{'group_by': 'date_start'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ============ Action + menu ============ -->
+    <record id="action_engagement_tracking" model="ir.actions.act_window">
+        <field name="name">Engagement Letter Tracking</field>
+        <field name="res_model">project.project</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_engagement_tracking_search"/>
+        <field name="context">{'search_default_group_status': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No active engagement matches this filter</p>
+            <p>Every active project is one client service engagement. The letter
+               dates come from the Service Engagement document on the sale order,
+               and can be filled in by hand on the project for letters issued
+               outside Odoo.</p>
+        </field>
+    </record>
+
+    <record id="action_engagement_tracking_list_view" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_engagement_tracking_list"/>
+        <field name="act_window_id" ref="action_engagement_tracking"/>
+    </record>
+
+    <menuitem id="menu_engagement_tracking"
+              name="Engagement Letter Tracking"
+              parent="project.menu_project_report"
+              action="action_engagement_tracking"
+              sequence="20"/>
+
+    <!-- ============ Engagement block on the project form ============ -->
+    <record id="view_project_form_engagement" model="ir.ui.view">
+        <field name="name">project.project.form.engagement</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="engagement_order_id"/>
+                <field name="engagement_letter_sent_date"/>
+                <field name="engagement_letter_signed_date"/>
+                <field name="engagement_signed_by" readonly="1"
+                       invisible="not engagement_signed_by"/>
+                <field name="advance_invoice_status" readonly="1"/>
+                <field name="engagement_status" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

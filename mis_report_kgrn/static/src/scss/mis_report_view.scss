@@ -51,6 +51,19 @@
             }
         }
 
+        .o_mis_selectfilter {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+
+            .o_mis_daterange_label {
+                font-weight: 600;
+                color: var(--o-gray-600, #495057);
+            }
+            .o_mis_select { padding: 3px 6px; height: 28px; font-size: 12px; }
+        }
+
         .o_mis_count {
             margin-left: auto;
             font-size: 12px;

@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         Customer form: the flag, the arrears behind it, the history
+         ============================================================ -->
+    <record id="view_partner_form_credit_hold" model="ir.ui.view">
+        <field name="name">res.partner.form.credit.hold</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Impossible to miss when the customer is opened. -->
+            <div name="button_box" position="before">
+                <div class="alert alert-danger" role="alert"
+                     invisible="not credit_hold">
+                    <field name="credit_hold_warning" readonly="1" nolabel="1"/>
+                </div>
+            </div>
+
+            <div name="button_box" position="inside">
+                <button name="action_credit_hold_override" type="object"
+                        class="oe_stat_button" icon="fa-unlock-alt"
+                        invisible="not credit_hold"
+                        groups="account.group_account_manager">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_text">Override</span>
+                        <span class="o_stat_text">Credit Hold</span>
+                    </div>
+                </button>
+            </div>
+
+            <notebook position="inside">
+                <page string="Credit Hold" name="credit_hold"
+                      invisible="not credit_hold and not credit_hold_event_ids">
+                    <group>
+                        <group string="Current Status">
+                            <field name="credit_hold" readonly="1"/>
+                            <field name="credit_hold_date" readonly="1"
+                                   invisible="not credit_hold"/>
+                            <field name="credit_hold_amount" readonly="1"
+                                   invisible="not credit_hold"/>
+                            <field name="credit_hold_max_age_days" readonly="1"
+                                   invisible="not credit_hold"/>
+                            <field name="credit_hold_release_date" readonly="1"
+                                   invisible="credit_hold"/>
+                            <field name="credit_hold_override_available_count"
+                                   readonly="1" invisible="not credit_hold"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Actions">
+                            <button name="action_credit_hold_reevaluate" type="object"
+                                    string="Re-evaluate Now" class="btn-secondary"
+                                    help="Re-check this customer's outstanding invoices
+                                          immediately instead of waiting for the nightly sweep."/>
+                            <button name="action_credit_hold_override" type="object"
+                                    string="Override Credit Hold" class="btn-primary"
+                                    invisible="not credit_hold"
+                                    groups="account.group_account_manager"/>
+                        </group>
+                    </group>
+
+                    <separator string="Invoices Causing The Hold"
+                               invisible="not credit_hold"/>
+                    <field name="credit_hold_invoice_ids" readonly="1"
+                           invisible="not credit_hold">
+                        <list>
+                            <field name="name" string="Invoice"/>
+                            <field name="invoice_date"/>
+                            <field name="invoice_date_due"/>
+                            <field name="invoice_age_days" string="Days Overdue"/>
+                            <field name="amount_total"/>
+                            <field name="amount_residual" string="Outstanding"/>
+                            <field name="payment_state"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+
+                    <separator string="Managing Partner Overrides"/>
+                    <field name="credit_hold_override_ids" readonly="1">
+                        <list decoration-muted="state != 'available'">
+                            <field name="override_date"/>
+                            <field name="user_id"/>
+                            <field name="scope"/>
+                            <field name="reason"/>
+                            <field name="state"/>
+                            <field name="consumed_reference"/>
+                            <field name="consumed_date"/>
+                        </list>
+                    </field>
+
+                    <separator string="Credit Hold History"/>
+                    <field name="credit_hold_event_ids" readonly="1">
+                        <list decoration-danger="event_type == 'hold'"
+                              decoration-success="event_type == 'release'">
+                            <field name="event_date"/>
+                            <field name="event_type"/>
+                            <field name="amount"/>
+                            <field name="max_age_days"/>
+                            <field name="is_backfill" string="Backfill"/>
+                            <field name="detail" widget="text"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                </page>
+            </notebook>
+        </field>
+    </record>
+
+    <!-- Credit hold is visible in the customer list and filterable. -->
+    <record id="view_partner_list_credit_hold" model="ir.ui.view">
+        <field name="name">res.partner.list.credit.hold</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="decoration-danger">credit_hold</attribute>
+            </list>
+            <field name="complete_name" position="after">
+                <field name="credit_hold" optional="show" string="Credit Hold"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_partner_search_credit_hold" model="ir.ui.view">
+        <field name="name">res.partner.search.credit.hold</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <filter name="type_company" position="after">
+                <separator/>
+                <filter string="On Credit Hold" name="filter_credit_hold"
+                        domain="[('credit_hold', '=', True)]"/>
+            </filter>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         Managing Partner override
+         ============================================================ -->
+    <record id="view_credit_hold_override_form" model="ir.ui.view">
+        <field name="name">res.partner.credit.hold.override.form</field>
+        <field name="model">res.partner.credit.hold.override</field>
+        <field name="arch" type="xml">
+            <form string="Credit Hold Override">
+                <sheet>
+                    <div class="alert alert-warning" role="alert">
+                        This override authorises <b>one</b> project or proposal only.
+                        It is consumed by the first record it lets through, and it does
+                        <b>not</b> lift the credit hold — the customer stays on hold
+                        until the overdue invoices are settled.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id" readonly="1"/>
+                            <field name="scope"/>
+                            <field name="user_id"/>
+                            <field name="override_date"/>
+                        </group>
+                        <group>
+                            <field name="hold_amount"/>
+                            <field name="hold_invoice_count"/>
+                            <field name="state"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <group string="Reason (required)">
+                        <field name="reason" nolabel="1" required="1"
+                               placeholder="Why may this customer take on new work while on credit hold?"/>
+                    </group>
+                    <group string="Used On" invisible="state != 'consumed'">
+                        <field name="consumed_reference" readonly="1"/>
+                        <field name="consumed_by_id" readonly="1"/>
+                        <field name="consumed_date" readonly="1"/>
+                        <button name="action_open_record" type="object" string="Open Record"
+                                class="btn-link" icon="fa-arrow-right"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_credit_hold_override_list" model="ir.ui.view">
+        <field name="name">res.partner.credit.hold.override.list</field>
+        <field name="model">res.partner.credit.hold.override</field>
+        <field name="arch" type="xml">
+            <list string="Credit Hold Overrides" create="0"
+                  decoration-muted="state != 'available'">
+                <field name="override_date"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="scope"/>
+                <field name="reason"/>
+                <field name="hold_amount"/>
+                <field name="state"/>
+                <field name="consumed_reference"/>
+                <field name="consumed_by_id"/>
+                <field name="consumed_date"/>
+                <field name="currency_id" column_invisible="1"/>
+                <button name="action_revoke" type="object" string="Revoke"
+                        icon="fa-ban" invisible="state != 'available'"
+                        groups="account.group_account_manager"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_credit_hold_override" model="ir.actions.act_window">
+        <field name="name">Credit Hold Overrides</field>
+        <field name="res_model">res.partner.credit.hold.override</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No credit hold overrides recorded</p>
+            <p>Managing Partners authorise overrides from the Credit Hold tab of a
+               customer who is on hold. Every authorisation and every use is logged here.</p>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         Credit hold history
+         ============================================================ -->
+    <record id="view_credit_hold_event_list" model="ir.ui.view">
+        <field name="name">res.partner.credit.hold.event.list</field>
+        <field name="model">res.partner.credit.hold.event</field>
+        <field name="arch" type="xml">
+            <list string="Credit Hold History" create="0" edit="0"
+                  decoration-danger="event_type == 'hold'"
+                  decoration-success="event_type == 'release'">
+                <field name="event_date"/>
+                <field name="partner_id"/>
+                <field name="event_type"/>
+                <field name="amount"/>
+                <field name="max_age_days"/>
+                <field name="is_backfill" string="Backfill"/>
+                <field name="detail"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_credit_hold_event_search" model="ir.ui.view">
+        <field name="name">res.partner.credit.hold.event.search</field>
+        <field name="model">res.partner.credit.hold.event</field>
+        <field name="arch" type="xml">
+            <search string="Credit Hold History">
+                <field name="partner_id"/>
+                <filter string="Holds Placed" name="filter_hold"
+                        domain="[('event_type', '=', 'hold')]"/>
+                <filter string="Holds Released" name="filter_release"
+                        domain="[('event_type', '=', 'release')]"/>
+                <separator/>
+                <filter string="Exclude Go-Live Backfill" name="filter_no_backfill"
+                        domain="[('is_backfill', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Customer" name="group_partner"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter string="Event" name="group_event"
+                            context="{'group_by': 'event_type'}"/>
+                    <filter string="Month" name="group_month"
+                            context="{'group_by': 'event_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_credit_hold_event" model="ir.actions.act_window">
+        <field name="name">Credit Hold History</field>
+        <field name="res_model">res.partner.credit.hold.event</field>
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="view_credit_hold_event_search"/>
+    </record>
+
+    <menuitem id="menu_credit_hold_root" name="Credit Hold"
+              parent="account.menu_finance_receivables"
+              sequence="90"/>
+    <menuitem id="menu_credit_hold_event" name="Credit Hold History"
+              parent="menu_credit_hold_root"
+              action="action_credit_hold_event" sequence="10"/>
+    <menuitem id="menu_credit_hold_override" name="Overrides"
+              parent="menu_credit_hold_root"
+              action="action_credit_hold_override" sequence="20"/>
+
+</odoo>

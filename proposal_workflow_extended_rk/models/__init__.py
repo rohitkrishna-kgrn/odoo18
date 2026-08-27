@@ -5,3 +5,5 @@ from . import sale_order
 from . import report_proposal
 from . import report_se
 from . import einvoicing_dashboard
+from . import salesperson_performance
+from . import salesperson_performance_wizard

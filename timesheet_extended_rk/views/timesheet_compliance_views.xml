@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_timesheet_compliance_report_list" model="ir.ui.view">
+        <field name="name">timesheet.compliance.report.list</field>
+        <field name="model">timesheet.compliance.report</field>
+        <field name="arch" type="xml">
+            <list create="false" delete="false"
+                  decoration-danger="flagged_count &gt; 0"
+                  decoration-success="flagged_count == 0">
+                <field name="week_start"/>
+                <field name="week_end"/>
+                <field name="manager_name"/>
+                <field name="manager_email"/>
+                <field name="member_count"/>
+                <field name="logged_days_total"/>
+                <field name="expected_days_total"/>
+                <field name="compliance_rate" widget="percentage" digits="[3,0]"/>
+                <field name="flagged_count"/>
+                <field name="email_sent"/>
+                <field name="generated_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_timesheet_compliance_report_form" model="ir.ui.view">
+        <field name="name">timesheet.compliance.report.form</field>
+        <field name="model">timesheet.compliance.report</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <header>
+                    <button name="action_send_email_now" type="object"
+                            string="Send Email Now" class="btn-primary"
+                            confirm="Email this report to its manager?"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="week_start"/>
+                            <field name="week_end"/>
+                            <field name="generated_date"/>
+                            <field name="report_file" filename="report_filename"/>
+                            <field name="report_filename" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="manager_id"/>
+                            <field name="manager_email"/>
+                            <field name="member_count"/>
+                            <field name="logged_days_total"/>
+                            <field name="expected_days_total"/>
+                            <field name="compliance_rate" widget="percentage" digits="[3,0]"/>
+                            <field name="flagged_count"/>
+                            <field name="email_sent"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Team Members">
+                            <field name="line_ids" readonly="1">
+                                <list decoration-danger="is_flagged == True">
+                                    <field name="employee_name"/>
+                                    <field name="department_name"/>
+                                    <field name="logged_days"/>
+                                    <field name="expected_days"/>
+                                    <field name="compliance_rate" widget="percentage" digits="[3,0]"/>
+                                    <field name="is_flagged"/>
+                                    <field name="leave_days"/>
+                                    <field name="holiday_days"/>
+                                    <field name="missing_dates"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Recipient">
+                            <group>
+                                <field name="manager_user_id"/>
+                                <field name="manager_email"/>
+                                <field name="email_sent"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_timesheet_compliance_report_search" model="ir.ui.view">
+        <field name="name">timesheet.compliance.report.search</field>
+        <field name="model">timesheet.compliance.report</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="manager_name"/>
+                <field name="week_start"/>
+                <group expand="0" string="Group By">
+                    <filter name="gb_week" string="Week" context="{'group_by':'week_start'}"/>
+                    <filter name="gb_manager" string="Manager" context="{'group_by':'manager_id'}"/>
+                </group>
+                <filter name="has_flags" string="Has Red Flags"
+                        domain="[('flagged_count','&gt;',0)]"/>
+                <filter name="emailed" string="Emailed"
+                        domain="[('email_sent','=',True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_timesheet_compliance_report" model="ir.actions.act_window">
+        <field name="name">Timesheet Compliance</field>
+        <field name="res_model">timesheet.compliance.report</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No compliance report generated yet</p>
+            <p>One report per manager is generated automatically every Monday for the
+               week that just ended, and emailed to that manager. Use "Generate for a Week" to build one now.</p>
+        </field>
+    </record>
+
+    <!-- Wizard -->
+    <record id="view_timesheet_compliance_wizard_form" model="ir.ui.view">
+        <field name="name">timesheet.compliance.wizard.form</field>
+        <field name="model">timesheet.compliance.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate Timesheet Compliance Report">
+                <group>
+                    <field name="week_date"/>
+                    <field name="manager_ids" widget="many2many_tags"
+                           options="{'no_create': True}"
+                           placeholder="Leave empty for all managers"/>
+                    <field name="send_email"/>
+                </group>
+                <footer>
+                    <button name="action_generate" type="object"
+                            string="Generate" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_timesheet_compliance_wizard" model="ir.actions.act_window">
+        <field name="name">Generate for a Week</field>
+        <field name="res_model">timesheet.compliance.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_timesheet_compliance_root"
+              name="Timesheet Compliance"
+              parent="hr_timesheet.timesheet_menu_root"
+              groups="hr_timesheet.group_timesheet_manager"
+              sequence="90"/>
+
+    <menuitem id="menu_timesheet_compliance_report"
+              name="Weekly Reports"
+              parent="menu_timesheet_compliance_root"
+              action="action_timesheet_compliance_report"
+              sequence="10"/>
+
+    <menuitem id="menu_timesheet_compliance_wizard"
+              name="Generate for a Week"
+              parent="menu_timesheet_compliance_root"
+              action="action_timesheet_compliance_wizard"
+              sequence="20"/>
+
+</odoo>

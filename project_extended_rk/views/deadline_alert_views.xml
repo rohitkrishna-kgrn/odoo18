@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Both records anchor on a field that belongs to the *core* parent view,
+        never on one added by a sibling inherited view, and carry an explicit
+        priority so their application order does not depend on record ids.
+    -->
+
+    <record id="view_project_form_deadline_alert" model="ir.ui.view">
+        <field name="name">project.project.form.deadline.alert</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="deadline_alert_advance_sent_for" readonly="1"
+                       invisible="not deadline_alert_advance_sent_for"/>
+                <field name="deadline_alert_due_sent_for" readonly="1"
+                       invisible="not deadline_alert_due_sent_for"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_task_form_deadline_alert" model="ir.ui.view">
+        <field name="name">project.task.form.deadline.alert</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='date_deadline']" position="after">
+                <field name="deadline_alert_advance_sent_for" readonly="1"
+                       invisible="not deadline_alert_advance_sent_for"/>
+                <field name="deadline_alert_due_sent_for" readonly="1"
+                       invisible="not deadline_alert_due_sent_for"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_task_search_deadline_alert" model="ir.ui.view">
+        <field name="name">project.task.search.deadline.alert</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_search_form"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator string="Deadline"/>
+                <filter name="filter_deadline_due_today" string="Due Today"
+                        domain="[('date_deadline','&gt;=', (context_today()).strftime('%Y-%m-%d 00:00:00')),
+                                 ('date_deadline','&lt;=', (context_today()).strftime('%Y-%m-%d 23:59:59'))]"/>
+                <filter name="filter_deadline_next_7_days" string="Due in Next 7 Days"
+                        domain="[('date_deadline','&gt;=', (context_today()).strftime('%Y-%m-%d 00:00:00')),
+                                 ('date_deadline','&lt;=', (context_today() + relativedelta(days=7)).strftime('%Y-%m-%d 23:59:59'))]"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

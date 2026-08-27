@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Monday morning, covering the Mon-Sun week that just ended.
+             07:00 Gulf Standard Time (UTC+4, no DST) = 03:00 UTC, which puts
+             it in department heads' inboxes before the working day starts.
+             Same slot as the weekly overdue-invoice report. -->
+        <record id="cron_timesheet_compliance_weekly" model="ir.cron">
+            <field name="name">Timesheet Compliance: Weekly Report (Monday)</field>
+            <field name="model_id" ref="model_timesheet_compliance_report"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_generate_weekly_report()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">weeks</field>
+            <field name="active" eval="True"/>
+            <field name="nextcall"
+                   eval="(lambda base: base if base &gt; datetime.now() else base + timedelta(days=7))((datetime.now() + timedelta(days=(0 - datetime.now().weekday()) % 7)).replace(hour=3, minute=0, second=0, microsecond=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        </record>
+
+    </data>
+</odoo>

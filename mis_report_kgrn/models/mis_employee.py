@@ -52,7 +52,10 @@ class HrEmployee(models.Model):
         string='Ramp-up Start Date',
         groups=MIS_EMP_GROUPS,
         help="Joining date used for the new-joiner ramp-up "
-             "(Month 1 = 1×, Month 2 = 2×, Month 3+ = full obligation).",
+             "(Month 1 = 1×, Month 2 = 2×, Month 3+ = full obligation). "
+             "Leave blank to use the employee's first contract start date, "
+             "which is what the scorecard falls back to; set it only to "
+             "override that — e.g. for a re-hire or a mid-contract transfer.",
     )
     company_currency_id = fields.Many2one(
         'res.currency',
@@ -60,3 +63,75 @@ class HrEmployee(models.Model):
         readonly=True,
         groups=MIS_EMP_GROUPS,
     )
+
+    # ── Warning Notice counter (HR-PMS-001 §Escalation) ──────────────────
+    # Surfaced on the employee so HR can see an active escalation without
+    # opening the MIS menus. Kept under the same restricted groups as the
+    # rest of the block, otherwise Odoo's employee public-profile guard
+    # raises "not available for employee public profiles" for normal users.
+    mis_warning_notice_ids = fields.One2many(
+        'mis.warning.notice', 'employee_id',
+        string='Performance Escalations',
+        groups=MIS_EMP_GROUPS,
+    )
+    mis_warning_notice_count = fields.Integer(
+        string='Escalations',
+        compute='_compute_mis_warning_notice',
+        groups=MIS_EMP_GROUPS,
+    )
+    mis_hr_flagged = fields.Boolean(
+        string='Flagged for HR',
+        compute='_compute_mis_warning_notice',
+        search='_search_mis_hr_flagged',
+        groups=MIS_EMP_GROUPS,
+        help="An escalation case is currently open: the employee has missed the "
+             "minimum monthly obligation for 2 or more consecutive months.",
+    )
+    mis_consecutive_below_target = fields.Integer(
+        string='Consecutive Months Below Minimum',
+        compute='_compute_mis_warning_notice',
+        groups=MIS_EMP_GROUPS,
+    )
+
+    def _compute_mis_warning_notice(self):
+        Notice = self.env['mis.warning.notice'].sudo()
+        counts = dict(Notice._read_group(
+            [('employee_id', 'in', self.ids)], ['employee_id'], ['__count'],
+        ))
+        open_cases = Notice.search([
+            ('employee_id', 'in', self.ids),
+            ('state', 'in', ['flagged', 'draft', 'issued']),
+        ])
+        by_employee = {c.employee_id.id: c for c in open_cases}
+        for emp in self:
+            case = by_employee.get(emp.id)
+            emp.mis_warning_notice_count = counts.get(emp, 0)
+            emp.mis_hr_flagged = bool(case)
+            emp.mis_consecutive_below_target = case.consecutive_months if case else 0
+
+    def _search_mis_hr_flagged(self, operator, value):
+        if operator not in ('=', '!=') or not isinstance(value, bool):
+            raise NotImplementedError(
+                "mis_hr_flagged only supports searching = / != True or False")
+        flagged = self.env['mis.warning.notice'].sudo().search([
+            ('state', 'in', ['flagged', 'draft', 'issued']),
+        ]).employee_id.ids
+        positive = (operator == '=') == bool(value)
+        return [('id', 'in' if positive else 'not in', flagged)]
+
+    def action_run_mis_warning_notice_check(self):
+        """Re-run the Warning Notice counter for this employee alone — lets HR
+        refresh or test one person without touching everybody else's cases."""
+        return self.env['mis.warning.notice'].sudo().action_run_escalation_now(
+            employee_ids=self.ids)
+
+    def action_open_mis_warning_notices(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Performance Escalations',
+            'res_model': 'mis.warning.notice',
+            'view_mode': 'list,form',
+            'domain': [('employee_id', '=', self.id)],
+            'context': {'default_employee_id': self.id},
+        }

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Daily refresh of the stored delay_log_missing flag: the deadline
+             passing is a pure date-clock event, not a field write, so nothing
+             else re-triggers this compute. -->
+        <record id="cron_refresh_task_delay_log_flags" model="ir.cron">
+            <field name="name">Project Overdue: Refresh Task Delay Log Flags</field>
+            <field name="model_id" ref="project.model_project_task"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_refresh_delay_log_flags()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+            <field name="nextcall" eval="(lambda n, t: t if t > n else t + timedelta(days=1))(datetime.now(), datetime.now().replace(hour=5, minute=45, second=0, microsecond=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        </record>
+
+        <record id="cron_refresh_project_delay_log_flags" model="ir.cron">
+            <field name="name">Project Overdue: Refresh Project Delay Log Flags</field>
+            <field name="model_id" ref="project.model_project_project"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_refresh_delay_log_flags()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active">True</field>
+            <field name="nextcall" eval="(lambda n, t: t if t > n else t + timedelta(days=1))(datetime.now(), datetime.now().replace(hour=5, minute=50, second=0, microsecond=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        </record>
+
+    </data>
+</odoo>

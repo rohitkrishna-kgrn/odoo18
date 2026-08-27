@@ -1,0 +1,109 @@
+<odoo>
+    <data>
+
+        <!-- ══════════════════════════════════════════════
+             1. FORM VIEW — warning banner + Delay Log tab
+             ══════════════════════════════════════════════ -->
+        <record id="view_project_form_delay_log_inherit" model="ir.ui.view">
+            <field name="name">project.project.form.delay.log.inherit</field>
+            <field name="model">project.project</field>
+            <field name="inherit_id" ref="project.edit_project"/>
+            <field name="arch" type="xml">
+
+                <!-- Warning banner: deadline missed, log still empty -->
+                <xpath expr="//widget[@name='web_ribbon']" position="after">
+                    <field name="delay_log_missing" invisible="1"/>
+                    <div class="alert alert-danger d-flex align-items-center mb-0"
+                         role="alert"
+                         invisible="not delay_log_missing">
+                        <i class="fa fa-exclamation-triangle me-2"/>
+                        <span>This project's deadline has passed and no Delay Reason &amp;
+                            Communication Log has been recorded. Please document the
+                            delay explanation, revised delivery date, and communication
+                            evidence in the "Delay Log" tab.</span>
+                    </div>
+                </xpath>
+
+                <!-- Delay Reason & Communication Log tab -->
+                <xpath expr="//page[@name='description']" position="after">
+                    <page name="delay_log_page" string="Delay Log">
+                        <group string="Delay Reason &amp; Communication Log">
+                            <field name="delay_reason" placeholder="Explain the reason for the delay..."/>
+                            <field name="delay_revised_date"/>
+                            <field name="delay_evidence_ids" widget="many2many_binary" string="Communication Evidence"/>
+                        </group>
+                    </page>
+                </xpath>
+
+            </field>
+        </record>
+
+
+        <!-- ══════════════════════════════════════════════
+             2. LIST VIEW — row colour when flagged
+             ══════════════════════════════════════════════ -->
+        <record id="view_project_list_delay_log_inherit" model="ir.ui.view">
+            <field name="name">project.project.list.delay.log.inherit</field>
+            <field name="model">project.project</field>
+            <field name="inherit_id" ref="project.project_list_view_group_stage"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//list" position="attributes">
+                    <attribute name="decoration-danger">delay_log_missing</attribute>
+                </xpath>
+
+                <xpath expr="//list" position="inside">
+                    <field name="delay_log_missing" column_invisible="1"/>
+                </xpath>
+
+            </field>
+        </record>
+
+
+        <!-- ══════════════════════════════════════════════
+             3. KANBAN VIEW (project dashboard) — flag badge
+             ══════════════════════════════════════════════ -->
+        <record id="view_project_kanban_delay_log_inherit" model="ir.ui.view">
+            <field name="name">project.project.kanban.delay.log.inherit</field>
+            <field name="model">project.project</field>
+            <field name="inherit_id" ref="project.view_project_kanban"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//kanban/field[@name='sequence']" position="after">
+                    <field name="delay_log_missing"/>
+                </xpath>
+
+                <xpath expr="//field[@name='tag_ids']" position="after">
+                    <div t-if="record.delay_log_missing.raw_value" class="text-danger d-flex align-items-baseline">
+                        <span class="fa fa-exclamation-triangle me-2" aria-label="Delay Log Missing" title="Delay Log Missing"></span>
+                        <span>Delay Log Missing</span>
+                    </div>
+                </xpath>
+
+            </field>
+        </record>
+
+
+        <!-- ══════════════════════════════════════════════
+             4. SEARCH VIEW — flag filter
+             ══════════════════════════════════════════════ -->
+        <record id="view_project_search_delay_log_inherit" model="ir.ui.view">
+            <field name="name">project.project.search.delay.log.inherit</field>
+            <field name="model">project.project</field>
+            <field name="inherit_id" ref="project.view_project_project_filter"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//filter[@name='inactive']" position="after">
+                    <separator/>
+                    <filter
+                        name="delay_log_missing"
+                        string="Delay Log Missing"
+                        domain="[('delay_log_missing', '=', True)]"
+                    />
+                </xpath>
+
+            </field>
+        </record>
+
+    </data>
+</odoo>

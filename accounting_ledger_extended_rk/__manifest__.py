@@ -19,7 +19,7 @@ Tally style Partner Ledgers
     'author': 'KGRN',
     'company': 'KGRN',
     'website': 'https://www.kgrnaudit.com',
-    'depends': ['account', 'mail'],
+    'depends': ['account', 'mail', 'account_extended_rk'],
     'data': [
         'security/ir.model.access.csv',
         'data/mail_template.xml',

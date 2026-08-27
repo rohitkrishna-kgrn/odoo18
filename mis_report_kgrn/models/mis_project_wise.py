@@ -37,6 +37,9 @@ class MisProjectWise(models.Model):
     delivered_value_ex_vat = fields.Float(string='Delivered Value (Ex VAT)', readonly=True)
     delivered_value_inc_vat = fields.Float(string='Delivered Value (Inc VAT)', readonly=True)
 
+    # ── Work completed (task DONE + invoice raised + payment collected) ───
+    work_completed_value_ex_vat = fields.Float(string='Work Completed Value (Ex VAT)', readonly=True)
+
     # ── SO totals ────────────────────────────────────────────────────────
     so_total_ex_vat = fields.Float(string='SO Total (Ex VAT)', readonly=True)
     so_total_inc_vat = fields.Float(string='SO Total (Inc VAT)', readonly=True)
@@ -99,6 +102,30 @@ class MisProjectWise(models.Model):
                     JOIN   account_move      am  ON am.id  = aml.move_id
                     WHERE  am.move_type = 'out_invoice'
                     GROUP  BY solr.order_line_id
+                ),
+                /* "Work Completed" = task marked DONE (kanban stage named
+                   "Done" - the state_additional dropdown is never actually
+                   used in practice, so it is not a usable signal here) +
+                   invoice raised on its SO line + that invoice fully paid.
+                   Same rule as the "Completed & Paid" bucket in
+                   mis.outstanding.line, just expressed at SO-line grain to
+                   match this view's other agg columns
+                   (so_total/invoiced/paid/outstanding). */
+                task_completed AS (
+                    SELECT pt.sale_line_id, COUNT(*) AS completed_task_count
+                    FROM   project_task pt
+                    JOIN   project_task_type ptt ON ptt.id = pt.stage_id
+                    WHERE  pt.active = TRUE AND (ptt.name->>'en_US') = 'Done'
+                    GROUP  BY pt.sale_line_id
+                ),
+                sol_paid AS (
+                    SELECT DISTINCT solr.order_line_id AS sale_line_id
+                    FROM   sale_order_line_invoice_rel solr
+                    JOIN   account_move_line aml ON aml.id = solr.invoice_line_id
+                    JOIN   account_move      am  ON am.id  = aml.move_id
+                    WHERE  am.state         = 'posted'
+                    AND    am.payment_state IN ('paid', 'in_payment')
+                    AND    am.move_type     = 'out_invoice'
                 )
                 SELECT
                     sol.id                                                   AS id,
@@ -132,6 +159,11 @@ class MisProjectWise(models.Model):
                     CASE WHEN sol.product_uom_qty > 0
                          THEN (sol.price_total / sol.product_uom_qty) * sol.qty_delivered
                          ELSE 0 END                                         AS delivered_value_inc_vat,
+
+                    CASE WHEN sp.sale_line_id IS NOT NULL AND sol.product_uom_qty > 0
+                         THEN (sol.price_subtotal / sol.product_uom_qty)
+                              * COALESCE(tc.completed_task_count, 0)
+                         ELSE 0 END                                         AS work_completed_value_ex_vat,
 
                     so.amount_untaxed                                        AS so_total_ex_vat,
                     so.amount_total                                          AS so_total_inc_vat,
@@ -185,6 +217,8 @@ class MisProjectWise(models.Model):
                 JOIN  res_company      rc  ON rc.id          = pp.company_id
                 LEFT JOIN inv_agg      ia  ON ia.order_line_id = sol.id
                 LEFT JOIN so_line_count slc ON slc.order_id   = so.id
+                LEFT JOIN task_completed tc ON tc.sale_line_id = sol.id
+                LEFT JOIN sol_paid      sp  ON sp.sale_line_id = sol.id
                 WHERE pp.active = TRUE
             )
         """ % self._table)
@@ -387,6 +421,21 @@ class MisProjectWise(models.Model):
             limit=0,
         )
 
+        # Work-completed value per PM — mis.outstanding.line aggregates this
+        # at project/task-completion granularity (not captured by the SO-line
+        # rows above), but shares the same _get_access_domain() PM scoping.
+        completed_by_mgr = {}
+        outstanding_recs = self.env['mis.outstanding.line'].search_read(
+            [],
+            ['project_manager_id', 'completed_tasks_value_ex_vat'],
+            limit=0,
+        )
+        for r in outstanding_recs:
+            mgr_id = r['project_manager_id'][0] if r['project_manager_id'] else 0
+            completed_by_mgr[mgr_id] = (
+                completed_by_mgr.get(mgr_id, 0.0) + r['completed_tasks_value_ex_vat']
+            )
+
         companies = {}
         for r in records:
             comp_id = r['company_id'][0] if r.get('company_id') else 0
@@ -420,6 +469,11 @@ class MisProjectWise(models.Model):
                     mgr['total_paid_ex_vat'] = sum(p['paid_ex_vat'] for p in projs)
                     mgr['total_outstanding_ex_vat'] = sum(p['outstanding_ex_vat'] for p in projs)
                     mgr['total_outstanding_inc_vat'] = sum(p['outstanding_inc_vat'] for p in projs)
+                    mgr['total_completed_value_ex_vat'] = completed_by_mgr.get(mgr['id'], 0.0)
+                    mgr['collection_rate'] = (
+                        round(mgr['total_paid_ex_vat'] / mgr['total_invoiced_ex_vat'] * 100, 1)
+                        if mgr['total_invoiced_ex_vat'] else 0.0
+                    )
                     mgr_list.append(mgr)
                 dept['managers'] = mgr_list
                 dept['projects_count'] = sum(m['projects_count'] for m in mgr_list)

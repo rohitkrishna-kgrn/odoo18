@@ -119,6 +119,8 @@
                                     <th>Narration</th>
                                     <th class="rk-num">Invoice Amount</th>
                                     <th class="rk-num">Outstanding</th>
+                                    <th>Last Follow-up</th>
+                                    <th>Client Response</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -131,14 +133,21 @@
                                     <td t-esc="r.narration"/>
                                     <td class="rk-num"><t t-esc="state.data.currency"/><t t-esc="fmt(r.amount_total)"/></td>
                                     <td class="rk-num"><t t-esc="state.data.currency"/><t t-esc="fmt(r.residual)"/></td>
+                                    <td>
+                                        <t t-esc="r.last_followup_date"/>
+                                        <t t-if="r.last_followup_method"> (<t t-esc="r.last_followup_method"/>)</t>
+                                    </td>
+                                    <td t-esc="r.last_followup_response"/>
                                 </tr>
                                 <tr t-if="state.data.rows.length === 0">
-                                    <td colspan="6" class="rk-empty">No outstanding invoices.</td>
+                                    <td colspan="8" class="rk-empty">No outstanding invoices.</td>
                                 </tr>
                                 <tr class="rk-total">
                                     <td colspan="4" class="rk-num">Total Outstanding</td>
                                     <td class="rk-num"><t t-esc="state.data.currency"/><t t-esc="fmt(state.data.total_amount)"/></td>
                                     <td class="rk-num"><t t-esc="state.data.currency"/><t t-esc="fmt(state.data.total_residual)"/></td>
+                                    <td/>
+                                    <td/>
                                 </tr>
                             </tbody>
                         </table>

@@ -16,6 +16,8 @@
                             <th>Customer</th>
                             <th>Task</th>
                             <th class="o_mis_num">Hours</th>
+                            <th class="o_mis_num" title="Total hours logged to the task by everyone">Team Hrs</th>
+                            <th class="o_mis_num" title="This employee's hours as a share of the task's total — the proportion of the task's revenue they are credited with">Share</th>
                             <th class="o_mis_num">Revenue</th>
                             <th>Invoice Details</th>
                             <th class="o_mis_num">Balance</th>
@@ -27,12 +29,14 @@
                             <td t-esc="s.customer"/>
                             <td t-esc="s.task"/>
                             <td class="o_mis_num" t-esc="num(s.hours)"/>
+                            <td class="o_mis_num" t-esc="num(s.total_hours)"/>
+                            <td class="o_mis_num" t-esc="num(s.share_pct) + '%'"/>
                             <td class="o_mis_num" t-esc="money(s.amount)"/>
                             <td t-esc="s.invoice_details"/>
                             <td class="o_mis_num" t-esc="money(s.balance)"/>
                         </tr>
                         <tr t-if="!props.sales.length">
-                            <td colspan="7" class="o_mis_empty">No sales this month.</td>
+                            <td colspan="9" class="o_mis_empty">No sales this month.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -48,6 +52,8 @@
                             <th>Customer</th>
                             <th>Task</th>
                             <th class="o_mis_num">Hours</th>
+                            <th class="o_mis_num" title="Total hours logged to the task by everyone">Team Hrs</th>
+                            <th class="o_mis_num" title="This employee's hours as a share of the task's total — the proportion of the task's revenue they are credited with">Share</th>
                             <th class="o_mis_num">Revenue</th>
                             <th>Invoice Details</th>
                             <th class="o_mis_num">Balance</th>
@@ -59,12 +65,14 @@
                             <td t-esc="d.customer"/>
                             <td t-esc="d.task"/>
                             <td class="o_mis_num" t-esc="num(d.hours)"/>
+                            <td class="o_mis_num" t-esc="num(d.total_hours)"/>
+                            <td class="o_mis_num" t-esc="num(d.share_pct) + '%'"/>
                             <td class="o_mis_num" t-esc="money(d.amount)"/>
                             <td t-esc="d.invoice_details"/>
                             <td class="o_mis_num" t-esc="money(d.balance)"/>
                         </tr>
                         <tr t-if="!props.delivery.length">
-                            <td colspan="7" class="o_mis_empty">No delivery this month.</td>
+                            <td colspan="9" class="o_mis_empty">No delivery this month.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -104,6 +112,21 @@
                                       t-att-title="config.periodRecompute.hint || &quot;Invoiced/Paid now show only this date range's activity; Outstanding is the balance as of the 'to' date.&quot;">
                                     <i class="fa fa-info-circle"/> Period mode
                                 </span>
+                            </div>
+                        </t>
+
+                        <t t-foreach="config.selectFilters or []" t-as="sf" t-key="sf.field">
+                            <div class="o_mis_selectfilter">
+                                <span class="o_mis_daterange_label" t-esc="sf.label"/>
+                                <select class="o_input o_mis_select"
+                                        t-on-change="(ev) => this.onSelectChange(sf.field, ev)">
+                                    <option value="" t-att-selected="!state.selects[sf.field]">All</option>
+                                    <t t-foreach="sf.options" t-as="opt" t-key="opt.value">
+                                        <option t-att-value="opt.value"
+                                                t-att-selected="state.selects[sf.field] === opt.value"
+                                                t-esc="opt.label"/>
+                                    </t>
+                                </select>
                             </div>
                         </t>
 
@@ -189,7 +212,7 @@
                                 <td t-if="config.revenueBreakdown"/>
                                 <t t-foreach="columns" t-as="col" t-key="col.name">
                                     <td t-if="col_index === 0"><strong>Total</strong></td>
-                                    <td t-elif="col.agg" class="o_mis_num">
+                                    <td t-elif="col.agg or col.ratio" class="o_mis_num">
                                         <strong t-esc="formatTotal(col)"/>
                                     </td>
                                     <td t-else=""/>
@@ -286,7 +309,7 @@
                     <span class="o_mis_group_label" t-esc="node.label"/>
                     <span class="o_mis_badge" t-esc="node.count"/>
                 </td>
-                <td t-elif="col.agg" class="o_mis_num">
+                <td t-elif="col.agg or col.ratio" class="o_mis_num">
                     <span t-esc="formatAgg(col, node)"/>
                 </td>
                 <td t-else=""/>

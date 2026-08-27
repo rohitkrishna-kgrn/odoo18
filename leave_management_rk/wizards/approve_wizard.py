@@ -1,6 +1,10 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError
-from datetime import date
+
+from odoo.addons.leave_management_rk.models.leave_period import (
+    leave_month_anchor,
+    leave_month_label as format_leave_month,
+)
 
 
 class LeaveApprovalWizardBalanceLine(models.TransientModel):
@@ -23,6 +27,7 @@ class LeaveApprovalWizard(models.TransientModel):
     _description = 'Leave Approval Wizard'
 
     leave_id = fields.Many2one('leave.request', string='Leave Request', required=True)
+    leave_month_label = fields.Char(string='Leave Month', readonly=True)
     paid = fields.Boolean(string='Paid Leave')
     is_permission = fields.Boolean(compute='_compute_is_permission', store=False)
     balance_line_ids = fields.One2many(
@@ -37,7 +42,9 @@ class LeaveApprovalWizard(models.TransientModel):
         if leave_id:
             leave = self.env['leave.request'].browse(leave_id)
             if leave.exists() and leave.user_id:
-                first_of_month = date.today().replace(day=1)
+                first_of_month = leave_month_anchor(
+                    leave.start_date or fields.Date.today())
+                res['leave_month_label'] = format_leave_month(first_of_month)
                 balances = self.env['leave.balance'].search([
                     ('user_id', '=', leave.user_id.id),
                     ('date', '=', first_of_month),
@@ -67,7 +74,7 @@ class LeaveApprovalWizard(models.TransientModel):
 
         if leave.leave_type_id.is_permission:
             LeaveBalance = self.env['leave.balance']
-            first_of_month = leave.start_date.replace(day=1)
+            first_of_month = leave_month_anchor(leave.start_date)
             balance_record = LeaveBalance.search([
                 ('user_id', '=', leave.user_id.id),
                 ('leave_type_id', '=', leave.leave_type_id.id),
@@ -88,7 +95,7 @@ class LeaveApprovalWizard(models.TransientModel):
             leave.paid = self.paid
             if self.paid:
                 LeaveBalance = self.env['leave.balance']
-                first_of_month = leave.start_date.replace(day=1)
+                first_of_month = leave_month_anchor(leave.start_date)
                 balance_record = LeaveBalance.search([
                     ('user_id', '=', leave.user_id.id),
                     ('leave_type_id', '=', leave.leave_type_id.id),

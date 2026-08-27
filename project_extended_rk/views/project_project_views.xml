@@ -59,4 +59,27 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Which project stages count as "on hold" is configuration, not code. -->
+    <record id="view_project_stage_form_inherit_hold" model="ir.ui.view">
+        <field name="name">project.project.stage.form.hold</field>
+        <field name="model">project.project.stage</field>
+        <field name="inherit_id" ref="project.project_project_stage_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='fold']" position="after">
+                <field name="is_hold_stage"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_project_form_inherit_hold" model="ir.ui.view">
+        <field name="name">project.project.form.hold</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="is_on_hold" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>

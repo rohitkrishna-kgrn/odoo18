@@ -102,6 +102,9 @@
     &.mis_chip_invoiced   { background: rgba(255,214,0,.2);    color: #ffe97a; }
     &.mis_chip_paid       { background: rgba(40,199,111,.25);  color: #a8f0c6; }
     &.mis_chip_outstanding{ background: rgba(255,90,90,.25);   color: #ffb3b3; }
+    &.mis_chip_completed  { background: rgba(100,181,246,.25); color: #bbdefb; }
+    &.mis_chip_rate       { background: rgba(40,199,111,.25);  color: #a8f0c6; }
+    &.mis_chip_rate_low   { background: rgba(255,90,90,.25);   color: #ffb3b3; }
 }
 
 // ── Project card grid ─────────────────────────────────────────────────────────

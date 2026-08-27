@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_move_form_completion_basis" model="ir.ui.view">
+        <field name="name">account.move.form.completion.basis</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+
+            <!-- The gate sits next to Confirm so the reviewer meets it at the
+                 moment of posting, not after a failed attempt. -->
+            <button name="action_post" position="before">
+                <button name="action_confirm_completion_basis" type="object"
+                        string="Confirm Completion Basis" class="oe_highlight"
+                        invisible="not completion_blocked"/>
+            </button>
+
+            <div name="button_box" position="before">
+                <div class="alert alert-danger" role="alert"
+                     invisible="completion_check_state not in ('over_billed', 'advance_pending') or state != 'draft' or completion_confirmed">
+                    <strong invisible="completion_check_state != 'over_billed'">
+                        This invoice bills more than the engagement has left.
+                    </strong>
+                    <strong invisible="completion_check_state != 'advance_pending'">
+                        The advance on this engagement has not been collected.
+                    </strong>
+                    Check the working below and give a Confirmation Reason
+                    if the amount is right.
+                </div>
+                <div class="alert alert-warning" role="alert"
+                     invisible="completion_check_state not in ('variance', 'work_pending') or state != 'draft' or completion_confirmed">
+                    <strong invisible="completion_check_state != 'variance'">
+                        This amount does not match the agreed billing plan.
+                    </strong>
+                    <strong invisible="completion_check_state != 'work_pending'">
+                        This bills the completion milestone before delivery is complete.
+                    </strong>
+                    Check the working below and confirm the basis with a
+                    reason.
+                </div>
+                <!-- What the Completion Basis tab used to carry. The tab was
+                     taken off the form on request; the figures and the
+                     Confirmation Reason cannot go with it, because the reason
+                     is what action_confirm_completion_basis demands before an
+                     invoice in a blocking state can be posted. Shown only
+                     while there is something to answer for. -->
+                <div class="alert alert-secondary" role="alert"
+                     invisible="completion_check_state in ('ok', 'not_applicable') or state != 'draft' or completion_confirmed">
+                    <group>
+                        <group string="Against the Plan">
+                            <field name="completion_expected_amount" readonly="1"/>
+                            <field name="completion_variance" readonly="1"/>
+                            <field name="completion_prior_invoiced" readonly="1"/>
+                            <field name="completion_balance_amount" readonly="1"/>
+                        </group>
+                        <group string="Preconditions">
+                            <field name="completion_advance_required" readonly="1"/>
+                            <field name="completion_advance_collected" readonly="1"/>
+                            <field name="completion_work_done" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="completion_confirm_reason"
+                               placeholder="e.g. Client agreed to bill the balance early against the signed variation dated 12 Aug."
+                               readonly="state != 'draft'"/>
+                    </group>
+                    Then press <em>Confirm Completion Basis</em> at the top of the form.
+                </div>
+
+                <div class="alert alert-success" role="alert"
+                     invisible="not completion_confirmed or state != 'draft'">
+                    <strong>Completion basis confirmed.</strong>
+                    <field name="completion_confirmed_by_id" readonly="1" nolabel="1" class="oe_inline"/>
+                    on
+                    <field name="completion_confirmed_date" readonly="1" nolabel="1" class="oe_inline"/>
+                    —
+                    <field name="completion_confirm_reason" readonly="1" nolabel="1" class="oe_inline"/>
+                </div>
+            </div>
+
+            <field name="invoice_type_classification" position="after">
+                <!-- Payment Plan, Billing Stage and the Completion Check
+                     badge all used to be shown here, and all three were taken
+                     off the form on request. Invoice Type is the one answer
+                     the reader needs; the red and amber banners say what is
+                     wrong in plain words, and the block beneath them carries
+                     the figures. The fields stay loaded but hidden,
+                     because they drive those banners, the posting gate and the
+                     AR dashboard filters. -->
+                <field name="billing_plan_code" invisible="1"/>
+                <field name="billing_stage" invisible="1"/>
+                <field name="completion_check_state" invisible="1"/>
+                <field name="completion_blocked" invisible="1"/>
+                <field name="completion_confirmed" invisible="1"/>
+            </field>
+
+        </field>
+    </record>
+
+    <!-- "In Payment" is a stock Odoo ribbon, one of the set that also covers
+         Paid / Partial / Reversed / Blocked. It shows while a payment has been
+         registered but not yet reconciled against a bank statement. Hidden on
+         request; `payment_state` itself is untouched, so the Aged AR figures,
+         the credit-hold sweep and every filter behave exactly as before, and
+         the invoice still turns Paid once the statement is reconciled. -->
+    <record id="view_move_form_hide_in_payment_ribbon" model="ir.ui.view">
+        <field name="name">account.move.form.hide.in.payment.ribbon</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <!-- Selected on @invisible, not @title: `title` is a translated
+                 attribute and Odoo refuses it as an inheritance selector
+                 ("View inheritance may not use attribute 'title' as a
+                 selector"). Matching the payment_state test is also safer than
+                 a positional index, which would silently hide a different
+                 ribbon if Odoo ever reorders them. -->
+            <xpath expr="//widget[@name='web_ribbon'][contains(@invisible, &quot;payment_state != 'in_payment'&quot;)]"
+                   position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_account_invoice_filter_completion_basis" model="ir.ui.view">
+        <field name="name">account.move.select.completion.basis</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+        <field name="arch" type="xml">
+            <filter name="late" position="after">
+                <separator/>
+                <filter string="Completion: Advance Not Collected"
+                        name="filter_completion_advance_pending"
+                        domain="[('completion_check_state', '=', 'advance_pending')]"/>
+                <filter string="Completion: Over-billed"
+                        name="filter_completion_over_billed"
+                        domain="[('completion_check_state', '=', 'over_billed')]"/>
+                <filter string="Completion: Differs from Plan"
+                        name="filter_completion_variance"
+                        domain="[('completion_check_state', '=', 'variance')]"/>
+                <filter string="Completion: Awaiting Confirmation"
+                        name="filter_completion_unconfirmed"
+                        domain="[('completion_check_state', 'in', ('over_billed', 'advance_pending', 'work_pending', 'variance')),
+                                 ('completion_confirmed', '=', False),
+                                 ('state', '=', 'draft')]"/>
+                <filter string="Completion Check" name="group_completion_check"
+                        context="{'group_by': 'completion_check_state'}"/>
+                <filter string="Billing Stage" name="group_billing_stage"
+                        context="{'group_by': 'billing_stage'}"/>
+            </filter>
+        </field>
+    </record>
+
+    <!-- The AR dashboard's split view is what the classification was built for,
+         so the completion check surfaces in the same search. -->
+    <record id="view_account_move_ar_aging_search_completion" model="ir.ui.view">
+        <field name="name">account.move.ar.aging.search.completion</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account_extended_rk.view_account_move_ar_aging_search"/>
+        <field name="arch" type="xml">
+            <filter name="filter_type_completion" position="after">
+                <filter string="Retainer" name="filter_type_retainer"
+                        domain="[('invoice_type_classification', '=', 'retainer')]"/>
+                <filter string="Credit Note" name="filter_type_credit_note"
+                        domain="[('invoice_type_classification', '=', 'credit_note')]"/>
+                <separator/>
+                <filter string="Completion Basis Unconfirmed"
+                        name="filter_ar_completion_unconfirmed"
+                        domain="[('completion_check_state', 'in', ('over_billed', 'advance_pending', 'work_pending', 'variance')),
+                                 ('completion_confirmed', '=', False)]"/>
+            </filter>
+            <filter name="group_aging_bucket" position="before">
+                <filter string="Invoice Type" name="group_ar_invoice_type"
+                        context="{'group_by': 'invoice_type_classification'}"/>
+                <filter string="Completion Check" name="group_ar_completion_check"
+                        context="{'group_by': 'completion_check_state'}"/>
+            </filter>
+        </field>
+    </record>
+
+</odoo>

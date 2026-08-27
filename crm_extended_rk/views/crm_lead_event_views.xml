@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Timeline list. Read chronologically inside a lead; newest-first when
+         browsed standalone from the Sales > Reporting menu. -->
+    <record id="crm_lead_event_view_list" model="ir.ui.view">
+        <field name="name">crm.lead.event.list</field>
+        <field name="model">crm.lead.event</field>
+        <field name="arch" type="xml">
+            <list string="Lead Journey" create="false" edit="false"
+                  default_order="event_date desc, id desc">
+                <field name="event_date"/>
+                <field name="lead_id" optional="show"/>
+                <field name="partner_id" optional="hide"/>
+                <field name="event_type"/>
+                <field name="name"/>
+                <field name="stage_from_id" optional="hide"/>
+                <field name="stage_id"/>
+                <field name="days_since_previous" sum="Total" digits="[16,2]"/>
+                <field name="days_since_created" optional="hide"/>
+                <field name="user_id" optional="show"/>
+                <field name="from_activity" optional="hide"/>
+                <field name="salesperson_id" optional="hide"/>
+                <field name="note" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="crm_lead_event_view_form" model="ir.ui.view">
+        <field name="name">crm.lead.event.form</field>
+        <field name="model">crm.lead.event</field>
+        <field name="arch" type="xml">
+            <form string="Journey Event" create="false" edit="false">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="lead_id"/>
+                            <field name="event_type"/>
+                            <field name="name"/>
+                            <field name="event_date"/>
+                            <field name="user_id"/>
+                        </group>
+                        <group>
+                            <field name="stage_from_id"/>
+                            <field name="stage_id"/>
+                            <field name="days_since_previous"/>
+                            <field name="days_since_created"/>
+                            <field name="discovery_form_id"/>
+                            <field name="order_id"/>
+                        </group>
+                    </group>
+                    <group string="Details">
+                        <field name="note" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="crm_lead_event_view_search" model="ir.ui.view">
+        <field name="name">crm.lead.event.search</field>
+        <field name="model">crm.lead.event</field>
+        <field name="arch" type="xml">
+            <search string="Lead Journey">
+                <field name="lead_id"/>
+                <field name="partner_id"/>
+                <field name="name"/>
+                <field name="salesperson_id"/>
+                <filter name="filter_this_month" string="This Month"
+                        date="event_date"/>
+                <separator/>
+                <filter name="filter_discovery" string="Discovery Form"
+                        domain="[('event_type', 'in', ['discovery_sent', 'discovery_received'])]"/>
+                <filter name="filter_proposal" string="Proposal"
+                        domain="[('event_type', 'in', ['proposal_created', 'proposal_sent', 'proposal_approved', 'proposal_confirmed', 'proposal_cancelled'])]"/>
+                <filter name="filter_client_contact" string="Client Contact"
+                        domain="[('event_type', 'in', ['client_followup', 'client_update', 'client_feedback'])]"/>
+                <filter name="filter_stage_change" string="Stage Changes"
+                        domain="[('event_type', '=', 'stage_change')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_lead" string="Opportunity"
+                            context="{'group_by': 'lead_id'}"/>
+                    <filter name="group_customer" string="Customer"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_type" string="Action"
+                            context="{'group_by': 'event_type'}"/>
+                    <filter name="group_stage" string="Stage"
+                            context="{'group_by': 'stage_id'}"/>
+                    <filter name="group_salesperson" string="Salesperson"
+                            context="{'group_by': 'salesperson_id'}"/>
+                    <filter name="group_date" string="Date"
+                            context="{'group_by': 'event_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="crm_lead_event_action" model="ir.actions.act_window">
+        <field name="name">Lead Journey</field>
+        <field name="res_model">crm.lead.event</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_group_lead': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No journey events yet</p>
+            <p>Every action on an opportunity - stage moves, discovery forms,
+               proposals, client follow-ups - is recorded here automatically.</p>
+        </field>
+    </record>
+
+    <menuitem id="crm_lead_event_menu"
+              name="Lead Journey"
+              parent="crm.crm_menu_report"
+              action="crm_lead_event_action"
+              sequence="25"/>
+
+</odoo>

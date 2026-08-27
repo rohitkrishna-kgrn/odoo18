@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- noupdate: once live, these names and delays belong to the user.
+         A later module upgrade must not overwrite what they have tuned. -->
+    <data noupdate="1">
+
+        <record id="activity_send_discovery" model="mail.activity.type">
+            <field name="name">Send Discovery Form</field>
+            <field name="summary">Send the discovery form to the client</field>
+            <field name="res_model">crm.lead</field>
+            <field name="icon">fa-paper-plane</field>
+            <field name="delay_count">1</field>
+            <field name="delay_unit">days</field>
+            <field name="delay_from">current_date</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <record id="activity_chase_discovery" model="mail.activity.type">
+            <field name="name">Chase Discovery Form</field>
+            <field name="summary">Client has not returned the discovery form</field>
+            <field name="res_model">crm.lead</field>
+            <field name="icon">fa-bell</field>
+            <field name="delay_count">3</field>
+            <field name="delay_unit">days</field>
+            <field name="delay_from">current_date</field>
+            <field name="sequence">31</field>
+            <field name="crm_journey_event_type">client_followup</field>
+        </record>
+
+        <record id="activity_share_proposal" model="mail.activity.type">
+            <field name="name">Share Proposal</field>
+            <field name="summary">Prepare and share the proposal with the client</field>
+            <field name="res_model">crm.lead</field>
+            <field name="icon">fa-file-text-o</field>
+            <field name="delay_count">2</field>
+            <field name="delay_unit">days</field>
+            <field name="delay_from">current_date</field>
+            <field name="sequence">32</field>
+        </record>
+
+        <record id="activity_chase_feedback" model="mail.activity.type">
+            <field name="name">Chase Client Feedback</field>
+            <field name="summary">Ask the client for feedback on the proposal</field>
+            <field name="res_model">crm.lead</field>
+            <field name="icon">fa-comments-o</field>
+            <field name="delay_count">3</field>
+            <field name="delay_unit">days</field>
+            <field name="delay_from">current_date</field>
+            <field name="sequence">33</field>
+            <field name="crm_journey_event_type">client_feedback</field>
+        </record>
+
+        <record id="activity_client_followup" model="mail.activity.type">
+            <field name="name">Client Follow-up</field>
+            <field name="summary">Follow up with the client</field>
+            <field name="res_model">crm.lead</field>
+            <field name="icon">fa-phone</field>
+            <field name="delay_count">7</field>
+            <field name="delay_unit">days</field>
+            <field name="delay_from">current_date</field>
+            <field name="sequence">34</field>
+            <field name="crm_journey_event_type">client_followup</field>
+        </record>
+
+        <record id="activity_client_update" model="mail.activity.type">
+            <field name="name">Client Update Call</field>
+            <field name="summary">Give the client a status update</field>
+            <field name="res_model">crm.lead</field>
+            <field name="icon">fa-refresh</field>
+            <field name="delay_count">7</field>
+            <field name="delay_unit">days</field>
+            <field name="delay_from">current_date</field>
+            <field name="sequence">35</field>
+            <field name="crm_journey_event_type">client_update</field>
+        </record>
+
+        <!-- Reminders ship switched OFF. The user turns them on in
+             Settings > CRM, which stamps the go-live date at that moment so
+             the 148 leads already sitting in New are never touched. -->
+        <record id="journey_param_active" model="ir.config_parameter">
+            <field name="key">crm_extended_rk.journey_reminders_active</field>
+            <field name="value">False</field>
+        </record>
+        <record id="journey_param_delay_send_discovery" model="ir.config_parameter">
+            <field name="key">crm_extended_rk.delay_send_discovery</field>
+            <field name="value">1</field>
+        </record>
+        <record id="journey_param_delay_chase_discovery" model="ir.config_parameter">
+            <field name="key">crm_extended_rk.delay_chase_discovery</field>
+            <field name="value">3</field>
+        </record>
+        <record id="journey_param_delay_prepare_proposal" model="ir.config_parameter">
+            <field name="key">crm_extended_rk.delay_prepare_proposal</field>
+            <field name="value">2</field>
+        </record>
+        <record id="journey_param_delay_chase_feedback" model="ir.config_parameter">
+            <field name="key">crm_extended_rk.delay_chase_feedback</field>
+            <field name="value">3</field>
+        </record>
+        <record id="journey_param_nudge_hours" model="ir.config_parameter">
+            <field name="key">crm_extended_rk.nudge_hours</field>
+            <field name="value">48</field>
+        </record>
+
+        <!-- Daily sweep for leads that have gone quiet. -->
+        <record id="ir_cron_journey_stale_leads" model="ir.cron">
+            <field name="name">CRM: Nudge stale leads</field>
+            <field name="model_id" ref="crm.model_crm_lead"/>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_nudge_stale_leads()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+
+    </data>
+</odoo>

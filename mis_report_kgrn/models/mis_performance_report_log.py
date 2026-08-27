@@ -14,8 +14,9 @@ class MisPerformanceReportLog(models.Model):
     holding the generated xlsx (in Odoo, for audit) and who it was emailed to.
     Created by the ir.cron `_cron_generate_monthly_scorecard` on the 1st of
     every month for the prior month; recipients are the members of the
-    "MIS HR" group (mis_report_kgrn.group_mis_hr) at generation time — no
-    one else receives this email."""
+    "Performance Scorecard Recipient" group (ticked on the user form for
+    department heads and the Managing Partner) plus the "MIS HR" group,
+    both read at generation time — no one else receives this email."""
     _name = 'mis.performance.report.log'
     _description = 'MIS Performance Scorecard — Monthly Report Log'
     _order = 'period_date desc'
@@ -47,8 +48,8 @@ class MisPerformanceReportLog(models.Model):
     @api.model
     def _generate_scorecard(self, period_date):
         """Build the xlsx for `period_date` (any date within the target
-        month), save it as a log record, and email it to MIS HR members
-        only."""
+        month), save it as a log record, and email it to the configured
+        scorecard recipients."""
         performance_lines = self.env['mis.performance.line'].sudo().search(
             [('period_date', '=', period_date.replace(day=1))],
             order='department_id, employee_name',
@@ -63,7 +64,15 @@ class MisPerformanceReportLog(models.Model):
                 'performance_team': (line.performance_team or '').title(),
                 'office_location': line.office_location,
                 'period_label': line.period_label,
+                'monthly_ctc': line.monthly_ctc,
+                'monthly_obligation': line.monthly_obligation,
+                # Explains a reduced obligation on the face of the scorecard,
+                # so a department head reading the xlsx can tell a new joiner's
+                # ramp-up target apart from a mis-keyed CTC.
+                'ramp_stage': line.ramp_stage,
                 'total_revenue': line.total_revenue,
+                'achievement_pct': line.achievement_pct,
+                'rag_status': line.rag_status,
                 'invoices_raised_count': line.invoices_raised_count,
                 'invoices_raised_amount': line.invoices_raised_amount,
                 'payments_collected_amount': line.payments_collected_amount,
@@ -72,8 +81,13 @@ class MisPerformanceReportLog(models.Model):
         file_data = self._render_xlsx(period_label, rows)
         filename = f"Performance_Scorecard_{period_date.strftime('%Y_%m')}.xlsx"
 
-        hr_group = self.env.ref('mis_report_kgrn.group_mis_hr', raise_if_not_found=False)
-        recipients = hr_group.users.filtered(lambda u: u.active and u.email) if hr_group else self.env['res.users']
+        recipients = self.env['res.users']
+        for xmlid in ('mis_report_kgrn.group_mis_scorecard_recipient',
+                      'mis_report_kgrn.group_mis_hr'):
+            group = self.env.ref(xmlid, raise_if_not_found=False)
+            if group:
+                recipients |= group.users
+        recipients = recipients.filtered(lambda u: u.active and u.email)
 
         log = self.create({
             'period_date': period_date.replace(day=1),
@@ -114,7 +128,7 @@ class MisPerformanceReportLog(models.Model):
                     "MIS Performance scorecard mail template missing; skipped email for %s", period_label)
         else:
             _logger.info(
-                "MIS Performance scorecard %s: no MIS HR recipients configured, saved in Odoo only.", period_label)
+                "MIS Performance scorecard %s: no recipients configured, saved in Odoo only.", period_label)
 
         return log
 
@@ -147,9 +161,36 @@ class MisPerformanceReportLog(models.Model):
             'bold': True, 'border': 1, 'bg_color': '#e9ecef', 'num_format': '#,##0.00',
         })
 
-        headers = ['Employee', 'Team', 'Office', 'Month', 'Value of Work Completed',
-                   'Invoices Raised (No.)', 'Invoices Raised (AED)', 'Payments Collected (AED)']
-        widths = [24, 12, 10, 10, 22, 18, 18, 20]
+        # RAG fills — applied to the Status cell only, so the row stays readable
+        fmt_rag = {
+            'Green': workbook.add_format({
+                'border': 1, 'valign': 'vcenter', 'align': 'center', 'bold': True,
+                'bg_color': '#c6efce', 'font_color': '#006100'}),
+            'Amber': workbook.add_format({
+                'border': 1, 'valign': 'vcenter', 'align': 'center', 'bold': True,
+                'bg_color': '#ffeb9c', 'font_color': '#9c6500'}),
+            'Red': workbook.add_format({
+                'border': 1, 'valign': 'vcenter', 'align': 'center', 'bold': True,
+                'bg_color': '#ffc7ce', 'font_color': '#9c0006'}),
+            'N/A': workbook.add_format({
+                'border': 1, 'valign': 'vcenter', 'align': 'center',
+                'bg_color': '#f2f2f2', 'font_color': '#808080'}),
+        }
+        fmt_pct = workbook.add_format({
+            'border': 1, 'valign': 'vcenter', 'num_format': '#,##0.0"%"'})
+        fmt_subtotal_pct = workbook.add_format({
+            'bold': True, 'border': 1, 'bg_color': '#f3f0f7', 'num_format': '#,##0.0"%"'})
+        fmt_total_pct = workbook.add_format({
+            'bold': True, 'border': 1, 'bg_color': '#e9ecef', 'num_format': '#,##0.0"%"'})
+
+        headers = ['Employee', 'Team', 'Office', 'Month',
+                   'Monthly CTC (AED)', 'Minimum Obligation (AED)',
+                   'Ramp-up Stage',
+                   'Revenue / Work Completed (AED)', 'Achievement % (vs Obligation)',
+                   'Status',
+                   'Invoices Raised (No.)', 'Invoices Raised (AED)',
+                   'Payments Collected (AED)']
+        widths = [24, 12, 10, 10, 16, 20, 18, 24, 20, 10, 18, 18, 20]
         for c, (label, width) in enumerate(zip(headers, widths)):
             sheet.write(0, c, label, fmt_header)
             sheet.set_column(c, c, width)
@@ -159,10 +200,17 @@ class MisPerformanceReportLog(models.Model):
         for row in rows:
             grouped.setdefault(row['department_id'], []).append(row)
 
-        agg_keys = ('total_revenue', 'invoices_raised_count',
-                    'invoices_raised_amount', 'payments_collected_amount')
+        agg_keys = ('monthly_ctc', 'monthly_obligation', 'total_revenue',
+                    'invoices_raised_count', 'invoices_raised_amount',
+                    'payments_collected_amount')
         grand_totals = {k: 0 for k in agg_keys}
         r = 1
+
+        def _pct(revenue, obligation):
+            """Aggregate achievement is summed-revenue / summed-obligation —
+            never an average of per-employee percentages, which would let a
+            single over-performer mask a department that is short."""
+            return (revenue / obligation * 100) if obligation else 0
 
         for dept_name, dept_rows in grouped.items():
             sheet.merge_range(r, 0, r, len(headers) - 1, dept_name, fmt_dept)
@@ -173,34 +221,50 @@ class MisPerformanceReportLog(models.Model):
                 sheet.write(r, 1, row['performance_team'], fmt_text)
                 sheet.write(r, 2, row['office_location'], fmt_text)
                 sheet.write(r, 3, row['period_label'], fmt_text)
-                sheet.write_number(r, 4, row['total_revenue'] or 0, fmt_num)
-                sheet.write_number(r, 5, row['invoices_raised_count'] or 0, fmt_int)
-                sheet.write_number(r, 6, row['invoices_raised_amount'] or 0, fmt_num)
-                sheet.write_number(r, 7, row['payments_collected_amount'] or 0, fmt_num)
+                sheet.write_number(r, 4, row['monthly_ctc'] or 0, fmt_num)
+                sheet.write_number(r, 5, row['monthly_obligation'] or 0, fmt_num)
+                sheet.write(r, 6, row['ramp_stage'] or '', fmt_text)
+                sheet.write_number(r, 7, row['total_revenue'] or 0, fmt_num)
+                sheet.write_number(r, 8, row['achievement_pct'] or 0, fmt_pct)
+                status = row['rag_status'] or 'N/A'
+                sheet.write(r, 9, status, fmt_rag.get(status, fmt_text))
+                sheet.write_number(r, 10, row['invoices_raised_count'] or 0, fmt_int)
+                sheet.write_number(r, 11, row['invoices_raised_amount'] or 0, fmt_num)
+                sheet.write_number(r, 12, row['payments_collected_amount'] or 0, fmt_num)
                 for key in agg_keys:
                     dept_totals[key] += row[key] or 0
                 r += 1
 
             sheet.write(r, 0, f'{dept_name} Subtotal', fmt_subtotal_label)
-            sheet.write(r, 1, '', fmt_subtotal_label)
-            sheet.write(r, 2, '', fmt_subtotal_label)
-            sheet.write(r, 3, '', fmt_subtotal_label)
-            sheet.write_number(r, 4, dept_totals['total_revenue'], fmt_subtotal_num)
-            sheet.write_number(r, 5, dept_totals['invoices_raised_count'], fmt_subtotal_num)
-            sheet.write_number(r, 6, dept_totals['invoices_raised_amount'], fmt_subtotal_num)
-            sheet.write_number(r, 7, dept_totals['payments_collected_amount'], fmt_subtotal_num)
+            for c in (1, 2, 3):
+                sheet.write(r, c, '', fmt_subtotal_label)
+            sheet.write_number(r, 4, dept_totals['monthly_ctc'], fmt_subtotal_num)
+            sheet.write_number(r, 5, dept_totals['monthly_obligation'], fmt_subtotal_num)
+            sheet.write(r, 6, '', fmt_subtotal_label)
+            sheet.write_number(r, 7, dept_totals['total_revenue'], fmt_subtotal_num)
+            sheet.write_number(r, 8, _pct(dept_totals['total_revenue'],
+                                          dept_totals['monthly_obligation']), fmt_subtotal_pct)
+            sheet.write(r, 9, '', fmt_subtotal_label)
+            sheet.write_number(r, 10, dept_totals['invoices_raised_count'], fmt_subtotal_num)
+            sheet.write_number(r, 11, dept_totals['invoices_raised_amount'], fmt_subtotal_num)
+            sheet.write_number(r, 12, dept_totals['payments_collected_amount'], fmt_subtotal_num)
             r += 1
             for key in agg_keys:
                 grand_totals[key] += dept_totals[key]
 
         sheet.write(r, 0, 'Grand Total', fmt_total_label)
-        sheet.write(r, 1, '', fmt_total_label)
-        sheet.write(r, 2, '', fmt_total_label)
-        sheet.write(r, 3, '', fmt_total_label)
-        sheet.write_number(r, 4, grand_totals['total_revenue'], fmt_total_num)
-        sheet.write_number(r, 5, grand_totals['invoices_raised_count'], fmt_total_num)
-        sheet.write_number(r, 6, grand_totals['invoices_raised_amount'], fmt_total_num)
-        sheet.write_number(r, 7, grand_totals['payments_collected_amount'], fmt_total_num)
+        for c in (1, 2, 3):
+            sheet.write(r, c, '', fmt_total_label)
+        sheet.write_number(r, 4, grand_totals['monthly_ctc'], fmt_total_num)
+        sheet.write_number(r, 5, grand_totals['monthly_obligation'], fmt_total_num)
+        sheet.write(r, 6, '', fmt_total_label)
+        sheet.write_number(r, 7, grand_totals['total_revenue'], fmt_total_num)
+        sheet.write_number(r, 8, _pct(grand_totals['total_revenue'],
+                                      grand_totals['monthly_obligation']), fmt_total_pct)
+        sheet.write(r, 9, '', fmt_total_label)
+        sheet.write_number(r, 10, grand_totals['invoices_raised_count'], fmt_total_num)
+        sheet.write_number(r, 11, grand_totals['invoices_raised_amount'], fmt_total_num)
+        sheet.write_number(r, 12, grand_totals['payments_collected_amount'], fmt_total_num)
         r += 1
 
         sheet.autofilter(0, 0, r - 1, len(headers) - 1)

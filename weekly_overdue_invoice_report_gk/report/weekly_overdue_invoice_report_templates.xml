@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_weekly_overdue_invoice" model="ir.actions.report">
+        <field name="name">Weekly Overdue Invoice Report</field>
+        <field name="model">weekly.overdue.invoice.report.log</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">weekly_overdue_invoice_report_gk.report_weekly_overdue_invoice_document</field>
+        <field name="report_file">weekly_overdue_invoice_report_gk.report_weekly_overdue_invoice_document</field>
+        <field name="print_report_name">'Overdue_Invoice_Report_%s' % (object.generated_date.strftime('%Y_%m_%d') if object.generated_date else 'draft')</field>
+        <field name="binding_model_id" ref="model_weekly_overdue_invoice_report_log"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!--
+        Branded KGRN layout: builds its own header/footer/article divs rather
+        than calling web.internal_layout, so it doesn't touch that shared
+        core template. Odoo's report engine extracts any div with class
+        "header"/"footer"/"article" by CSS class alone (see
+        ir_actions_report.py _prepare_html) and feeds header/footer to
+        wkhtmltopdf as repeating page header/footer — this works regardless
+        of which template produced them, so this stays fully self-contained.
+        Logo comes live from res.company.logo (already the KGRN logo for
+        this company) rather than a hardcoded copy, so it stays in sync if
+        the company's logo is ever updated in Settings.
+        Fonts: DejaVu Serif / DejaVu Sans — the only families actually
+        installed on this server (checked via fc-list) — chosen deliberately
+        over Arial/Georgia/etc. to avoid a silent font-fallback in the PDF.
+        Palette sampled directly from the KGRN logo (#F15D22 orange).
+    -->
+    <template id="report_weekly_overdue_invoice_document">
+        <t t-call="web.html_container">
+            <t t-set="company" t-value="env.company"/>
+            <t t-foreach="docs" t-as="o">
+                <div class="header" style="padding:6px 0; border-bottom:2px solid #F15D22;">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <span style="font-family:'DejaVu Sans'; font-size:9px; color:#6b6b6b; letter-spacing:0.04em; text-transform:uppercase;">
+                                Weekly Overdue Invoice Report — <t t-esc="o.generated_date and o.generated_date.strftime('%d %b %Y') or ''"/>
+                            </span>
+                        </div>
+                        <div class="col-4 text-end">
+                            <t t-set="logo_uri" t-value="o._company_logo_data_uri()"/>
+                            <img t-if="logo_uri" t-att-src="logo_uri" alt="KGRN" style="height:38px;"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer" style="font-family:'DejaVu Sans'; font-size:8px; color:#6b6b6b; border-top:1px solid #eee; padding-top:4px;">
+                    <div class="row">
+                        <div class="col-6"><span t-esc="company.name"/></div>
+                        <div class="col-6 text-end">
+                            <ul class="list-inline">
+                                <li class="list-inline-item">Page <span class="page"/> / <span class="topage"/></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+                    <div class="page" style="font-family:'DejaVu Sans'; font-size:10.5px; color:#262626;">
+                        <h2 style="font-family:'DejaVu Serif'; color:#262626; font-weight:bold; margin-bottom:2px;">
+                            Weekly Overdue Invoice Report
+                        </h2>
+                        <p style="color:#6b6b6b; margin-bottom:14px;">
+                            As of <t t-esc="o.generated_date and o.generated_date.strftime('%d %b %Y') or ''"/> —
+                            <t t-esc="o.invoice_count"/> invoice(s),
+                            <span t-field="o.total_amount_due" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                            outstanding,
+                            <t t-esc="o.missing_reason_count"/> still missing a "Why Not Collected" reason.
+                        </p>
+                        <table class="table table-sm table-bordered" style="width:100%; table-layout:fixed; border-color:#F1C4AC;">
+                            <colgroup>
+                                <col style="width:9%"/><col style="width:14%"/><col style="width:9%"/>
+                                <col style="width:9%"/><col style="width:10%"/><col style="width:8%"/>
+                                <col style="width:10%"/><col style="width:9%"/><col style="width:22%"/>
+                            </colgroup>
+                            <thead>
+                                <tr style="background-color:#F15D22;">
+                                    <th style="color:#ffffff; text-transform:uppercase; font-size:9px; letter-spacing:0.03em;">Invoice</th>
+                                    <th style="color:#ffffff; text-transform:uppercase; font-size:9px; letter-spacing:0.03em;">Client</th>
+                                    <th style="color:#ffffff; text-transform:uppercase; font-size:9px; letter-spacing:0.03em;">Team</th>
+                                    <th style="color:#ffffff; text-transform:uppercase; font-size:9px; letter-spacing:0.03em;">PM</th>
+                                    <th style="color:#ffffff; text-transform:uppercase; font-size:9px; letter-spacing:0.03em;">AR Responsible</th>
+                                    <th class="text-end" style="color:#ffffff; text-transform:uppercase; font-size:9px; letter-spacing:0.03em;">Days Overdue</th>
+                                    <th class="text-end" style="color:#ffffff; text-transform:uppercase; font-size:9px; letter-spacing:0.03em;">Amount Due (AED)</th>
+                                    <th style="color:#ffffff; text-transform:uppercase; font-size:9px; letter-spacing:0.03em;">Last Follow-up</th>
+                                    <th style="color:#ffffff; text-transform:uppercase; font-size:9px; letter-spacing:0.03em;">Why Not Collected</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="o._lines_grouped_by_bucket()" t-as="bucket_group">
+                                    <tr>
+                                        <td colspan="9" style="background-color:#FDEDE4; font-weight:bold; color:#C74516;">
+                                            <t t-esc="bucket_group[0]"/> (<t t-esc="len(bucket_group[1])"/>)
+                                        </td>
+                                    </tr>
+                                    <t t-foreach="bucket_group[1]" t-as="line">
+                                        <tr>
+                                            <td><t t-esc="line.invoice_number"/></td>
+                                            <td><t t-esc="line.partner_name"/></td>
+                                            <td><t t-esc="line.team_name"/></td>
+                                            <td><t t-esc="line.pm_name"/></td>
+                                            <td><t t-esc="line.ar_responsible_name"/></td>
+                                            <td class="text-end"><t t-esc="line.days_overdue"/></td>
+                                            <td class="text-end">
+                                                <span t-field="line.amount_due" t-options="{'widget': 'monetary', 'display_currency': line.currency_id}"/>
+                                            </td>
+                                            <td>
+                                                <span t-if="line.last_followup_date" t-field="line.last_followup_date"/>
+                                                <t t-else="">—</t>
+                                            </td>
+                                            <td>
+                                                <t t-if="line.why_not_collected"><t t-esc="line.why_not_collected"/></t>
+                                                <span t-else="" style="color:#a94442;font-weight:bold;">AR Responsible: Not Mentioned</span>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </t>
+                                <tr t-if="not o.line_ids">
+                                    <td colspan="9" class="text-center">No invoices are more than 30 days overdue this week.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

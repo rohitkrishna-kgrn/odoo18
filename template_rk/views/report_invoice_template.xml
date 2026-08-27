@@ -127,6 +127,15 @@
                 color: #999;
               }
 
+              .penalty-note {
+                margin-top: 20px;
+                padding-top: 10px;
+                border-top: 1px solid #ccc;
+                font-size: 13px;
+                font-weight: 600;
+                color: #444;
+              }
+
               .logo {
                 max-height: 90px;
                 max-width: 200px;
@@ -236,6 +245,9 @@
                 </t>
               </div>
             </div>
+
+            <!-- Late Payment Penalty / Terms and Conditions -->
+            <div class="penalty-note" t-if="o.narration" t-field="o.narration"/>
 
             <!-- Signature -->
             <div class="signature">Authorized Signature</div>

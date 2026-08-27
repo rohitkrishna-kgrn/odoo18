@@ -1,28 +1,58 @@
 <odoo>
   <data noupdate="0">
 
-    <!-- Monthly update cron - runs on 1st of every month at 00:00 -->
+    <!-- Opens the next leave month. A leave month runs 26th -> 25th, so this
+         fires at 00:00 on the 26th (the first day of the new period), not on
+         the 1st. nextcall is computed at load time rather than hardcoded so a
+         later module upgrade can never rewind it into the past and trigger an
+         out-of-season run.
+
+         `active` is deliberately NOT set here: this cron is currently disabled
+         in production, and omitting the field leaves whatever state the
+         database holds untouched, so enabling it from the UI sticks. -->
     <record id="ir_cron_update_leave_balances" model="ir.cron">
-      <field name="name">Update Leave Balances Monthly</field>
+      <field name="name">Update Leave Balances Monthly (26th)</field>
       <field name="model_id" ref="model_leave_balance"/>
       <field name="state">code</field>
       <field name="code">model.update_monthly_leave_balances()</field>
       <field name="interval_number">1</field>
       <field name="interval_type">months</field>
-      <field name="nextcall" eval="'2025-10-01 00:00:00'"/>
-      <field name="active">True</field>
+      <field name="nextcall"
+             eval="(DateTime.now().replace(day=26, hour=0, minute=0, second=0, microsecond=0)
+                    + relativedelta(months=1 if DateTime.now().day >= 26 else 0)
+                   ).strftime('%Y-%m-%d %H:%M:%S')"/>
     </record>
 
-    <!-- Dec 31 reset cron - runs annually on Dec 31 at 23:59 to prepare Jan 1 balances -->
+    <!-- Year-end reset. The January leave month begins on 26 Dec, so this runs
+         at 25 Dec 23:59 - immediately ahead of the accrual above, exactly the
+         ordering it had at 31 Dec 23:59 ahead of the old 1 Jan cron. -->
     <record id="ir_cron_reset_leave_balances_dec31" model="ir.cron">
-      <field name="name">Reset Leave Balances on Dec 31</field>
+      <field name="name">Reset Leave Balances for the January Leave Month</field>
       <field name="model_id" ref="model_leave_balance"/>
       <field name="state">code</field>
       <field name="code">model.reset_leave_balances_dec31()</field>
       <field name="interval_number">12</field>
       <field name="interval_type">months</field>
-      <field name="nextcall" eval="'2025-12-31 23:59:00'"/>
+      <field name="nextcall"
+             eval="(DateTime.now().replace(month=12, day=25, hour=23, minute=59, second=0, microsecond=0)
+                    + relativedelta(years=1 if (DateTime.now().month, DateTime.now().day) > (12, 25) else 0)
+                   ).strftime('%Y-%m-%d %H:%M:%S')"/>
       <field name="active">True</field>
+    </record>
+
+    <!-- Superseded leftover: this record still existed in the database, was
+         active, and called reset_leave_balances_jan1() - a method that no
+         longer exists, so it would have raised on its next run. Its job is
+         done by the 25 Dec reset above. Disabled, and repointed at the live
+         method so it stays harmless if anyone re-enables it. -->
+    <record id="ir_cron_reset_leave_balances_jan1" model="ir.cron">
+      <field name="name">Reset Leave Balances on January 1st (superseded)</field>
+      <field name="model_id" ref="model_leave_balance"/>
+      <field name="state">code</field>
+      <field name="code">model.reset_leave_balances_dec31()</field>
+      <field name="interval_number">12</field>
+      <field name="interval_type">months</field>
+      <field name="active" eval="False"/>
     </record>
 
   </data>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_deadline_alert_test_wizard_form" model="ir.ui.view">
+            <field name="name">deadline.alert.test.wizard.form</field>
+            <field name="model">deadline.alert.test.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Send Test Deadline Alert">
+                    <group>
+                        <group string="Record">
+                            <field name="target_model" widget="radio"/>
+                            <field name="task_id"
+                                   invisible="target_model != 'project.task'"
+                                   required="target_model == 'project.task'"
+                                   options="{'no_create': True}"/>
+                            <field name="project_id"
+                                   invisible="target_model != 'project.project'"
+                                   required="target_model == 'project.project'"
+                                   options="{'no_create': True}"/>
+                            <field name="deadline_preview"/>
+                            <field name="simulated_deadline"/>
+                        </group>
+                        <group string="Message">
+                            <field name="kind" widget="radio"/>
+                            <field name="recipient_ids" widget="many2many_tags"
+                                   options="{'no_create': True}"/>
+                            <field name="inbox_copy"/>
+                            <field name="live_recipients_preview"/>
+                        </group>
+                    </group>
+                    <separator string="Preview"/>
+                    <field name="preview_html" readonly="1" nolabel="1"/>
+                    <div class="alert alert-info" role="status">
+                        This sends a copy of the real alert, clearly banner-marked
+                        as a test. The record is not marked as alerted and no
+                        To-Do is raised, so the scheduled alerts still behave
+                        exactly as they would have.
+                    </div>
+                    <footer>
+                        <button string="Send Test Alert" name="action_send_test"
+                                type="object" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_deadline_alert_test_wizard" model="ir.actions.act_window">
+            <field name="name">Send Test Deadline Alert</field>
+            <field name="res_model">deadline.alert.test.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="menu_deadline_alert_test"
+                  name="Send Test Deadline Alert"
+                  parent="project.menu_project_config"
+                  action="action_deadline_alert_test_wizard"
+                  groups="project.group_project_manager"
+                  sequence="90"/>
+
+    </data>
+</odoo>

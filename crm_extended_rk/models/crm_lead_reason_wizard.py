@@ -16,5 +16,8 @@ class CrmLeadSetReasonWizard(models.TransientModel):
             'stage_id': self.target_stage_id.id,
             'reason': self.reason,
         })
-        self.lead_id.write({'stage_id': self.target_stage_id.id, 'active': True})
+        # journey_note rides along so the stage_change event picks up the
+        # reason the user just typed instead of a bare 'Stage: A -> B'.
+        self.lead_id.with_context(journey_note=self.reason).write(
+            {'stage_id': self.target_stage_id.id, 'active': True})
         return {'type': 'ir.actions.act_window_close'}

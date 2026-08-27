@@ -1,3 +1,15 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_account_invoice_followup_log_invoice,account.invoice.followup.log.invoice,model_account_invoice_followup_log,account.group_account_invoice,1,1,1,1
 access_account_invoice_followup_log_readonly,account.invoice.followup.log.readonly,model_account_invoice_followup_log,account.group_account_readonly,1,0,0,0
+access_retainership_contract_invoice,retainership.contract.invoice,model_retainership_contract,account.group_account_invoice,1,1,1,0
+access_retainership_contract_manager,retainership.contract.manager,model_retainership_contract,account.group_account_manager,1,1,1,1
+access_retainership_contract_readonly,retainership.contract.readonly,model_retainership_contract,account.group_account_readonly,1,0,0,0
+access_retainership_contract_reviewer,retainership.contract.reviewer,model_retainership_contract,account_extended_rk.group_retainership_reviewer,1,0,0,0
+access_credit_hold_event_user,res.partner.credit.hold.event.user,model_res_partner_credit_hold_event,base.group_user,1,0,0,0
+access_credit_hold_event_manager,res.partner.credit.hold.event.manager,model_res_partner_credit_hold_event,account.group_account_manager,1,0,0,0
+access_credit_hold_override_user,res.partner.credit.hold.override.user,model_res_partner_credit_hold_override,base.group_user,1,0,0,0
+access_credit_hold_override_mp,res.partner.credit.hold.override.advisor,model_res_partner_credit_hold_override,account.group_account_manager,1,1,1,0
+access_sale_order_billing_milestone_sale,sale.order.billing.milestone.sale,model_sale_order_billing_milestone,sales_team.group_sale_salesman,1,1,1,1
+access_sale_order_billing_milestone_invoice,sale.order.billing.milestone.invoice,model_sale_order_billing_milestone,account.group_account_invoice,1,1,1,1
+access_sale_order_billing_milestone_readonly,sale.order.billing.milestone.readonly,model_sale_order_billing_milestone,account.group_account_readonly,1,0,0,0
+access_sale_order_billing_milestone_user,sale.order.billing.milestone.user,model_sale_order_billing_milestone,base.group_user,1,0,0,0

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Catch-all recipient for deadline alerts.  No category_id, so it
+             renders as a plain checkbox under "Other" on the Access Rights tab
+             of the user form.  It is only used when an alert has nobody else
+             to go to — the project has no Project Manager, or the department
+             has no manager set — so ticking it does not subscribe anyone to
+             the normal alert traffic. -->
+        <record id="group_deadline_alert_watcher" model="res.groups">
+            <field name="name">Deadline Alert Watcher</field>
+            <field name="comment">Receives project and task deadline alerts that cannot be routed to a Project Manager or a department head.</field>
+        </record>
+
+    </data>
+</odoo>
