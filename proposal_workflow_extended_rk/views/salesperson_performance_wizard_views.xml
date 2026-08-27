@@ -46,6 +46,7 @@
               name="Download Performance Report"
               parent="menu_other_root"
               action="action_salesperson_performance_download"
+              groups="sales_team.group_sale_manager"
               sequence="40"/>
 
 </odoo>

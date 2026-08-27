@@ -105,6 +105,7 @@
               name="Sales Performance"
               parent="menu_other_root"
               action="action_salesperson_performance"
+              groups="sales_team.group_sale_manager"
               sequence="30"/>
 
 </odoo>
