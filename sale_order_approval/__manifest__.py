@@ -1,6 +1,6 @@
 {
     "name": "Sale Order Approval",
-    "version": "1.1",
+    "version": "1.2",
     "summary": "Submit quotation for approval and confirm with custom sequence",
     "author" : "Rohit Krishna",
     "depends": ["sale", "product"],
