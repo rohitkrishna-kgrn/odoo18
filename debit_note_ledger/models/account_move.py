@@ -1,3 +1,5 @@
+import re
+
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
@@ -19,6 +21,52 @@ class AccountMove(models.Model):
                 sequence = move._get_vendor_debit_note_sequence()
                 move.debit_note_number = sequence.next_by_id()
         return records
+
+    # ------------------------------------------------------------------
+    # Customer debit note numbering
+    #
+    # Customer debit notes carry their own DN/<fy>/#### series in the move
+    # `name` itself, so it shows up everywhere the document is referenced
+    # (form title, ledgers, the "Debit Notes" link on the origin invoice)
+    # rather than only in a side field. Vendor debit notes keep the
+    # `debit_note_number` mechanism above and are left untouched here.
+    # ------------------------------------------------------------------
+
+    def _is_customer_debit_note_sequence(self):
+        """Customer document numbered on the dedicated debit note counter."""
+        self.ensure_one()
+        return self.move_type == 'out_invoice' and self.journal_id.debit_sequence
+
+    def _get_last_sequence_domain(self, relaxed=False):
+        # EXTENDS account_debit_note
+        where_string, param = super()._get_last_sequence_domain(relaxed)
+        if self._is_customer_debit_note_sequence():
+            # account_debit_note splits the journal's numbering on
+            # debit_origin_id, which misses debit notes keyed straight from the
+            # Debit Notes menu (those have no origin invoice). Swap that clause
+            # for the is_debit_note flag so every customer debit note shares one
+            # counter, kept separate from the customer invoice counter.
+            where_string = (
+                where_string
+                .replace(" AND debit_origin_id IS NOT NULL", "")
+                .replace(" AND debit_origin_id IS NULL", "")
+            )
+            where_string += " AND is_debit_note IS %s" % ('TRUE' if self.is_debit_note else 'NOT TRUE')
+        return where_string, param
+
+    def _get_starting_sequence(self):
+        # EXTENDS account
+        starting_sequence = super()._get_starting_sequence()
+        if self._is_customer_debit_note_sequence() and self.is_debit_note and self.journal_id.code:
+            # INV/26-27/0000 (menu-created) or DINV/26-27/0000 (wizard-created,
+            # account_debit_note prepends the D) -> DN/26-27/0000
+            starting_sequence = re.sub(
+                r'^D?%s' % re.escape(self.journal_id.code), 'DN', starting_sequence, count=1)
+        return starting_sequence
+
+    # ------------------------------------------------------------------
+    # Vendor debit note numbering
+    # ------------------------------------------------------------------
 
     def _get_vendor_debit_note_fy_label(self):
         self.ensure_one()

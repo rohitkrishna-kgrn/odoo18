@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Vendor Debit Note form: number display, mandatory Bill Reference,
+    <!-- Debit Note form: title label, number display, mandatory Bill Reference,
          mandatory Sale Order Line.
          Priority 30 so the Sale Order Line attributes below land after
          account_extended_rk's own priority-20 override of the same field. -->
@@ -16,14 +16,26 @@
                 <field name="is_debit_note" invisible="1"/>
             </field>
 
+            <!-- The oe_title label is the move_type selection itself, which reads
+                 "Customer Invoice" on a customer debit note. Hide it there and
+                 print the document's own name instead. -->
+            <xpath expr="//div[hasclass('oe_title')]/span[hasclass('o_form_label')]" position="attributes">
+                <attribute name="invisible">is_debit_note and move_type == 'out_invoice'</attribute>
+            </xpath>
+            <xpath expr="//div[hasclass('oe_title')]/span[hasclass('o_form_label')]" position="after">
+                <span class="o_form_label" invisible="not is_debit_note or move_type != 'out_invoice'">Customer Debit Note</span>
+            </xpath>
+
+            <!-- Only vendor debit notes hide `name` in favour of debit_note_number;
+                 customer debit notes are numbered on `name` directly. -->
             <field name="name" position="attributes">
-                <attribute name="invisible">is_debit_note or not (name or name_placeholder or quick_edit_mode)</attribute>
+                <attribute name="invisible">(is_debit_note and move_type == 'in_invoice') or not (name or name_placeholder or quick_edit_mode)</attribute>
             </field>
             <xpath expr="//h1/span" position="attributes">
-                <attribute name="invisible">is_debit_note or name or name_placeholder or quick_edit_mode</attribute>
+                <attribute name="invisible">(is_debit_note and move_type == 'in_invoice') or name or name_placeholder or quick_edit_mode</attribute>
             </xpath>
             <xpath expr="//h1/span" position="after">
-                <field name="debit_note_number" invisible="not is_debit_note"/>
+                <field name="debit_note_number" invisible="not is_debit_note or move_type != 'in_invoice'"/>
             </xpath>
 
             <field name="ref" position="attributes">

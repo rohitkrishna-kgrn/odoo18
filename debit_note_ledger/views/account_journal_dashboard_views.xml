@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Accounting > Dashboard: give the sale and purchase journal cards the
+         same Debit Note entries they already have for Credit Notes, in the
+         card's manage panel (the kebab menu). -->
+    <record id="account_journal_dashboard_kanban_view_debit_note" model="ir.ui.view">
+        <field name="name">account.journal.dashboard.kanban.debit.note</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.account_journal_dashboard_kanban_view"/>
+        <field name="arch" type="xml">
+
+            <!-- View > Debit Notes, right under Credit Notes / Refund. -->
+            <xpath expr="//div[@id='sale_purchase_refund']" position="after">
+                <div id="sale_purchase_debit_note">
+                    <a type="object" name="open_debit_note_ledger_action">Debit Notes</a>
+                </div>
+            </xpath>
+
+            <!-- New > Debit Note, right under Credit Note / Refund. The anchor
+                 is matched rather than the enclosing div because the sale and
+                 purchase panel shares its name with the bank one. -->
+            <xpath expr="//a[@name='action_create_new'][@context=&quot;{'refund':True}&quot;]/.." position="after">
+                <div>
+                    <a type="object" name="action_create_new" context="{'debit_note': True}">Debit Note</a>
+                </div>
+            </xpath>
+
+
+            <!-- Card face: a Debit Notes line alongside To Validate / Unpaid /
+                 Late, on both the Customer Invoices and Vendor Bills cards. -->
+            <xpath expr="//div[@t-if='dashboard.number_late']" position="after">
+                <div class="row" t-if="dashboard.number_debit_note">
+                    <div class="col overflow-hidden text-start">
+                        <a type="object" name="open_debit_note_ledger_action">
+                            <span title="Debit Notes"><t t-out="dashboard.number_debit_note"/> Debit Notes</span>
+                        </a>
+                    </div>
+                    <div class="col-auto text-end">
+                        <span dir="ltr"><t t-out="dashboard.sum_debit_note"/></span>
+                    </div>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

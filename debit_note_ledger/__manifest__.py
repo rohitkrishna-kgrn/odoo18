@@ -1,6 +1,6 @@
 {
     'name': 'Debit Note Ledger',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.3.0',
     'category': 'Accounting/Accounting',
     'summary': 'Dedicated ledger menus for Customer and Vendor Debit Notes',
     'description': """
@@ -12,6 +12,7 @@ Add Debit Note wizard, mirroring the existing Credit Notes / Refunds menus.
     'data': [
         'views/debit_note_menus.xml',
         'views/account_move_views.xml',
+        'views/account_journal_dashboard_views.xml',
     ],
     'installable': True,
     'application': False,
