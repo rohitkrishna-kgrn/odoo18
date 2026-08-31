@@ -1,0 +1,1313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- =========================================================
+         Paper Format
+         margin_top must leave room for the repeating logo header
+         (wkhtmltopdf clips painting to the margin box).
+    ========================================================== -->
+    <record id="paperformat_aml_user_manual" model="report.paperformat">
+        <field name="name">AML User Manual A4</field>
+        <field name="default">False</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">31</field>
+        <field name="margin_bottom">16</field>
+        <field name="margin_left">10</field>
+        <field name="margin_right">10</field>
+        <field name="header_line">False</field>
+        <field name="header_spacing">7</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <!-- =========================================================
+         Report Action
+    ========================================================== -->
+    <record id="action_report_aml_user_manual" model="ir.actions.report">
+        <field name="name">AML User Manual (PDF)</field>
+        <field name="model">aml.user.manual.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">aml_automation_extended_rk.report_aml_user_manual_document</field>
+        <field name="report_file">aml_automation_extended_rk.report_aml_user_manual_document</field>
+        <field name="print_report_name">'KGRN-AML-User-Manual'</field>
+        <field name="paperformat_id" ref="aml_automation_extended_rk.paperformat_aml_user_manual"/>
+    </record>
+
+    <!-- =========================================================
+         Repeating page header – KGRN logo on EVERY page.
+         Odoo lifts any top-level div.header out of the body and
+         feeds it to wkhtmltopdf as a repeating header, so it repeats.
+         Styles must be inline: the header is a separate document
+         and never sees the <style> block in the article.
+    ========================================================== -->
+    <template id="report_aml_user_manual_header">
+        <div class="header" style="font-family:'DejaVu Sans',Arial,sans-serif;">
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <td style="vertical-align:middle; padding:0 0 5px 0; border-bottom:2px solid #f25d23;">
+                        <t t-if="logo_src">
+                            <img t-att-src="logo_src"
+                                 style="max-height:34px; max-width:150px; display:block; border:0; background:#ffffff;"/>
+                        </t>
+                        <t t-else="">
+                            <span style="font-size:15px; font-weight:bold; color:#f25d23; letter-spacing:1px;">KGRN</span>
+                        </t>
+                    </td>
+                    <td style="vertical-align:middle; text-align:right; padding:0 0 5px 0; border-bottom:2px solid #f25d23;">
+                        <div style="font-size:9px; color:#2a2420; font-weight:bold; letter-spacing:0.4px;">
+                            AML / KYC AUTOMATION – USER MANUAL
+                        </div>
+                        <div style="font-size:7.5px; color:#9a8f88;">
+                            KGRN Chartered Accountants · Internal &amp; Confidential
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </template>
+
+    <!-- =========================================================
+         Repeating page footer – page X of Y on every page.
+    ========================================================== -->
+    <template id="report_aml_user_manual_footer">
+        <div class="footer" style="font-family:'DejaVu Sans',Arial,sans-serif;">
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <td style="font-size:7.5px; color:#9a8f88; padding-top:4px; border-top:1px solid #ecdfd3;">
+                        <t t-esc="doc_ref"/> · <t t-esc="doc_version"/>
+                    </td>
+                    <td style="font-size:7.5px; color:#9a8f88; padding-top:4px; text-align:center; border-top:1px solid #ecdfd3;">
+                        Uncontrolled when printed
+                    </td>
+                    <td style="font-size:7.5px; color:#9a8f88; padding-top:4px; text-align:right; border-top:1px solid #ecdfd3;">
+                        Page <span class="page"/> of <span class="topage"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </template>
+
+    <!-- =========================================================
+         Main document
+    ========================================================== -->
+    <template id="report_aml_user_manual_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-set="company" t-value="env.company"/>
+                <t t-set="white_logo" t-value="o.get_logo_white_jpeg()"/>
+                <t t-set="logo_src"
+                   t-value="image_data_uri(white_logo) if white_logo else (image_data_uri(company.logo) if company.logo else False)"/>
+                <t t-set="doc_ref" t-value="'KGRN-AML-MAN-01'"/>
+                <t t-set="doc_version" t-value="'v' + (env['ir.module.module'].sudo().search([('name','=','aml_automation_extended_rk')], limit=1).installed_version or '18.0')"/>
+                <t t-set="today" t-value="context_timestamp(datetime.datetime.now()).strftime('%d %B %Y')"/>
+
+                <t t-call="aml_automation_extended_rk.report_aml_user_manual_header"/>
+                <t t-call="aml_automation_extended_rk.report_aml_user_manual_footer"/>
+
+                <div class="article" style="font-family:'DejaVu Sans',Arial,sans-serif;">
+
+                    <style>
+                        /* Prefixed to avoid colliding with the Bootstrap .container
+                           that web.minimal_layout puts on the PDF body. */
+                        .amlman { color:#2a2420; font-size:9.5px; line-height:1.55; }
+                        .amlman h1 { font-size:20px; color:#f25d23; margin:0 0 4px; font-weight:bold; }
+                        .amlman h2 { font-size:13px; margin-top:0; line-height:1.5; color:#ffffff; background:#f25d23;
+                                     margin:0 0 10px; padding:6px 10px; font-weight:bold; }
+                        .amlman h3 { font-size:11px; color:#c2481a; margin:14px 0 6px;
+                                     padding-bottom:3px; border-bottom:1px solid #ecdfd3; font-weight:bold; }
+                        .amlman h4 { font-size:10px; color:#2a2420; margin:10px 0 4px; font-weight:bold; }
+                        .amlman p  { margin:0 0 8px; }
+                        .amlman ul, .amlman ol { margin:0 0 9px; padding-left:16px; }
+                        .amlman li { margin-bottom:3px; }
+                        .amlman-break { page-break-before:always; padding-top:9px; }
+                        .amlman-keep  { page-break-inside:avoid; }
+                        .amlman-tbl { width:100%; border-collapse:collapse; margin:0 0 12px;
+                                      font-size:8.6px; page-break-inside:auto; }
+                        .amlman-tbl th { background:#f25d23; color:#ffffff; text-align:left;
+                                         padding:5px 7px; font-weight:bold; font-size:8.6px;
+                                         border:1px solid #f25d23; }
+                        .amlman-tbl td { padding:4px 7px; border:1px solid #ecdfd3;
+                                         vertical-align:top; }
+                        .amlman-tbl tr:nth-child(even) td { background:#faf5f2; }
+                        .amlman-note { background:#fffbe6; border:1px solid #f0c36d;
+                                       border-left:3px solid #e0a800; padding:7px 10px;
+                                       margin:0 0 12px; font-size:8.8px; }
+                        .amlman-tip { background:#f2f8f4; border:1px solid #cfe6d6;
+                                      border-left:3px solid #2e7d32; padding:7px 10px;
+                                      margin:0 0 12px; font-size:8.8px; }
+                        .amlman-card { background:#faf5f2; border-left:3px solid #f25d23;
+                                       padding:8px 11px; margin:0 0 12px; }
+                        .amlman-chip { display:inline-block; padding:1px 7px; border-radius:8px;
+                                       font-size:7.6px; color:#ffffff; font-weight:bold; }
+                        .amlman-mono { font-family:'DejaVu Sans Mono',monospace; font-size:8.2px;
+                                       background:#f3efec; padding:0 3px; }
+                        .amlman-muted { color:#8a807a; }
+                        .amlman-yes { color:#2e7d32; font-weight:bold; }
+                        .amlman-no  { color:#b0a9a4; }
+                    </style>
+
+                    <div class="amlman">
+
+                    <!-- ================================================
+                         COVER
+                    ================================================= -->
+                    <div style="margin-top:40px;">
+                        <table style="width:100%; border-collapse:collapse;">
+                            <tr>
+                                <td style="text-align:center; padding:0 0 26px;">
+                                    <t t-if="logo_src">
+                                        <img t-att-src="logo_src"
+                                             style="max-height:78px; max-width:280px; border:0; background:#ffffff;"/>
+                                    </t>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div style="background:#f25d23; color:#ffffff; padding:26px 30px;">
+                            <div style="font-size:9px; letter-spacing:2.5px; opacity:0.9;">
+                                KGRN CHARTERED ACCOUNTANTS
+                            </div>
+                            <div style="font-size:25px; font-weight:bold; margin-top:8px; line-height:1.2;">
+                                AML / KYC Automation
+                            </div>
+                            <div style="font-size:16px; margin-top:2px;">User Manual &amp; Operating Instructions</div>
+                            <div style="font-size:9px; margin-top:14px; border-top:1px solid #f9a882; padding-top:10px;">
+                                Role-based guide for Salespersons, AML Officers, AML Managers,
+                                Administrators and Clients
+                            </div>
+                        </div>
+
+                        <table class="amlman-tbl" style="margin-top:22px;">
+                            <tr>
+                                <th style="width:26%;">Document Reference</th>
+                                <td style="width:24%;"><t t-esc="doc_ref"/></td>
+                                <th style="width:26%;">Version</th>
+                                <td style="width:24%;"><t t-esc="doc_version"/></td>
+                            </tr>
+                            <tr>
+                                <th>System / Module</th>
+                                <td>Odoo 18 – <span class="amlman-mono">aml_automation_extended_rk</span></td>
+                                <th>Issue Date</th>
+                                <td><t t-esc="today"/></td>
+                            </tr>
+                            <tr>
+                                <th>Applies To</th>
+                                <td><t t-esc="company.name"/></td>
+                                <th>Classification</th>
+                                <td>Internal – Confidential</td>
+                            </tr>
+                            <tr>
+                                <th>Prepared By</th>
+                                <td>Compliance / IT</td>
+                                <th>Next Review</th>
+                                <td>Annually, or on any change to the AML workflow</td>
+                            </tr>
+                        </table>
+
+                        <div class="amlman-note">
+                            <strong>Regulatory context.</strong> This system supports
+                            <t t-esc="company.name"/>'s obligations under the UAE AML/CFT framework
+                            (Federal Decree-Law No. 20 of 2018 and Cabinet Decision No. 10 of 2019) for
+                            customer due diligence, beneficial-ownership identification, PEP and
+                            sanctions screening, and record keeping. It records the workflow; it does not
+                            replace the professional judgement of the Compliance Officer.
+                        </div>
+
+                        <h3>Document control</h3>
+                        <table class="amlman-tbl">
+                            <tr>
+                                <th style="width:14%;">Version</th>
+                                <th style="width:16%;">Date</th>
+                                <th style="width:26%;">Prepared by</th>
+                                <th style="width:26%;">Approved by</th>
+                                <th style="width:18%;">Summary</th>
+                            </tr>
+                            <tr>
+                                <td><t t-esc="doc_version"/></td>
+                                <td><t t-esc="today"/></td>
+                                <td>&#160;</td>
+                                <td>&#160;</td>
+                                <td>Initial issue</td>
+                            </tr>
+                            <tr><td>&#160;</td><td>&#160;</td><td>&#160;</td><td>&#160;</td><td>&#160;</td></tr>
+                            <tr><td>&#160;</td><td>&#160;</td><td>&#160;</td><td>&#160;</td><td>&#160;</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- ================================================
+                         HOW TO USE + CONTENTS
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>How to use this manual</h2>
+                        <p>
+                            The manual is organised <strong>by access level</strong>. Read Sections 1 and 2
+                            for context, then go straight to the section for your own role. Every action
+                            described in a role section is one that role is actually permitted to perform –
+                            if a button is not in your section, it will not appear on your screen.
+                        </p>
+
+                        <table class="amlman-tbl">
+                            <tr>
+                                <th style="width:26%;">If you are…</th>
+                                <th style="width:34%;">Your Odoo access</th>
+                                <th style="width:40%;">Read these sections</th>
+                            </tr>
+                            <tr>
+                                <td><span class="amlman-chip" style="background:#1565c0;">SALES</span>
+                                    &#160;Salesperson / Engagement owner</td>
+                                <td>Sales access only. No AML group.</td>
+                                <td>1, 2, <strong>3</strong>, 8, 11, 12</td>
+                            </tr>
+                            <tr>
+                                <td><span class="amlman-chip" style="background:#00796b;">OFFICER</span>
+                                    &#160;AML Officer</td>
+                                <td>Group <span class="amlman-mono">AML User</span></td>
+                                <td>1, 2, <strong>4</strong>, 8, 9, 10, 11, 12</td>
+                            </tr>
+                            <tr>
+                                <td><span class="amlman-chip" style="background:#f25d23;">MANAGER</span>
+                                    &#160;AML Manager / Compliance Officer</td>
+                                <td>Group <span class="amlman-mono">AML Manager</span>
+                                    (includes all AML User rights)</td>
+                                <td>All sections</td>
+                            </tr>
+                            <tr>
+                                <td><span class="amlman-chip" style="background:#5e35b1;">ADMIN</span>
+                                    &#160;System Administrator</td>
+                                <td>Group <span class="amlman-mono">Settings</span>
+                                    (<span class="amlman-mono">base.group_system</span>)</td>
+                                <td>1, 2, <strong>6</strong>, 9, 11</td>
+                            </tr>
+                            <tr>
+                                <td><span class="amlman-chip" style="background:#6b625c;">CLIENT</span>
+                                    &#160;Client / external contact</td>
+                                <td>No login. Secure emailed link only.</td>
+                                <td><strong>7</strong>, 10</td>
+                            </tr>
+                        </table>
+
+                        <h3>Contents</h3>
+                        <table class="amlman-tbl">
+                            <tr><th style="width:8%;">§</th><th style="width:56%;">Section</th><th style="width:36%;">Audience</th></tr>
+                            <tr><td>1</td><td>System overview and end-to-end process</td><td>Everyone</td></tr>
+                            <tr><td>2</td><td>Access rights matrix – who can do what</td><td>Everyone</td></tr>
+                            <tr><td>3</td><td>Salesperson instructions</td><td>Salesperson</td></tr>
+                            <tr><td>4</td><td>AML Officer instructions</td><td>AML User</td></tr>
+                            <tr><td>5</td><td>AML Manager instructions</td><td>AML Manager</td></tr>
+                            <tr><td>6</td><td>Administrator instructions</td><td>Settings / IT</td></tr>
+                            <tr><td>7</td><td>Client instructions – the KYC web form</td><td>Client</td></tr>
+                            <tr><td>8</td><td>Status reference</td><td>Everyone</td></tr>
+                            <tr><td>9</td><td>Automated notifications and scheduled reports</td><td>AML, Admin</td></tr>
+                            <tr><td>10</td><td>Document checklists</td><td>AML, Client</td></tr>
+                            <tr><td>11</td><td>Troubleshooting</td><td>Everyone</td></tr>
+                            <tr><td>12</td><td>Glossary and sign-off</td><td>Everyone</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- ================================================
+                         1. OVERVIEW
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>1. System overview and end-to-end process</h2>
+
+                        <div class="amlman-card">
+                            <strong>What the module does.</strong> When a sale order is approved, the system
+                            creates an AML request, emails the client a secure KYC web form (no login
+                            required), collects the completed form and supporting documents, routes it
+                            through AML Manager review and AML Officer investigation, and blocks project
+                            creation until AML/KYC is completed. Every action is recorded in the record's
+                            chatter for audit.
+                        </div>
+
+                        <h3>1.1 The eleven-step process</h3>
+                        <table class="amlman-tbl">
+                            <tr>
+                                <th style="width:5%;">#</th>
+                                <th style="width:20%;">Stage</th>
+                                <th style="width:52%;">What happens</th>
+                                <th style="width:23%;">Responsible</th>
+                            </tr>
+                            <tr><td>1</td><td>Quotation</td>
+                                <td>Salesperson sets <strong>KYC Type</strong> (Entity or Individual) on the sale
+                                    order. The field is mandatory – the order cannot be saved without it.</td>
+                                <td>Salesperson</td></tr>
+                            <tr><td>2</td><td>Order approval</td>
+                                <td>Sale order is approved. The system creates a <strong>Draft</strong> AML request,
+                                    generates a unique secure token, pre-loads the document checklist for the
+                                    KYC type, and emails the form link to the client.</td>
+                                <td>System (automatic)</td></tr>
+                            <tr><td>3</td><td>Client completes form</td>
+                                <td>Client fills the 7-step web form and signs it. The AML reference
+                                    (<span class="amlman-mono">AML000001</span>…) is assigned on submission,
+                                    the status becomes <strong>New Request</strong>, and a
+                                    <strong>24-hour deadline</strong> is set automatically.</td>
+                                <td>Client</td></tr>
+                            <tr><td>4</td><td>Manager triage</td>
+                                <td>AML Manager opens <em>AML &gt; New AML Requests</em> and chooses
+                                    <strong>Accept</strong>, <strong>Bypass</strong> or <strong>Cancel</strong>.</td>
+                                <td>AML Manager</td></tr>
+                            <tr><td>5</td><td>Assignment</td>
+                                <td>AML Manager sets the <strong>AML Officer</strong> on the request. The officer
+                                    receives an assignment email and the record appears in their pipeline.</td>
+                                <td>AML Manager</td></tr>
+                            <tr><td>6</td><td>Investigation</td>
+                                <td>Officer clicks <strong>Start Investigation</strong>; the exact start
+                                    date/time is stamped on the record. Screening is performed outside Odoo
+                                    (sanctions / PEP / adverse media) and the outcome recorded here.</td>
+                                <td>AML Officer</td></tr>
+                            <tr><td>7</td><td>Screening outcome</td>
+                                <td>Officer clicks <strong>No HIT</strong> (clean) or
+                                    <strong>HIT Detected</strong> (potential match).</td>
+                                <td>AML Officer</td></tr>
+                            <tr><td>8</td><td>Additional documents</td>
+                                <td>If a HIT is detected – or at any point during the investigation – the
+                                    officer lists the extra documents needed. The client receives a second
+                                    secure upload link.</td>
+                                <td>AML Officer → Client</td></tr>
+                            <tr><td>9</td><td>Client responds</td>
+                                <td>Client uploads the requested documents; status becomes
+                                    <strong>Additional Info Received</strong> and AML Managers plus the
+                                    assigned officer are notified.</td>
+                                <td>Client</td></tr>
+                            <tr><td>10</td><td>Decision</td>
+                                <td><strong>Approve</strong> or <strong>Reject</strong>. Management, AML
+                                    Managers and the salesperson are notified as applicable.</td>
+                                <td>AML Manager / Officer</td></tr>
+                            <tr><td>11</td><td>Engagement proceeds</td>
+                                <td>Once the request is <strong>Approved</strong> or <strong>Bypassed</strong>,
+                                    the sale order shows <strong>AML/KYC Completed</strong> and a project can
+                                    be created for the engagement.</td>
+                                <td>Salesperson</td></tr>
+                        </table>
+
+                        <h3>1.2 Status flow at a glance</h3>
+                        <table class="amlman-tbl amlman-keep">
+                            <tr>
+                                <th style="width:22%;">From</th>
+                                <th style="width:30%;">Action</th>
+                                <th style="width:22%;">To</th>
+                                <th style="width:26%;">Who</th>
+                            </tr>
+                            <tr><td>–</td><td>Sale order approved</td><td>Draft</td><td>System</td></tr>
+                            <tr><td>Draft</td><td>Client submits KYC form</td><td>New Request</td><td>Client</td></tr>
+                            <tr><td>New Request</td><td>Accept</td><td>Accepted</td><td>AML Manager</td></tr>
+                            <tr><td>New Request</td><td>Bypass (no AML required)</td><td>Bypassed <span class="amlman-muted">(closed)</span></td><td>AML Manager</td></tr>
+                            <tr><td>New Request</td><td>Cancel</td><td>Cancelled <span class="amlman-muted">(closed)</span></td><td>AML Manager</td></tr>
+                            <tr><td>Accepted</td><td>Start Investigation</td><td>In Progress</td><td>AML Officer</td></tr>
+                            <tr><td>In Progress</td><td>No HIT</td><td>No HIT</td><td>AML Officer</td></tr>
+                            <tr><td>In Progress</td><td>HIT Detected</td><td>HIT Detected</td><td>AML Officer</td></tr>
+                            <tr><td>HIT Detected</td><td>Client uploads additional documents</td><td>Additional Info Received</td><td>Client</td></tr>
+                            <tr><td>Additional Info Received</td><td>Approve</td><td>Approved <span class="amlman-muted">(closed)</span></td><td>AML Manager / Officer</td></tr>
+                            <tr><td>Additional Info Received</td><td>Reject</td><td>Rejected <span class="amlman-muted">(closed)</span></td><td>AML Manager / Officer</td></tr>
+                            <tr><td>No HIT</td><td>Approve</td><td>Approved <span class="amlman-muted">(closed)</span></td><td>AML Manager / Officer</td></tr>
+                            <tr><td>Any open status</td><td>Sale order cancelled</td><td>Cancelled <span class="amlman-muted">(closed)</span></td><td>System</td></tr>
+                        </table>
+
+                        <div class="amlman-note">
+                            <strong>The AML gate.</strong> A project cannot be created for an engagement until the
+                            latest AML request on that sale order is <strong>Approved</strong> or
+                            <strong>Bypassed</strong>. Only a System Administrator can override this, and only
+                            with a written reason that is stored on the order (see Section 6).
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         2. ACCESS MATRIX
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>2. Access rights matrix – who can do what</h2>
+
+                        <p>
+                            Access is controlled by two Odoo groups under
+                            <em>Settings &gt; Users &amp; Companies &gt; Users &gt; AML Automation</em>:
+                            <strong>AML User</strong> and <strong>AML Manager</strong>.
+                            AML Manager <em>includes</em> every AML User right, so a manager never needs both.
+                            Users with neither group do not see the AML application at all.
+                        </p>
+
+                        <h3>2.1 Menu visibility</h3>
+                        <table class="amlman-tbl">
+                            <tr>
+                                <th style="width:36%;">Menu</th>
+                                <th style="width:16%;">No AML group</th>
+                                <th style="width:16%;">AML User</th>
+                                <th style="width:16%;">AML Manager</th>
+                                <th style="width:16%;">Shows</th>
+                            </tr>
+                            <tr><td><strong>AML</strong> (application)</td>
+                                <td class="amlman-no">Hidden</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td>–</td></tr>
+                            <tr><td>AML &gt; New AML Requests</td>
+                                <td class="amlman-no">Hidden</td><td class="amlman-no">Hidden</td><td class="amlman-yes">Yes</td>
+                                <td>Requests awaiting triage (status = New Request)</td></tr>
+                            <tr><td>AML &gt; AML Pipeline</td>
+                                <td class="amlman-no">Hidden</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td>
+                                <td>Kanban of all non-draft requests</td></tr>
+                            <tr><td>AML &gt; All Records</td>
+                                <td class="amlman-no">Hidden</td><td class="amlman-no">Hidden</td><td class="amlman-yes">Yes</td>
+                                <td>Every AML request including drafts</td></tr>
+                            <tr><td>AML &gt; User Manual</td>
+                                <td class="amlman-no">Hidden</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td>
+                                <td>On-screen reference guide</td></tr>
+                        </table>
+
+                        <div class="amlman-note">
+                            <strong>Record-level rule – read this carefully.</strong> An <strong>AML User</strong>
+                            can only see the requests where they are named as the <strong>AML Officer</strong>.
+                            The AML Pipeline is therefore <em>your</em> pipeline, not the team's. An
+                            <strong>AML Manager</strong> sees every request regardless of assignment. A newly
+                            accepted request is invisible to officers until a manager assigns it.
+                        </div>
+
+                        <h3>2.2 Data permissions</h3>
+                        <table class="amlman-tbl">
+                            <tr>
+                                <th style="width:36%;">Record</th>
+                                <th style="width:32%;">AML User</th>
+                                <th style="width:32%;">AML Manager</th>
+                            </tr>
+                            <tr><td>AML Request</td>
+                                <td>Read + edit <strong>own assigned</strong> only. No create, no delete.</td>
+                                <td>Read, edit, create and delete <strong>all</strong>.</td></tr>
+                            <tr><td>Directors / Shareholders lines</td>
+                                <td>Read, edit, add. No delete.</td>
+                                <td>Read, edit, add, delete.</td></tr>
+                            <tr><td>Preliminary Information documents</td>
+                                <td>Read, edit, add. No delete.</td>
+                                <td>Read, edit, add, delete.</td></tr>
+                            <tr><td>HIT document requests</td>
+                                <td>Read, edit, add. No delete.</td>
+                                <td>Read, edit, add, delete.</td></tr>
+                            <tr><td>Additional-documents wizards</td>
+                                <td>Full use.</td><td>Full use.</td></tr>
+                        </table>
+
+                        <h3>2.3 Button and field permissions</h3>
+                        <table class="amlman-tbl">
+                            <tr>
+                                <th style="width:30%;">Action</th>
+                                <th style="width:26%;">Available in status</th>
+                                <th style="width:12%;">Sales</th>
+                                <th style="width:12%;">Officer</th>
+                                <th style="width:12%;">Manager</th>
+                                <th style="width:8%;">Admin</th>
+                            </tr>
+                            <tr><td>Set KYC Type on sale order</td><td>Quotation (mandatory)</td>
+                                <td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td></tr>
+                            <tr><td>Resend KYC Form Email</td><td>Draft, New Request</td>
+                                <td class="amlman-no">–</td><td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>Accept</td><td>New Request</td>
+                                <td class="amlman-no">–</td><td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>Bypass (No AML Required)</td><td>New Request</td>
+                                <td class="amlman-no">–</td><td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>Cancel</td><td>New Request</td>
+                                <td class="amlman-no">–</td><td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>Assign / change AML Officer</td><td>Any open status</td>
+                                <td class="amlman-no">–</td><td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>Set / change Deadline</td><td>Any open status</td>
+                                <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>Start Investigation</td><td>Accepted</td>
+                                <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>No HIT</td><td>In Progress</td>
+                                <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>HIT Detected</td><td>In Progress</td>
+                                <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>Additional Documents</td><td>In Progress, No HIT</td>
+                                <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>Approve</td><td>Additional Info Received, No HIT</td>
+                                <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>Reject</td><td>Additional Info Received</td>
+                                <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>Print AML KYC Report (PDF)</td><td>All except Draft</td>
+                                <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>Open AML smart button on sale order</td><td>Any</td>
+                                <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
+                            <tr><td>AML Gate Override on sale order</td><td>While AML not completed</td>
+                                <td class="amlman-no">–</td><td class="amlman-no">–</td><td class="amlman-no">–</td><td class="amlman-yes">Yes</td></tr>
+                        </table>
+
+                        <div class="amlman-tip">
+                            <strong>Enforced twice.</strong> The manager-only actions are hidden from the screen
+                            <em>and</em> re-checked in the server code. Attempting them another way returns
+                            <em>"Only AML Managers can accept / bypass / cancel requests"</em> or
+                            <em>"Only AML Managers can reassign the AML Officer"</em>.
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         3. SALESPERSON
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>3. Instructions for the Salesperson</h2>
+                        <p class="amlman-muted">
+                            <span class="amlman-chip" style="background:#1565c0;">SALES</span>
+                            &#160;Applies to anyone who raises and approves sale orders. No AML group needed.
+                        </p>
+
+                        <h3>3.1 Before you approve the order</h3>
+                        <ol>
+                            <li>Open the quotation and make sure the <strong>Customer</strong> has a valid
+                                <strong>email address</strong>. Without it the KYC form is never sent and no
+                                AML request is created at all.</li>
+                            <li>Set <strong>KYC Type</strong>, shown as radio buttons just under the customer:
+                                <ul>
+                                    <li><strong>Entity</strong> – company, establishment, partnership, trust or
+                                        any other legal person. Produces the full corporate KYC form including
+                                        UBO, directors and shareholder registers.</li>
+                                    <li><strong>Individual</strong> – a natural person. Produces the shorter
+                                        personal KYC form.</li>
+                                </ul>
+                                This field is mandatory and drives the entire form the client receives, so
+                                take a moment to get it right.</li>
+                            <li>Approve the order as usual.</li>
+                        </ol>
+
+                        <h3>3.2 What happens automatically</h3>
+                        <ul>
+                            <li>An AML request is created in <strong>Draft</strong>.</li>
+                            <li>The document checklist for the chosen KYC type is pre-loaded
+                                (15 documents for an entity, 5 for an individual).</li>
+                            <li>The client is emailed a branded message with a secure
+                                <strong>Complete KYC Form</strong> button.</li>
+                            <li>An <strong>AML</strong> smart button appears on the order (visible to AML staff).</li>
+                        </ul>
+
+                        <h3>3.3 Tracking progress without AML access</h3>
+                        <p>
+                            You do not need AML rights to know where a client stands. The sale order carries a
+                            read-only <strong>AML/KYC Completed</strong> checkbox directly under the customer:
+                        </p>
+                        <ul>
+                            <li><strong>Ticked</strong> – the most recent AML request is Approved or Bypassed.
+                                You may create the project and proceed with the engagement.</li>
+                            <li><strong>Unticked</strong> – AML is still open, or was rejected or cancelled.
+                                Project creation is blocked.</li>
+                        </ul>
+                        <p>
+                            You will also be emailed automatically whenever a request for one of your orders is
+                            <strong>Bypassed</strong> or <strong>Cancelled</strong>.
+                        </p>
+
+                        <h3>3.4 What to do when the client does not respond</h3>
+                        <ol>
+                            <li>Confirm the email address on the customer record is correct.</li>
+                            <li>Ask an <strong>AML Manager</strong> to use <strong>Resend KYC Form Email</strong>
+                                on the request. Only they can do this.</li>
+                            <li>If the engagement is dropped, cancel the sale order – the linked AML request is
+                                cancelled automatically and no further reminders are sent.</li>
+                        </ol>
+
+                        <div class="amlman-note">
+                            <strong>Do not ask for an override as a shortcut.</strong> The AML gate exists to keep
+                            the firm compliant. An override is an audited exception recorded against your order
+                            with the administrator's name, the reason and the timestamp; it is not a way to save
+                            time on a slow client.
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         4. AML OFFICER
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>4. Instructions for the AML Officer</h2>
+                        <p class="amlman-muted">
+                            <span class="amlman-chip" style="background:#00796b;">OFFICER</span>
+                            &#160;Group <span class="amlman-mono">AML User</span>. You see only the requests
+                            assigned to you.
+                        </p>
+
+                        <h3>4.1 Your daily starting point</h3>
+                        <p>
+                            Open <strong>AML &gt; AML Pipeline</strong>. The kanban board groups your assigned
+                            requests by status, so your working columns are <em>Accepted</em>,
+                            <em>In Progress</em>, <em>HIT Detected</em> and <em>Additional Info Received</em>.
+                            Use the search panel filters (New Requests, In Progress, HIT Detected, Additional
+                            Info, No HIT, Approved, Bypassed, Cancelled) or group by Status, KYC Type or AML
+                            Officer to narrow the list.
+                        </p>
+                        <p>
+                            If the board is empty, nothing has been assigned to you yet – that is expected, not
+                            a fault. Ask your AML Manager to assign the case.
+                        </p>
+
+                        <h3>4.2 Reviewing what the client submitted</h3>
+                        <p>Open the request and work through the tabs:</p>
+                        <table class="amlman-tbl">
+                            <tr><th style="width:32%;">Tab</th><th style="width:68%;">What to check</th></tr>
+                            <tr><td>KYC – Entity <span class="amlman-muted">(entity only)</span></td>
+                                <td>Licence number and expiry, registered and business address, ownership
+                                    complexity, high-risk jurisdiction answer, payment channels, cash-transaction
+                                    band, top-5 suppliers and customers, sanctions declaration and all seven PEP
+                                    questions.</td></tr>
+                            <tr><td>KYC – Individual <span class="amlman-muted">(individual only)</span></td>
+                                <td>Identity document type, number, issuing country and expiry; addresses;
+                                    source of funds; expected turnover; dual citizenship; high-net-worth flag;
+                                    verification method (portal / UAE Pass, physical, video KYC).</td></tr>
+                            <tr><td>UBO</td>
+                                <td>Ultimate beneficial owner identity, nationality, dual citizenship,
+                                    source of income, whether shares are held on behalf of another person,
+                                    high-risk jurisdiction exposure and bank details.</td></tr>
+                            <tr><td>Directors / Managers</td>
+                                <td>Every director with position, nationality, ID/passport number, appointment
+                                    date and status. Their uploaded ID documents are listed underneath with
+                                    Preview and Download buttons.</td></tr>
+                            <tr><td>Shareholders</td>
+                                <td>Shareholder register with type, share class, number of shares and
+                                    percentage holding. Confirm the percentages are complete and that anyone at
+                                    or above the UBO threshold appears on the UBO tab.</td></tr>
+                            <tr><td>Preliminary Information</td>
+                                <td>The document checklist. Mandatory items are flagged. Use
+                                    <strong>Preview</strong> to read a file in the browser and
+                                    <strong>Download</strong> to save it; where several files were uploaded for
+                                    one line, a pop-up lists them all.</td></tr>
+                            <tr><td>HIT Document Requests</td>
+                                <td>Appears once you have requested additional documents. Shows each requested
+                                    document, your note to the client, the client's reply note, whether it has
+                                    been submitted and the uploaded files.</td></tr>
+                            <tr><td>Additional Information</td>
+                                <td>Appears once the client has responded. Contains their free-text notes and
+                                    the uploaded files.</td></tr>
+                        </table>
+                        <p>
+                            The header also shows the client's electronic <strong>signature</strong>, the
+                            signatory's name and the exact date and time of signing.
+                        </p>
+
+                        <h3>4.3 Running the investigation</h3>
+                        <ol>
+                            <li><strong>Start Investigation</strong> – click as soon as you genuinely begin.
+                                The timestamp is your audit evidence of turnaround time, so do not click it in
+                                advance.</li>
+                            <li>Perform the screening outside Odoo per firm policy: UN / UAE Local Terrorist
+                                lists and other applicable sanctions lists, PEP databases and adverse media,
+                                for the client and for every UBO, director and shareholder disclosed.</li>
+                            <li>Record the outcome:
+                                <ul>
+                                    <li><strong>No HIT</strong> – nothing found. A green ribbon appears; AML
+                                        Managers and Management are emailed.</li>
+                                    <li><strong>HIT Detected</strong> – a potential or confirmed match. A red
+                                        ribbon appears and the additional-documents wizard opens immediately.</li>
+                                </ul>
+                            </li>
+                            <li>Attach or note your screening evidence in the chatter so the file is
+                                self-contained for a regulator or an external auditor.</li>
+                        </ol>
+
+                        <h3>4.4 Requesting additional documents</h3>
+                        <p>
+                            Use <strong>Additional Documents</strong> while the request is
+                            <em>In Progress</em>, or complete the wizard that opens automatically after
+                            <strong>HIT Detected</strong>. For each document add a line:
+                        </p>
+                        <ul>
+                            <li><strong>Document Name</strong> (required) – exactly what you want, e.g.
+                                "Updated Trade Licence valid beyond 31/12/2026". Vague names cause a second
+                                round trip.</li>
+                            <li><strong>Description / Guidance</strong> – the detail the client needs. It is
+                                shown both in the email and on the upload page.</li>
+                            <li><strong>Reference File</strong> – an optional sample or blank template the
+                                client can download.</li>
+                        </ul>
+                        <p>
+                            Click <strong>Send Request to Client</strong> / <strong>Send Mail</strong>. A fresh
+                            single-use upload link is generated and emailed. Sending a new request replaces any
+                            earlier request the client has not yet answered.
+                        </p>
+
+                        <div class="amlman-note">
+                            <strong>Request additional documents from <em>In Progress</em>, not from
+                            <em>No HIT</em>.</strong> Requesting them from the No HIT status moves the record
+                            straight to <em>Additional Info Received</em>, and the upload link the client
+                            receives will show "Form Expired". If you still need documents after marking No
+                            HIT, ask your AML Manager to handle it rather than sending a link the client
+                            cannot use.
+                        </div>
+
+                        <h3>4.5 Closing the case</h3>
+                        <ul>
+                            <li><strong>Approve</strong> – available from <em>Additional Info Received</em> and
+                                directly from <em>No HIT</em>. Marks the client cleared; the sale order's
+                                AML/KYC Completed flag is set and the engagement can proceed.</li>
+                            <li><strong>Reject</strong> – available from <em>Additional Info Received</em>.
+                                Closes the request; the engagement stays blocked.</li>
+                            <li><strong>Print &gt; AML KYC Report</strong> – produces the full KYC PDF for the
+                                client file. Available in every status except Draft.</li>
+                        </ul>
+
+                        <div class="amlman-tip">
+                            <strong>Housekeeping.</strong> You cannot delete an AML request or its lines, by
+                            design – the audit trail must stay intact. If something must be removed, ask an
+                            AML Manager.
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         5. AML MANAGER
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>5. Instructions for the AML Manager</h2>
+                        <p class="amlman-muted">
+                            <span class="amlman-chip" style="background:#f25d23;">MANAGER</span>
+                            &#160;Group <span class="amlman-mono">AML Manager</span>. Full visibility of every
+                            request plus all AML Officer rights.
+                        </p>
+
+                        <h3>5.1 Triage – New AML Requests</h3>
+                        <p>
+                            <strong>AML &gt; New AML Requests</strong> lists everything a client has submitted
+                            and nobody has actioned. Open each one, read the submission, then choose:
+                        </p>
+                        <table class="amlman-tbl">
+                            <tr><th style="width:22%;">Action</th><th style="width:46%;">Use when</th><th style="width:32%;">Effect</th></tr>
+                            <tr><td><strong>Accept</strong></td>
+                                <td>AML due diligence is required – the normal case.</td>
+                                <td>Status → Accepted. Ready for assignment and investigation.</td></tr>
+                            <tr><td><strong>Bypass<br/>(No AML Required)</strong></td>
+                                <td>The client is out of scope for AML/CFT customer due diligence under firm
+                                    policy. Record why in the chatter before you click.</td>
+                                <td>Status → Bypassed, request closed, AML/KYC counts as completed.
+                                    Management and the salesperson are emailed.</td></tr>
+                            <tr><td><strong>Cancel</strong></td>
+                                <td>The submission is invalid, duplicated, or the engagement is not going
+                                    ahead.</td>
+                                <td>Status → Cancelled, request closed, AML/KYC does <em>not</em> count as
+                                    completed. Management and the salesperson are emailed.</td></tr>
+                        </table>
+                        <p>
+                            All three are available <strong>only from New Request</strong>. Once you have
+                            accepted a request you cannot bypass or cancel it from the buttons.
+                        </p>
+
+                        <div class="amlman-note">
+                            <strong>Bypass is a compliance decision, not an administrative one.</strong> It marks
+                            the client as AML-completed and unblocks the engagement without any screening.
+                            Use it only where firm policy genuinely exempts the client, and always leave the
+                            reason in the chatter – that note is the evidence a reviewer will look for.
+                        </div>
+
+                        <h3>5.2 Assigning the case</h3>
+                        <ol>
+                            <li>Open the request and set <strong>AML Officer</strong> in <em>Request Details</em>.
+                                The field is visible to managers only.</li>
+                            <li>Saving sends the officer an assignment email and makes the record visible to
+                                them – until then, no officer can see it.</li>
+                            <li>Adjust the <strong>Deadline</strong> if the automatic 24 hours from submission
+                                is not appropriate.</li>
+                            <li>Reassign at any time by changing the field; the new officer is notified and the
+                                change is tracked in the chatter.</li>
+                        </ol>
+
+                        <h3>5.3 Oversight</h3>
+                        <ul>
+                            <li><strong>AML &gt; All Records</strong> – every request in every status, including
+                                drafts where the client has not yet submitted. Use the Status / KYC Type / AML
+                                Officer grouping to see workload and ageing at a glance.</li>
+                            <li><strong>AML &gt; AML Pipeline</strong> – the kanban board across all officers.</li>
+                            <li>Overdue and at-risk records are highlighted in the list view.</li>
+                            <li>You receive the <strong>every-two-days</strong> digest of requests pending more
+                                than one day (Section 9).</li>
+                        </ul>
+
+                        <h3>5.4 Resending the KYC form</h3>
+                        <p>
+                            <strong>Resend KYC Form Email</strong> appears on requests in <em>Draft</em> or
+                            <em>New Request</em>. It re-sends the same secure link to the client's email
+                            address. Use it when the client says the message never arrived or was deleted;
+                            check the address on the customer record first.
+                        </p>
+
+                        <h3>5.5 Manager-only rights summary</h3>
+                        <ul>
+                            <li>See and edit every AML request, whoever it is assigned to.</li>
+                            <li>Create and delete AML requests and their lines.</li>
+                            <li>Accept, Bypass and Cancel.</li>
+                            <li>Assign and reassign the AML Officer.</li>
+                            <li>Resend the KYC form email.</li>
+                            <li>Everything an AML Officer can do, on any record.</li>
+                        </ul>
+
+                        <div class="amlman-tip">
+                            <strong>Reviewing before approval.</strong> Approve and Reject are open to the assigned
+                            officer as well as to you. If your policy requires a second pair of eyes before
+                            approval, make that a documented supervisory review – the system does not force a
+                            separate approver.
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         6. ADMINISTRATOR
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>6. Instructions for the System Administrator</h2>
+                        <p class="amlman-muted">
+                            <span class="amlman-chip" style="background:#5e35b1;">ADMIN</span>
+                            &#160;Group <span class="amlman-mono">Settings</span> /
+                            <span class="amlman-mono">base.group_system</span>.
+                        </p>
+
+                        <h3>6.1 Granting access</h3>
+                        <ol>
+                            <li><em>Settings &gt; Users &amp; Companies &gt; Users</em>, open the user.</li>
+                            <li>Under the <strong>AML Automation</strong> category choose
+                                <strong>AML User</strong> or <strong>AML Manager</strong>.</li>
+                            <li>Leave it blank for everyone else – salespeople do <em>not</em> need an AML group
+                                to work with the AML gate on sale orders.</li>
+                        </ol>
+                        <div class="amlman-note">
+                            Never grant AML Manager simply to make a record visible. If an officer cannot see a
+                            case, the correct fix is for an AML Manager to assign it to them.
+                        </div>
+
+                        <h3>6.2 The AML gate override</h3>
+                        <p>
+                            When AML/KYC is not yet completed, an <strong>AML Gate Override</strong> tab appears
+                            on the sale order for administrators only.
+                        </p>
+                        <ol>
+                            <li>Tick <strong>Override AML Gate</strong>.</li>
+                            <li>Enter the <strong>reason</strong> – mandatory. Saving without one is refused.</li>
+                            <li>The system stamps <strong>Overridden By</strong> and <strong>Overridden On</strong>
+                                and tracks the change in the order's chatter.</li>
+                        </ol>
+                        <p>
+                            The tab disappears once AML/KYC is completed normally. Treat every override as an
+                            audited compliance exception and confirm it with the Compliance Officer first.
+                        </p>
+
+                        <h3>6.3 Scheduled jobs</h3>
+                        <p><em>Settings &gt; Technical &gt; Automation &gt; Scheduled Actions</em>:</p>
+                        <table class="amlman-tbl">
+                            <tr><th style="width:44%;">Scheduled action</th><th style="width:16%;">Every</th><th style="width:40%;">Sends</th></tr>
+                            <tr><td>AML – Send Pending Records to AML Manager</td><td>2 days</td>
+                                <td>Table of requests pending more than one day, to every active AML Manager.</td></tr>
+                            <tr><td>AML – Send Pending Records to Management</td><td>1 week</td>
+                                <td>The same table to the company's approver (Management).</td></tr>
+                        </table>
+                        <p>
+                            Both are active by default and send nothing when there is nothing pending.
+                            "Pending" means status New Request, Accepted, In Progress, HIT Detected or
+                            Additional Info Received.
+                        </p>
+
+                        <h3>6.4 Configuration checklist</h3>
+                        <table class="amlman-tbl">
+                            <tr><th style="width:34%;">Setting</th><th style="width:66%;">Why it matters</th></tr>
+                            <tr><td>Outgoing mail server</td>
+                                <td>Every step of this workflow is driven by email. If the server is not
+                                    working, requests are still created and logged but clients never receive
+                                    their form link. Check
+                                    <em>Settings &gt; Technical &gt; Email &gt; Emails</em> for messages stuck in
+                                    <span class="amlman-mono">Exception</span> before blaming the module.</td></tr>
+                            <tr><td>Web base URL <span class="amlman-mono">web.base.url</span></td>
+                                <td>Used to build the secure form links. If it is wrong, every link a client
+                                    receives points to the wrong host.</td></tr>
+                            <tr><td>Company logo</td>
+                                <td>Appears on this manual, the KYC PDF, the client portal and every
+                                    notification email.</td></tr>
+                            <tr><td>Company approver (Management)</td>
+                                <td>Recipient of the bypass/cancel/approve/reject notifications and the weekly
+                                    digest. Without it those emails go only to AML Managers.</td></tr>
+                            <tr><td>Customer email addresses</td>
+                                <td>No email on the customer means no AML request is created when the order is
+                                    approved.</td></tr>
+                        </table>
+
+                        <h3>6.5 Where the data lives</h3>
+                        <table class="amlman-tbl">
+                            <tr><th style="width:40%;">Model</th><th style="width:60%;">Holds</th></tr>
+                            <tr><td><span class="amlman-mono">aml.request</span></td><td>The request, all KYC/UBO answers, signature, status</td></tr>
+                            <tr><td><span class="amlman-mono">aml.request.director</span></td><td>Directors / managers register</td></tr>
+                            <tr><td><span class="amlman-mono">aml.request.shareholder</span></td><td>Shareholder register</td></tr>
+                            <tr><td><span class="amlman-mono">aml.request.document</span></td><td>Preliminary information checklist and its files</td></tr>
+                            <tr><td><span class="amlman-mono">aml.hit.document</span></td><td>Additional documents requested and received</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- ================================================
+                         7. CLIENT
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>7. Instructions for the Client – the KYC web form</h2>
+                        <p class="amlman-muted">
+                            <span class="amlman-chip" style="background:#6b625c;">CLIENT</span>
+                            &#160;No login or password. Give this section to the client if they need help.
+                        </p>
+
+                        <h3>7.1 Getting in</h3>
+                        <p>
+                            The client receives an email from <t t-esc="company.name"/> with a
+                            <strong>Complete KYC Form</strong> button. The link is unique to them and needs no
+                            account. It stays open until the form is submitted; afterwards it shows
+                            <em>"Form Expired"</em>, which is normal and means the submission was received.
+                        </p>
+                        <p>
+                            Progress is saved page by page, so the form can be closed and resumed from the same
+                            link.
+                        </p>
+
+                        <h3>7.2 The seven steps</h3>
+                        <table class="amlman-tbl">
+                            <tr><th style="width:6%;">#</th><th style="width:26%;">Step</th><th style="width:68%;">What to provide</th></tr>
+                            <tr><td>1</td><td>Instructions</td>
+                                <td>Read-only introduction explaining the purpose of the form and what to have
+                                    ready before starting.</td></tr>
+                            <tr><td>2</td><td>KYC Information</td>
+                                <td><strong>Entity:</strong> name, legal type, trading name, incorporation date
+                                    and place, registration authority, licence number and expiry, registered and
+                                    business addresses, industry and activities, source of wealth, ownership
+                                    complexity, high-risk jurisdiction exposure, payment channels used, cash
+                                    band, top five suppliers and customers, contact person, parent company,
+                                    sanctions declaration and PEP questions.<br/>
+                                    <strong>Individual:</strong> full name, gender, nationality, date and place
+                                    of birth, ID type and number, issuing country and validity, addresses,
+                                    contact details, proof-of-address type and date, verification method,
+                                    purpose of the relationship, expected transactions and turnover, source of
+                                    funds, dual citizenship, high-net-worth status and bank details.</td></tr>
+                            <tr><td>3</td><td>UBO Details</td>
+                                <td>The Ultimate Beneficial Owner: name, nationality, date and place of birth,
+                                    dual citizenship, source of income, whether shares are held on behalf of
+                                    someone else, addresses, contact details and bank details.
+                                    <span class="amlman-muted">(Entity forms only.)</span></td></tr>
+                            <tr><td>4</td><td>Directors &amp; Managers</td>
+                                <td>One row per director, manager or secretary – name, position, nationality,
+                                    ID/passport number, appointment date and status – plus their ID documents.
+                                    State the date the register is accurate as of.
+                                    <span class="amlman-muted">(Entity forms only.)</span></td></tr>
+                            <tr><td>5</td><td>Shareholders</td>
+                                <td>One row per shareholder – name, nationality, individual or corporate,
+                                    passport number, share class, number of shares, percentage held and date of
+                                    entry – plus supporting documents. The percentages should account for the
+                                    whole shareholding.
+                                    <span class="amlman-muted">(Entity forms only.)</span></td></tr>
+                            <tr><td>6</td><td>Documents</td>
+                                <td>Upload the checklist in Section 10. Mandatory items are marked; several
+                                    files can be attached to one item, and a file can be removed and replaced
+                                    before submitting.</td></tr>
+                            <tr><td>7</td><td>Review &amp; Sign</td>
+                                <td>Check the summary, tick the declaration, type the signatory's name and
+                                    designation, and sign – either drawn on screen or uploaded as an image.
+                                    Then submit.</td></tr>
+                        </table>
+
+                        <h3>7.3 After submitting</h3>
+                        <ul>
+                            <li>A confirmation page shows the AML reference number – keep it for any queries.</li>
+                            <li>The form link stops working; the compliance team now has the submission.</li>
+                            <li>If more information is needed, a second email arrives with an
+                                <strong>Upload Additional Documents</strong> link listing exactly what is
+                                required, with guidance notes and any sample file provided.</li>
+                            <li>On that page: upload against each item, add a note if helpful, then submit.
+                                That link is also single-use.</li>
+                        </ul>
+
+                        <div class="amlman-tip">
+                            <strong>Before you start.</strong> Have scanned copies ready as PDF or image files,
+                            make sure proof-of-address documents are dated within the last three months, and
+                            check that identity documents are still valid.
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         8. STATUS REFERENCE
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>8. Status reference</h2>
+                        <table class="amlman-tbl">
+                            <tr>
+                                <th style="width:20%;">Status</th>
+                                <th style="width:40%;">Meaning</th>
+                                <th style="width:22%;">Set by</th>
+                                <th style="width:18%;">Next step</th>
+                            </tr>
+                            <tr><td><strong>Draft</strong></td>
+                                <td>Request created, form sent, client has not submitted yet. Visible to AML
+                                    Managers in All Records only.</td>
+                                <td>System, on order approval</td>
+                                <td>Wait; or Resend KYC Form Email</td></tr>
+                            <tr><td><strong>New Request</strong></td>
+                                <td>Client has completed and signed the form. AML reference and 24-hour
+                                    deadline assigned.</td>
+                                <td>Client</td>
+                                <td>Manager: Accept / Bypass / Cancel</td></tr>
+                            <tr><td><strong>Accepted</strong></td>
+                                <td>AML due diligence is required and the case is ready to work.</td>
+                                <td>AML Manager</td>
+                                <td>Assign officer; Start Investigation</td></tr>
+                            <tr><td><strong>In Progress</strong></td>
+                                <td>Investigation under way; start date and time recorded.</td>
+                                <td>AML Officer</td>
+                                <td>No HIT / HIT Detected / Additional Documents</td></tr>
+                            <tr><td><strong>No HIT</strong>
+                                <span class="amlman-chip" style="background:#2e7d32;">CLEAN</span></td>
+                                <td>Screening found nothing against the client or its principals.</td>
+                                <td>AML Officer</td>
+                                <td>Approve</td></tr>
+                            <tr><td><strong>HIT Detected</strong>
+                                <span class="amlman-chip" style="background:#c62828;">ALERT</span></td>
+                                <td>A potential match was found; additional documents have been requested.</td>
+                                <td>AML Officer</td>
+                                <td>Wait for the client's upload</td></tr>
+                            <tr><td><strong>Additional Info Received</strong></td>
+                                <td>Client has supplied the requested documents.</td>
+                                <td>Client</td>
+                                <td>Approve / Reject</td></tr>
+                            <tr><td><strong>Approved</strong>
+                                <span class="amlman-chip" style="background:#2e7d32;">CLOSED</span></td>
+                                <td>AML/KYC cleared. The sale order shows AML/KYC Completed and a project can
+                                    be created.</td>
+                                <td>AML Manager / Officer</td>
+                                <td>None – engagement proceeds</td></tr>
+                            <tr><td><strong>Rejected</strong>
+                                <span class="amlman-chip" style="background:#c62828;">CLOSED</span></td>
+                                <td>AML/KYC failed. The engagement stays blocked.</td>
+                                <td>AML Manager / Officer</td>
+                                <td>Escalate per firm policy</td></tr>
+                            <tr><td><strong>Bypassed</strong>
+                                <span class="amlman-chip" style="background:#e65100;">CLOSED</span></td>
+                                <td>Manager determined no AML check is required. Counts as AML/KYC completed.</td>
+                                <td>AML Manager</td>
+                                <td>None – engagement proceeds</td></tr>
+                            <tr><td><strong>Cancelled</strong>
+                                <span class="amlman-chip" style="background:#9e9e9e;">CLOSED</span></td>
+                                <td>Request cancelled, or the sale order was cancelled. Does not count as
+                                    completed.</td>
+                                <td>AML Manager / System</td>
+                                <td>None</td></tr>
+                        </table>
+
+                        <div class="amlman-tip">
+                            <strong>Ribbons.</strong> The form view shows a coloured ribbon for No HIT Detected,
+                            HIT Detected, Approved, Rejected, Bypassed and Cancelled, so the outcome is visible
+                            without reading the status field.
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         9. NOTIFICATIONS
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>9. Automated notifications and scheduled reports</h2>
+                        <p>
+                            Every notification is generated by the system – there is nothing to send by hand.
+                            All of them use the KGRN branded template with the company logo.
+                        </p>
+                        <table class="amlman-tbl">
+                            <tr>
+                                <th style="width:38%;">Trigger</th>
+                                <th style="width:34%;">Recipients</th>
+                                <th style="width:28%;">Contains</th>
+                            </tr>
+                            <tr><td>Sale order approved</td><td>Client</td>
+                                <td>Secure KYC form link</td></tr>
+                            <tr><td>Resend KYC Form Email (manual)</td><td>Client</td>
+                                <td>The same secure link</td></tr>
+                            <tr><td>Client submits the KYC form</td><td>All active AML Managers</td>
+                                <td>Client, KYC type, deadline</td></tr>
+                            <tr><td>AML Officer assigned or changed</td><td>The newly assigned officer</td>
+                                <td>Client, KYC type, status, deadline</td></tr>
+                            <tr><td>Request bypassed</td><td>Management + the order's salesperson</td>
+                                <td>Client, sale order, status</td></tr>
+                            <tr><td>Request cancelled</td><td>Management + the order's salesperson</td>
+                                <td>Client, sale order, status</td></tr>
+                            <tr><td>Additional documents requested</td><td>Client</td>
+                                <td>List of documents, guidance notes, sample files, upload link</td></tr>
+                            <tr><td>Client uploads additional documents</td>
+                                <td>AML Managers + the assigned officer</td>
+                                <td>Client, AML reference</td></tr>
+                            <tr><td>Additional info requested from No HIT</td>
+                                <td>AML Managers + Management</td>
+                                <td>Client, new status</td></tr>
+                            <tr><td>No HIT confirmed</td><td>AML Managers + Management</td>
+                                <td>Client, status</td></tr>
+                            <tr><td>Request approved</td><td>AML Managers + Management</td>
+                                <td>Client, status</td></tr>
+                            <tr><td>Request rejected</td><td>AML Managers + Management</td>
+                                <td>Client, status</td></tr>
+                            <tr><td><strong>Every 2 days</strong> – pending more than 1 day</td>
+                                <td>All active AML Managers</td>
+                                <td>Table: reference, client, KYC type, status, deadline</td></tr>
+                            <tr><td><strong>Weekly</strong> – all pending requests</td>
+                                <td>Management (company approver)</td>
+                                <td>The same table</td></tr>
+                        </table>
+
+                        <div class="amlman-note">
+                            <strong>"Management"</strong> means the user set as the company's approver. If that is
+                            not configured, those notifications reach AML Managers only.
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         10. DOCUMENT CHECKLISTS
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>10. Document checklists</h2>
+                        <p>
+                            The checklist is loaded automatically from the KYC Type on the sale order.
+                            <strong>M</strong> marks a mandatory item.
+                        </p>
+
+                        <h3>10.1 Entity / corporate client – 15 items</h3>
+                        <table class="amlman-tbl">
+                            <tr><th style="width:6%;">#</th><th style="width:8%;">M</th><th style="width:86%;">Document</th></tr>
+                            <tr><td>1</td><td><strong>M</strong></td><td>Latest copy of trade licence</td></tr>
+                            <tr><td>2</td><td>&#160;</td><td>Latest copy of all branch licences (if any)</td></tr>
+                            <tr><td>3</td><td>&#160;</td><td>Certificate of incorporation</td></tr>
+                            <tr><td>4</td><td><strong>M</strong></td><td>UAE VAT &amp; Corporate Tax registration certificate</td></tr>
+                            <tr><td>5</td><td><strong>M</strong></td><td>Memorandum and Articles of Association</td></tr>
+                            <tr><td>6</td><td>&#160;</td><td>Certificate of incumbency / good standing
+                                <span class="amlman-muted">– either one is accepted</span></td></tr>
+                            <tr><td>7</td><td>&#160;</td><td>Board resolution authorising the appointment of the auditor</td></tr>
+                            <tr><td>8</td><td>&#160;</td><td>Share certificates</td></tr>
+                            <tr><td>9</td><td><strong>M</strong></td><td>Organisational / group chart up to the UBO</td></tr>
+                            <tr><td>10</td><td><strong>M</strong></td><td>Lease agreement of the entity</td></tr>
+                            <tr><td>11</td><td><strong>M</strong></td><td>Business profile / description of business activities</td></tr>
+                            <tr><td>12</td><td>&#160;</td><td>List of authorised signatories
+                                <span class="amlman-muted">– use the Excel format provided; details must match the supporting documents</span></td></tr>
+                            <tr><td>13</td><td>&#160;</td><td>Family book issued by the UAE Government (UAE nationals)</td></tr>
+                            <tr><td>14</td><td>&#160;</td><td>Declaration – shareholders / managers residing together
+                                <span class="amlman-muted">– only if a shareholder lives with family and has no separate proof of residence</span></td></tr>
+                            <tr><td>15</td><td>&#160;</td><td>Licence copies of related parties / parent companies (if applicable)</td></tr>
+                        </table>
+
+                        <h3>10.2 Individual client – 5 items</h3>
+                        <table class="amlman-tbl">
+                            <tr><th style="width:6%;">#</th><th style="width:8%;">M</th><th style="width:86%;">Document</th></tr>
+                            <tr><td>1</td><td><strong>M</strong></td><td>Passport copy (front &amp; back)</td></tr>
+                            <tr><td>2</td><td><strong>M</strong></td><td>Proof of residence – utility bill, lease agreement or bank
+                                statement issued within the last 3 months showing the individual's address</td></tr>
+                            <tr><td>3</td><td>&#160;</td><td>Visa</td></tr>
+                            <tr><td>4</td><td>&#160;</td><td>Emirates ID</td></tr>
+                            <tr><td>5</td><td>&#160;</td><td>Profile information / résumé / CV with photograph</td></tr>
+                        </table>
+
+                        <h3>10.3 Also collected on the form</h3>
+                        <ul>
+                            <li>Identity documents for <strong>each director / manager</strong> listed.</li>
+                            <li>Identity or incorporation documents for <strong>each shareholder</strong> listed.</li>
+                            <li>The signed declaration and the signatory's electronic signature.</li>
+                            <li>Anything additionally requested by the AML Officer during the investigation.</li>
+                        </ul>
+                    </div>
+
+                    <!-- ================================================
+                         11. TROUBLESHOOTING
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>11. Troubleshooting</h2>
+                        <table class="amlman-tbl">
+                            <tr><th style="width:34%;">Symptom</th><th style="width:66%;">Cause and resolution</th></tr>
+                            <tr><td>No AML request was created when the order was approved</td>
+                                <td>The customer has no email address. Add one and ask an AML Manager to
+                                    resend, or re-approve the order.</td></tr>
+                            <tr><td>Client says the KYC email never arrived</td>
+                                <td>Check the spam folder and the address on the customer record, then use
+                                    <strong>Resend KYC Form Email</strong> (AML Manager). If nothing at all is
+                                    being delivered firm-wide, the outgoing mail server is the likely cause –
+                                    see Section 6.4.</td></tr>
+                            <tr><td>Client reports "Form Expired"</td>
+                                <td>Normal after submission – the link is single use. If they have not
+                                    submitted, they may be using an older email; resend the link.</td></tr>
+                            <tr><td>An AML Officer cannot see a request</td>
+                                <td>Officers only see records assigned to them. An AML Manager must set the
+                                    <strong>AML Officer</strong> field. Do not fix this by granting AML Manager.</td></tr>
+                            <tr><td>Accept / Bypass / Cancel buttons are missing</td>
+                                <td>They exist only in <em>New Request</em> and only for AML Managers.</td></tr>
+                            <tr><td>Approve is greyed out or missing</td>
+                                <td>Approve is available from <em>Additional Info Received</em> and from
+                                    <em>No HIT</em> only. From <em>In Progress</em>, record the screening
+                                    outcome first.</td></tr>
+                            <tr><td>Additional-documents link shows "Form Expired" for the client</td>
+                                <td>The request was moved to <em>Additional Info Received</em> – this happens
+                                    when additional documents are requested from the <em>No HIT</em> status.
+                                    Request additional documents from <em>In Progress</em> instead
+                                    (Section 4.4).</td></tr>
+                            <tr><td>"Cannot create a project … AML/KYC has not been marked Completed"</td>
+                                <td>Working as designed. Complete AML (Approved or Bypassed), or have an
+                                    administrator record an override with a reason.</td></tr>
+                            <tr><td>"Only Administrators can override the AML/KYC completion gate"</td>
+                                <td>The override is restricted to the Settings group. Raise it with IT and the
+                                    Compliance Officer.</td></tr>
+                            <tr><td>"Enter a reason before overriding the AML/KYC gate"</td>
+                                <td>The reason field is mandatory. Fill it in and save again.</td></tr>
+                            <tr><td>An officer cannot delete a request or a line</td>
+                                <td>By design – the audit trail must stay intact. Ask an AML Manager.</td></tr>
+                            <tr><td>Deadline looks wrong</td>
+                                <td>It defaults to 24 hours after the client's submission. An AML Officer or
+                                    Manager can change it on the request.</td></tr>
+                            <tr><td>Pending-request digests are not arriving</td>
+                                <td>Nothing may be pending, or the scheduled actions are inactive – check
+                                    Section 6.3. The weekly digest also needs the company approver to be set.</td></tr>
+                        </table>
+                    </div>
+
+                    <!-- ================================================
+                         12. GLOSSARY + SIGN-OFF
+                    ================================================= -->
+                    <div class="amlman-break">
+                        <h2>12. Glossary and sign-off</h2>
+
+                        <table class="amlman-tbl">
+                            <tr><th style="width:20%;">Term</th><th style="width:80%;">Meaning</th></tr>
+                            <tr><td><strong>AML</strong></td><td>Anti-Money Laundering.</td></tr>
+                            <tr><td><strong>CFT</strong></td><td>Combating the Financing of Terrorism.</td></tr>
+                            <tr><td><strong>KYC</strong></td><td>Know Your Customer – the identification and verification of a client before and during the business relationship.</td></tr>
+                            <tr><td><strong>CDD</strong></td><td>Customer Due Diligence.</td></tr>
+                            <tr><td><strong>UBO</strong></td><td>Ultimate Beneficial Owner – the natural person who ultimately owns or controls the client.</td></tr>
+                            <tr><td><strong>PEP</strong></td><td>Politically Exposed Person – someone entrusted with a prominent public function, and their close associates and family.</td></tr>
+                            <tr><td><strong>HIT</strong></td><td>A potential or confirmed match of a name against a sanctions, PEP or adverse-media source.</td></tr>
+                            <tr><td><strong>No HIT</strong></td><td>Screening completed with no match found.</td></tr>
+                            <tr><td><strong>Bypass</strong></td><td>A manager's decision that AML due diligence is not required for this client. Closes the request as completed.</td></tr>
+                            <tr><td><strong>AML gate</strong></td><td>The control that prevents a project being created for an engagement until AML/KYC is completed.</td></tr>
+                            <tr><td><strong>Chatter</strong></td><td>The message and activity log at the bottom of every record – the audit trail.</td></tr>
+                            <tr><td><strong>Portal form</strong></td><td>The secure, login-free web form sent to the client.</td></tr>
+                        </table>
+
+                        <h3>Acknowledgement</h3>
+                        <p>
+                            Each user with access to the AML application should confirm they have read and
+                            understood the sections relevant to their role.
+                        </p>
+                        <table class="amlman-tbl">
+                            <tr>
+                                <th style="width:28%;">Name</th>
+                                <th style="width:24%;">Role / access level</th>
+                                <th style="width:16%;">Date</th>
+                                <th style="width:32%;">Signature</th>
+                            </tr>
+                            <tr><td style="height:22px;">&#160;</td><td>&#160;</td><td>&#160;</td><td>&#160;</td></tr>
+                            <tr><td style="height:22px;">&#160;</td><td>&#160;</td><td>&#160;</td><td>&#160;</td></tr>
+                            <tr><td style="height:22px;">&#160;</td><td>&#160;</td><td>&#160;</td><td>&#160;</td></tr>
+                            <tr><td style="height:22px;">&#160;</td><td>&#160;</td><td>&#160;</td><td>&#160;</td></tr>
+                            <tr><td style="height:22px;">&#160;</td><td>&#160;</td><td>&#160;</td><td>&#160;</td></tr>
+                            <tr><td style="height:22px;">&#160;</td><td>&#160;</td><td>&#160;</td><td>&#160;</td></tr>
+                        </table>
+
+                        <h3>Approval of this manual</h3>
+                        <table class="amlman-tbl">
+                            <tr>
+                                <th style="width:34%;">&#160;</th>
+                                <th style="width:33%;">Prepared by</th>
+                                <th style="width:33%;">Approved by</th>
+                            </tr>
+                            <tr><td><strong>Name</strong></td><td style="height:22px;">&#160;</td><td>&#160;</td></tr>
+                            <tr><td><strong>Designation</strong></td><td style="height:22px;">&#160;</td><td>&#160;</td></tr>
+                            <tr><td><strong>Date</strong></td><td style="height:22px;">&#160;</td><td>&#160;</td></tr>
+                            <tr><td><strong>Signature</strong></td><td style="height:30px;">&#160;</td><td>&#160;</td></tr>
+                        </table>
+
+                        <div class="amlman-card" style="margin-top:18px;">
+                            <strong><t t-esc="company.name"/></strong> ·
+                            <t t-esc="doc_ref"/> · <t t-esc="doc_version"/> ·
+                            issued <t t-esc="today"/>.
+                            This document is internal and confidential. Reproduce or circulate it outside the
+                            firm only with the Compliance Officer's approval.
+                        </div>
+                    </div>
+
+                    </div><!-- /.amlman -->
+                </div><!-- /.article -->
+            </t>
+        </t>
+    </template>
+
+</odoo>

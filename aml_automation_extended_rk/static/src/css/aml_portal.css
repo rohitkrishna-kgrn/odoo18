@@ -21,6 +21,13 @@
     --tint-2:      #ffe9d8;
     --tint-3:      #ffdcc2;
     --danger:      #d32f2f;
+    /* Letter (text) colours – kept separate from the fill/border palette above
+       so backgrounds and outlines keep their softer tones. */
+    --primary-txt: #f25d23;
+    --danger-txt:  #ff0000;
+    /* Solid button fill — every button except Back */
+    --btn:         #f25d23;
+    --btn-shadow:  rgba(242, 93, 35, .24);
     --success:     #2e9e5b;
     --warn:        #e08b00;
     --bg:          #fdf6f0;
@@ -145,9 +152,9 @@
 }
 .step-label { font-size: .74rem; line-height: 1.25; max-width: 96px; }
 
-.aml-step.active { color: var(--primary-dk); font-weight: 600; }
+.aml-step.active { color: var(--primary-txt); font-weight: 600; }
 .aml-step.active .step-num {
-    background: #fff; color: var(--primary); border-color: var(--primary);
+    background: #fff; color: var(--primary-txt); border-color: var(--primary);
     box-shadow: 0 0 0 4px rgba(239, 108, 26, .16);
     transform: scale(1.08);
 }
@@ -173,7 +180,7 @@
 }
 
 /* ============================================================
-   Pages (animated slide – Discovery Sheet motion)
+   Pages (fade-in transition between sections)
    ============================================================ */
 .aml-page {
     display: none;
@@ -182,12 +189,17 @@
 }
 .aml-page.active {
     display: block;
-    animation: amlSlideIn .45s cubic-bezier(.2, .7, .2, 1);
+    animation: amlFadeIn .45s cubic-bezier(.4, 0, .2, 1) both;
 }
 
-@keyframes amlSlideIn {
-    from { opacity: 0; transform: translateX(28px); }
-    to   { opacity: 1; transform: translateX(0); }
+@keyframes amlFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Respect users who ask the OS for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .aml-page.active { animation: none; }
 }
 
 /* ---- Page Header ---- */
@@ -195,13 +207,13 @@
 .aml-page-header h2 {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--primary-dk);
+    color: var(--primary-txt);
     margin: .3rem 0 .35rem;
 }
 .aml-page-subtitle { color: var(--muted); font-size: .95rem; margin: 0; }
 .aml-page-num {
     font-size: .74rem; font-weight: 700; letter-spacing: 1.5px;
-    text-transform: uppercase; color: var(--primary);
+    text-transform: uppercase; color: var(--primary-txt);
 }
 
 /* ============================================================
@@ -218,7 +230,7 @@
 .aml-form-section h3 {
     font-size: .78rem;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--primary-txt);
     margin-bottom: 1.1rem;
     padding-bottom: .6rem;
     border-bottom: 1px solid var(--border);
@@ -342,7 +354,7 @@
 /* ============================================================
    Required Star
    ============================================================ */
-.req-star { color: var(--danger); margin-left: 2px; }
+.req-star { color: var(--danger-txt); margin-left: 2px; }
 
 /* ============================================================
    Instructions Page
@@ -369,7 +381,7 @@
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: .8rem;
 }
-.aml-instruction-item strong { font-weight: 700; color: var(--primary-dk); display: block; margin-bottom: .35rem; }
+.aml-instruction-item strong { font-weight: 700; color: var(--primary-txt); display: block; margin-bottom: .35rem; }
 .aml-instruction-item p { color: var(--muted); font-size: .84rem; margin: 0; }
 
 /* ============================================================
@@ -400,7 +412,7 @@
 }
 .aml-table .del-row-btn {
     background: none; border: none; cursor: pointer;
-    color: var(--danger); font-size: 1rem; padding: .25rem .5rem;
+    color: var(--danger-txt); font-size: 1rem; padding: .25rem .5rem;
 }
 .aml-table .del-row-btn:hover { background: #fff0f0; border-radius: 4px; }
 
@@ -440,13 +452,13 @@
     font-size: .68rem; font-weight: 700; white-space: nowrap;
     padding: 2px 8px; border-radius: 100px;
 }
-.aml-doc-badge.mandatory { background: #fdecec; color: var(--danger); }
+.aml-doc-badge.mandatory { background: #fdecec; color: var(--danger-txt); }
 .aml-doc-badge.optional  { background: #e8f6ed; color: var(--success); }
-.aml-doc-badge.any-one   { background: var(--tint-2); color: var(--accent); }
+.aml-doc-badge.any-one   { background: var(--tint-2); color: var(--primary-txt); }
 .aml-doc-uploaded-names  { font-size: .76rem; color: var(--success); margin-top: .25rem; display: flex; align-items: center; gap: .4rem; }
 .aml-doc-remove-btn {
     background: none; border: none; cursor: pointer;
-    color: var(--danger); font-size: .76rem; line-height: 1;
+    color: var(--danger-txt); font-size: .76rem; line-height: 1;
     padding: 2px 5px; border-radius: 4px;
 }
 .aml-doc-remove-btn:hover { background: #fff0f0; }
@@ -458,7 +470,7 @@
 .aml-doc-sample-link {
     display: inline-flex; align-items: center; gap: .25rem;
     font-size: .76rem; font-weight: 600;
-    color: var(--accent); text-decoration: none;
+    color: var(--primary-txt); text-decoration: none;
 }
 .aml-doc-sample-link:hover { text-decoration: underline; }
 .aml-doc-sample-note {
@@ -471,7 +483,7 @@
 }
 .aml-doc-upload-btn label {
     display: inline-flex; align-items: center; gap: .4rem;
-    background: var(--tint); color: var(--primary-dk);
+    background: var(--tint); color: var(--primary-txt);
     border: 1.5px dashed var(--primary-lt);
     padding: .55rem 1rem; border-radius: 10px;
     cursor: pointer; font-size: .84rem; font-weight: 600;
@@ -486,7 +498,7 @@
    ============================================================ */
 .aml-review-section { margin-bottom: 1.4rem; }
 .aml-review-section h4 {
-    font-size: .78rem; font-weight: 700; color: var(--primary);
+    font-size: .78rem; font-weight: 700; color: var(--primary-txt);
     text-transform: uppercase; letter-spacing: 1.2px;
     margin-bottom: .7rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border);
 }
@@ -578,7 +590,7 @@
 .aml-q-divider {
     font-size: .72rem;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--primary-txt);
     text-transform: uppercase;
     letter-spacing: 1.4px;
     padding: .4rem 0 .15rem;
@@ -627,7 +639,7 @@
     transition: background var(--transition), color var(--transition);
 }
 .aml-sig-tab.active {
-    background: linear-gradient(135deg, var(--primary-dk), var(--primary));
+    background: var(--btn);
     color: #fff;
 }
 .aml-sig-tab:not(:last-child) { border-right: 1.5px solid var(--border-str); }
@@ -657,7 +669,7 @@
     align-items: center;
     gap: .5rem;
     background: var(--tint);
-    color: var(--primary-dk);
+    color: var(--primary-txt);
     border: 1.5px dashed var(--primary-lt);
     padding: .6rem 1.2rem;
     border-radius: 10px;
@@ -697,42 +709,46 @@
     transition: transform .12s, background var(--transition), box-shadow var(--transition), opacity .15s;
 }
 .aml-btn-next {
-    background: linear-gradient(135deg, var(--primary-dk), var(--primary));
+    background: var(--btn);
     color: #fff;
-    box-shadow: 0 6px 18px rgba(239, 108, 26, .24);
+    box-shadow: 0 6px 18px var(--btn-shadow);
 }
-.aml-btn-next:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(239, 108, 26, .30); }
+.aml-btn-next:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(242, 93, 35, .30); }
+
+/* Back is deliberately the only outline button — left as-is on request. */
 .aml-btn-back {
-    background: #fff; color: var(--primary-dk);
+    background: #fff; color: var(--primary-txt);
     border: 1.5px solid var(--border-str);
 }
 .aml-btn-back:hover { border-color: var(--primary); background: var(--tint); }
+
 .aml-btn-save {
-    background: linear-gradient(135deg, var(--primary-dk), var(--primary));
+    background: var(--btn);
     color: #fff;
-    box-shadow: 0 6px 18px rgba(239, 108, 26, .24);
+    box-shadow: 0 6px 18px var(--btn-shadow);
 }
-.aml-btn-save:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(239, 108, 26, .30); }
+.aml-btn-save:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(242, 93, 35, .30); }
 .aml-btn-save:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 .aml-btn-submit {
-    background: linear-gradient(135deg, var(--primary-dk), var(--primary));
+    background: var(--btn);
     color: #fff;
-    box-shadow: 0 6px 18px rgba(239, 108, 26, .28);
+    box-shadow: 0 6px 18px rgba(242, 93, 35, .28);
     padding: .85rem 2.2rem; font-size: 1rem;
 }
-.aml-btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(239, 108, 26, .34); }
+.aml-btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(242, 93, 35, .34); }
 .aml-btn-add {
-    background: var(--tint); color: var(--primary-dk);
-    border: 1.5px dashed var(--primary-lt);
+    background: var(--btn); color: #fff;
+    border: none;
+    box-shadow: 0 4px 12px var(--btn-shadow);
     padding: .6rem 1rem; font-size: .88rem;
 }
-.aml-btn-add:hover { background: var(--tint-2); }
+.aml-btn-add:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(242, 93, 35, .30); }
 .aml-btn-clear {
-    background: #fff; color: var(--text);
-    border: 1px solid var(--border-str);
+    background: var(--btn); color: #fff;
+    border: none;
     padding: .35rem .8rem; font-size: .82rem;
 }
-.aml-btn-clear:hover { border-color: var(--danger); color: var(--danger); }
+.aml-btn-clear:hover { transform: translateY(-1px); box-shadow: 0 4px 12px var(--btn-shadow); }
 
 /* Country Picker */
 .aml-country-picker { margin-top: .4rem; }
@@ -763,7 +779,7 @@
     align-items: center;
     gap: .4rem;
     background: var(--tint-2);
-    color: var(--primary-dk);
+    color: var(--primary-txt);
     padding: .3rem .75rem;
     border-radius: 999px;
     font-size: .82rem;
@@ -773,14 +789,14 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--primary-dk);
+    color: var(--primary-txt);
     font-size: .95rem;
     line-height: 1;
     padding: 0;
     display: flex;
     align-items: center;
 }
-.aml-country-tag-remove:hover { color: var(--danger); }
+.aml-country-tag-remove:hover { color: var(--danger-txt); }
 
 /* ============================================================
    Loading Overlay
@@ -793,7 +809,7 @@
     align-items: center; justify-content: center;
     gap: 1.2rem; z-index: 999;
 }
-#aml-loading-overlay p { font-size: 1rem; color: var(--primary-dk); font-weight: 600; }
+#aml-loading-overlay p { font-size: 1rem; color: var(--primary-txt); font-weight: 600; }
 .aml-spinner {
     width: 48px; height: 48px;
     border: 4px solid var(--tint-2);
@@ -821,7 +837,7 @@
 .aml-icon-ok   { background: var(--success); }
 .aml-icon-warn { background: linear-gradient(135deg, var(--primary-dk), var(--primary)); }
 .aml-result-card h1, .aml-result-card h2 {
-    font-size: 1.7rem; color: var(--primary-dk); margin: 0 0 .6rem;
+    font-size: 1.7rem; color: var(--primary-txt); margin: 0 0 .6rem;
 }
 .aml-result-card p { color: var(--text); margin: .3rem 0; }
 .aml-muted { color: var(--muted); font-size: .9rem; }
@@ -838,11 +854,11 @@
     max-width: 520px;
     box-shadow: var(--shadow);
 }
-.aml-error-icon { font-size: 3.4rem; color: var(--primary); margin-bottom: 1rem; }
+.aml-error-icon { font-size: 3.4rem; color: var(--primary-txt); margin-bottom: 1rem; }
 .aml-confirm-icon { font-size: 3.4rem; color: var(--success); margin-bottom: 1rem; }
 .aml-error-card h2, .aml-confirm-card h2 {
     font-size: 1.5rem; font-weight: 700;
-    color: var(--primary-dk); margin-bottom: 1rem;
+    color: var(--primary-txt); margin-bottom: 1rem;
 }
 .aml-error-card p, .aml-confirm-card p { color: var(--muted); line-height: 1.7; }
 
