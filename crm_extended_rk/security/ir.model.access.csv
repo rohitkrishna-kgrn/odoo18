@@ -1,6 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_sale_order_invoice_wizard,sale.order.invoice.wizard,model_sale_order_invoice_wizard,,1,1,1,1
-access_crm_lead_set_source_wizard,crm.lead.set.source.wizard,model_crm_lead_set_source_wizard,,1,1,1,1
 access_crm_lead_discovery_form,crm.lead.discovery.form,model_crm_lead_discovery_form,,1,1,1,1
 access_crm_lead_set_reason_wizard,crm.lead.set.reason.wizard,model_crm_lead_set_reason_wizard,,1,1,1,1
 access_crm_lead_stage_reason,crm.lead.stage.reason,model_crm_lead_stage_reason,,1,0,1,0

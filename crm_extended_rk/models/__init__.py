@@ -8,7 +8,6 @@ from . import crm_stage
 from . import crm_tag
 from . import crm_lead_stage_reason
 from . import crm_lead_discovery_form
-from . import crm_lead_source_wizard
 from . import crm_lead_reason_wizard
 from . import discovery_report
 from . import res_config_settings

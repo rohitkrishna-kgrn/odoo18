@@ -28,7 +28,6 @@
         'views/crm_lead_event_views.xml',
         'views/crm_lead_journey_report_views.xml',
         'views/res_config_settings_views.xml',
-        'views/crm_lead_source_wizard_views.xml',
         'views/crm_lead_reason_wizard_views.xml',
         'reports/discovery_report.xml',
         'templates/discovery_form.xml',

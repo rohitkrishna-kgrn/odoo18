@@ -2,7 +2,7 @@
 from datetime import timedelta
 
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError
 
 from .crm_tag import APPROVED_TAG_DOMAIN
 from .discovery_schema import form_selection
@@ -74,27 +74,9 @@ class CrmLead(models.Model):
         if stage:
             self.write({'stage_id': stage.id, 'active': True})
 
-    @api.constrains('stage_id', 'source_id')
-    def _check_source_required_after_new(self):
-        new_stage = self.env.ref('crm.stage_lead1', raise_if_not_found=False)
-        for lead in self:
-            if new_stage and lead.stage_id != new_stage and not lead.source_id:
-                raise ValidationError(_(
-                    "Please set a Source (use the Move to Qualified button) "
-                    "before this lead/opportunity can leave the New stage."))
-
     def action_move_to_qualified(self):
         """Header button shown while in the New stage."""
         self.ensure_one()
-        if not self.source_id:
-            return {
-                'name': _("Select a Source"),
-                'type': 'ir.actions.act_window',
-                'res_model': 'crm.lead.set.source.wizard',
-                'view_mode': 'form',
-                'target': 'new',
-                'context': {'default_lead_id': self.id},
-            }
         self._move_stage('crm.stage_lead2')
 
     def action_move_to_new(self):

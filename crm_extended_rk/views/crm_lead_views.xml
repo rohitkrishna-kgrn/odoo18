@@ -92,11 +92,6 @@
             <xpath expr="//field[@name='tag_ids']" position="attributes">
                 <attribute name="required">1</attribute>
             </xpath>
-            <!-- Source is no longer shown on the form; it is captured by the
-                 "Select a Source" wizard raised from the Move to Qualified button. -->
-            <xpath expr="//page[@name='lead']//field[@name='source_id']" position="replace"/>
-            <xpath expr="//page[@name='extra']//field[@name='source_id']" position="replace"/>
-
             <!-- Stage may only be changed through buttons: make the statusbar
                  readonly / non-clickable (drag &amp; drop is disabled in the kanban below). -->
             <xpath expr="//field[@name='stage_id'][@widget='statusbar_duration']" position="attributes">
