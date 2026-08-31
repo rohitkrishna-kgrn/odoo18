@@ -183,6 +183,18 @@
                         border-bottom: none; }
   .totals tr.disc td.v { color: #F15C22; }
 
+  /* ── Entity-wise fees (Number of Entities on the quotation) ── */
+  .ent-wrap { margin-top: 20px; page-break-inside: avoid; }
+  .ent-h { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+           color: #F15C22; margin-bottom: 6px; }
+  .ent-total { margin: 0 0 12px auto; width: 300px; border-radius: 6px; overflow: hidden; }
+  .ent-total td { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                  background: #1A2F4E; color: #fff; font-weight: 800; font-size: 13px; padding: 9px 14px; }
+  .ent-total td.v { text-align: right; }
+  .ent-no { width: 90px; font-weight: 700; color: #1A2F4E; font-size: 12.5px; }
+  .ent-name { font-size: 12.5px; font-weight: 600; color: #1F1F1F; }
+
   /* ── Editable terms ── */
   .terms { margin-top: 20px; border-top: 2px solid #fef3ec; padding-top: 16px; page-break-inside: avoid; }
   .terms-h { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; font-weight: 800; color: #c2410c;
@@ -586,6 +598,34 @@
       <td class="v" style="color:#fff;"><t t-out="p['currency']"/> <t t-out="p['total']"/></td>
     </tr>
   </table>
+
+  <!-- Entity-wise fees — one block per row in the quotation's Entities tab -->
+  <div t-if="p['entity_rows']" class="ent-wrap">
+    <table class="ent-total">
+      <tr>
+        <td>Total Amount</td>
+        <td class="v"><t t-out="p['currency']"/> <t t-out="p['entity_total']"/></td>
+      </tr>
+    </table>
+    <div class="ent-h">Entity-wise Fee Breakdown<t t-if="p['entity_count']"> — <t t-out="p['entity_count']"/> entities</t></div>
+    <table class="tbl" style="margin-top:0;">
+      <thead>
+        <tr>
+          <th style="width:90px;">Entity</th>
+          <th>Name</th>
+          <th style="text-align:right;width:150px;">Price (<t t-out="p['currency']"/>)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr t-foreach="p['entity_rows']" t-as="entity"
+            t-att-class="'alt' if entity_index % 2 == 1 else ''">
+          <td class="ent-no"><t t-out="entity['label']"/></td>
+          <td class="ent-name"><t t-out="entity['name']"/></td>
+          <td class="amount"><t t-out="p['currency']"/> <t t-out="entity['price']"/></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
   <div class="terms">
     <div class="terms-h">Payment Terms &amp; Engagement Conditions</div>

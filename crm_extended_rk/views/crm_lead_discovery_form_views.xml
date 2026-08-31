@@ -11,6 +11,8 @@
         <field name="arch" type="xml">
             <list string="Discovery Forms" create="false" edit="false" delete="false">
                 <field name="form_label" string="Form"/>
+                <field name="on_behalf" string="On Behalf of" widget="boolean_toggle"
+                       readonly="1"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'sent'"
                        decoration-success="state == 'submitted'"/>
@@ -51,11 +53,18 @@
                         </group>
                         <group>
                             <field name="submitted_date" readonly="1"/>
+                            <field name="on_behalf" readonly="1"/>
                             <field name="token" readonly="1" groups="base.group_no_one"/>
                         </group>
                     </group>
-                    <div class="alert alert-info" role="alert" invisible="state != 'sent'">
+                    <div class="alert alert-info" role="alert"
+                         invisible="state != 'sent' or on_behalf">
                         This discovery form has been sent to the client and is awaiting submission.
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'sent' or not on_behalf">
+                        This discovery form was sent to the salesperson, to be filled in on
+                        the client's behalf. The client was not emailed.
                     </div>
                     <group invisible="not signature_attachment_filename">
                         <field name="signature_attachment" filename="signature_attachment_filename"

@@ -40,6 +40,13 @@ class CrmLeadDiscoveryForm(models.Model):
     signature = fields.Binary(string='Signature', copy=False, attachment=True)
     signature_attachment = fields.Binary(string='Signed Document', copy=False, attachment=True)
     signature_attachment_filename = fields.Char(string='Signed Document Filename', copy=False)
+    # Copied from the opportunity at send time and kept on the submission, so a
+    # resend keeps going to the same kind of recipient and the history shows
+    # which forms the client actually received.
+    on_behalf = fields.Boolean(
+        string='On Behalf of', readonly=True, copy=False,
+        help="This form was sent to the salesperson, to be filled in on the "
+             "client's behalf. The client was not emailed.")
 
     def _selection_discovery_form_type(self):
         return form_selection()
@@ -60,36 +67,53 @@ class CrmLeadDiscoveryForm(models.Model):
     # ------------------------------------------------------------------
     # Send / resend
     # ------------------------------------------------------------------
+    def _recipient(self):
+        """(email, name) this submission's link is emailed to - the salesperson
+        when it is filled in on the client's behalf, the client otherwise."""
+        self.ensure_one()
+        return self.lead_id._discovery_recipient(self.on_behalf)
+
     def action_send(self):
-        """(Re)send the client email carrying this submission's unique link."""
+        """(Re)send the email carrying this submission's unique link, to the
+        client or - when filled in on their behalf - to the salesperson."""
         for sub in self:
             lead = sub.lead_id
-            if not lead.email_from:
-                raise UserError(_(
-                    "Please set the email address on this pipeline before sending the "
-                    "discovery form."))
+            email, name = sub._recipient()
             is_resend = bool(sub.token)
             if not sub.token:
                 sub.token = secrets.token_urlsafe(24)
             url = sub._get_url()
             if sub.state != 'submitted':
                 sub.write({'state': 'sent', 'sent_date': fields.Datetime.now()})
-            sub._send_email(url)
+            sub._send_email(url, email, name)
 
             verb = _("resent") if is_resend else _("sent")
+            if sub.on_behalf:
+                note = _("Sent to %s (salesperson, on the client's behalf)") % email
+                body = Markup(
+                    '<p>📋 <strong>%s</strong> discovery form <strong>%s</strong> to '
+                    '<a href="mailto:%s">%s</a> to be filled in '
+                    '<strong>on the client\'s behalf</strong> - the client was not '
+                    'emailed.</p>'
+                    '<p>Unique link: <a href="%s" target="_blank">%s</a></p>'
+                ) % (sub.form_label, verb, email, email, url, url)
+            else:
+                note = _("Sent to %s") % email
+                body = Markup(
+                    '<p>📋 <strong>%s</strong> discovery form <strong>%s</strong> to '
+                    '<a href="mailto:%s">%s</a>.</p>'
+                    '<p>Unique link: <a href="%s" target="_blank">%s</a></p>'
+                ) % (sub.form_label, verb, email, email, url, url)
+
             lead._log_journey_event(
                 'discovery_sent',
                 _("%(form)s discovery form %(verb)s") % {
                     'form': sub.form_label, 'verb': verb},
-                note=_("Sent to %s") % lead.email_from,
+                note=note,
                 discovery_form_id=sub.id)
             lead._journey_on_discovery_sent()
             lead.message_post(
-                body=Markup(
-                    '<p>📋 <strong>%s</strong> discovery form <strong>%s</strong> to '
-                    '<a href="mailto:%s">%s</a>.</p>'
-                    '<p>Unique link: <a href="%s" target="_blank">%s</a></p>'
-                ) % (sub.form_label, verb, lead.email_from, lead.email_from, url, url),
+                body=body,
                 subject=_("Discovery Form %s") % verb.capitalize(),
             )
 
@@ -102,15 +126,24 @@ class CrmLeadDiscoveryForm(models.Model):
             new_subs |= self.env['crm.lead.discovery.form'].create({
                 'lead_id': sub.lead_id.id,
                 'form_type': sub.form_type,
+                'on_behalf': sub.on_behalf,
             })
         new_subs.action_send()
 
-    def _send_email(self, url):
-        """Email the client a branded message carrying the unique form link."""
+    def _send_email(self, url, email=None, name=None):
+        """Email a branded message carrying the unique form link, to the client
+        or - when the form is filled in on their behalf - to the salesperson."""
         self.ensure_one()
         lead = self.lead_id
+        if email is None:
+            email, name = self._recipient()
         company = lead.company_id or self.env.company
-        contact = lead.contact_name or lead.partner_name or _("there")
+        client = lead.partner_name or lead.contact_name or (
+            lead.partner_id.name if lead.partner_id else '') or _("the client")
+        if self.on_behalf:
+            self._send_on_behalf_email(url, email, name or _("there"), company, client)
+            return
+        contact = name or _("there")
         body = Markup(
             '<div style="font-family:Segoe UI,Arial,sans-serif;color:#1f2937;'
             'max-width:560px;margin:auto;border:1px solid #e5e9ef;border-radius:12px;'
@@ -144,13 +177,60 @@ class CrmLeadDiscoveryForm(models.Model):
         mail = self.env['mail.mail'].sudo().create({
             'subject': _("%s — %s Discovery Form") % (company.name, self.form_label),
             'email_from': (company.email or self.env.user.email_formatted),
-            'email_to': lead.email_from,
+            'email_to': email,
             'body_html': body,
             'model': 'crm.lead',
             'res_id': lead.id,
             'auto_delete': False,
         })
         mail.send()
+
+    def _send_on_behalf_email(self, url, email, name, company, client):
+        """Same link, addressed to the salesperson who is completing the form
+        for the client - so nothing in it reads as if the client received it."""
+        self.ensure_one()
+        lead = self.lead_id
+        body = Markup(
+            '<div style="font-family:Segoe UI,Arial,sans-serif;color:#1f2937;'
+            'max-width:560px;margin:auto;border:1px solid #e5e9ef;border-radius:12px;'
+            'overflow:hidden;">'
+            '<div style="background:linear-gradient(135deg,#0d2b45,#1a4f72);'
+            'padding:22px 26px;color:#fff;">'
+            '<div style="font-size:18px;font-weight:700;">%(company)s</div>'
+            '<div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;'
+            'opacity:.75;">%(form)s Discovery Form · On Behalf Of</div>'
+            '</div>'
+            '<div style="padding:26px;">'
+            '<p>Hello %(user)s,</p>'
+            '<p>This %(form)s discovery form is for you to complete on behalf of '
+            '<strong>%(client)s</strong> (opportunity <strong>%(lead)s</strong>). '
+            'The client has <strong>not</strong> been emailed.</p>'
+            '<p style="text-align:center;margin:28px 0;">'
+            '<a href="%(url)s" style="background:linear-gradient(135deg,#0d2b45,#1a4f72);'
+            'color:#fff;text-decoration:none;padding:13px 30px;border-radius:9px;'
+            'font-weight:600;display:inline-block;">Open Discovery Form</a>'
+            '</p>'
+            '<p style="font-size:13px;color:#6b7280;">Or copy this link into your browser:'
+            '<br/><a href="%(url)s">%(url)s</a></p>'
+            '<p style="font-size:13px;color:#6b7280;">This link is unique to this '
+            'submission. Once you submit it, the answers appear on the opportunity.</p>'
+            '</div>'
+            '<div style="background:#f5f7fa;padding:14px 26px;font-size:12px;color:#9ca3af;">'
+            '© %(company)s. This message and the linked form are confidential.'
+            '</div></div>'
+        ) % {'company': company.name, 'user': name, 'client': client,
+             'lead': lead.name or '', 'url': url, 'form': self.form_label}
+
+        self.env['mail.mail'].sudo().create({
+            'subject': _("%(company)s — %(form)s Discovery Form (on behalf of %(client)s)") % {
+                'company': company.name, 'form': self.form_label, 'client': client},
+            'email_from': (company.email or self.env.user.email_formatted),
+            'email_to': email,
+            'body_html': body,
+            'model': 'crm.lead',
+            'res_id': lead.id,
+            'auto_delete': False,
+        }).send()
 
     # ------------------------------------------------------------------
     # Submission (called from the public controller, sudo)
@@ -186,15 +266,25 @@ class CrmLeadDiscoveryForm(models.Model):
             vals['signature_attachment_filename'] = attach_name
         self.write(vals)
 
+        if self.on_behalf:
+            event_name = _("%s discovery form completed on the client's behalf") % self.form_label
+            chatter = Markup(
+                '<p>✅ <strong>%s discovery form submitted</strong> on the client\'s '
+                'behalf.</p>'
+                '<p>See the Discovery Forms list for the full response.</p>'
+            ) % self.form_label
+        else:
+            event_name = _("%s discovery form received back from client") % self.form_label
+            chatter = Markup(
+                '<p>✅ <strong>%s discovery form submitted</strong> by the client.</p>'
+                '<p>See the Discovery Forms list for the full response.</p>'
+            ) % self.form_label
+
         self.lead_id._log_journey_event(
-            'discovery_received',
-            _("%s discovery form received back from client") % self.form_label,
-            discovery_form_id=self.id)
+            'discovery_received', event_name, discovery_form_id=self.id)
         self.lead_id._journey_on_discovery_received()
         self.lead_id.message_post(
-            body=Markup(
-                '<p>✅ <strong>%s discovery form submitted</strong> by the client.</p>'
-                '<p>See the Discovery Forms list for the full response.</p>') % self.form_label,
+            body=chatter,
             subject=_("Discovery Form Submitted"),
         )
         self._notify_salesperson()
@@ -218,8 +308,8 @@ class CrmLeadDiscoveryForm(models.Model):
             '%(form)s Discovery Form Submitted</div>'
             '<div style="padding:24px 26px;">'
             '<p>Hello %(user)s,</p>'
-            '<p>The client has just submitted the %(form)s discovery form for the opportunity '
-            '<strong>%(lead)s</strong>.</p>'
+            '<p>The %(form)s discovery form for the opportunity <strong>%(lead)s</strong> '
+            'has just been submitted %(who)s.</p>'
             '<p style="text-align:center;margin:26px 0;">'
             '<a href="%(url)s" style="background:linear-gradient(135deg,#0d2b45,#1a4f72);'
             'color:#fff;text-decoration:none;padding:12px 26px;border-radius:9px;'
@@ -227,7 +317,9 @@ class CrmLeadDiscoveryForm(models.Model):
             '<p style="font-size:13px;color:#6b7280;">Open the Discovery Forms list '
             'to review the responses or download the PDF.</p>'
             '</div></div>'
-        ) % {'user': user.name, 'lead': lead.name, 'url': lead_url, 'form': self.form_label}
+        ) % {'user': user.name, 'lead': lead.name, 'url': lead_url,
+             'form': self.form_label,
+             'who': (_("on the client's behalf") if self.on_behalf else _("by the client"))}
         self.env['mail.mail'].sudo().create({
             'subject': _("Discovery form submitted — %s") % lead.name,
             'email_from': (company.email or self.env.user.email_formatted),

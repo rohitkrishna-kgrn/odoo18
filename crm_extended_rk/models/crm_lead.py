@@ -27,6 +27,15 @@ class CrmLead(models.Model):
     def _selection_discovery_form_type(self):
         return form_selection()
 
+    # Ticked = the salesperson fills the form in for the client (answers
+    # gathered over a call/meeting), so the link is emailed to the salesperson
+    # and the client is never contacted for that submission.
+    discovery_on_behalf = fields.Boolean(
+        string='On Behalf of', tracking=True,
+        help="Tick to send the discovery form link to the salesperson instead "
+             "of the client, so it can be filled in on the client's behalf. "
+             "The client receives nothing.")
+
     discovery_form_ids = fields.One2many(
         'crm.lead.discovery.form', 'lead_id', string='Discovery Forms', copy=False)
     discovery_form_count = fields.Integer(
@@ -136,6 +145,36 @@ class CrmLead(models.Model):
     # ------------------------------------------------------------------
     # Discovery form: send a new one / browse the ones already sent
     # ------------------------------------------------------------------
+    def _discovery_recipient(self, on_behalf):
+        """Who a discovery form link is emailed to, as (email, name).
+
+        Normally the client. When the form is filled in on the client's
+        behalf, it is the assigned salesperson instead - the client is not
+        emailed at all. Raises if that recipient has no address, so nothing
+        is created or logged for a send that cannot happen.
+        """
+        self.ensure_one()
+        if on_behalf:
+            user = self.user_id
+            if not user:
+                raise UserError(_(
+                    "\"On Behalf of\" is ticked, so the discovery form has to go to "
+                    "the salesperson - but no salesperson is assigned to this "
+                    "pipeline. Assign one, or untick \"On Behalf of\" to send the "
+                    "form to the client."))
+            if not user.email:
+                raise UserError(_(
+                    "\"On Behalf of\" is ticked, so the discovery form has to go to "
+                    "the salesperson - but %s has no email address on their user "
+                    "record. Add one, or untick \"On Behalf of\" to send the form "
+                    "to the client.") % user.name)
+            return (user.email, user.name)
+        if not self.email_from:
+            raise UserError(_(
+                "Please set the email address on this pipeline before sending the "
+                "discovery form."))
+        return (self.email_from, self.contact_name or self.partner_name or '')
+
     def action_send_discovery_form(self):
         """Header button: create and send a new discovery form submission of
         whichever type is currently selected. Can be clicked repeatedly to
@@ -144,16 +183,27 @@ class CrmLead(models.Model):
         self.ensure_one()
         if not self.discovery_form_type:
             raise UserError(_("Please select which Discovery Form to send first."))
-        if not self.email_from:
-            raise UserError(_(
-                "Please set the email address on this pipeline before sending the "
-                "discovery form."))
+        # Validate before creating anything: raises when the recipient (client,
+        # or salesperson when sending on the client's behalf) has no address.
+        on_behalf = self.discovery_on_behalf
+        email = self._discovery_recipient(on_behalf)[0]
 
         submission = self.env['crm.lead.discovery.form'].create({
             'lead_id': self.id,
             'form_type': self.discovery_form_type,
+            'on_behalf': on_behalf,
         })
         submission.action_send()
+
+        if on_behalf:
+            message = _(
+                "The %(form)s discovery form link has been sent to %(email)s to be "
+                "filled in on the client's behalf. The client was not emailed."
+            ) % {'form': submission.form_label, 'email': email}
+        else:
+            message = _(
+                "The %(form)s discovery form link has been sent to %(email)s."
+            ) % {'form': submission.form_label, 'email': email}
 
         return {
             'type': 'ir.actions.client',
@@ -161,8 +211,7 @@ class CrmLead(models.Model):
             'params': {
                 'type': 'success',
                 'title': _("Discovery Form Sent"),
-                'message': _("The %(form)s discovery form link has been sent to %(email)s.") % {
-                    'form': submission.form_label, 'email': self.email_from},
+                'message': message,
                 'next': {
                     'type': 'ir.actions.act_window',
                     'res_model': 'crm.lead',

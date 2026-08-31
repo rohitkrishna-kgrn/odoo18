@@ -35,7 +35,97 @@ class SaleOrder(models.Model):
         store=True, readonly=False,
         help="Automatically enabled (and locked) when the linked opportunity is an "
              "eInvoicing Service opportunity.")
-    entity_count = fields.Integer(string='Number of Entities')
+    entity_count = fields.Integer(
+        string='Number of Entities',
+        help="Typing a number here generates exactly that many entity rows in "
+             "the Entities tab. Lowering it removes the surplus rows from the "
+             "bottom of the list.")
+    entity_ids = fields.One2many(
+        'sale.order.entity', 'order_id', string='Entities', copy=True)
+    entity_amount_total = fields.Monetary(
+        string='Entity Total', compute='_compute_entity_amount_total',
+        store=True, currency_field='currency_id',
+        help="Sum of the per-entity prices. Printed under the commercial "
+             "structure in the proposal PDF; it does not change the order total, "
+             "which is driven by the order lines.")
+
+    @api.depends('entity_ids.price')
+    def _compute_entity_amount_total(self):
+        for order in self:
+            order.entity_amount_total = sum(order.entity_ids.mapped('price'))
+
+    @api.constrains('entity_count')
+    def _check_entity_count(self):
+        for order in self:
+            if order.entity_count < 0:
+                raise ValidationError(_("Number of Entities cannot be negative."))
+
+    # ------------------------------------------------------------------
+    # Number of Entities <-> Entities rows
+    # ------------------------------------------------------------------
+    def _next_entity_sequence(self):
+        """Sequence for the next appended row — always behind the existing ones,
+        even after a drag-reorder has renumbered them."""
+        self.ensure_one()
+        return max(self.entity_ids.mapped('sequence') or [0]) + 10
+
+    def _sync_entity_rows(self):
+        """Make the Entities list exactly `entity_count` rows long (server side).
+
+        Surplus rows are dropped from the tail so the entities already filled in
+        keep their number.
+        """
+        Entity = self.env['sale.order.entity']
+        for order in self:
+            target = max(order.entity_count or 0, 0)
+            entities = order.entity_ids
+            if len(entities) > target:
+                entities[target:].unlink()
+            elif len(entities) < target:
+                sequence = order._next_entity_sequence()
+                Entity.create([
+                    {'order_id': order.id, 'sequence': sequence + index * 10}
+                    for index in range(target - len(entities))
+                ])
+
+    @api.onchange('entity_count')
+    def _onchange_entity_count(self):
+        """Same sync, but against the form's in-memory rows.
+
+        Assigning a recordset (rather than a command list) is what makes this
+        work on an unsaved quotation too: a command list on an origin-less
+        record is applied to an empty set and would throw away the rows already
+        added in this form.
+        """
+        for order in self:
+            target = max(order.entity_count or 0, 0)
+            if order.entity_count != target:
+                # A negative reads back as 0 straight away rather than waiting
+                # for _check_entity_count to reject it on save.
+                order.entity_count = target
+            entities = order.entity_ids
+            if len(entities) > target:
+                order.entity_ids = entities[:target]
+            elif len(entities) < target:
+                sequence = order._next_entity_sequence()
+                for index in range(target - len(entities)):
+                    entities |= self.env['sale.order.entity'].new({
+                        'order_id': order.id,
+                        'sequence': sequence + index * 10,
+                    })
+                order.entity_ids = entities
+
+    @api.onchange('entity_ids')
+    def _onchange_entity_ids(self):
+        """Keep the count honest when rows are added or deleted by hand.
+
+        This cannot loop with `_onchange_entity_count`: the onchange engine only
+        runs each field's methods once per call (`done` set in
+        `web/models/models.py`), and the two agree after one pass anyway.
+        """
+        for order in self:
+            if order.entity_count != len(order.entity_ids):
+                order.entity_count = len(order.entity_ids)
 
     @api.depends('opportunity_id.discovery_form_type')
     def _compute_opportunity_einvoicing(self):
@@ -106,6 +196,11 @@ class SaleOrder(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         orders = super().create(vals_list)
+        # A count supplied without rows (import, API, server action) still has
+        # to produce the rows; the form already sent both and they agree.
+        for order, vals in zip(orders, vals_list):
+            if 'entity_count' in vals and 'entity_ids' not in vals:
+                order._sync_entity_rows()
         proposition = self.env.ref('crm.stage_lead3', raise_if_not_found=False)
         for order in orders:
             lead = order.opportunity_id
@@ -133,6 +228,13 @@ class SaleOrder(models.Model):
         if vals.get('state') == 'sent':
             newly_sent = self.filtered(lambda o: o.state != 'sent')
         res = super().write(vals)
+        if 'entity_count' in vals and 'entity_ids' not in vals:
+            self._sync_entity_rows()
+        elif 'entity_ids' in vals and 'entity_count' not in vals:
+            # Rows written without a count — keep the count from lying.
+            for order in self:
+                if order.entity_count != len(order.entity_ids):
+                    order.entity_count = len(order.entity_ids)
         for order in newly_sent:
             order.opportunity_id._log_journey_event(
                 'proposal_sent',

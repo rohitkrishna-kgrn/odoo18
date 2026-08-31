@@ -12,6 +12,7 @@
                  (same or different type) discovery form can be sent later. -->
             <xpath expr="//field[@name='tag_ids']" position="after">
                 <field name="discovery_form_type"/>
+                <field name="discovery_on_behalf"/>
                 <field name="sale_order_id" readonly="1"/>
                 <field name="is_stage_new" invisible="1"/>
                 <field name="is_stage_lost" invisible="1"/>

@@ -173,6 +173,24 @@ class ReportProposalMixin(models.AbstractModel):
             })
         return rows
 
+    # ── entity fee breakdown (Section 10, under the totals) ───────────────
+    @api.model
+    def _entity_rows(self, order):
+        """Entity 1..N with their name and fee, in the order shown on the form.
+
+        Numbered here with `enumerate` rather than read off `entity_no`, so the
+        PDF stays right even if a row's compute has not been triggered.
+        """
+        rows = []
+        for index, entity in enumerate(order.entity_ids, start=1):
+            rows.append({
+                'number': index,
+                'label': 'Entity %d' % index,
+                'name': (entity.name or '').strip() or 'To be confirmed',
+                'price': self._fmt_amount(entity.price),
+            })
+        return rows
+
     @api.model
     def _totals(self, order):
         gross = sum(
@@ -224,6 +242,9 @@ class ReportProposalMixin(models.AbstractModel):
             'has_deliverables': any(service['deliverables'] for service in services),
             'has_methodology': any(service['methodology'] for service in services),
             'commercial_rows': self._commercial_rows(order),
+            'entity_rows': self._entity_rows(order),
+            'entity_count': order.entity_count,
+            'entity_total': self._fmt_amount(order.entity_amount_total),
             'terms': Markup(order.proposal_terms or content.DEFAULT_TERMS_HTML),
             'salesperson': order.user_id.name or '',
         }
