@@ -40,6 +40,56 @@ class SaleOrderEntity(models.Model):
         help="Fee allocated to this entity. The Entity Total is the sum of "
              "these, and both are printed in the proposal PDF.")
 
+    # ------------------------------------------------------------------
+    # Annual invoice counts — read back from the eInvoicing discovery form
+    #
+    # The discovery form is the only source of truth for these two numbers:
+    # they are never typed, derived or estimated here. They are written solely
+    # by sale.order.action_fetch_discovery_invoice_counts(), which matches this
+    # row to an "Entity Details" block on the form by entity name.
+    # ------------------------------------------------------------------
+    inbound_invoice_count = fields.Integer(
+        string='Annual Inbound Invoice Count', readonly=True, copy=False,
+        help="Supplier invoices received per year, as stated for this entity "
+             "in the eInvoicing discovery form. Never edited here.")
+    outbound_invoice_count = fields.Integer(
+        string='Annual Outbound Invoice Count', readonly=True, copy=False,
+        help="Customer invoices issued per year, as stated for this entity "
+             "in the eInvoicing discovery form. Never edited here.")
+    discovery_state = fields.Selection(
+        [('none', 'Not Fetched'),
+         ('matched', 'Matched'),
+         ('incomplete', 'Counts Missing'),
+         ('ambiguous', 'Duplicate Name'),
+         ('unmatched', 'No Match')],
+        string='Discovery Form', default='none', readonly=True, copy=False,
+        help="Result of matching this entity's name against the Entity Details "
+             "on the eInvoicing discovery form.")
+    discovery_needs_review = fields.Boolean(
+        string='Needs Review', compute='_compute_discovery_needs_review')
+
+    # Blank, never 0, whenever the form did not supply a number: an entity that
+    # could not be matched must not read as "zero invoices a year".
+    inbound_count_display = fields.Char(
+        string='Annual Inbound Invoice Count', compute='_compute_count_display')
+    outbound_count_display = fields.Char(
+        string='Annual Outbound Invoice Count', compute='_compute_count_display')
+
+    @api.depends('discovery_state')
+    def _compute_discovery_needs_review(self):
+        for entity in self:
+            entity.discovery_needs_review = entity.discovery_state in (
+                'incomplete', 'ambiguous', 'unmatched')
+
+    @api.depends('inbound_invoice_count', 'outbound_invoice_count', 'discovery_state')
+    def _compute_count_display(self):
+        for entity in self:
+            matched = entity.discovery_state == 'matched'
+            entity.inbound_count_display = (
+                '{:,}'.format(entity.inbound_invoice_count) if matched else '')
+            entity.outbound_count_display = (
+                '{:,}'.format(entity.outbound_invoice_count) if matched else '')
+
     @api.depends('sequence', 'order_id.entity_ids', 'order_id.entity_ids.sequence')
     def _compute_entity_no(self):
         for entity in self:
@@ -55,3 +105,19 @@ class SaleOrderEntity(models.Model):
         for entity in self:
             if entity.price < 0:
                 raise ValidationError(_("An entity price cannot be negative."))
+
+    def write(self, vals):
+        """Renaming a row breaks the match it was populated under, so the
+        counts are dropped rather than left behind under a different entity's
+        name. Re-run "Fetch Invoice Counts" to repopulate them."""
+        if 'name' in vals:
+            stale = self.filtered(
+                lambda entity: entity.discovery_state != 'none'
+                and (entity.name or '') != (vals.get('name') or ''))
+            if stale:
+                super(SaleOrderEntity, stale).write({
+                    'inbound_invoice_count': 0,
+                    'outbound_invoice_count': 0,
+                    'discovery_state': 'none',
+                })
+        return super().write(vals)

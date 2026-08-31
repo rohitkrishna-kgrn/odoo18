@@ -127,6 +127,163 @@ class SaleOrder(models.Model):
             if order.entity_count != len(order.entity_ids):
                 order.entity_count = len(order.entity_ids)
 
+    # ------------------------------------------------------------------
+    # Annual invoice counts, pulled from the eInvoicing discovery form
+    #
+    # The form is the single source of truth: the counts are copied across
+    # exactly as the client stated them, matched to the quotation's entities by
+    # entity name. Nothing is derived, aggregated or estimated here - a row
+    # that cannot be matched confidently is left blank and flagged for review.
+    # ------------------------------------------------------------------
+    discovery_counts_form_id = fields.Many2one(
+        'crm.lead.discovery.form', string='Invoice Counts Source',
+        readonly=True, copy=False,
+        help="The eInvoicing discovery form submission the annual invoice "
+             "counts in the Entities tab were read from.")
+    discovery_counts_date = fields.Datetime(
+        string='Counts Fetched On', readonly=True, copy=False)
+
+    @staticmethod
+    def _entity_name_key(name):
+        """Names are compared on a normalised key: case and inner spacing
+        routinely differ between what the client typed into the discovery form
+        and what was typed onto the quotation ("ABC  Pvt Ltd" / "abc pvt ltd").
+        Nothing else is normalised - two genuinely different names never match.
+        """
+        return ' '.join((name or '').split()).casefold()
+
+    @staticmethod
+    def _as_invoice_count(value):
+        """The submitted value as an int, or None when the form did not carry a
+        usable number. Never substitutes a default: a missing count leaves the
+        field blank and flags the row, it does not become 0."""
+        # Not `value in (None, '', False)`: 0 == False in Python, and a stated
+        # count of 0 is a real answer that must survive as 0, not read as
+        # "missing".
+        if value is None or isinstance(value, bool):
+            return None
+        if isinstance(value, str) and not value.strip():
+            return None
+        try:
+            return int(round(float(value)))
+        except (TypeError, ValueError):
+            return None
+
+    def _discovery_counts_source(self):
+        """The submission the counts are read from: the most recently submitted
+        eInvoicing discovery form on the linked opportunity."""
+        self.ensure_one()
+        # sudo: the counts belong to this quotation's own opportunity, but CRM
+        # record rules can hide the lead from whoever is preparing the proposal
+        # and would silently return an empty form instead of an error.
+        lead = self.sudo().opportunity_id
+        if not lead:
+            raise UserError(_(
+                "This quotation is not linked to an opportunity, so there is no "
+                "discovery form to read the invoice counts from."))
+        form = self.env['crm.lead.discovery.form'].sudo().search(
+            [('lead_id', '=', lead.id),
+             ('form_type', '=', 'einvoicing'),
+             ('state', '=', 'submitted')],
+            order='submitted_date desc, id desc', limit=1)
+        if not form:
+            raise UserError(_(
+                "No submitted eInvoicing discovery form was found on the "
+                "opportunity %s. The annual invoice counts can only come from "
+                "that form, so there is nothing to fetch yet.") % lead.display_name)
+        return form
+
+    def action_fetch_discovery_invoice_counts(self):
+        """Populate each entity's annual inbound/outbound invoice counts from
+        the eInvoicing discovery form, matching on entity name."""
+        self.ensure_one()
+        if not self.entity_ids:
+            raise UserError(_(
+                "There are no entities on this quotation yet. Set the Number of "
+                "Entities and name them first."))
+        form = self._discovery_counts_source()
+
+        # Index the form's Entity Details by normalised name. A name used by
+        # more than one block is ambiguous: the values are never merged or
+        # picked between, the entity is flagged for review instead.
+        by_name = {}
+        duplicates = set()
+        for answers in form._entity_answers():
+            key = self._entity_name_key(answers.get('entityName'))
+            if not key:
+                continue
+            if key in by_name:
+                duplicates.add(key)
+            else:
+                by_name[key] = answers
+
+        matched = review = 0
+        used = set()
+        for entity in self.entity_ids:
+            key = self._entity_name_key(entity.name)
+            answers = by_name.get(key)
+            if not key or key in duplicates or answers is None:
+                entity.write({
+                    'inbound_invoice_count': 0,
+                    'outbound_invoice_count': 0,
+                    'discovery_state': ('ambiguous' if key in duplicates
+                                        else 'unmatched'),
+                })
+                review += 1
+                continue
+
+            used.add(key)
+            inbound = self._as_invoice_count(answers.get('inboundCount'))
+            outbound = self._as_invoice_count(answers.get('outboundCount'))
+            if inbound is None or outbound is None:
+                # Matched by name, but the form does not carry both numbers -
+                # blank and flagged rather than half-populated.
+                entity.write({
+                    'inbound_invoice_count': 0,
+                    'outbound_invoice_count': 0,
+                    'discovery_state': 'incomplete',
+                })
+                review += 1
+                continue
+
+            entity.write({
+                'inbound_invoice_count': inbound,
+                'outbound_invoice_count': outbound,
+                'discovery_state': 'matched',
+            })
+            matched += 1
+
+        self.write({
+            'discovery_counts_form_id': form.id,
+            'discovery_counts_date': fields.Datetime.now(),
+        })
+
+        # Entities the client described that no row on the quotation claims -
+        # reported, never auto-added: the quotation's entity list is the
+        # proposal's own scope and is not changed here.
+        unclaimed = [answers.get('entityName') for key, answers in by_name.items()
+                     if key not in used and key not in duplicates]
+        message = _("%(matched)s of %(total)s entities matched the discovery form.") % {
+            'matched': matched, 'total': len(self.entity_ids)}
+        if review:
+            message += _(" %s left blank for review.") % review
+        if duplicates:
+            message += _(" The form repeats %s entity name(s).") % len(duplicates)
+        if unclaimed:
+            message += _(" Not on this quotation: %s.") % ', '.join(
+                name for name in unclaimed if name)
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'type': 'warning' if (review or unclaimed) else 'success',
+                'title': _("Invoice Counts Fetched"),
+                'message': message,
+                'sticky': bool(review or unclaimed),
+            },
+        }
+
     @api.depends('opportunity_id.discovery_form_type')
     def _compute_opportunity_einvoicing(self):
         for order in self:

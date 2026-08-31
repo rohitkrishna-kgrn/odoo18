@@ -331,6 +331,30 @@ class CrmLeadDiscoveryForm(models.Model):
         }).send()
 
     # ------------------------------------------------------------------
+    # Submitted answers: structured read-back
+    # ------------------------------------------------------------------
+    def _entity_answers(self):
+        """The "Entity Details" blocks exactly as the client submitted them.
+
+        One dict per entity, keyed by the schema's field keys (entityName,
+        inboundCount, outboundCount, ...). Empty list while the form is still
+        awaiting submission, for a form type with no entity sub-section, or if
+        the stored payload is unreadable - callers must treat "no answers" and
+        "answer missing" the same way and never invent a value.
+        """
+        self.ensure_one()
+        if self.state != 'submitted' or not self.data:
+            return []
+        try:
+            payload = json.loads(self.data)
+        except (TypeError, ValueError):
+            return []
+        entities = payload.get('entities')
+        if not isinstance(entities, list):
+            return []
+        return [entity for entity in entities if isinstance(entity, dict)]
+
+    # ------------------------------------------------------------------
     # PDF export / preview
     # ------------------------------------------------------------------
     def action_download_pdf(self):

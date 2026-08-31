@@ -194,6 +194,11 @@
   .ent-total td.v { text-align: right; }
   .ent-no { width: 90px; font-weight: 700; color: #1A2F4E; font-size: 12.5px; }
   .ent-name { font-size: 12.5px; font-weight: 600; color: #1F1F1F; }
+  /* Annual invoice counts, as stated in the eInvoicing discovery form. The
+     header wraps onto two lines, so it is sized down from the other headers. */
+  .ent-cnt-h { font-size: 9.5px; line-height: 1.25; text-align: right; }
+  .ent-cnt { text-align: right; font-size: 12.5px; font-weight: 600; color: #1F1F1F;
+             white-space: nowrap; }
 
   /* ── Editable terms ── */
   .terms { margin-top: 20px; border-top: 2px solid #fef3ec; padding-top: 16px; page-break-inside: avoid; }
@@ -611,9 +616,11 @@
     <table class="tbl" style="margin-top:0;">
       <thead>
         <tr>
-          <th style="width:90px;">Entity</th>
+          <th style="width:78px;">Entity</th>
           <th>Name</th>
-          <th style="text-align:right;width:150px;">Price (<t t-out="p['currency']"/>)</th>
+          <th t-if="p['has_entity_counts']" class="ent-cnt-h" style="width:88px;">Annual Inbound<br/>Invoice Count</th>
+          <th t-if="p['has_entity_counts']" class="ent-cnt-h" style="width:88px;">Annual Outbound<br/>Invoice Count</th>
+          <th style="text-align:right;width:130px;">Price (<t t-out="p['currency']"/>)</th>
         </tr>
       </thead>
       <tbody>
@@ -621,6 +628,8 @@
             t-att-class="'alt' if entity_index % 2 == 1 else ''">
           <td class="ent-no"><t t-out="entity['label']"/></td>
           <td class="ent-name"><t t-out="entity['name']"/></td>
+          <td t-if="p['has_entity_counts']" class="ent-cnt"><t t-out="entity['inbound']"/></td>
+          <td t-if="p['has_entity_counts']" class="ent-cnt"><t t-out="entity['outbound']"/></td>
           <td class="amount"><t t-out="p['currency']"/> <t t-out="entity['price']"/></td>
         </tr>
       </tbody>

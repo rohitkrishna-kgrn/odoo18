@@ -95,11 +95,41 @@
                         lower it to drop them off the bottom. The names and prices below
                         are printed under the Commercial Structure in the proposal PDF.
                     </div>
+                    <!-- Invoice counts are read from the eInvoicing discovery form
+                         only; they are never typed here. -->
+                    <div class="mb-2">
+                        <button name="action_fetch_discovery_invoice_counts" type="object"
+                                string="Fetch Invoice Counts" class="btn-secondary"
+                                icon="fa-download"/>
+                        <span class="text-muted ms-2" invisible="not discovery_counts_date">
+                            Annual invoice counts read from
+                            <field name="discovery_counts_form_id" readonly="1" nolabel="1"
+                                   options="{'no_open': True}" class="oe_inline"/>
+                            on
+                            <field name="discovery_counts_date" readonly="1" nolabel="1"
+                                   class="oe_inline"/>.
+                        </span>
+                        <span class="text-muted ms-2" invisible="discovery_counts_date">
+                            Annual invoice counts come from the eInvoicing discovery
+                            form — fetch them once the client has submitted it.
+                        </span>
+                    </div>
                     <field name="entity_ids" nolabel="1">
                         <list editable="bottom">
                             <field name="sequence" widget="handle"/>
                             <field name="entity_no" string="Entity" readonly="1"/>
                             <field name="name" placeholder="e.g. ABC Pvt Ltd"/>
+                            <field name="inbound_count_display" string="Annual Inbound"
+                                   readonly="1"/>
+                            <field name="outbound_count_display" string="Annual Outbound"
+                                   readonly="1"/>
+                            <field name="discovery_state" string="Discovery Form"
+                                   widget="badge" readonly="1"
+                                   decoration-success="discovery_state == 'matched'"
+                                   decoration-warning="discovery_state in ['incomplete', 'ambiguous']"
+                                   decoration-danger="discovery_state == 'unmatched'"
+                                   decoration-muted="discovery_state == 'none'"/>
+                            <field name="discovery_needs_review" column_invisible="1"/>
                             <field name="currency_id" column_invisible="1"/>
                             <field name="price" widget="monetary"/>
                         </list>

@@ -183,11 +183,17 @@ class ReportProposalMixin(models.AbstractModel):
         """
         rows = []
         for index, entity in enumerate(order.entity_ids, start=1):
+            # Counts come from the eInvoicing discovery form and nowhere else.
+            # An entity that could not be matched to it prints blank - never 0,
+            # which would read as "no invoices a year".
+            matched = entity.discovery_state == 'matched'
             rows.append({
                 'number': index,
                 'label': 'Entity %d' % index,
                 'name': (entity.name or '').strip() or 'To be confirmed',
                 'price': self._fmt_amount(entity.price),
+                'inbound': '{:,}'.format(entity.inbound_invoice_count) if matched else '',
+                'outbound': '{:,}'.format(entity.outbound_invoice_count) if matched else '',
             })
         return rows
 
@@ -219,6 +225,7 @@ class ReportProposalMixin(models.AbstractModel):
         partner = order.partner_id
         company = partner.commercial_partner_id
         services = self._services(order)
+        entity_rows = self._entity_rows(order)
         summary = (order.proposal_executive_summary or '').strip() or (
             "KGRN Chartered Accountants is pleased to present this eInvoicing "
             "services proposal to %s. This document sets out our understanding of "
@@ -242,9 +249,14 @@ class ReportProposalMixin(models.AbstractModel):
             'has_deliverables': any(service['deliverables'] for service in services),
             'has_methodology': any(service['methodology'] for service in services),
             'commercial_rows': self._commercial_rows(order),
-            'entity_rows': self._entity_rows(order),
+            'entity_rows': entity_rows,
             'entity_count': order.entity_count,
             'entity_total': self._fmt_amount(order.entity_amount_total),
+            # The two invoice-count columns only appear once the discovery form
+            # has actually supplied numbers, so proposals without one keep the
+            # table they had.
+            'has_entity_counts': any(row['inbound'] or row['outbound']
+                                     for row in entity_rows),
             'terms': Markup(order.proposal_terms or content.DEFAULT_TERMS_HTML),
             'salesperson': order.user_id.name or '',
         }
