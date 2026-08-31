@@ -1,5 +1,8 @@
+from collections import Counter
+
 from odoo import api, models, fields, _
 
+from .crm_lead_discovery_entity import entity_name_key
 from .crm_tag import APPROVED_TAG_DOMAIN
 from odoo.exceptions import UserError, ValidationError
 
@@ -143,41 +146,45 @@ class SaleOrder(models.Model):
     discovery_counts_date = fields.Datetime(
         string='Counts Fetched On', readonly=True, copy=False)
 
-    @staticmethod
-    def _entity_name_key(name):
-        """Names are compared on a normalised key: case and inner spacing
-        routinely differ between what the client typed into the discovery form
-        and what was typed onto the quotation ("ABC  Pvt Ltd" / "abc pvt ltd").
-        Nothing else is normalised - two genuinely different names never match.
-        """
-        return ' '.join((name or '').split()).casefold()
+    # The entities named in that form - the choices each quotation line offers.
+    discovery_entity_ids = fields.Many2many(
+        'crm.lead.discovery.entity', string='Discovery Form Entities',
+        compute='_compute_discovery_entities',
+        help="Entities named in the eInvoicing discovery form for this "
+             "quotation's opportunity. Each entity line picks from these.")
+    has_discovery_entities = fields.Boolean(
+        compute='_compute_discovery_entities',
+        help="The discovery form named at least one entity, so the lines below "
+             "offer them in a dropdown instead of a free-text name.")
+    # What is left to pick. One entity belongs on one line, so a line that has
+    # claimed an entity takes it out of every other line's dropdown.
+    available_discovery_entity_ids = fields.Many2many(
+        'crm.lead.discovery.entity', string='Available Discovery Entities',
+        compute='_compute_discovery_entities')
 
-    @staticmethod
-    def _as_invoice_count(value):
-        """The submitted value as an int, or None when the form did not carry a
-        usable number. Never substitutes a default: a missing count leaves the
-        field blank and flags the row, it does not become 0."""
-        # Not `value in (None, '', False)`: 0 == False in Python, and a stated
-        # count of 0 is a real answer that must survive as 0, not read as
-        # "missing".
-        if value is None or isinstance(value, bool):
-            return None
-        if isinstance(value, str) and not value.strip():
-            return None
-        try:
-            return int(round(float(value)))
-        except (TypeError, ValueError):
-            return None
+    @api.depends('opportunity_id', 'entity_ids.discovery_entity_id')
+    def _compute_discovery_entities(self):
+        for order in self:
+            form = order._discovery_counts_source(raise_if_missing=False)
+            entities = form.entity_ids if form else self.env['crm.lead.discovery.entity']
+            taken = set(order.entity_ids.mapped('discovery_entity_id').ids)
+            order.discovery_entity_ids = entities
+            order.has_discovery_entities = bool(entities)
+            order.available_discovery_entity_ids = entities.filtered(
+                lambda entity: entity.id not in taken)
 
-    def _discovery_counts_source(self):
+    def _discovery_counts_source(self, raise_if_missing=True):
         """The submission the counts are read from: the most recently submitted
         eInvoicing discovery form on the linked opportunity."""
         self.ensure_one()
         # sudo: the counts belong to this quotation's own opportunity, but CRM
         # record rules can hide the lead from whoever is preparing the proposal
         # and would silently return an empty form instead of an error.
+        empty = self.env['crm.lead.discovery.form']
         lead = self.sudo().opportunity_id
         if not lead:
+            if not raise_if_missing:
+                return empty
             raise UserError(_(
                 "This quotation is not linked to an opportunity, so there is no "
                 "discovery form to read the invoice counts from."))
@@ -187,6 +194,8 @@ class SaleOrder(models.Model):
              ('state', '=', 'submitted')],
             order='submitted_date desc, id desc', limit=1)
         if not form:
+            if not raise_if_missing:
+                return empty
             raise UserError(_(
                 "No submitted eInvoicing discovery form was found on the "
                 "opportunity %s. The annual invoice counts can only come from "
@@ -202,28 +211,33 @@ class SaleOrder(models.Model):
                 "There are no entities on this quotation yet. Set the Number of "
                 "Entities and name them first."))
         form = self._discovery_counts_source()
+        # Refresh the rows behind the dropdown, so a form submitted before this
+        # feature existed is picked up on first use rather than reading empty.
+        form._sync_entity_records()
 
-        # Index the form's Entity Details by normalised name. A name used by
-        # more than one block is ambiguous: the values are never merged or
-        # picked between, the entity is flagged for review instead.
-        by_name = {}
-        duplicates = set()
-        for answers in form._entity_answers():
-            key = self._entity_name_key(answers.get('entityName'))
-            if not key:
-                continue
-            if key in by_name:
-                duplicates.add(key)
-            else:
-                by_name[key] = answers
+        # A name the form repeats cannot be told apart, so it is dropped during
+        # the sync: the values are never merged or picked between, and a line
+        # carrying that name is flagged for review instead.
+        by_name = {entity_name_key(source.name): source for source in form.entity_ids}
+        seen = Counter(entity_name_key(answers.get('entityName'))
+                       for answers in form._entity_answers())
+        duplicates = {key for key, count in seen.items() if key and count > 1}
 
         matched = review = 0
         used = set()
         for entity in self.entity_ids:
-            key = self._entity_name_key(entity.name)
-            answers = by_name.get(key)
-            if not key or key in duplicates or answers is None:
+            # An explicitly picked entity wins over the name: it is an exact
+            # link, not a text match.
+            source = entity.discovery_entity_id
+            if source and source.form_id == form:
+                key = entity_name_key(source.name)
+            else:
+                key = entity_name_key(entity.name)
+                source = by_name.get(key) if key not in duplicates else None
+
+            if not key or not source:
                 entity.write({
+                    'discovery_entity_id': False,
                     'inbound_invoice_count': 0,
                     'outbound_invoice_count': 0,
                     'discovery_state': ('ambiguous' if key in duplicates
@@ -233,12 +247,11 @@ class SaleOrder(models.Model):
                 continue
 
             used.add(key)
-            inbound = self._as_invoice_count(answers.get('inboundCount'))
-            outbound = self._as_invoice_count(answers.get('outboundCount'))
-            if inbound is None or outbound is None:
-                # Matched by name, but the form does not carry both numbers -
-                # blank and flagged rather than half-populated.
+            if not source.has_counts:
+                # Matched, but the form does not carry both numbers - blank and
+                # flagged rather than half-populated.
                 entity.write({
+                    'discovery_entity_id': source.id,
                     'inbound_invoice_count': 0,
                     'outbound_invoice_count': 0,
                     'discovery_state': 'incomplete',
@@ -247,8 +260,10 @@ class SaleOrder(models.Model):
                 continue
 
             entity.write({
-                'inbound_invoice_count': inbound,
-                'outbound_invoice_count': outbound,
+                'discovery_entity_id': source.id,
+                'name': source.name,
+                'inbound_invoice_count': source.inbound_count,
+                'outbound_invoice_count': source.outbound_count,
                 'discovery_state': 'matched',
             })
             matched += 1
@@ -261,7 +276,7 @@ class SaleOrder(models.Model):
         # Entities the client described that no row on the quotation claims -
         # reported, never auto-added: the quotation's entity list is the
         # proposal's own scope and is not changed here.
-        unclaimed = [answers.get('entityName') for key, answers in by_name.items()
+        unclaimed = [source.name for key, source in by_name.items()
                      if key not in used and key not in duplicates]
         message = _("%(matched)s of %(total)s entities matched the discovery form.") % {
             'matched': matched, 'total': len(self.entity_ids)}

@@ -251,7 +251,6 @@ class ReportProposalMixin(models.AbstractModel):
             'commercial_rows': self._commercial_rows(order),
             'entity_rows': entity_rows,
             'entity_count': order.entity_count,
-            'entity_total': self._fmt_amount(order.entity_amount_total),
             # The two invoice-count columns only appear once the discovery form
             # has actually supplied numbers, so proposals without one keep the
             # table they had.

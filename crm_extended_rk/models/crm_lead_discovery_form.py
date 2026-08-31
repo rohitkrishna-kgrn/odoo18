@@ -7,6 +7,7 @@ from markupsafe import Markup
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
+from .crm_lead_discovery_entity import entity_name_key, parse_invoice_count
 from .discovery_schema import form_selection, get_label, get_sections
 
 
@@ -40,6 +41,9 @@ class CrmLeadDiscoveryForm(models.Model):
     signature = fields.Binary(string='Signature', copy=False, attachment=True)
     signature_attachment = fields.Binary(string='Signed Document', copy=False, attachment=True)
     signature_attachment_filename = fields.Char(string='Signed Document Filename', copy=False)
+    # The submitted Entity Details, as records - see crm_lead_discovery_entity.py.
+    entity_ids = fields.One2many(
+        'crm.lead.discovery.entity', 'form_id', string='Entities', copy=False)
     # Copied from the opportunity at send time and kept on the submission, so a
     # resend keeps going to the same kind of recipient and the history shows
     # which forms the client actually received.
@@ -280,6 +284,8 @@ class CrmLeadDiscoveryForm(models.Model):
                 '<p>See the Discovery Forms list for the full response.</p>'
             ) % self.form_label
 
+        self._sync_entity_records()
+
         self.lead_id._log_journey_event(
             'discovery_received', event_name, discovery_form_id=self.id)
         self.lead_id._journey_on_discovery_received()
@@ -353,6 +359,46 @@ class CrmLeadDiscoveryForm(models.Model):
         if not isinstance(entities, list):
             return []
         return [entity for entity in entities if isinstance(entity, dict)]
+
+    def _sync_entity_records(self):
+        """Rebuild the entity rows from the submitted payload.
+
+        Idempotent and keyed on the normalised entity name, so re-running it
+        refreshes the answers without breaking the quotation lines that already
+        point at a row. Unnamed blocks are skipped - there is nothing to pick or
+        match them by.
+        """
+        Entity = self.env['crm.lead.discovery.entity'].sudo()
+        # sudo throughout: a salesperson may only read these rows, but the sync
+        # runs off the back of their "Fetch Invoice Counts" click.
+        for sub in self.sudo():
+            existing = {entity_name_key(entity.name): entity
+                        for entity in sub.entity_ids}
+            seen = set()
+            for index, answers in enumerate(sub._entity_answers(), start=1):
+                name = ' '.join((answers.get('entityName') or '').split())
+                key = entity_name_key(name)
+                if not key or key in seen:
+                    # A name the form repeats cannot be told apart downstream,
+                    # so only its first block becomes a row.
+                    continue
+                seen.add(key)
+                inbound = parse_invoice_count(answers.get('inboundCount'))
+                outbound = parse_invoice_count(answers.get('outboundCount'))
+                vals = {
+                    'sequence': index * 10,
+                    'name': name,
+                    'inbound_count': inbound or 0,
+                    'outbound_count': outbound or 0,
+                    'has_counts': inbound is not None and outbound is not None,
+                }
+                if key in existing:
+                    existing[key].write(vals)
+                else:
+                    Entity.create(dict(vals, form_id=sub.id))
+            surplus = [entity for key, entity in existing.items() if key not in seen]
+            if surplus:
+                Entity.browse([entity.id for entity in surplus]).unlink()
 
     # ------------------------------------------------------------------
     # PDF export / preview

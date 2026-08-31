@@ -48,6 +48,17 @@ class SaleOrderEntity(models.Model):
     # by sale.order.action_fetch_discovery_invoice_counts(), which matches this
     # row to an "Entity Details" block on the form by entity name.
     # ------------------------------------------------------------------
+    # Picked from the client's own discovery form. An exact link beats matching
+    # two typed names, so choosing one here fills the name and both counts
+    # outright; a row for an entity the form never mentioned is still named by
+    # hand and simply stays unlinked.
+    discovery_entity_id = fields.Many2one(
+        'crm.lead.discovery.entity', string='Entity Name', ondelete='set null',
+        copy=False,
+        help="Pick this entity from the eInvoicing discovery form the client "
+             "submitted. Choosing one fills the entity name and both annual "
+             "invoice counts straight from that form.")
+
     inbound_invoice_count = fields.Integer(
         string='Annual Inbound Invoice Count', readonly=True, copy=False,
         help="Supplier invoices received per year, as stated for this entity "
@@ -106,16 +117,49 @@ class SaleOrderEntity(models.Model):
             if entity.price < 0:
                 raise ValidationError(_("An entity price cannot be negative."))
 
+    def _vals_from_discovery(self, entity_id):
+        """Name and counts copied straight off the picked discovery entity.
+
+        Applied in create/write rather than in an onchange: the count fields are
+        readonly, so values the client sent back for them would be dropped and
+        the row would save with the counts still empty.
+        """
+        source = self.env['crm.lead.discovery.entity'].browse(entity_id).exists()
+        if not source:
+            # Cleared, or pointing at a row that is gone: the link no longer
+            # backs the counts, so they go too.
+            return {'inbound_invoice_count': 0, 'outbound_invoice_count': 0,
+                    'discovery_state': 'none'}
+        if not source.has_counts:
+            return {'name': source.name, 'inbound_invoice_count': 0,
+                    'outbound_invoice_count': 0, 'discovery_state': 'incomplete'}
+        return {'name': source.name,
+                'inbound_invoice_count': source.inbound_count,
+                'outbound_invoice_count': source.outbound_count,
+                'discovery_state': 'matched'}
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('discovery_entity_id'):
+                vals.update(self._vals_from_discovery(vals['discovery_entity_id']))
+        return super().create(vals_list)
+
     def write(self, vals):
         """Renaming a row breaks the match it was populated under, so the
         counts are dropped rather than left behind under a different entity's
         name. Re-run "Fetch Invoice Counts" to repopulate them."""
-        if 'name' in vals:
+        if 'discovery_entity_id' in vals:
+            # Picking (or clearing) the discovery entity is the stronger signal:
+            # it decides the name and the counts together.
+            vals = {**vals, **self._vals_from_discovery(vals['discovery_entity_id'])}
+        elif 'name' in vals:
             stale = self.filtered(
                 lambda entity: entity.discovery_state != 'none'
                 and (entity.name or '') != (vals.get('name') or ''))
             if stale:
                 super(SaleOrderEntity, stale).write({
+                    'discovery_entity_id': False,
                     'inbound_invoice_count': 0,
                     'outbound_invoice_count': 0,
                     'discovery_state': 'none',

@@ -114,11 +114,26 @@
                             form — fetch them once the client has submitted it.
                         </span>
                     </div>
+                    <field name="has_discovery_entities" invisible="1"/>
+                    <field name="discovery_entity_ids" invisible="1"/>
+                    <field name="available_discovery_entity_ids" invisible="1"/>
                     <field name="entity_ids" nolabel="1">
                         <list editable="bottom">
                             <field name="sequence" widget="handle"/>
                             <field name="entity_no" string="Entity" readonly="1"/>
-                            <field name="name" placeholder="e.g. ABC Pvt Ltd"/>
+                            <!-- Names come from the client's own discovery form
+                                 when there is one; typed by hand when there is
+                                 not, or for an entity the form never mentioned. -->
+                            <field name="discovery_entity_id" string="Entity Name"
+                                   column_invisible="not parent.has_discovery_entities"
+                                   domain="[('id', 'in', parent.available_discovery_entity_ids)]"
+                                   options="{'no_create': True, 'no_open': True}"
+                                   placeholder="Pick from the discovery form"/>
+                            <!-- Free-text fallback, only when there is no discovery
+                                 form to pick from. The dropdown writes this field. -->
+                            <field name="name" string="Entity Name"
+                                   column_invisible="parent.has_discovery_entities"
+                                   placeholder="e.g. ABC Pvt Ltd"/>
                             <field name="inbound_count_display" string="Annual Inbound"
                                    readonly="1"/>
                             <field name="outbound_count_display" string="Annual Outbound"
