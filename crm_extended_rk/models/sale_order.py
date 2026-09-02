@@ -6,6 +6,10 @@ from .crm_lead_discovery_entity import entity_name_key
 from .crm_tag import APPROVED_TAG_DOMAIN
 from odoo.exceptions import UserError, ValidationError
 
+# Reference of the annual subscription service in the eInvoicing catalogue.
+ASP_SUBSCRIPTION_CODE = 'S6'
+
+
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
@@ -56,6 +60,38 @@ class SaleOrder(models.Model):
     def _compute_entity_amount_total(self):
         for order in self:
             order.entity_amount_total = sum(order.entity_ids.mapped('price'))
+
+    # ------------------------------------------------------------------
+    # S6 Annual ASP / Subscription Service - overage rate
+    #
+    # A usage rate, not a fee for this engagement: it is printed as its own
+    # row under the services in the proposal PDF and is deliberately left out
+    # of the subtotal, VAT and total, which stay driven by the order lines.
+    # ------------------------------------------------------------------
+    has_asp_subscription = fields.Boolean(
+        string='ASP Subscription Selected', compute='_compute_has_asp_subscription',
+        help="The [S6] Annual ASP / Subscription Service is on the order lines, "
+             "so the subscription overage rate applies to this quotation.")
+    einv_overage_per_1000 = fields.Monetary(
+        string='Overage per 1,000 Invoices', currency_field='currency_id',
+        help="Rate charged for every additional 1,000 invoices beyond the "
+             "subscribed volume band. Printed under the commercial structure in "
+             "the proposal PDF; it is never added to the order total.")
+
+    @api.depends('order_line.product_id')
+    def _compute_has_asp_subscription(self):
+        for order in self:
+            order.has_asp_subscription = any(
+                (line.product_id.default_code or '').strip().upper() == ASP_SUBSCRIPTION_CODE
+                for line in order.order_line
+                if not line.display_type and line.product_id
+            )
+
+    @api.constrains('einv_overage_per_1000')
+    def _check_einv_overage_per_1000(self):
+        for order in self:
+            if order.einv_overage_per_1000 < 0:
+                raise ValidationError(_("Overage per 1,000 Invoices cannot be negative."))
 
     @api.constrains('entity_count')
     def _check_entity_count(self):

@@ -76,6 +76,13 @@
                        required="einvoicing_service"/>
                 <field name="entity_amount_total"
                        invisible="not entity_ids"/>
+                <!-- Subscription overage rate. The row only opens up once the
+                     [S6] Annual ASP / Subscription Service is on the order
+                     lines; it prints on the proposal but never joins the
+                     order total. -->
+                <field name="has_asp_subscription" invisible="1"/>
+                <field name="einv_overage_per_1000"
+                       invisible="not has_asp_subscription"/>
             </field>
         </field>
     </record>
