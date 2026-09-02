@@ -173,6 +173,26 @@ class ReportProposalMixin(models.AbstractModel):
             })
         return rows
 
+    # ── S6 subscription overage (Section 10, last fee row) ────────────────
+    @api.model
+    def _overage_row(self, order):
+        """The S6 overage rate, printed under the priced services.
+
+        Printed for every eInvoicing engagement carrying S6 — the same two
+        conditions that show the field on the quotation, so the proposal never
+        states a rate the salesperson cannot see. The amount is whatever was
+        typed there: no default, no formula, and no part in the subtotal, VAT
+        or total, which is why it sits below the last service row.
+        """
+        if not order.einvoicing_service or not order.has_asp_subscription:
+            return None
+        return {
+            'label': 'Overage per 1,000 Invoices',
+            'amount': self._fmt_amount(order.einv_overage_per_1000),
+            'note': 'Charged per additional 1,000 invoices beyond the subscribed '
+                    'volume band. Not included in the totals below.',
+        }
+
     # ── entity fee breakdown (Section 10, under the totals) ───────────────
     @api.model
     def _entity_rows(self, order):
@@ -183,17 +203,24 @@ class ReportProposalMixin(models.AbstractModel):
         """
         rows = []
         for index, entity in enumerate(order.entity_ids, start=1):
-            # Counts come from the eInvoicing discovery form and nowhere else.
-            # An entity that could not be matched to it prints blank - never 0,
-            # which would read as "no invoices a year".
-            matched = entity.discovery_state == 'matched'
+            # Counts come from the eInvoicing discovery form, or from a number
+            # typed on the quotation for an entity the form does not cover. An
+            # entity nobody has answered for prints blank - never 0, which would
+            # read as "no invoices a year". The two are independent: a stated
+            # inbound count prints even while the outbound one is still unknown.
             rows.append({
                 'number': index,
                 'label': 'Entity %d' % index,
                 'name': (entity.name or '').strip() or 'To be confirmed',
                 'price': self._fmt_amount(entity.price),
-                'inbound': '{:,}'.format(entity.inbound_invoice_count) if matched else '',
-                'outbound': '{:,}'.format(entity.outbound_invoice_count) if matched else '',
+                'inbound': ('{:,}'.format(entity.inbound_invoice_count)
+                            if entity.inbound_count_set else ''),
+                'outbound': ('{:,}'.format(entity.outbound_invoice_count)
+                             if entity.outbound_count_set else ''),
+                # Names only - `name`, not `display_name`, which would drag the
+                # [S1] reference code and any variant attributes in with it.
+                'services': ', '.join(
+                    name for name in entity.service_ids.mapped('name') if name),
             })
         return rows
 
@@ -226,6 +253,11 @@ class ReportProposalMixin(models.AbstractModel):
         company = partner.commercial_partner_id
         services = self._services(order)
         entity_rows = self._entity_rows(order)
+        commercial_rows = self._commercial_rows(order)
+        overage_row = self._overage_row(order)
+        if overage_row:
+            # Keeps the zebra striping running through the extra row.
+            overage_row['alt'] = len(commercial_rows) % 2 == 0
         summary = (order.proposal_executive_summary or '').strip() or (
             "KGRN Chartered Accountants is pleased to present this eInvoicing "
             "services proposal to %s. This document sets out our understanding of "
@@ -248,7 +280,8 @@ class ReportProposalMixin(models.AbstractModel):
             'services': services,
             'has_deliverables': any(service['deliverables'] for service in services),
             'has_methodology': any(service['methodology'] for service in services),
-            'commercial_rows': self._commercial_rows(order),
+            'commercial_rows': commercial_rows,
+            'overage_row': overage_row,
             'entity_rows': entity_rows,
             'entity_count': order.entity_count,
             # The two invoice-count columns only appear once the discovery form
@@ -256,6 +289,9 @@ class ReportProposalMixin(models.AbstractModel):
             # table they had.
             'has_entity_counts': any(row['inbound'] or row['outbound']
                                      for row in entity_rows),
+            # Same rule for the services column: it only takes up room in the
+            # table once an entity actually names one.
+            'has_entity_services': any(row['services'] for row in entity_rows),
             'terms': Markup(order.proposal_terms or content.DEFAULT_TERMS_HTML),
             'salesperson': order.user_id.name or '',
         }

@@ -76,14 +76,29 @@
                        required="einvoicing_service"/>
                 <field name="entity_amount_total"
                        invisible="not entity_ids"/>
-                <!-- Subscription overage rate. The row only opens up once the
-                     [S6] Annual ASP / Subscription Service is on the order
-                     lines; it prints on the proposal but never joins the
-                     order total. -->
-                <field name="has_asp_subscription" invisible="1"/>
-                <field name="einv_overage_per_1000"
-                       invisible="not has_asp_subscription"/>
             </field>
+
+            <!-- Subscription overage rate: the last line above Untaxed Amount,
+                 the same place it takes in the proposal PDF, and typed by hand.
+                 The monetary widget parks its symbol on an absolutely
+                 positioned overlay that trails the digits as they are typed, so
+                 the symbol is switched off ('no_symbol') and the currency
+                 printed beside the box instead - it stays put while typing, and
+                 the fixed-width box keeps it off the number. -->
+            <xpath expr="//page[@name='order_lines']//field[@name='tax_totals']"
+                   position="before">
+                <field name="has_asp_subscription" invisible="1"/>
+                <div class="d-flex float-end align-items-baseline gap-2" colspan="2"
+                     invisible="not einvoicing_service or not has_asp_subscription">
+                    <label for="einv_overage_per_1000"/>
+                    <div class="text-end" style="width:120px;">
+                        <field name="einv_overage_per_1000" nolabel="1"
+                               options="{'no_symbol': True}" class="oe_inline"/>
+                    </div>
+                    <field name="currency_id" nolabel="1" readonly="1"
+                           options="{'no_open': True}" class="oe_inline"/>
+                </div>
+            </xpath>
         </field>
     </record>
 
@@ -99,11 +114,13 @@
                     <div class="text-muted mb-2">
                         One row per entity covered by this engagement, generated from
                         <b>Number of Entities</b> above. Raise that number to add rows,
-                        lower it to drop them off the bottom. The names and prices below
-                        are printed under the Commercial Structure in the proposal PDF.
+                        lower it to drop them off the bottom. The names, invoice counts,
+                        services and prices below are printed under the Commercial
+                        Structure in the proposal PDF.
                     </div>
-                    <!-- Invoice counts are read from the eInvoicing discovery form
-                         only; they are never typed here. -->
+                    <!-- Invoice counts come from the eInvoicing discovery form
+                         when the client has submitted one; the two count cells
+                         below stay editable for an entity it does not cover. -->
                     <div class="mb-2">
                         <button name="action_fetch_discovery_invoice_counts" type="object"
                                 string="Fetch Invoice Counts" class="btn-secondary"
@@ -114,11 +131,14 @@
                                    options="{'no_open': True}" class="oe_inline"/>
                             on
                             <field name="discovery_counts_date" readonly="1" nolabel="1"
-                                   class="oe_inline"/>.
+                                   class="oe_inline"/>. Any count can still be
+                            typed over below, and a typed one is left alone the
+                            next time they are fetched.
                         </span>
                         <span class="text-muted ms-2" invisible="discovery_counts_date">
                             Annual invoice counts come from the eInvoicing discovery
-                            form — fetch them once the client has submitted it.
+                            form — fetch them once the client has submitted it, or
+                            type them in below.
                         </span>
                     </div>
                     <field name="has_discovery_entities" invisible="1"/>
@@ -141,13 +161,23 @@
                             <field name="name" string="Entity Name"
                                    column_invisible="parent.has_discovery_entities"
                                    placeholder="e.g. ABC Pvt Ltd"/>
+                            <!-- Editable: a blank cell means "not known yet" and
+                                 is kept apart from a stated 0, so it is a text
+                                 cell rather than an integer one. -->
                             <field name="inbound_count_display" string="Annual Inbound"
-                                   readonly="1"/>
+                                   placeholder="e.g. 1,200"/>
                             <field name="outbound_count_display" string="Annual Outbound"
-                                   readonly="1"/>
-                            <field name="discovery_state" string="Discovery Form"
+                                   placeholder="e.g. 800"/>
+                            <!-- Names only in the PDF: this picks what the entity
+                                 is covered for, not what it is billed for. -->
+                            <field name="service_ids" string="Services"
+                                   widget="many2many_tags"
+                                   options="{'no_create': True}"
+                                   placeholder="Pick the services"/>
+                            <field name="discovery_state" string="Counts Source"
                                    widget="badge" readonly="1"
                                    decoration-success="discovery_state == 'matched'"
+                                   decoration-info="discovery_state == 'manual'"
                                    decoration-warning="discovery_state in ['incomplete', 'ambiguous']"
                                    decoration-danger="discovery_state == 'unmatched'"
                                    decoration-muted="discovery_state == 'none'"/>

@@ -172,6 +172,7 @@
              padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
   .fee-one { color: #0369a1; background: #e0f2fe; }
   .fee-rec { color: #7c3aed; background: #f5f3ff; }
+  .fee-var { color: #b45309; background: #fef3c7; }
   .amount { text-align: right; font-weight: 600; font-size: 12.5px; color: #1F1F1F; }
   .totals { margin: 16px 0 0 auto; width: 300px; border: 1px solid #EDE8DF;
             border-radius: 6px; overflow: hidden; }
@@ -195,6 +196,12 @@
   .ent-cnt-h { font-size: 9.5px; line-height: 1.25; text-align: right; }
   .ent-cnt { text-align: right; font-size: 12.5px; font-weight: 600; color: #1F1F1F;
              white-space: nowrap; }
+  /* Services covered per entity - names only, and several of them per row, so
+     they are set smaller and left to wrap. */
+  .ent-svc { font-size: 10.5px; line-height: 1.35; color: #4A4A4A; }
+  /* Up to six columns have to share 174mm of content width here, which the
+     14px table padding does not leave room for. */
+  .ent-wrap .tbl th, .ent-wrap .tbl td { padding: 8px 9px; }
 
   /* ── Editable terms ── */
   .terms { margin-top: 20px; border-top: 2px solid #fef3ec; padding-top: 16px; page-break-inside: avoid; }
@@ -578,6 +585,18 @@
         <td class="amount"><t t-out="p['currency']"/> <t t-out="row['fee']"/></td>
         <td style="font-size:11.5px;color:#6b7280;"><t t-out="row['notes']"/></td>
       </tr>
+      <!-- [S6] subscription overage rate — a usage rate, so it closes the fee
+           table under the services and stays out of the totals below. -->
+      <tr t-if="p['overage_row']" t-att-class="'alt' if p['overage_row']['alt'] else ''">
+        <td>
+          <span style="font-size:12.5px;font-weight:600;color:#1F1F1F;"><t t-out="p['overage_row']['label']"/></span>
+        </td>
+        <td>
+          <span class="fee-tag fee-var">Variable · Per Usage</span>
+        </td>
+        <td class="amount"><t t-out="p['currency']"/> <t t-out="p['overage_row']['amount']"/></td>
+        <td style="font-size:11.5px;color:#6b7280;"><t t-out="p['overage_row']['note']"/></td>
+      </tr>
     </tbody>
   </table>
 
@@ -606,11 +625,12 @@
     <table class="tbl" style="margin-top:0;">
       <thead>
         <tr>
-          <th style="width:78px;">Entity</th>
+          <th style="width:72px;">Entity</th>
           <th>Name</th>
-          <th t-if="p['has_entity_counts']" class="ent-cnt-h" style="width:88px;">Annual Inbound<br/>Invoice Count</th>
-          <th t-if="p['has_entity_counts']" class="ent-cnt-h" style="width:88px;">Annual Outbound<br/>Invoice Count</th>
-          <th style="text-align:right;width:130px;">Price (<t t-out="p['currency']"/>)</th>
+          <th t-if="p['has_entity_counts']" class="ent-cnt-h" style="width:74px;">Annual Inbound<br/>Invoice Count</th>
+          <th t-if="p['has_entity_counts']" class="ent-cnt-h" style="width:74px;">Annual Outbound<br/>Invoice Count</th>
+          <th t-if="p['has_entity_services']" style="width:150px;">Services</th>
+          <th style="text-align:right;width:118px;">Price (<t t-out="p['currency']"/>)</th>
         </tr>
       </thead>
       <tbody>
@@ -620,6 +640,7 @@
           <td class="ent-name"><t t-out="entity['name']"/></td>
           <td t-if="p['has_entity_counts']" class="ent-cnt"><t t-out="entity['inbound']"/></td>
           <td t-if="p['has_entity_counts']" class="ent-cnt"><t t-out="entity['outbound']"/></td>
+          <td t-if="p['has_entity_services']" class="ent-svc"><t t-out="entity['services']"/></td>
           <td class="amount"><t t-out="p['currency']"/> <t t-out="entity['price']"/></td>
         </tr>
       </tbody>

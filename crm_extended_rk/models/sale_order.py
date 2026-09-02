@@ -64,9 +64,11 @@ class SaleOrder(models.Model):
     # ------------------------------------------------------------------
     # S6 Annual ASP / Subscription Service - overage rate
     #
-    # A usage rate, not a fee for this engagement: it is printed as its own
-    # row under the services in the proposal PDF and is deliberately left out
-    # of the subtotal, VAT and total, which stay driven by the order lines.
+    # Typed by hand and nothing else: no default, no compute, no formula. It is
+    # a usage rate rather than a fee for this engagement, so it is printed as
+    # its own row under the services in the proposal PDF and is deliberately
+    # left out of the subtotal, VAT and total, which stay driven by the order
+    # lines. It only applies to an eInvoicing engagement carrying S6.
     # ------------------------------------------------------------------
     has_asp_subscription = fields.Boolean(
         string='ASP Subscription Selected', compute='_compute_has_asp_subscription',
@@ -75,8 +77,11 @@ class SaleOrder(models.Model):
     einv_overage_per_1000 = fields.Monetary(
         string='Overage per 1,000 Invoices', currency_field='currency_id',
         help="Rate charged for every additional 1,000 invoices beyond the "
-             "subscribed volume band. Printed under the commercial structure in "
-             "the proposal PDF; it is never added to the order total.")
+             "subscribed volume band, entered by hand. Shown while the "
+             "eInvoicing Service toggle is on and [S6] Annual ASP / "
+             "Subscription Service is on the order lines. Printed as its own "
+             "line under the commercial structure in the proposal PDF; it is "
+             "never added to the order total.")
 
     @api.depends('order_line.product_id')
     def _compute_has_asp_subscription(self):
@@ -259,7 +264,7 @@ class SaleOrder(models.Model):
                        for answers in form._entity_answers())
         duplicates = {key for key, count in seen.items() if key and count > 1}
 
-        matched = review = 0
+        matched = review = kept = 0
         used = set()
         for entity in self.entity_ids:
             # An explicitly picked entity wins over the name: it is an exact
@@ -271,11 +276,23 @@ class SaleOrder(models.Model):
                 key = entity_name_key(entity.name)
                 source = by_name.get(key) if key not in duplicates else None
 
+            if entity.discovery_state == 'manual':
+                # Numbers typed by hand are this row's answer: they are reported
+                # and left alone rather than reverted, whether or not the form
+                # also covers the entity. Clearing both cells hands the row back
+                # to the form, and the next fetch fills it in again.
+                if source:
+                    used.add(key)
+                kept += 1
+                continue
+
             if not key or not source:
                 entity.write({
                     'discovery_entity_id': False,
                     'inbound_invoice_count': 0,
                     'outbound_invoice_count': 0,
+                    'inbound_count_set': False,
+                    'outbound_count_set': False,
                     'discovery_state': ('ambiguous' if key in duplicates
                                         else 'unmatched'),
                 })
@@ -285,11 +302,14 @@ class SaleOrder(models.Model):
             used.add(key)
             if not source.has_counts:
                 # Matched, but the form does not carry both numbers - blank and
-                # flagged rather than half-populated.
+                # flagged rather than half-populated. Type them in on the row if
+                # the client answered somewhere other than the form.
                 entity.write({
                     'discovery_entity_id': source.id,
                     'inbound_invoice_count': 0,
                     'outbound_invoice_count': 0,
+                    'inbound_count_set': False,
+                    'outbound_count_set': False,
                     'discovery_state': 'incomplete',
                 })
                 review += 1
@@ -300,6 +320,8 @@ class SaleOrder(models.Model):
                 'name': source.name,
                 'inbound_invoice_count': source.inbound_count,
                 'outbound_invoice_count': source.outbound_count,
+                'inbound_count_set': True,
+                'outbound_count_set': True,
                 'discovery_state': 'matched',
             })
             matched += 1
@@ -318,6 +340,8 @@ class SaleOrder(models.Model):
             'matched': matched, 'total': len(self.entity_ids)}
         if review:
             message += _(" %s left blank for review.") % review
+        if kept:
+            message += _(" %s kept as entered by hand.") % kept
         if duplicates:
             message += _(" The form repeats %s entity name(s).") % len(duplicates)
         if unclaimed:

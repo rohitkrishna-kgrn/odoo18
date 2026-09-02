@@ -1,6 +1,6 @@
 {
     'name': 'Proposal Workflow Extended RK',
-    'version': '18.0.1.8',
+    'version': '18.0.1.12',
     'license': 'LGPL-3',
     'author': 'Rohit',
     'category': 'Sales',
