@@ -365,6 +365,30 @@ class SaleOrder(models.Model):
         if opportunities:
             opportunities.write({'stage_id': stage.id})
 
+    # ------------------------------------------------------------------
+    # Tags inherited from the linked opportunity
+    # ------------------------------------------------------------------
+    def _tags_from_opportunity(self):
+        """Add the linked lead's tags onto the quotation.
+
+        Purely additive: tags typed on the quotation are never dropped, and a
+        quotation with no opportunity is left alone. Tags stay optional
+        everywhere - this only saves the re-typing when the classification
+        already exists on the pipeline record.
+        """
+        for order in self:
+            # sudo(): a salesperson can hold a quotation whose opportunity is
+            # in another team's pipeline, and the tags are not the secret part.
+            lead_tags = order.sudo().opportunity_id.tag_ids
+            missing = lead_tags - order.tag_ids
+            if missing:
+                order.tag_ids = [(4, tag.id) for tag in missing]
+
+    @api.onchange('opportunity_id')
+    def _onchange_opportunity_id_tags(self):
+        """Picking an opportunity on the form pulls its tags straight in."""
+        self._tags_from_opportunity()
+
     @api.model_create_multi
     def create(self, vals_list):
         orders = super().create(vals_list)
@@ -380,6 +404,11 @@ class SaleOrder(models.Model):
                 continue
             # Link the created sale order back onto the pipeline record.
             lead.sale_order_id = order.id
+            # Carry the lead's tags over. Covers the routes the form onchange
+            # never sees - the API, an import, a server action - and the
+            # "New Quotation" button, whose default_tag_ids context core drops
+            # for any tag the user cannot read.
+            order._tags_from_opportunity()
             # A new draft quotation moves its opportunity forward to "Proposition"
             # (only from an earlier stage - never drags it back).
             if (proposition and order.state == 'draft'
@@ -415,21 +444,10 @@ class SaleOrder(models.Model):
             order.opportunity_id._journey_on_proposal_sent()
         return res
 
-    @api.constrains('approval_state', 'tag_ids')
-    def _check_tag_required_before_approval(self):
-        for order in self:
-            if order.approval_state != 'draft' and not order.tag_ids:
-                raise ValidationError(_(
-                    "Please select a Tag (Other Info > Sales) before this "
-                    "quotation can leave Draft."))
-
-    def action_submit_for_approval(self):
-        for order in self:
-            if not order.tag_ids:
-                raise UserError(_(
-                    "Please select a Tag (Other Info > Sales) before "
-                    "submitting this quotation for approval."))
-        return super().action_submit_for_approval()
+    # Tags are optional on a quotation. They used to be enforced before the
+    # order could leave Draft, but the pipeline is the place where a lead is
+    # classified - a quotation just inherits that classification when it has
+    # an opportunity behind it (see _tags_from_opportunity below).
 
     def action_approve_order(self):
         res = super().action_approve_order()
