@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_project_delay_log_wizard_form" model="ir.ui.view">
+            <field name="name">project.delay.log.wizard.form</field>
+            <field name="model">project.delay.log.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Delay Reason">
+                    <!-- Carried from the action context; they must stay in the
+                         arch or the transient record is created without them. -->
+                    <field name="res_model" invisible="1"/>
+                    <field name="res_id" invisible="1"/>
+
+                    <div class="alert alert-warning d-flex align-items-center" role="alert">
+                        <i class="fa fa-exclamation-triangle me-2"/>
+                        <span>The deadline has passed and no delay log has been
+                            recorded yet. Please explain the delay — it will be
+                            logged in the chatter.</span>
+                    </div>
+
+                    <group>
+                        <field name="record_name"/>
+                        <field name="deadline"/>
+                        <field name="days_overdue" readonly="1" invisible="not deadline"/>
+                    </group>
+                    <group>
+                        <field name="reason" nolabel="1" colspan="2"
+                               placeholder="Explain the reason for the delay..."/>
+                    </group>
+                    <group>
+                        <field name="revised_date"/>
+                    </group>
+
+                    <footer>
+                        <button name="action_submit" type="object" string="Submit"
+                                class="btn-primary" data-hotkey="q"/>
+                        <button string="Later" class="btn-secondary" special="cancel"
+                                data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+    </data>
+</odoo>

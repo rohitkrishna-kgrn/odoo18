@@ -82,30 +82,118 @@ class AccountMoveAp(models.Model):
 
     @api.model
     def _einv_find_received(self, instance_id, document, company):
-        """Find a document already received for this instance id.
+        """Find a **purchase** document already received for this instance id.
 
         Falls back to the supplier document number for the case where the
         platform re-sends the same bill under a new instance id (a re-push from
         the portal), which would otherwise duplicate the vendor bill.
+
+        Both searches are restricted to ``in_invoice`` / ``in_refund``. One
+        Peppol transmission carries a single instance identifier for both of
+        its legs, and we store it on the AR invoice too the moment the platform
+        clears it. So when a document we issued comes back to our own webhook —
+        which is what happens whenever the receiving entity is also served by
+        this database — an unrestricted lookup matches the *customer* invoice
+        that already carries the id: a posted one is dismissed as "unchanged"
+        and no vendor bill is ever created, and a draft one is worse still,
+        being overwritten in place with the vendor-side field map.
         """
         Move = self.sudo().with_context(active_test=False)
+        purchase_domain = [
+            ('move_type', 'in', ('in_invoice', 'in_refund')),
+            ('company_id', '=', company.id),
+        ]
         if instance_id:
-            found = Move.search([
-                ('einv_instance_id', '=', instance_id),
-                ('company_id', '=', company.id),
-            ], limit=1)
+            found = Move.search(
+                purchase_domain + [('einv_instance_id', '=', instance_id)], limit=1)
             if found:
                 return found
         doc_id = (document.get('id') or '').strip()
         sender = (document.get('senderId') or '').strip()
         if doc_id and sender:
-            return Move.search([
-                ('move_type', 'in', ('in_invoice', 'in_refund')),
-                ('company_id', '=', company.id),
-                ('ref', '=', doc_id),
-                ('einv_sender_id', '=', sender),
-            ], limit=1)
+            return Move.search(
+                purchase_domain + [('ref', '=', doc_id),
+                                   ('einv_sender_id', '=', sender)], limit=1)
         return Move.browse()
+
+    # ------------------------------------------------------------------
+    # Recovery
+    # ------------------------------------------------------------------
+    @api.model
+    def _einv_replay_swallowed_ap(self, log_ids=None):
+        """Re-run the AP deliveries that were dismissed against an AR invoice.
+
+        While the instance-id lookup above was unscoped, a document we issued
+        and then received back matched our own customer invoice and was acked
+        as ``unchanged`` — no vendor bill was created. The platform never
+        re-sends a delivery it has had a 2xx for, so those documents can only
+        come back from the webhook body, which the log keeps verbatim.
+
+        Idempotent by design: a delivery whose bill already exists is skipped,
+        and each replay runs in its own savepoint so one unusable payload
+        cannot roll back the rest (or the upgrade that called this).
+        """
+        Log = self.env['einvoice.log'].sudo()
+        domain = [
+            ('direction', '=', 'ap'),
+            ('operation', '=', 'receive'),
+            ('success', '=', True),
+            # the tell: a received document that resolved onto a *sales* move
+            ('move_id.move_type', 'in', ('out_invoice', 'out_refund')),
+        ]
+        if log_ids:
+            domain.append(('id', 'in', list(log_ids)))
+
+        recovered = self.browse()
+        for log in Log.search(domain, order='id'):
+            try:
+                payload = json.loads(log.request_body or '{}')
+            except ValueError:
+                _logger.warning(
+                    'eInvoice AP replay: log %s has an unreadable body, skipped', log.id)
+                continue
+
+            document = payload.get('document') or {}
+            instance_id = (document.get('instanceId') or '').strip()
+            company = log.company_id
+            if instance_id and self.sudo().search_count([
+                    ('move_type', 'in', ('in_invoice', 'in_refund')),
+                    ('company_id', '=', company.id),
+                    ('einv_instance_id', '=', instance_id)]):
+                continue
+
+            try:
+                with self.env.cr.savepoint():
+                    move, action = self.sudo().with_context(
+                        allowed_company_ids=[company.id],
+                    )._einv_receive_document(payload, company)
+            except Exception as exc:
+                _logger.warning(
+                    'eInvoice AP replay: log %s (%s) could not be replayed — %s',
+                    log.id, log.unique_invoice_number, exc)
+                continue
+
+            Log._log({
+                'company_id': company.id,
+                'move_id': move.id,
+                'direction': 'ap',
+                'operation': 'receive',
+                'endpoint': '/einvoicing/ap/webhook (replay of log %s)' % log.id,
+                'http_status': 200,
+                'success': True,
+                'instance_id': instance_id,
+                'record_id': document.get('recordId'),
+                'unique_invoice_number': document.get('id'),
+                'message': _('Replayed from log %(log)s: document %(action)s as %(name)s',
+                             log=log.id, action=action, name=move.display_name),
+                'request_body': payload,
+            })
+            recovered |= move
+            _logger.info('eInvoice AP replay: log %s -> %s %s',
+                         log.id, action, move.display_name)
+
+        _logger.info('eInvoice AP replay: recovered %s document(s)', len(recovered))
+        return recovered
 
     # ------------------------------------------------------------------
     # Header

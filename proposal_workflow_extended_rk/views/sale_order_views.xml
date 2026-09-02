@@ -18,15 +18,18 @@
                 <field name="is_service_engagement_stage" invisible="1"/>
             </xpath>
 
-            <!-- Mandatory CRM pipeline link -->
+            <!-- CRM pipeline link - mandatory only while the quotation is
+                 being created ("not id" = unsaved record). Once saved it stays
+                 editable, so the thousands of existing quotations that have no
+                 pipeline record can still be modified. -->
             <xpath expr="//field[@name='partner_id']" position="after">
                 <field name="new_renewed" invisible="1"/>
                 <field name="crm_pipeline_id"
                        options="{'no_quick_create': True}"
-                       required="new_renewed == 'new' and not crm_link_override"/>
+                       required="not id and new_renewed == 'new' and not crm_link_override"/>
                 <field name="crm_ref" invisible="not crm_pipeline_id"/>
                 <field name="crm_link_override"
-                       invisible="new_renewed != 'new' or crm_pipeline_id"/>
+                       invisible="new_renewed != 'new' or crm_pipeline_id or (id and not crm_link_override)"/>
                 <field name="crm_link_override_reason"
                        placeholder="Why is there no pipeline record for this quotation? Logged in the chatter."
                        invisible="not crm_link_override or crm_pipeline_id"

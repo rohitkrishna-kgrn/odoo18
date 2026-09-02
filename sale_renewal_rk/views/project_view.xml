@@ -22,7 +22,8 @@
         <field name="inherit_id" ref="base.view_users_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group[@name='preferences']" position="inside">
-                <field name="sales_team" string="Sales Team"/>
+                <field name="sales_team" string="Sales Team"
+                       help="Lets this user create quotations in the 'New' stage, and open and edit every quotation regardless of who the salesperson is — even on the 'User: Own Documents Only' Sales access level."/>
             </xpath>
         </field>
     </record>

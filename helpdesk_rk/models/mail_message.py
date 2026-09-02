@@ -1,8 +1,14 @@
-from odoo import models
+from odoo import fields, models
 
 
 class MailMessage(models.Model):
     _inherit = 'mail.message'
+
+    # Set when the author rewrites one of their own ticket-chat messages
+    # inside the allowed window, so the chat can show an "(edited)" marker.
+    # A dedicated flag rather than comparing write_date to date: any
+    # unrelated write on the message would make that comparison lie.
+    helpdesk_chat_edited = fields.Boolean(string='Helpdesk Chat Edited', default=False)
 
     def _message_fetch(self, domain, **kwargs):
         targets_ticket = any(

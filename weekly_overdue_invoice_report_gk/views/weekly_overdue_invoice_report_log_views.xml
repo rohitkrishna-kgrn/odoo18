@@ -71,9 +71,12 @@
         <field name="view_mode">list,form</field>
     </record>
 
+    <!-- Reporting, not Customers: this is the archive of generated reports,
+         read after the fact, not a worklist anyone acts on from the Customers
+         menu. Sequence 45 puts it after core's Management group. -->
     <menuitem id="menu_weekly_overdue_invoice_report_log"
               name="Weekly Overdue Invoice Reports"
-              parent="account.menu_finance_receivables"
+              parent="account.menu_finance_reports"
               action="action_weekly_overdue_invoice_report_log"
-              sequence="5"/>
+              sequence="45"/>
 </odoo>

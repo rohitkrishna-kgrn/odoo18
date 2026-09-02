@@ -6,7 +6,7 @@ _logger = logging.getLogger(__name__)
 
 
 def migrate(cr, version):
-    """Seed the hold-stage flag, then backfill the 'On Hold' task tag.
+    """Seed the hold-stage flag, then backfill the task hold state.
 
     Two things the module data files cannot do on their own:
 
@@ -15,8 +15,8 @@ def migrate(cr, version):
        project.project.stage rather than an XML id. Seed it from stage names.
 
     2. Projects already sitting on hold at upgrade time never fire the write()
-       hook, so their open tasks would stay untagged until someone re-saved the
-       project. Tag them once, here.
+       hook, so their open tasks would stay unmarked until someone re-saved the
+       project. Mark them once, here.
     """
     cr.execute("""
         UPDATE project_project_stage
@@ -45,12 +45,12 @@ def migrate(cr, version):
         return
 
     before = env['project.task'].search_count([('is_on_hold', '=', True)])
-    held._sync_task_hold_tag()
+    held._sync_task_hold_state()
     env.flush_all()
     after = env['project.task'].search_count([('is_on_hold', '=', True)])
 
     _logger.info(
         "project_extended_rk: On Hold backfill - %s project(s) on hold, "
-        "%s task(s) newly tagged 'On Hold' (%s -> %s)",
+        "%s task(s) newly put On Hold (%s -> %s)",
         len(held), after - before, before, after,
     )

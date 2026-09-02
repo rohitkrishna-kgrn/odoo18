@@ -1,11 +1,121 @@
-.o_helpdesk_ticket_chat {
+// ---------------------------------------------------------------------------
+// Floating chat dock
+// ---------------------------------------------------------------------------
+// Folded, the conversation is a small round button; open, it is a panel. Both
+// are the same fixed-position box, so dragging one drags the other and the
+// spot the user parked it in survives folding, reloads and other tickets.
+
+.o_helpdesk_chat_dock {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1035; // above the form, below Odoo's modals (1055+)
     display: flex;
     flex-direction: column;
-    border: 1px solid #d8dadd;
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 8px;
+    align-items: flex-end;
+
+    &.o_dragging {
+        user-select: none;
+        cursor: grabbing;
+
+        * {
+            cursor: grabbing !important;
+        }
+    }
 }
+
+.o_helpdesk_chat_launcher {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    background-color: #714b67;
+    color: #fff;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+
+    &:hover {
+        background-color: #5d3d55;
+        color: #fff;
+    }
+
+    &:active {
+        cursor: grabbing;
+    }
+}
+
+.o_helpdesk_chat_launcher_badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background-color: #d9534f;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 20px;
+    text-align: center;
+    border: 2px solid #fff;
+}
+
+.o_helpdesk_chat_panel {
+    width: 380px;
+    max-width: calc(100vw - 32px);
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+    border: 1px solid #d8dadd;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+
+.o_helpdesk_chat_titlebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 8px 8px 14px;
+    background-color: #714b67;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: grab;
+    touch-action: none;
+
+    .o_helpdesk_chat_titlebar_text {
+        flex: 1 1 auto;
+    }
+}
+
+.o_helpdesk_chat_fold_btn {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background-color: transparent;
+    color: #fff;
+    cursor: pointer;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.18);
+        color: #fff;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Conversation header (other party + live presence)
+// ---------------------------------------------------------------------------
 
 .o_helpdesk_chat_header {
     display: flex;
@@ -88,36 +198,17 @@
     }
 }
 
-.o_helpdesk_chat_call_btn {
-    flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    background-color: #f0f6ff;
-    color: #714b67;
-    border: none;
-
-    &:hover:not(:disabled) {
-        background-color: #714b67;
-        color: #fff;
-    }
-
-    &:disabled {
-        opacity: 0.6;
-    }
-}
+// ---------------------------------------------------------------------------
+// Messages
+// ---------------------------------------------------------------------------
 
 .o_helpdesk_chat_messages {
     display: flex;
     flex-direction: column;
     gap: 10px;
     padding: 16px;
-    max-height: 420px;
-    min-height: 180px;
+    height: 360px;
+    max-height: 50vh;
     overflow-y: auto;
     background-color: #f7f8fa;
 }
@@ -134,13 +225,20 @@
         }
 
         .o_helpdesk_chat_role,
-        .o_helpdesk_chat_date {
+        .o_helpdesk_chat_date,
+        .o_helpdesk_chat_attachment_size {
             color: rgba(255, 255, 255, 0.75);
         }
 
-        .o_helpdesk_chat_attachment {
+        .o_helpdesk_chat_attachment_row {
+            background-color: rgba(255, 255, 255, 0.14);
+        }
+
+        .o_helpdesk_chat_attachment_name,
+        .o_helpdesk_chat_attachment_dl,
+        .o_helpdesk_chat_action_btn,
+        .o_helpdesk_chat_edit_timer {
             color: #fff;
-            text-decoration: underline;
         }
     }
 
@@ -151,7 +249,8 @@
 }
 
 .o_helpdesk_chat_bubble {
-    max-width: 70%;
+    max-width: 78%;
+    min-width: 140px;
     border-radius: 12px;
     padding: 8px 12px;
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
@@ -180,27 +279,134 @@
     white-space: pre-wrap;
 }
 
+// ---------------------------------------------------------------------------
+// Attachments on a sent message: same look and same download link on both
+// sides of the conversation.
+// ---------------------------------------------------------------------------
+
 .o_helpdesk_chat_attachments {
     margin-top: 6px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 }
 
-.o_helpdesk_chat_attachment {
-    font-size: 0.8rem;
+.o_helpdesk_chat_attachment_preview {
+    display: block;
 
-    i {
-        margin-right: 4px;
+    img {
+        max-width: 100%;
+        max-height: 180px;
+        border-radius: 8px;
+        display: block;
     }
+}
+
+.o_helpdesk_chat_attachment_row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.05);
+    font-size: 0.78rem;
+}
+
+.o_helpdesk_chat_attachment_name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.o_helpdesk_chat_attachment_size {
+    flex: 0 0 auto;
+    opacity: 0.7;
+    font-size: 0.72rem;
+}
+
+.o_helpdesk_chat_attachment_dl {
+    flex: 0 0 auto;
+    padding: 0 2px;
+
+    &:hover {
+        opacity: 0.75;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Footer: timestamp plus the edit/delete window countdown
+// ---------------------------------------------------------------------------
+
+.o_helpdesk_chat_footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
 }
 
 .o_helpdesk_chat_date {
     font-size: 0.68rem;
     opacity: 0.6;
-    margin-top: 4px;
-    text-align: right;
 }
+
+.o_helpdesk_chat_actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.o_helpdesk_chat_edit_timer {
+    font-size: 0.65rem;
+    opacity: 0.6;
+    font-variant-numeric: tabular-nums;
+}
+
+.o_helpdesk_chat_action_btn {
+    padding: 0 4px;
+    border: none;
+    background: none;
+    font-size: 0.72rem;
+    line-height: 1;
+    opacity: 0.7;
+
+    &:hover {
+        opacity: 1;
+    }
+}
+
+.o_helpdesk_chat_edit_input {
+    width: 100%;
+    resize: vertical;
+    min-height: 56px;
+    border: 1px solid #d8dadd;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.88rem;
+    color: #212529;
+    background-color: #fff;
+}
+
+.o_helpdesk_chat_edit_attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.o_helpdesk_chat_edit_actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+// ---------------------------------------------------------------------------
+// Banners and composer
+// ---------------------------------------------------------------------------
 
 .o_helpdesk_chat_closed_banner,
 .o_helpdesk_chat_readonly_banner {
@@ -264,6 +470,7 @@
 
 .o_helpdesk_chat_pending_chip {
     background-color: #f0f0f0;
+    color: #212529;
     border-radius: 12px;
     padding: 2px 8px;
     font-size: 0.75rem;
@@ -277,9 +484,29 @@
     margin-left: 4px;
 }
 
+// ---------------------------------------------------------------------------
+// On a phone the dock stops floating and becomes a bottom sheet. !important
+// because the drag position is written as an inline style.
+// ---------------------------------------------------------------------------
+
 @media (max-width: 576px) {
+    .o_helpdesk_chat_dock.o_open {
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        bottom: 0 !important;
+        align-items: stretch;
+    }
+
+    .o_helpdesk_chat_panel {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 12px 12px 0 0;
+    }
+
     .o_helpdesk_chat_messages {
-        max-height: 60vh;
+        height: 55vh;
+        max-height: 55vh;
         padding: 10px;
     }
 

@@ -190,11 +190,19 @@
             </field>
         </record>
 
+        <!-- Section header, no action of its own, grouping the two
+             retainership entries the way Credit Hold groups its two. Defined
+             here because this file loads before retainership_invoice_views,
+             which hangs the drafts entry off it. -->
+        <menuitem id="menu_retainership_root" name="Retainership"
+                  parent="account.menu_finance_receivables"
+                  sequence="80"/>
+
         <menuitem id="menu_retainership_contract"
                   name="Retainership Contracts"
-                  parent="account.menu_finance_receivables"
+                  parent="menu_retainership_root"
                   action="action_retainership_contract"
-                  sequence="6"/>
+                  sequence="10"/>
 
     </data>
 </odoo>

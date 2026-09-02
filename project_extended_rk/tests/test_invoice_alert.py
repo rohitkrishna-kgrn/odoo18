@@ -63,7 +63,7 @@ class TestEngagementInvoiceAlert(TransactionCase):
                 # These four are NOT NULL on sale_order_line in this
                 # database, added by the custom engagement modules.
                 'manager_id': self.manager.id,
-                'deadline': cls_today,
+                'date': cls_today,
                 'engagement_start': cls_today,
                 'engagement_end': cls_today,
                 'estimated_hours': 1.0,

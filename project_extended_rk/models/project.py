@@ -4,7 +4,7 @@ from odoo.tools.float_utils import float_compare
 from datetime import timedelta
 import logging
 
-HOLD_TAG_XMLID = 'project_extended_rk.project_tag_on_hold'
+HOLD_TASK_STAGE_XMLID = 'project_extended_rk.project_task_type_on_hold'
 # A task is considered finished if any of the three disagreeing "done" signals
 # in this codebase says so (core state, custom state_additional, folded stage).
 CLOSED_TASK_STATES = ('1_done', '1_canceled')
@@ -16,8 +16,18 @@ class ProjectProjectStage(models.Model):
     is_hold_stage = fields.Boolean(
         string="Counts as On Hold",
         help="Projects sitting in this stage are treated as On Hold: every open "
-             "task under them is automatically tagged 'On Hold' and dropped from "
-             "the PM workload views.",
+             "task under them is automatically moved to the 'On Hold' task stage "
+             "and Additional State, and dropped from the PM workload views.",
+    )
+
+
+class ProjectTaskType(models.Model):
+    _inherit = 'project.task.type'
+
+    is_hold_stage = fields.Boolean(
+        string="Counts as On Hold",
+        help="Technical: the task stage the project-hold automation parks tasks "
+             "in. Exactly one stage should carry this flag.",
     )
 
 
@@ -27,7 +37,6 @@ class ProjectProject(models.Model):
     sale_order_id = fields.Many2one('sale.order', string="Sales Order")
     budgeted_amount = fields.Float(string="Budgeted Amount")
     calculated_advance_amount = fields.Float(string="Balance")
-    deadline = fields.Datetime(string="Deadline")
     customer_id = fields.Many2one(
         'res.partner',
         string="Customer",
@@ -102,17 +111,23 @@ class ProjectProject(models.Model):
             project.is_on_hold = bool(project.stage_id.is_hold_stage) or \
                 project.last_update_status == 'on_hold'
 
-    def _sync_task_hold_tag(self):
-        """Push the project hold status down onto its tasks."""
+    def _sync_task_hold_state(self):
+        """Push the project hold status down onto its tasks.
+
+        On hold  -> every open task moves to the 'On Hold' task stage and its
+                    Additional State becomes 'On Hold'.
+        Released -> tasks the automation parked there go back to the stage and
+                    state they came from.
+        """
         tasks = self.env['project.task'].search([('project_id', 'in', self.ids)])
         for project in self:
             project_tasks = tasks.filtered(lambda t: t.project_id == project)
             if project.is_on_hold:
                 project_tasks.filtered(
                     lambda t: not t._is_task_closed()
-                )._apply_hold_tag()
+                )._apply_hold()
             else:
-                project_tasks._release_hold_tag()
+                project_tasks._release_hold()
 
     @api.depends("create_date")
     def _compute_project_created_date(self):
@@ -209,7 +224,7 @@ class ProjectProject(models.Model):
             self.env['sale.order'].browse(vals['sale_order_id'])._check_aml_gate()
         project = super().create(vals)
         if project.is_on_hold:
-            project.sudo()._sync_task_hold_tag()
+            project.sudo()._sync_task_hold_state()
         return project
 
     @api.model
@@ -236,7 +251,7 @@ class ProjectProject(models.Model):
 
         # Project put On Hold (or released) -> mirror it onto every child task.
         if hold_keys_written:
-            self.sudo()._sync_task_hold_tag()
+            self.sudo()._sync_task_hold_state()
 
         return res
 
@@ -254,6 +269,7 @@ class ProjectTask(models.Model):
         [
             ('new', 'New'),
             ('in_progress', 'In Progress'),
+            ('on_hold', 'On Hold'),
             ('waiting_for_approval', 'Waiting for Approval'),
             ('completed', 'Completed'),
             ('cancelled', 'Cancelled'),
@@ -288,27 +304,56 @@ class ProjectTask(models.Model):
         compute='_compute_is_on_hold',
         store=True,
         index=True,
-        help="Set when the task carries the 'On Hold' tag. On-hold tasks are "
-             "excluded by default from the All Tasks / My Tasks workload views.",
+        help="Set when the task sits in the 'On Hold' stage or its Additional "
+             "State is On Hold. On-hold tasks are excluded by default from the "
+             "All Tasks / My Tasks workload views.",
     )
-    hold_tag_auto = fields.Boolean(
-        string="On Hold Tag Set Automatically",
+    hold_auto = fields.Boolean(
+        string="Put On Hold Automatically",
         default=False,
         copy=False,
-        help="Technical: the 'On Hold' tag was applied by the project hold "
-             "automation, so the automation is allowed to remove it again when "
-             "the project comes off hold. Tags added by hand are never removed.",
+        help="Technical: the project-hold automation is the one that parked this "
+             "task On Hold, so it is allowed to move it back when the project "
+             "comes off hold. Tasks put on hold by hand are never released.",
+    )
+    hold_prev_stage_id = fields.Many2one(
+        'project.task.type',
+        string="Stage Before Hold",
+        copy=False,
+        ondelete='set null',
+        help="Technical: the stage to restore when the project comes off hold.",
+    )
+    hold_prev_state_additional = fields.Char(
+        string="Additional State Before Hold",
+        copy=False,
+        help="Technical: the Additional State to restore when the project comes "
+             "off hold.",
     )
 
     @api.model
-    def _get_hold_tag(self):
-        return self.env.ref(HOLD_TAG_XMLID, raise_if_not_found=False)
+    def _hold_task_stage(self, projects=None):
+        """The single 'On Hold' task stage, linked to `projects` on demand.
 
-    @api.depends('tag_ids')
+        Task stages are per-project in Odoo, so the shared hold stage has to be
+        added to a project's stage list before a task of that project can sit
+        in it - otherwise the kanban column and the form statusbar hide it.
+        """
+        stage = self.env.ref(HOLD_TASK_STAGE_XMLID, raise_if_not_found=False)
+        if not stage:
+            # The data record was renamed or removed - fall back to the flag.
+            stage = self.env['project.task.type'].sudo().search(
+                [('is_hold_stage', '=', True)], limit=1)
+        if stage and projects:
+            missing = projects - stage.project_ids
+            if missing:
+                stage.sudo().write({'project_ids': [(4, p.id) for p in missing]})
+        return stage
+
+    @api.depends('stage_id', 'stage_id.is_hold_stage', 'state_additional')
     def _compute_is_on_hold(self):
-        hold_tag = self._get_hold_tag()
         for task in self:
-            task.is_on_hold = bool(hold_tag) and hold_tag in task.tag_ids
+            task.is_on_hold = bool(task.stage_id.is_hold_stage) or \
+                task.state_additional == 'on_hold'
 
     def _is_task_closed(self):
         """Tasks carry three disagreeing 'finished' signals - trust any of them."""
@@ -319,28 +364,57 @@ class ProjectTask(models.Model):
             or self.state_additional in ('completed', 'cancelled')
         )
 
-    def _apply_hold_tag(self):
-        hold_tag = self._get_hold_tag()
-        if not hold_tag:
-            return
-        todo = self.filtered(lambda t: hold_tag not in t.tag_ids)
-        if todo:
-            todo.with_context(skip_team_member_notification=True).write({
-                'tag_ids': [(4, hold_tag.id)],
-                'hold_tag_auto': True,
-            })
+    def _apply_hold(self):
+        """Park the tasks in the On Hold stage / state, remembering where they were."""
+        hold_stage = self._hold_task_stage(self.mapped('project_id'))
+        for task in self:
+            vals = {}
+            if hold_stage and task.stage_id != hold_stage:
+                vals['hold_prev_stage_id'] = task.stage_id.id
+                vals['stage_id'] = hold_stage.id
+            if task.state_additional != 'on_hold':
+                vals['hold_prev_state_additional'] = task.state_additional
+                vals['state_additional'] = 'on_hold'
+            if not vals:
+                # Already on hold - whoever set it keeps ownership of it, so a
+                # hand-set hold (hold_auto False, e.g. the On Hold button) is
+                # not quietly promoted to one the cascade may undo later.
+                continue
+            vals['hold_auto'] = True
+            task.with_context(skip_team_member_notification=True).write(vals)
 
-    def _release_hold_tag(self):
-        hold_tag = self._get_hold_tag()
-        if not hold_tag:
-            return
-        # Only strip the tag off tasks the automation tagged itself.
-        todo = self.filtered(lambda t: t.hold_tag_auto and hold_tag in t.tag_ids)
-        if todo:
-            todo.with_context(skip_team_member_notification=True).write({
-                'tag_ids': [(3, hold_tag.id)],
-                'hold_tag_auto': False,
-            })
+    def _fallback_open_stage(self):
+        """First open stage of the task's project, used when nothing was remembered."""
+        self.ensure_one()
+        if not self.project_id:
+            return self.env['project.task.type']
+        return self.env['project.task.type'].sudo().search([
+            ('project_ids', '=', self.project_id.id),
+            ('fold', '=', False),
+            ('is_hold_stage', '=', False),
+        ], order='sequence, id', limit=1)
+
+    def _release_hold(self):
+        """Move automation-held tasks back to where they were before the hold."""
+        # Only release tasks the automation parked itself; a hand-set hold stays.
+        for task in self.filtered(lambda t: t.hold_auto):
+            vals = {
+                'hold_auto': False,
+                'hold_prev_stage_id': False,
+                'hold_prev_state_additional': False,
+            }
+            if task.stage_id.is_hold_stage:
+                # The remembered stage is only usable if it still belongs to
+                # the task's project - a task can be moved between projects
+                # while it sits on hold.
+                target = task.hold_prev_stage_id
+                if not target or task.project_id not in target.project_ids:
+                    target = task._fallback_open_stage()
+                if target:
+                    vals['stage_id'] = target.id
+            if task.state_additional == 'on_hold':
+                vals['state_additional'] = task.hold_prev_state_additional or 'new'
+            task.with_context(skip_team_member_notification=True).write(vals)
 
     @api.depends('completed_date')
     def _compute_completed_periods(self):
@@ -400,9 +474,9 @@ class ProjectTask(models.Model):
         if not self.env.user.has_group('project.group_project_manager'):
             raise UserError("You do not have the access rights to create tasks.")
         task = super().create(vals)
-        # A task created under an already-held project inherits the hold tag.
+        # A task created under an already-held project starts out On Hold.
         if task.project_id.is_on_hold and not task._is_task_closed():
-            task.sudo()._apply_hold_tag()
+            task.sudo()._apply_hold()
         return task
     
     def write(self, vals):
@@ -424,9 +498,9 @@ class ProjectTask(models.Model):
         if 'project_id' in vals:
             for task in self.sudo():
                 if task.project_id.is_on_hold and not task._is_task_closed():
-                    task._apply_hold_tag()
+                    task._apply_hold()
                 else:
-                    task._release_hold_tag()
+                    task._release_hold()
 
         if 'team_member_ids' in vals:
             for task in self:

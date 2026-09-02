@@ -173,7 +173,7 @@
             <field name="attachment" string="Ticket Attachment" filename="attachment_filename" widget="binary_file" readonly="id"/>
           </group>
           <widget name="attachment_preview" invisible="not attachment_is_image and not attachment_is_pdf"/>
-          <separator string="Conversation (Discuss-style Ticket Chat)"/>
+          <!-- Renders as a floating, foldable, draggable chat dock over the form. -->
           <widget name="ticket_chat"/>
         </sheet>
         <chatter/>

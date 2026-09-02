@@ -472,6 +472,10 @@ class WeeklyOverdueInvoiceReportLine(models.Model):
             ('email', 'Email'),
             ('call', 'Call'),
             ('whatsapp', 'WhatsApp'),
+            # A follow-up logged from a chatter Log note whose wording named
+            # no method. Snapshotting it as blank instead would misreport an
+            # invoice that was chased as one that never was.
+            ('other', 'Other'),
         ],
         string='Last Follow-up Method',
     )

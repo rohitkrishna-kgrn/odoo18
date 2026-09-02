@@ -679,7 +679,6 @@
         <div class="sig-inner">
           <div class="sig-lbl">Prepared by — KGRN Chartered Accountants LLC</div>
           <div class="sig-name">Authorised Signatory</div>
-          <div t-if="p['salesperson']" class="sig-sub" style="color:#6b7280;font-size:12px;"><t t-out="p['salesperson']"/></div>
           <div class="sig-sub">KGRN Chartered Accountants LLC<br/>Dubai, United Arab Emirates</div>
         </div>
       </td>

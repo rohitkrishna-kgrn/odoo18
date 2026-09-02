@@ -47,7 +47,7 @@ class DeadlineAlertMixin(models.AbstractModel):
     _name = 'deadline.alert.mixin'
     _description = 'Proactive Deadline Alerts'
 
-    # Name of the Datetime field carrying the deadline.
+    # Name of the Date / Datetime field carrying the deadline.
     _deadline_alert_field = None
 
     deadline_alert_advance_sent_for = fields.Date(
@@ -75,9 +75,10 @@ class DeadlineAlertMixin(models.AbstractModel):
         """The deadline as a plain date, or False when it is not set."""
         self.ensure_one()
         value = self[self._deadline_alert_field]
-        # The carriers are Datetime fields; truncate in UTC, the same way the
-        # overdue category on these records is derived, so the alert and the
-        # overdue ribbon never disagree about which day a deadline falls on.
+        # The carrier is a Date on project.project and a Datetime on
+        # project.task; truncate in UTC, the same way the overdue category on
+        # these records is derived, so the alert and the overdue ribbon never
+        # disagree about which day a deadline falls on.
         return fields.Date.to_date(value) if value else False
 
     def _deadline_alert_is_open(self):
@@ -444,7 +445,10 @@ class ProjectProject(models.Model):
     _name = 'project.project'
     _inherit = ['project.project', 'deadline.alert.mixin']
 
-    _deadline_alert_field = 'deadline'
+    # project.project has no deadline of its own: the core planned end date
+    # ('date', shown as Deadline) is the firm's project deadline — it is what
+    # the SO line's engagement end writes to and what the MIS report reads.
+    _deadline_alert_field = 'date'
 
     def _deadline_alert_is_open(self):
         self.ensure_one()

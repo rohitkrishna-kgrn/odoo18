@@ -165,11 +165,14 @@
                   action="action_ar_aging_dashboard"
                   sequence="4"/>
 
+        <!-- Lives under Follow-Ups with the rest of the chasing tools, not
+             under Customers. It is the worklist of invoices nobody has
+             chased, so it belongs beside the log of chases that did happen. -->
         <menuitem id="menu_ar_no_followup_logged"
                   name="No Follow-Up Logged"
-                  parent="account.menu_finance_receivables"
+                  parent="om_account_followup.menu_finance_followup"
                   action="action_ar_no_followup_logged"
-                  sequence="5"/>
+                  sequence="30"/>
 
     </data>
 </odoo>

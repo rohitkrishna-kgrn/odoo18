@@ -2,7 +2,7 @@
     <data>
 
         <!-- ══════════════════════════════════════════════
-             1. FORM VIEW — warning banner + Delay Log tab
+             1. FORM VIEW — warning banner
              ══════════════════════════════════════════════ -->
         <record id="view_project_form_delay_log_inherit" model="ir.ui.view">
             <field name="name">project.project.form.delay.log.inherit</field>
@@ -17,22 +17,10 @@
                          role="alert"
                          invisible="not delay_log_missing">
                         <i class="fa fa-exclamation-triangle me-2"/>
-                        <span>This project's deadline has passed and no Delay Reason &amp;
-                            Communication Log has been recorded. Please document the
-                            delay explanation, revised delivery date, and communication
-                            evidence in the "Delay Log" tab.</span>
+                        <span>This project's deadline has passed and no delay reason
+                            has been logged. Record the delay explanation in the
+                            Delay Reason popup — it is logged in the chatter.</span>
                     </div>
-                </xpath>
-
-                <!-- Delay Reason & Communication Log tab -->
-                <xpath expr="//page[@name='description']" position="after">
-                    <page name="delay_log_page" string="Delay Log">
-                        <group string="Delay Reason &amp; Communication Log">
-                            <field name="delay_reason" placeholder="Explain the reason for the delay..."/>
-                            <field name="delay_revised_date"/>
-                            <field name="delay_evidence_ids" widget="many2many_binary" string="Communication Evidence"/>
-                        </group>
-                    </page>
                 </xpath>
 
             </field>
@@ -54,6 +42,31 @@
 
                 <xpath expr="//list" position="inside">
                     <field name="delay_log_missing" column_invisible="1"/>
+                </xpath>
+
+            </field>
+        </record>
+
+
+        <!-- ══════════════════════════════════════════════
+             2b. LIST VIEW — delay log badge
+             Anchored on the base list (project.view_project) so the column also
+             reaches the primary views derived from it.
+             ══════════════════════════════════════════════ -->
+        <record id="view_project_list_delay_badge_inherit" model="ir.ui.view">
+            <field name="name">project.project.list.delay.badge.inherit</field>
+            <field name="model">project.project</field>
+            <field name="inherit_id" ref="project.view_project"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//field[@name='stage_id']" position="after">
+                    <field name="delay_log_state"
+                           string="Delay Log"
+                           widget="badge"
+                           optional="show"
+                           invisible="not delay_log_state"
+                           decoration-danger="delay_log_state == 'missing'"
+                           decoration-success="delay_log_state == 'logged'"/>
                 </xpath>
 
             </field>

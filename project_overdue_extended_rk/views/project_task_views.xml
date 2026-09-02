@@ -35,6 +35,31 @@
 
 
         <!-- ══════════════════════════════════════════════
+             1b. LIST VIEW — delay log badge
+             Anchored on the base list (project.project_task_view_tree_main_base)
+             so the column reaches every task list derived from it.
+             ══════════════════════════════════════════════ -->
+        <record id="view_task_tree_delay_badge_inherit" model="ir.ui.view">
+            <field name="name">project.task.list.delay.badge.inherit</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.project_task_view_tree_main_base"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//field[@name='date_deadline']" position="after">
+                    <field name="delay_log_state"
+                           string="Delay Log"
+                           widget="badge"
+                           optional="show"
+                           invisible="not delay_log_state"
+                           decoration-danger="delay_log_state == 'missing'"
+                           decoration-success="delay_log_state == 'logged'"/>
+                </xpath>
+
+            </field>
+        </record>
+
+
+        <!-- ══════════════════════════════════════════════
              2. FORM VIEW — coloured ribbon
              ══════════════════════════════════════════════ -->
         <record id="view_task_form_overdue_ribbon_inherit" model="ir.ui.view">
@@ -82,7 +107,7 @@
 
 
         <!-- ══════════════════════════════════════════════
-             2b. FORM VIEW — Delay Reason & Communication Log
+             2b. FORM VIEW — deadline-missed warning banner
              ══════════════════════════════════════════════ -->
         <record id="view_task_form_delay_log_inherit" model="ir.ui.view">
             <field name="name">project.task.form.delay.log.inherit</field>
@@ -97,22 +122,10 @@
                          role="alert"
                          invisible="not delay_log_missing">
                         <i class="fa fa-exclamation-triangle me-2"/>
-                        <span>This task's deadline has passed and no Delay Reason &amp;
-                            Communication Log has been recorded. Please document the
-                            delay explanation, revised delivery date, and communication
-                            evidence in the "Delay Log" tab.</span>
+                        <span>This task's deadline has passed and no delay reason
+                            has been logged. Record the delay explanation in the
+                            Delay Reason popup — it is logged in the chatter.</span>
                     </div>
-                </xpath>
-
-                <!-- Delay Reason & Communication Log tab -->
-                <xpath expr="//page[@name='description_page']" position="after">
-                    <page name="delay_log_page" string="Delay Log">
-                        <group string="Delay Reason &amp; Communication Log">
-                            <field name="delay_reason" placeholder="Explain the reason for the delay..."/>
-                            <field name="delay_revised_date"/>
-                            <field name="delay_evidence_ids" widget="many2many_binary" string="Communication Evidence"/>
-                        </group>
-                    </page>
                 </xpath>
 
             </field>

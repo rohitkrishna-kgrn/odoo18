@@ -55,7 +55,9 @@
                     <strong>No Follow-Up Logged.</strong>
                     <field name="ar_no_followup_warning" readonly="1" nolabel="1"
                            class="oe_inline"/>
-                    Record the collection follow-up in the Follow-up Log tab.
+                    Record the collection follow-up in the chatter below &#8212;
+                    post a <strong>Log note</strong>, or mark a scheduled
+                    activity done.
                 </div>
             </div>
 
@@ -98,8 +100,11 @@
                      invoice that closes the engagement is a one-way call: it
                      is what the billing-plan gate measures against, so it must
                      not be quietly taken back once the gate has passed. -->
+                <!-- Advance is stamped by the sale-order approval flow, not
+                     picked here; lock it too so it cannot be edited by hand on
+                     the rare document where the automatic field is blank. -->
                 <field name="invoice_type_manual"
-                       readonly="state == 'cancel' or invoice_type_manual == 'completion'"
+                       readonly="state == 'cancel' or invoice_type_manual in ('completion', 'advance')"
                        invisible="invoice_type_is_automatic or move_type not in ('out_invoice', 'out_refund')"/>
             </field>
 
@@ -117,28 +122,6 @@
                 <field name="last_followup_method" readonly="1"
                        invisible="move_type not in ('out_invoice', 'out_refund')"/>
             </field>
-        </field>
-    </record>
-
-    <record id="view_move_form_followup_log" model="ir.ui.view">
-        <field name="name">account.move.form.followup.log</field>
-        <field name="model">account.move</field>
-        <field name="inherit_id" ref="account.view_move_form"/>
-        <field name="arch" type="xml">
-            <page id="other_tab" position="after">
-                <page id="followup_log_tab" string="Follow-up Log" name="followup_log"
-                      invisible="move_type not in ('out_invoice', 'out_refund')">
-                    <field name="followup_log_ids">
-                        <list editable="bottom">
-                            <field name="date"/>
-                            <field name="method"/>
-                            <field name="response"/>
-                            <field name="user_id" readonly="1" force_save="1"
-                                   options="{'no_open': True}"/>
-                        </list>
-                    </field>
-                </page>
-            </page>
         </field>
     </record>
 

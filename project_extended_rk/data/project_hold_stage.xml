@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Task-level counterpart of the project "On Hold" stage.
+
+             Task stages are per-project in Odoo: this single record is linked
+             to a project's stage list on demand, the first time one of its
+             tasks is put on hold (see project.task._hold_task_stage).
+
+             fold is deliberately False - a folded stage reads as "closed"
+             everywhere in this codebase (_is_task_closed, the overdue report),
+             and an on-hold task is paused, not finished.
+
+             noupdate: the firm may rename / recolour / reorder it without an
+             upgrade putting the original values back. -->
+        <record id="project_task_type_on_hold" model="project.task.type">
+            <field name="name">On Hold</field>
+            <field name="sequence">80</field>
+            <field name="fold" eval="False"/>
+            <field name="is_hold_stage" eval="True"/>
+        </record>
+    </data>
+</odoo>

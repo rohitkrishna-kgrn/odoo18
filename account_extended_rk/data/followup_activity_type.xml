@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- AR chases clients on WhatsApp, and core ships no activity type
+             for it, so a WhatsApp follow-up had no way to be scheduled or
+             recorded. Left unbound to a model so it is available on leads and
+             projects too, not only invoices.
+
+             noupdate: AR may retitle it or change the deadline to suit how
+             they work; a module upgrade must not undo that. -->
+        <record id="mail_activity_type_whatsapp" model="mail.activity.type">
+            <field name="name">WhatsApp</field>
+            <field name="category">default</field>
+            <field name="icon">fa-whatsapp</field>
+            <field name="delay_count">2</field>
+            <field name="delay_unit">days</field>
+            <field name="delay_from">current_date</field>
+            <field name="ar_followup_method">whatsapp</field>
+            <field name="sequence">12</field>
+        </record>
+
+    </data>
+</odoo>

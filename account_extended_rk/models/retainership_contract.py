@@ -212,6 +212,18 @@ class RetainershipContract(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code(
                     'retainership.contract'
                 ) or 'New'
+            # Derive the engagement *before* super(), not after: the
+            # @api.constrains below runs inside super().create(), so a contract
+            # created anywhere other than the form -- an import, a duplicate, a
+            # server action -- was rejected with the misleading "not linked to a
+            # project" error even when its Sale Order Line did deliver one. The
+            # form only worked because _onchange_sale_order_line_id had already
+            # filled the field in.
+            if vals.get('sale_order_line_id') and not vals.get('service_engagement_id'):
+                project = self.env['sale.order.line'].browse(
+                    vals['sale_order_line_id']).sudo().project_id
+                if project:
+                    vals['service_engagement_id'] = project.id
         contracts = super().create(vals_list)
         contracts._sync_engagement_from_sale_line()
         return contracts

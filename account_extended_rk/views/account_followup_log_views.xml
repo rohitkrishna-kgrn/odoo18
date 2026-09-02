@@ -1,26 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- The log is entered on the invoice, but it reports one row per
-         follow-up, which an invoice-shaped list cannot do. This view is the
-         export surface: filter it, then Export All for a flat
-         invoice/date/method/response sheet. -->
+    <!-- Follow-ups are logged in the invoice chatter — a Log note, or an
+         activity marked done — and each one lands here as a row. This view is
+         the export surface: filter it, then Export All for a flat
+         invoice/date/method/response sheet.
+
+         create="false" / delete="false": a follow-up exists because a chatter
+         message exists. Deleting the note deletes the row (ondelete cascade);
+         there is no way to conjure one here that nothing in the chatter backs.
+         Method stays editable so AR can correct a note the wording read
+         wrong. -->
     <record id="view_invoice_followup_log_list" model="ir.ui.view">
         <field name="name">account.invoice.followup.log.list</field>
         <field name="model">account.invoice.followup.log</field>
         <field name="arch" type="xml">
-            <list string="Invoice Follow-up Log" create="false" default_order="date desc, id desc">
-                <field name="date" string="Follow-up Date"/>
-                <field name="move_id" string="Invoice"/>
-                <field name="partner_id" string="Client"/>
+            <list string="Invoice Follow-up Log" editable="bottom"
+                  create="false" delete="false"
+                  default_order="date desc, id desc">
+                <field name="date" string="Follow-up Date" readonly="1"/>
+                <field name="move_id" string="Invoice" readonly="1"/>
+                <field name="partner_id" string="Client" readonly="1"/>
                 <field name="method"/>
-                <field name="response" string="Client Response"/>
-                <field name="user_id" string="Logged By" widget="many2one_avatar_user"/>
-                <field name="ar_responsible_id" string="AR Responsible" optional="show"/>
-                <field name="invoice_date_due" string="Due Date" optional="hide"/>
-                <field name="aging_bucket" string="Aging Bucket" optional="hide"/>
-                <field name="move_state" string="Invoice Status" optional="hide"/>
-                <field name="amount_residual" string="Amount Due" sum="Total Due" optional="show"/>
+                <field name="source" string="Source" readonly="1" optional="show"/>
+                <field name="activity_type_id" string="Activity Type"
+                       readonly="1" optional="hide"/>
+                <field name="response" string="Client Response" readonly="1"/>
+                <field name="user_id" string="Logged By" readonly="1"
+                       widget="many2one_avatar_user"/>
+                <field name="ar_responsible_id" string="AR Responsible"
+                       readonly="1" optional="show"/>
+                <field name="invoice_date_due" string="Due Date" readonly="1" optional="hide"/>
+                <field name="aging_bucket" string="Aging Bucket" readonly="1" optional="hide"/>
+                <field name="move_state" string="Invoice Status" readonly="1" optional="hide"/>
+                <field name="amount_residual" string="Amount Due" readonly="1"
+                       sum="Total Due" optional="show"/>
                 <field name="currency_id" column_invisible="1"/>
             </list>
         </field>
@@ -43,6 +57,16 @@
                         domain="[('method', '=', 'call')]"/>
                 <filter string="WhatsApp" name="filter_method_whatsapp"
                         domain="[('method', '=', 'whatsapp')]"/>
+                <!-- The queue for AR: a note whose wording named no method.
+                     Set it right in the Method column and the AR reports pick
+                     the correction up immediately. -->
+                <filter string="Method Not Recognised" name="filter_method_other"
+                        domain="[('method', '=', 'other')]"/>
+                <separator/>
+                <filter string="From Log Note" name="filter_source_note"
+                        domain="[('source', '=', 'note')]"/>
+                <filter string="From Activity" name="filter_source_activity"
+                        domain="[('source', '=', 'activity')]"/>
                 <separator/>
                 <filter string="Last 7 Days" name="filter_last_7_days"
                         domain="[('date', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
@@ -59,6 +83,8 @@
                         context="{'group_by': 'move_id'}"/>
                 <filter string="Method" name="group_method"
                         context="{'group_by': 'method'}"/>
+                <filter string="Source" name="group_source"
+                        context="{'group_by': 'source'}"/>
                 <filter string="Logged By" name="group_user"
                         context="{'group_by': 'user_id'}"/>
                 <filter string="AR Responsible" name="group_ar_responsible"
@@ -92,17 +118,18 @@
                 No follow-ups have been logged yet.
             </p>
             <p>
-                Follow-ups are recorded on the invoice itself, in its
-                <em>Follow-up Log</em> tab. They are collected here so the
-                chase history can be filtered and exported.
+                Follow-ups are recorded on the invoice itself: post a
+                <em>Log note</em> in its chatter, or mark a scheduled
+                <em>activity</em> done. Each one lands here so the chase
+                history can be filtered and exported.
             </p>
         </field>
     </record>
 
     <menuitem id="menu_invoice_followup_log"
               name="Invoice Follow-up Log"
-              parent="account.menu_finance_receivables"
+              parent="om_account_followup.menu_finance_followup"
               action="action_invoice_followup_log"
-              sequence="6"/>
+              sequence="40"/>
 
 </odoo>

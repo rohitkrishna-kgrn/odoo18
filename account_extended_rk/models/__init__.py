@@ -3,6 +3,9 @@ from . import account_move
 from . import account_move_completion
 from . import account_move_stale_draft
 from . import account_followup_log
+from . import mail_activity_type
+from . import mail_activity
+from . import mail_message
 from . import product_template
 from . import retainership_contract
 from . import account_move_retainership

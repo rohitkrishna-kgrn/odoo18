@@ -1,6 +1,6 @@
 {
     'name': 'Proposal Workflow Extended RK',
-    'version': '18.0.1.6',
+    'version': '18.0.1.8',
     'license': 'LGPL-3',
     'author': 'Rohit',
     'category': 'Sales',
@@ -15,7 +15,8 @@ Proposal workflow
   per proposal.
 * Download Proposal on quotations, producing the KGRN eInvoicing Services Proposal PDF.
 * Download SE once the linked pipeline record reaches Service Engagement.
-* A mandatory CRM Pipeline link on new quotations, with a logged override, and a
+* A CRM Pipeline link required while a new quotation is being created (with a
+  logged override); already-saved quotations stay editable without it, and a
   CRM reference (CRM0000001) on every pipeline record.
 """,
     'depends': [

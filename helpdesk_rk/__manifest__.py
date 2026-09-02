@@ -20,6 +20,7 @@
     'assets': {
         'web.assets_backend': [
             'helpdesk_rk/static/src/utils/silence_destroyed_error.js',
+            'helpdesk_rk/static/src/notification/chat_notification_service.js',
             'helpdesk_rk/static/src/chat/ticket_chat.js',
             'helpdesk_rk/static/src/chat/ticket_chat.xml',
             'helpdesk_rk/static/src/chat/ticket_chat.scss',

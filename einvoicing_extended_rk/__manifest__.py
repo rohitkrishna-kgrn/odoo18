@@ -1,6 +1,6 @@
 {
     'name': 'eInvoicing Extended RK',
-    'version': '1.0',
+    'version': '1.0.1',
     'category': 'Accounting',
     'summary': 'KGRN eInvoicing (UAE FTA Phase 2 / PINT-AE) — AR outbound push and AP inbound webhook',
     'description': """

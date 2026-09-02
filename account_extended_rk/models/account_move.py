@@ -1,6 +1,8 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 
+from .account_followup_log import FOLLOWUP_METHODS
+
 LATE_PAYMENT_PENALTY_TEXT = (
     "Late payment penalty: AED 50 per day will be charged on all overdue "
     "invoices from the due date until settlement."
@@ -73,21 +75,24 @@ class AccountMove(models.Model):
     # field is a plain stored compute and simply cannot be written. The form
     # shows exactly one of the two at a time, under the same label, so it reads
     # as a single field.
-    # Completion is the only option, deliberately. Advance, Retainer and Credit
-    # Note are read off the document and shown in the locked field instead;
-    # offering them here would only let someone contradict what the document
-    # plainly is. So the single judgement this dropdown captures is "yes, this
+    # Completion is the judgement this dropdown exists to capture: "yes, this
     # is the invoice that closes the engagement" -- or blank, meaning not yet.
+    # Advance is here only so the advance invoice raised when a sale order is
+    # approved can stamp itself; those documents also carry advance_invoice, so
+    # they classify automatically and the locked field is what the form shows.
+    # Retainer and Credit Note are read off the document and never set by hand.
     invoice_type_manual = fields.Selection(
         [
+            ('advance', 'Advance'),
             ('completion', 'Completion'),
         ],
         string='Invoice Type',
         copy=False,
         tracking=True,
         help="Mark the invoice that closes the engagement as a Completion. "
-             "Advance, Retainer and Credit Note are recognised from the "
-             "document itself and cannot be set by hand.",
+             "Advance is stamped automatically on the advance invoice raised "
+             "from an approved sale order. Retainer and Credit Note are "
+             "recognised from the document itself and cannot be set by hand.",
     )
 
     invoice_type_is_automatic = fields.Boolean(
@@ -97,10 +102,15 @@ class AccountMove(models.Model):
              "locked.",
     )
 
+    # Materialised from the chatter, never typed into directly: every Log
+    # note and every completed activity on a customer invoice creates a row
+    # (see _followup_log_from_message). readonly so no view, import or Studio
+    # tweak can put a follow-up here that has no chatter message behind it.
     followup_log_ids = fields.One2many(
         'account.invoice.followup.log',
         'move_id',
         string='Follow-up Log',
+        readonly=True,
     )
 
     last_followup_date = fields.Date(
@@ -109,11 +119,7 @@ class AccountMove(models.Model):
         store=True,
     )
     last_followup_method = fields.Selection(
-        [
-            ('email', 'Email'),
-            ('call', 'Call'),
-            ('whatsapp', 'WhatsApp'),
-        ],
+        FOLLOWUP_METHODS,
         string='Last Follow-up Method',
         compute='_compute_last_followup',
         store=True,
@@ -215,6 +221,38 @@ class AccountMove(models.Model):
         for move in self:
             move.followup_history = move._followup_history_text()
 
+    # ------------------------------------------------------------------
+    # Chatter -> Follow-up Log
+    # ------------------------------------------------------------------
+    # The Follow-up Log is not typed into any more. AR chases the client the
+    # way they already work -- a Log note in the chatter, or a scheduled
+    # activity marked done -- and each of those materialises one follow-up row
+    # here, which is what the AR aging dashboard, the outstanding partner
+    # ledger, the weekly overdue report and the 180-day close lock all read.
+
+    def message_post(self, **kwargs):
+        message = super().message_post(**kwargs)
+        if message and self.move_type in ('out_invoice', 'out_refund'):
+            self._followup_log_from_message(message)
+        return message
+
+    def _followup_log_from_message(self, message):
+        """Materialise a follow-up row for a qualifying chatter message."""
+        self.ensure_one()
+        Log = self.env['account.invoice.followup.log']
+        vals = Log._prepare_from_message(
+            self, message,
+            feedback=self.env.context.get('ar_followup_feedback'),
+        )
+        if not vals:
+            return Log
+        # sudo(): whoever chases the client is not necessarily someone with
+        # write access to account.move -- a project manager posting a note on
+        # an invoice they can only read must still land in the log. Logged By
+        # comes from the message author, not from the sudo user, so the audit
+        # trail still names a person.
+        return Log.sudo().create(vals)
+
     def _followup_history_text(self, separator='\n'):
         """The log as plain text, oldest first.
 
@@ -290,6 +328,13 @@ class AccountMove(models.Model):
 
     @api.constrains('ar_responsible_id', 'move_type')
     def _check_ar_responsible_required(self):
+        # Invoices the system raises for itself have nobody to ask: the advance
+        # invoice created when a sale order is approved would otherwise make
+        # the Approve button unusable. The AR team assigns an owner on those
+        # afterwards, so the flow that raises them opts out explicitly rather
+        # than every programmatic create being exempt.
+        if self.env.context.get('skip_ar_responsible_check'):
+            return
         for move in self:
             if move.move_type in ('out_invoice', 'out_refund') and not move.ar_responsible_id:
                 raise ValidationError(
@@ -338,8 +383,24 @@ class AccountMove(models.Model):
         """
         for move in self:
             move.invoice_type_classification = (
-                move._automatic_invoice_type() or move.invoice_type_manual or False
+                move._automatic_invoice_type()
+                or move.invoice_type_manual
+                or move._derived_completion_type()
+                or False
             )
+
+    def _derived_completion_type(self):
+        """'completion' when the billing plan already places this invoice at
+        the end of the engagement, otherwise False.
+
+        The manual tick above still wins, and the field stays editable -- this
+        is only a fallback so the dashboard's split view is not left blank for
+        an invoice the system has *already* worked out is the closing one.
+        Without it 1,334 customer invoices carried billing_stage='completion'
+        and an empty Invoice Type at the same time.
+        """
+        self.ensure_one()
+        return 'completion' if self.billing_stage == 'completion' else False
 
     def _automatic_invoice_type(self):
         """The classification the document gives away by itself, or False.
@@ -452,7 +513,10 @@ class AccountMove(models.Model):
                 "the AR Responsible (%s) must be confirmed" % self.ar_responsible_id.name
             )
         if not self.followup_log_ids:
-            blockers.append("at least one follow-up log entry must be recorded")
+            blockers.append(
+                "at least one follow-up must be logged (post a Log note in "
+                "the chatter, or mark a scheduled activity done)"
+            )
         return blockers
 
     @api.depends(

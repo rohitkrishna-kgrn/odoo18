@@ -216,8 +216,8 @@ class FollowupPrint(models.TransientModel):
                         partner_list.append(stat_line_id)
                     to_update[str(id)] = {'level': fups[followup_line_id][1],
                                           'partner_id': stat_line_id}
-            elif date and date <= fups[followup_line_id][0].strftime(
-                    '%Y-%m-%d'):
+            elif date and fields.Date.to_string(date) <= \
+                    fups[followup_line_id][0].strftime('%Y-%m-%d'):
                 if stat_line_id not in partner_list:
                     partner_list.append(stat_line_id)
                 to_update[str(id)] = {'level': fups[followup_line_id][1],

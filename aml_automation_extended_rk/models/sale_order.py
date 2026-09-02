@@ -10,10 +10,13 @@ class SaleOrder(models.Model):
     # bypass (AML determined not required for this client).
     _AML_GATE_COMPLETED_STATES = ('approved', 'bypassed')
 
+    # Asked for only while a quotation is being created (the form view makes
+    # it required on unsaved records). Existing quotations - including the
+    # thousands that pre-date this module - stay editable without it.
     kyc_type = fields.Selection([
         ('entity', 'Entity'),
         ('individual', 'Individual'),
-    ], string='KYC Type', tracking=True, required=True)
+    ], string='KYC Type', tracking=True)
 
     aml_request_ids = fields.One2many('aml.request', 'sale_order_id', string='AML Requests')
     aml_request_count = fields.Integer(compute='_compute_aml_request_count', string='AML Requests')

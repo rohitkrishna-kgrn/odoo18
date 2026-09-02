@@ -109,9 +109,9 @@
 
         <menuitem id="menu_retainership_drafts_to_review"
                   name="Retainership Drafts to Review"
-                  parent="account.menu_finance_receivables"
+                  parent="menu_retainership_root"
                   action="action_retainership_drafts_to_review"
-                  sequence="7"/>
+                  sequence="20"/>
 
     </data>
 </odoo>

@@ -79,6 +79,9 @@ class SaleOrder(models.Model):
             'currency_id': self.currency_id.id,
             'invoice_payment_term_id': self.payment_term_id.id,
             'advance_invoice': True,
+            # Stamped on the document itself so it reads as an Advance even if
+            # the advance_invoice tick is ever cleared.
+            'invoice_type_manual': 'advance',
             'invoice_line_ids': [(0, 0, {
                 'name': 'Advance Payment',
                 'quantity': 1,
@@ -89,7 +92,14 @@ class SaleOrder(models.Model):
             })],
         }
 
-        invoice = self.env['account.move'].with_context(automated_invoice_creation=True).create(invoice_vals)
+        # skip_ar_responsible_check: the AR Responsible is mandatory on customer
+        # invoices keyed in by hand, but there is nobody to ask for it here --
+        # without the opt-out account_extended_rk's constraint blocks approving
+        # the order. The AR team assigns the owner on the draft afterwards.
+        invoice = self.env['account.move'].with_context(
+            automated_invoice_creation=True,
+            skip_ar_responsible_check=True,
+        ).create(invoice_vals)
         return invoice
     
 
@@ -190,7 +200,6 @@ class SaleOrder(models.Model):
             'date': order_line.engagement_end,
             'auto_invoice': sale_order.auto_invoice,
             'budgeted_amount': advance_diff,
-            'deadline': order_line.deadline,
             'billable_type': sale_order.billable_type 
         }
 

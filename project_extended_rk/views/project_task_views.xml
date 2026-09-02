@@ -28,6 +28,46 @@
         </field>
     </record>
 
+    <!-- The task workflow buttons. They used to live in
+         my_project_stage_automation; that module was uninstalled and the
+         header went with it, leaving the state_additional badge below with no
+         way to move it. Each button is visible only in the state it can act
+         on, so the header reads as the step the task is actually at. -->
+    <record id="view_task_form_workflow_buttons" model="ir.ui.view">
+        <field name="name">project.task.form.workflow.buttons</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_in_progress"
+                        string="In Progress"
+                        type="object"
+                        class="oe_highlight"
+                        invisible="state_additional not in ('new', 'on_hold')"/>
+                <button name="action_on_hold"
+                        string="On Hold"
+                        type="object"
+                        class="btn-warning"
+                        invisible="state_additional != 'in_progress'"/>
+                <button name="action_send_for_approval"
+                        string="Send for Approval"
+                        type="object"
+                        class="oe_highlight"
+                        invisible="state_additional != 'in_progress'"/>
+                <button name="action_approve"
+                        string="Approve"
+                        type="object"
+                        class="oe_highlight"
+                        invisible="state_additional != 'waiting_for_approval'"/>
+                <button name="action_retrieve"
+                        string="Retrieve"
+                        type="object"
+                        class="btn-danger"
+                        invisible="state_additional != 'waiting_for_approval'"/>
+            </xpath>
+        </field>
+    </record>
+
     <record id="view_task_search_inherit_custom" model="ir.ui.view">
         <field name="name">project.task.search.inherit.custom</field>
         <field name="model">project.task</field>
@@ -36,6 +76,7 @@
             <xpath expr="//search" position="inside">
                 <filter name="state_additional_new" string="New" domain="[('state_additional','=','new')]" />
                 <filter name="state_additional_in_progress" string="In Progress" domain="[('state_additional','=','in_progress')]" />
+                <filter name="state_additional_on_hold" string="On Hold" domain="[('state_additional','=','on_hold')]" />
                 <filter name="state_additional_waiting" string="Waiting for Approval" domain="[('state_additional','=','waiting_for_approval')]" />
                 <filter name="state_additional_completed" string="Completed" domain="[('state_additional','=','completed')]" />
 

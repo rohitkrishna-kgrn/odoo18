@@ -8,7 +8,8 @@
         <field name="arch" type="xml">
             <!-- Add KYC type after order fields -->
             <xpath expr="//field[@name='partner_id']" position="after">
-                <field name="kyc_type" widget="radio" options="{'horizontal': true}"/>
+                <field name="kyc_type" widget="radio" options="{'horizontal': true}"
+                       required="not id"/>
                 <field name="aml_gate_completed" readonly="1"/>
             </xpath>
 

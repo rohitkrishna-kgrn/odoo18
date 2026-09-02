@@ -1,92 +1,186 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="helpdesk_rk.TicketChat">
-        <div class="o_helpdesk_ticket_chat">
-            <div class="o_helpdesk_chat_header" t-if="state.otherParty and state.otherParty.user_id">
-                <div class="o_helpdesk_chat_header_avatar">
-                    <img t-att-src="otherPartyAvatarUrl" alt="Avatar"/>
-                    <span t-attf-class="o_helpdesk_chat_presence_dot {{ isOtherPartyPresent ? 'o_present' : 'o_absent' }}"
-                          t-att-title="presenceLabel"/>
+        <!-- A floating dock rather than a block in the sheet: folded it is
+             just a small round button, and both the button and the open
+             panel can be dragged anywhere over the ticket form. -->
+        <div t-ref="root" t-attf-style="{{ dockStyle }}"
+             t-attf-class="o_helpdesk_chat_dock {{ state.folded ? 'o_folded' : 'o_open' }} {{ state.dragging ? 'o_dragging' : '' }}">
+
+            <button t-if="state.folded" type="button" class="o_helpdesk_chat_launcher"
+                    t-on-pointerdown="onDragStart" t-on-click="onLauncherClick"
+                    title="Ticket conversation - click to open, drag to move">
+                <i class="fa fa-comments"/>
+                <span class="o_helpdesk_chat_launcher_badge" t-if="state.unseen" t-esc="unseenLabel"/>
+            </button>
+
+            <div t-else="" class="o_helpdesk_chat_panel">
+                <div class="o_helpdesk_chat_titlebar" t-on-pointerdown="onDragStart">
+                    <i class="fa fa-comments"/>
+                    <span class="o_helpdesk_chat_titlebar_text">Conversation</span>
+                    <button type="button" class="btn o_helpdesk_chat_fold_btn o_helpdesk_chat_no_drag"
+                            t-on-click="toggleFold" title="Minimise conversation">
+                        <i class="fa fa-minus"/>
+                    </button>
                 </div>
-                <div class="o_helpdesk_chat_header_info">
-                    <div class="o_helpdesk_chat_header_name" t-esc="state.otherParty.name"/>
-                    <div class="o_helpdesk_chat_header_sub">
-                        <span t-esc="state.otherParty.role"/>
-                        <span class="o_helpdesk_chat_header_dot">&#8226;</span>
-                        <span t-attf-class="o_helpdesk_chat_presence_label {{ isOtherPartyPresent ? 'o_present' : 'o_absent' }}"
-                              t-esc="presenceLabel"/>
+
+                <div class="o_helpdesk_chat_header" t-if="state.otherParty and state.otherParty.user_id">
+                    <div class="o_helpdesk_chat_header_avatar">
+                        <img t-att-src="otherPartyAvatarUrl" alt="Avatar"/>
+                        <span t-attf-class="o_helpdesk_chat_presence_dot {{ isOtherPartyPresent ? 'o_present' : 'o_absent' }}"
+                              t-att-title="presenceLabel"/>
                     </div>
-                </div>
-                <button type="button" class="btn o_helpdesk_chat_call_btn"
-                        t-on-click="onCallClick" t-att-disabled="state.calling"
-                        title="Start a call">
-                    <i class="fa fa-phone"/>
-                </button>
-            </div>
-            <div class="o_helpdesk_chat_header o_helpdesk_chat_header_unassigned"
-                 t-elif="state.otherParty and !state.otherParty.user_id and !state.isUnsaved">
-                <div class="o_helpdesk_chat_header_info">
-                    <div class="o_helpdesk_chat_header_name text-muted">Not yet assigned</div>
-                </div>
-            </div>
-            <div class="o_helpdesk_chat_messages" t-ref="messages">
-                <t t-if="state.loading">
-                    <div class="text-muted p-3">Loading conversation...</div>
-                </t>
-                <t t-elif="!state.messages.length">
-                    <div class="text-muted p-3">No messages yet. Start the conversation below.</div>
-                </t>
-                <t t-foreach="state.messages" t-as="message" t-key="message.id">
-                    <div t-attf-class="o_helpdesk_chat_bubble_row {{ message.is_own ? 'o_own' : 'o_other' }}">
-                        <div class="o_helpdesk_chat_bubble">
-                            <div class="o_helpdesk_chat_meta">
-                                <span class="o_helpdesk_chat_author" t-esc="message.author_name"/>
-                                <span class="o_helpdesk_chat_role" t-esc="message.author_role"/>
-                            </div>
-                            <div class="o_helpdesk_chat_body" t-esc="message.body"/>
-                            <div class="o_helpdesk_chat_attachments" t-if="message.attachments.length">
-                                <a t-foreach="message.attachments" t-as="attachment" t-key="attachment.id"
-                                   t-att-href="attachment.url" target="_blank" class="o_helpdesk_chat_attachment">
-                                    <i class="fa fa-paperclip"/><t t-esc="attachment.name"/>
-                                </a>
-                            </div>
-                            <div class="o_helpdesk_chat_date" t-esc="message.date"/>
+                    <div class="o_helpdesk_chat_header_info">
+                        <div class="o_helpdesk_chat_header_name" t-esc="state.otherParty.name"/>
+                        <div class="o_helpdesk_chat_header_sub">
+                            <span t-esc="state.otherParty.role"/>
+                            <span class="o_helpdesk_chat_header_dot">&#8226;</span>
+                            <span t-attf-class="o_helpdesk_chat_presence_label {{ isOtherPartyPresent ? 'o_present' : 'o_absent' }}"
+                                  t-esc="presenceLabel"/>
                         </div>
                     </div>
-                </t>
-            </div>
+                </div>
+                <div class="o_helpdesk_chat_header o_helpdesk_chat_header_unassigned"
+                     t-elif="state.otherParty and !state.otherParty.user_id and !state.isUnsaved">
+                    <div class="o_helpdesk_chat_header_info">
+                        <div class="o_helpdesk_chat_header_name text-muted">Not yet assigned</div>
+                    </div>
+                </div>
 
-            <div class="o_helpdesk_chat_readonly_banner" t-if="state.isUnsaved">
-                Save the ticket to start the conversation.
-            </div>
-            <div class="o_helpdesk_chat_closed_banner" t-elif="state.isClosed">
-                This ticket has been closed. Conversation is now read-only.
-            </div>
-            <div class="o_helpdesk_chat_readonly_banner" t-elif="!state.canPost">
-                You can view this conversation. Only the ticket creator and the Helpdesk Support Team can send messages.
-            </div>
-            <div class="o_helpdesk_chat_composer" t-else="">
-                <div class="o_helpdesk_chat_pending_attachments" t-if="state.pendingAttachments.length">
-                    <span t-foreach="state.pendingAttachments" t-as="attachment" t-key="attachment.id"
-                          class="o_helpdesk_chat_pending_chip">
-                        <i class="fa fa-paperclip"/><t t-esc="attachment.name"/>
-                        <i class="fa fa-times o_helpdesk_chat_remove_pending"
-                           t-on-click="() => this.removePendingAttachment(attachment.id)"/>
-                    </span>
+                <div class="o_helpdesk_chat_messages" t-ref="messages">
+                    <t t-if="state.loading">
+                        <div class="text-muted p-3">Loading conversation...</div>
+                    </t>
+                    <t t-elif="!state.messages.length">
+                        <div class="text-muted p-3">No messages yet. Start the conversation below.</div>
+                    </t>
+                    <t t-foreach="state.messages" t-as="message" t-key="message.id">
+                        <div t-attf-class="o_helpdesk_chat_bubble_row {{ message.is_own ? 'o_own' : 'o_other' }}">
+                            <div class="o_helpdesk_chat_bubble">
+                                <div class="o_helpdesk_chat_meta">
+                                    <span class="o_helpdesk_chat_author" t-esc="message.author_name"/>
+                                    <span class="o_helpdesk_chat_role" t-esc="message.author_role"/>
+                                </div>
+
+                                <!-- Inline edit, only ever reachable on my own
+                                     message and only inside the edit window. -->
+                                <t t-if="state.editingId === message.id">
+                                    <textarea class="o_helpdesk_chat_edit_input"
+                                              t-model="state.editDraft"
+                                              t-on-keydown="(ev) => this.onEditKeydown(ev, message)"
+                                              t-att-disabled="state.editSaving"/>
+                                    <div class="o_helpdesk_chat_edit_attachments" t-if="state.editAttachments.length">
+                                        <span t-foreach="state.editAttachments" t-as="attachment" t-key="attachment.id"
+                                              class="o_helpdesk_chat_pending_chip">
+                                            <i class="fa fa-paperclip"/><t t-esc="attachment.name"/>
+                                            <i class="fa fa-times o_helpdesk_chat_remove_pending"
+                                               title="Remove this file"
+                                               t-on-click="() => this.removeEditAttachment(attachment.id)"/>
+                                        </span>
+                                    </div>
+                                    <div class="o_helpdesk_chat_edit_actions">
+                                        <button type="button" class="btn btn-sm btn-light"
+                                                t-on-click="() => this.onFileButtonClick('edit')"
+                                                t-att-disabled="state.editSaving" title="Attach a file">
+                                            <i class="fa fa-paperclip"/>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-primary"
+                                                t-on-click="() => this.onEditSave(message)"
+                                                t-att-disabled="state.editSaving">Save</button>
+                                        <button type="button" class="btn btn-sm btn-link"
+                                                t-on-click="onEditCancel"
+                                                t-att-disabled="state.editSaving">Cancel</button>
+                                    </div>
+                                </t>
+
+                                <t t-else="">
+                                    <div class="o_helpdesk_chat_body" t-esc="message.body" t-if="message.body"/>
+                                    <div class="o_helpdesk_chat_attachments" t-if="message.attachments.length">
+                                        <t t-foreach="message.attachments" t-as="attachment" t-key="attachment.id">
+                                            <div class="o_helpdesk_chat_attachment">
+                                                <a t-if="attachment.is_image" class="o_helpdesk_chat_attachment_preview"
+                                                   t-att-href="attachment.url" target="_blank" t-att-title="attachment.name">
+                                                    <img t-att-src="attachment.url" t-att-alt="attachment.name"/>
+                                                </a>
+                                                <div class="o_helpdesk_chat_attachment_row">
+                                                    <i class="fa fa-paperclip"/>
+                                                    <span class="o_helpdesk_chat_attachment_name"
+                                                          t-att-title="attachment.name" t-esc="attachment.name"/>
+                                                    <span class="o_helpdesk_chat_attachment_size"
+                                                          t-esc="formatSize(attachment.size)"/>
+                                                    <!-- Same route for either party: the server checks the
+                                                         ticket, not who owns the file. -->
+                                                    <a class="o_helpdesk_chat_attachment_dl"
+                                                       t-att-href="attachment.download_url"
+                                                       t-attf-title="Download {{ attachment.name }}">
+                                                        <i class="fa fa-download"/>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </div>
+                                    <div class="o_helpdesk_chat_footer">
+                                        <span class="o_helpdesk_chat_date">
+                                            <t t-esc="message.date"/>
+                                            <t t-if="message.edited"> &#183; edited</t>
+                                        </span>
+                                        <span class="o_helpdesk_chat_actions" t-if="canModify(message)">
+                                            <span class="o_helpdesk_chat_edit_timer"
+                                                  t-attf-title="You can still edit or delete this message for {{ remainingEditLabel(message) }}"
+                                                  t-esc="remainingEditLabel(message)"/>
+                                            <button type="button" class="btn o_helpdesk_chat_action_btn"
+                                                    t-on-click="() => this.onEditStart(message)" title="Edit message">
+                                                <i class="fa fa-pencil"/>
+                                            </button>
+                                            <button type="button" class="btn o_helpdesk_chat_action_btn"
+                                                    t-on-click="() => this.onDeleteClick(message)" title="Delete message">
+                                                <i class="fa fa-trash"/>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
                 </div>
-                <div class="o_helpdesk_chat_composer_row">
-                    <button class="btn btn-link o_helpdesk_chat_attach_btn" type="button"
-                            t-on-click="onFileButtonClick" t-att-disabled="state.sending">
-                        <i class="fa fa-paperclip"/>
-                    </button>
-                    <input type="file" t-ref="fileInput" class="d-none" t-on-change="onFileChange" multiple="multiple"/>
-                    <textarea class="o_helpdesk_chat_input" placeholder="Type a message..."
-                              t-model="state.draft" t-on-keydown="onKeydown" t-att-disabled="state.sending"/>
-                    <button class="btn btn-primary o_helpdesk_chat_send_btn" type="button"
-                            t-on-click="onSend" t-att-disabled="state.sending">
-                        <i class="fa fa-paper-plane"/>
-                    </button>
+
+                <div class="o_helpdesk_chat_readonly_banner" t-if="state.isUnsaved">
+                    Save the ticket to start the conversation.
                 </div>
+                <div class="o_helpdesk_chat_closed_banner" t-elif="state.isClosed">
+                    This ticket has been closed. Conversation is now read-only.
+                </div>
+                <div class="o_helpdesk_chat_readonly_banner" t-elif="!state.canPost">
+                    You can view this conversation. Only the ticket creator and the Helpdesk Support Team can send messages.
+                </div>
+                <div class="o_helpdesk_chat_composer" t-else="">
+                    <div class="o_helpdesk_chat_pending_attachments" t-if="state.pendingAttachments.length">
+                        <span t-foreach="state.pendingAttachments" t-as="attachment" t-key="attachment.id"
+                              class="o_helpdesk_chat_pending_chip">
+                            <i class="fa fa-paperclip"/><t t-esc="attachment.name"/>
+                            <i class="fa fa-times o_helpdesk_chat_remove_pending"
+                               title="Remove this file"
+                               t-on-click="() => this.removePendingAttachment(attachment.id)"/>
+                        </span>
+                    </div>
+                    <div class="o_helpdesk_chat_composer_row">
+                        <button class="btn btn-link o_helpdesk_chat_attach_btn" type="button"
+                                t-on-click="() => this.onFileButtonClick('composer')"
+                                t-att-disabled="state.sending" title="Attach a file">
+                            <i class="fa fa-paperclip"/>
+                        </button>
+                        <textarea class="o_helpdesk_chat_input" placeholder="Type a message..."
+                                  t-model="state.draft" t-on-keydown="onKeydown" t-att-disabled="state.sending"/>
+                        <button class="btn btn-primary o_helpdesk_chat_send_btn" type="button"
+                                t-on-click="onSend" t-att-disabled="state.sending" title="Send">
+                            <i class="fa fa-paper-plane"/>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- One input for both the composer and an in-place edit; the
+                     component remembers which one asked for it. -->
+                <input type="file" t-ref="fileInput" class="d-none" t-on-change="onFileChange" multiple="multiple"/>
             </div>
         </div>
     </t>

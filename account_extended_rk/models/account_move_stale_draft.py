@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from markupsafe import Markup
+
 from odoo import models, fields, api, _
 
 # Days a customer invoice may sit in draft (unapproved) from its creation
@@ -143,15 +145,22 @@ class AccountMove(models.Model):
             deadline = move.stale_draft_deadline
 
             if creator and creator.active and not creator.share:
+                # The HTML skeleton has to be Markup: message_post escapes a
+                # plain str body, which would put literal <p>/<b> tags in the
+                # chatter and in the notification email. Markup's % operator
+                # escapes the substituted sentences, so the interpolated
+                # values stay safe.
                 move.message_post(
-                    body=_(
-                        "<p>This draft invoice has not been approved and is "
-                        "scheduled to be <b>archived automatically on %(deadline)s</b>, "
-                        "%(grace)s days after it was created.</p>"
-                        "<p>Confirm the invoice before then to keep it in the "
-                        "active list.</p>",
-                        deadline=deadline,
-                        grace=STALE_DRAFT_GRACE_DAYS,
+                    body=Markup("<p>%s</p><p><b>%s</b></p><p>%s</p>") % (
+                        _("This draft invoice has not been approved yet."),
+                        _(
+                            "It is scheduled to be archived automatically on "
+                            "%(deadline)s, %(grace)s days after it was created.",
+                            deadline=deadline,
+                            grace=STALE_DRAFT_GRACE_DAYS,
+                        ),
+                        _("Confirm the invoice before then to keep it in the "
+                          "active list."),
                     ),
                     partner_ids=creator.partner_id.ids,
                     subtype_xmlid='mail.mt_comment',
@@ -162,7 +171,7 @@ class AccountMove(models.Model):
                     summary="%s — approve or it is archived on %s" % (
                         STALE_DRAFT_ACTIVITY_MARKER, deadline,
                     ),
-                    note=_(
+                    note=Markup("<p>%s</p>") % _(
                         "Draft invoice %(name)s for %(partner)s has been "
                         "unapproved since %(created)s. It will be archived "
                         "automatically on %(deadline)s.",
@@ -212,13 +221,15 @@ class AccountMove(models.Model):
                 else []
             )
             move.message_post(
-                body=_(
-                    "<p>Archived automatically: this invoice was still in draft "
-                    "%(grace)s days after it was created and was never "
-                    "approved.</p>"
-                    "<p>Use <b>Action → Unarchive</b> to bring it back. It "
-                    "will not be auto-archived a second time.</p>",
-                    grace=STALE_DRAFT_GRACE_DAYS,
+                body=Markup("<p>%s</p><p>%s</p>") % (
+                    _(
+                        "Archived automatically: this invoice was still in "
+                        "draft %(grace)s days after it was created and was "
+                        "never approved.",
+                        grace=STALE_DRAFT_GRACE_DAYS,
+                    ),
+                    _("Use Action → Unarchive to bring it back. It will "
+                      "not be auto-archived a second time."),
                 ),
                 partner_ids=partner_ids,
                 subtype_xmlid='mail.mt_comment',

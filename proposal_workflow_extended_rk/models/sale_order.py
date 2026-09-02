@@ -129,6 +129,7 @@ class SaleOrder(models.Model):
         for vals in vals_list:
             self._sync_crm_vals(vals)
         orders = super().create(vals_list)
+        orders._check_crm_pipeline_required()
         orders._log_crm_override()
         orders._sync_proposal_lines()
         return orders
@@ -152,9 +153,14 @@ class SaleOrder(models.Model):
                 order.crm_link_override_reason,
             ))
 
-    @api.constrains('new_renewed', 'crm_pipeline_id',
-                    'crm_link_override', 'crm_link_override_reason')
     def _check_crm_pipeline_required(self):
+        """Require a pipeline link (or a reasoned override) on a new quotation.
+
+        Deliberately *not* an @api.constrains: it runs from create() only, so
+        the rule applies to quotations being raised now. Quotations that already
+        exist - including the ones that pre-date this module and have no
+        pipeline record at all - stay editable without it.
+        """
         for order in self:
             if order.new_renewed != 'new' or order.crm_pipeline_id:
                 continue

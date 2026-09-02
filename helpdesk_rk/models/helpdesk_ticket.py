@@ -1,11 +1,15 @@
 import re
 import logging
 from collections import defaultdict
+from datetime import timedelta
 from markupsafe import Markup
-from odoo import api, fields, models, tools
+from odoo import api, fields, models, tools, Command
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
+
+# How long the author of a ticket-chat message may still edit or delete it.
+CHAT_EDIT_WINDOW_MINUTES = 10
 
 class HelpdeskTicket(models.Model):
     _name = 'helpdesk_rk.ticket'
@@ -142,8 +146,12 @@ class HelpdeskTicket(models.Model):
             for message in messages_by_ticket.get(rec.id, []):
                 if last_read and message.date and message.date <= last_read:
                     continue
-                author_user = message.author_id.user_ids[:1]
-                if author_user and author_user.id == self.env.uid:
+                # Compare partners, not users: res.partner.user_ids is
+                # active_test'd, so an archived author resolves to no user at
+                # all and the reader ends up counting their OWN messages as
+                # unread. This is also exactly how _format_chat_message
+                # decides `is_own`, so the bell and the bubbles now agree.
+                if message.author_id and message.author_id.id == self.env.user.partner_id.id:
                     continue
                 count += 1
             rec.unread_count = count
@@ -391,6 +399,19 @@ class HelpdeskTicket(models.Model):
             return False
         return user.id == self.user_id.id or self._check_user_in_support_team(user)
 
+    def _can_access_chat(self, user=None):
+        """Who may read this ticket's conversation and download the files
+        shared in it: the creator, the agent it is assigned to, and the
+        Helpdesk Support Team / admins. Used by the chat attachment
+        controller, which browses in sudo and so must check by hand."""
+        self.ensure_one()
+        user = user or self.env.user
+        return (
+            user.id == self.user_id.id
+            or (self.assigned_user_id and user.id == self.assigned_user_id.id)
+            or self._check_user_in_support_team(user)
+        )
+
     def _get_chat_author_role(self, partner):
         user = partner.user_ids[:1] if partner else self.env['res.users']
         if not user:
@@ -401,21 +422,46 @@ class HelpdeskTicket(models.Model):
             return 'Helpdesk Support Team'
         return 'Staff'
 
+    def _format_chat_attachment(self, attachment):
+        """Both sides of the conversation download through our own route
+        (see HelpdeskChatController.chat_attachment) instead of /web/content:
+        the file itself only ever carries res_model/res_id of the ticket, so
+        the route is what decides that the other party may read it - no
+        public access token has to be minted on the attachment."""
+        return {
+            'id': attachment.id,
+            'name': attachment.name,
+            'mimetype': attachment.mimetype,
+            'size': attachment.file_size,
+            'is_image': (attachment.mimetype or '').startswith('image/'),
+            'url': f'/helpdesk_rk/chat/attachment/{attachment.id}',
+            'download_url': f'/helpdesk_rk/chat/attachment/{attachment.id}?download=1',
+        }
+
     def _format_chat_message(self, message):
         author = message.author_id
+        is_own = bool(author and author.id == self.env.user.partner_id.id)
+        # Seconds still left on the edit/delete window, measured on the
+        # server. The browser counts this down from the moment the thread was
+        # loaded, so a wrong clock on the client cannot re-open the window -
+        # and update/delete re-check it server-side anyway.
+        seconds_left = 0
+        if is_own and message.date and self.stage_id in ('new', 'in_progress'):
+            deadline = message.date + timedelta(minutes=CHAT_EDIT_WINDOW_MINUTES)
+            seconds_left = max((deadline - fields.Datetime.now()).total_seconds(), 0)
         return {
             'id': message.id,
             'author_name': author.name if author else (message.email_from or 'Unknown'),
             'author_role': self._get_chat_author_role(author) if author else 'External',
             'body': tools.html2plaintext(message.body) if message.body else '',
             'date': fields.Datetime.to_string(fields.Datetime.context_timestamp(self, message.date)),
-            'is_own': bool(author and author.id == self.env.user.partner_id.id),
-            'attachments': [{
-                'id': attachment.id,
-                'name': attachment.name,
-                'mimetype': attachment.mimetype,
-                'url': f'/web/content/{attachment.id}?download=true',
-            } for attachment in message.attachment_ids],
+            'is_own': is_own,
+            'edited': bool(message.helpdesk_chat_edited),
+            'editable_seconds_left': seconds_left,
+            'attachments': [
+                self._format_chat_attachment(attachment)
+                for attachment in message.sudo().attachment_ids
+            ],
         }
 
     def _get_chat_other_party(self):
@@ -423,7 +469,7 @@ class HelpdeskTicket(models.Model):
         current viewer's point of view: support/admin sees the ticket
         creator, everyone else sees the currently assigned support agent
         (or nothing, if no one has been assigned yet). Used to render a
-        Discuss-DM-style header (name, avatar, live presence, call)."""
+        Discuss-DM-style header (name, avatar, live presence)."""
         self.ensure_one()
         if self._check_user_in_support_team():
             other_user, role = self.user_id, 'Ticket Creator'
@@ -445,40 +491,180 @@ class HelpdeskTicket(models.Model):
             'im_status': other_user.im_status,
         }
 
-    def get_chat_thread_data(self):
+    def _get_chat_messages(self):
         self.ensure_one()
         chat_subtype = self.env.ref('helpdesk_rk.mt_ticket_chat')
-        messages = self.message_ids.filtered(
+        return self.message_ids.filtered(
             lambda m: m.subtype_id.id == chat_subtype.id
         ).sorted('date')
+
+    def get_chat_thread_data(self, mark_read=True):
+        """`mark_read` is False while the chat panel sits folded: the
+        messages are fetched so the panel can show an unread badge, but the
+        user has not actually seen them yet, so the bell must keep ringing."""
+        self.ensure_one()
         data = {
             'can_post': self._can_post_chat_message(),
             'is_closed': self.stage_id in ('done', 'rejected'),
-            'messages': [self._format_chat_message(message) for message in messages],
+            'edit_window_minutes': CHAT_EDIT_WINDOW_MINUTES,
+            # Feeds the badge on the folded launcher; same number the kanban
+            # and list bells show, so the two never disagree.
+            'unread_count': self.unread_count,
+            'messages': [self._format_chat_message(message) for message in self._get_chat_messages()],
             'other_party': self._get_chat_other_party(),
         }
-        self.mark_chat_read()
+        if mark_read:
+            self.mark_chat_read()
         return data
+
+    def _notify_chat_changed(self):
+        """Wake every session showing this ticket (its chat panel, and the
+        bell on the kanban/list boards) so a new, edited or deleted message
+        shows up without a refresh."""
+        self.ensure_one()
+        self.env['bus.bus']._sendone(
+            f'helpdesk_rk.ticket_chat_{self.id}',
+            'helpdesk_rk_chat_message',
+            {'ticket_id': self.id},
+        )
+
+    def _get_chat_notified_partner(self):
+        """The single person a new chat message is announced to, as a toast
+        in the corner of whatever page they are on:
+
+          * written by the Helpdesk Support Team -> the ticket creator;
+          * written by the ticket creator -> the agent the ticket is
+            assigned to, and nobody at all while it is still unassigned.
+
+        Never the author themselves, and never a broadcast to the whole
+        support team."""
+        self.ensure_one()
+        author = self.env.user
+        if author.id == self.user_id.id:
+            target = self.assigned_user_id
+        elif self._check_user_in_support_team(author):
+            target = self.user_id
+        else:
+            target = self.env['res.users']
+        if not target or target.id == author.id:
+            return self.env['res.partner']
+        return target.partner_id
+
+    def _notify_chat_message_to_recipient(self, message):
+        self.ensure_one()
+        partner = self._get_chat_notified_partner()
+        if not partner:
+            return
+        preview = tools.html2plaintext(message.body).strip() if message.body else ''
+        if not preview:
+            count = len(message.attachment_ids)
+            preview = f"Sent {count} attachment(s)." if count else ''
+        if len(preview) > 150:
+            preview = preview[:150] + '...'
+        self.env['bus.bus']._sendone(partner, 'helpdesk_rk_chat_notification', {
+            'ticket_id': self.id,
+            'message_id': message.id,
+            'ticket_number': self.ticket_number or '',
+            'ticket_name': self.name or '',
+            'author_name': self.env.user.name,
+            'author_role': self._get_chat_author_role(self.env.user.partner_id),
+            'preview': preview,
+        })
+
+    def _link_pending_chat_attachments(self, attachment_ids):
+        """Attachments are uploaded before the message exists, parked on
+        'mail.compose.message'/res_id 0 by the upload route. Only the ones
+        this very user parked there may be pulled into a message."""
+        self.ensure_one()
+        if not attachment_ids:
+            return self.env['ir.attachment']
+        return self.env['ir.attachment'].sudo().browse(attachment_ids).exists().filtered(
+            lambda a: a.res_model == 'mail.compose.message'
+            and not a.res_id
+            and a.create_uid.id == self.env.uid
+        )
 
     def post_chat_message(self, body, attachment_ids=None):
         self.ensure_one()
         if not self._can_post_chat_message():
             raise UserError("You are not allowed to post messages on this ticket.")
         body = (body or '').strip()
-        attachment_ids = attachment_ids or []
-        if not body and not attachment_ids:
+        attachments = self._link_pending_chat_attachments([int(a) for a in (attachment_ids or [])])
+        if not body and not attachments:
             raise UserError("Cannot send an empty message.")
-        self.with_context(mail_create_nosubscribe=True).message_post(
+        # message_post() only accepts attachments still parked on the
+        # composer *and created by the acting user* - which is exactly what
+        # _link_pending_chat_attachments already guaranteed.
+        message = self.with_context(mail_create_nosubscribe=True).message_post(
             body=tools.plaintext2html(body) if body else '',
             message_type='comment',
             subtype_id=self.env.ref('helpdesk_rk.mt_ticket_chat').id,
-            attachment_ids=attachment_ids,
+            attachment_ids=attachments.ids,
         )
-        self.env['bus.bus']._sendone(
-            f'helpdesk_rk.ticket_chat_{self.id}',
-            'helpdesk_rk_chat_message',
-            {'ticket_id': self.id},
-        )
+        self._notify_chat_changed()
+        self._notify_chat_message_to_recipient(message)
+        return self.get_chat_thread_data()
+
+    def _get_own_editable_chat_message(self, message_id):
+        """A message may only be touched by the person who wrote it, on an
+        open ticket, and only inside the CHAT_EDIT_WINDOW_MINUTES window
+        after it was sent. Checked here on every edit and delete, so a stale
+        browser tab cannot slip an edit through after the window closed."""
+        self.ensure_one()
+        chat_subtype = self.env.ref('helpdesk_rk.mt_ticket_chat')
+        message = self.env['mail.message'].sudo().browse(int(message_id)).exists()
+        if (not message or message.model != self._name or message.res_id != self.id
+                or message.subtype_id.id != chat_subtype.id):
+            raise UserError("This message does not belong to this ticket's conversation.")
+        if not message.author_id or message.author_id.id != self.env.user.partner_id.id:
+            raise UserError("You can only edit or delete the messages you sent.")
+        if self.stage_id not in ('new', 'in_progress'):
+            raise UserError("This ticket is closed, its conversation can no longer be changed.")
+        deadline = message.date + timedelta(minutes=CHAT_EDIT_WINDOW_MINUTES)
+        if fields.Datetime.now() > deadline:
+            raise UserError(
+                f"Messages can only be edited or deleted within {CHAT_EDIT_WINDOW_MINUTES} "
+                "minutes of being sent."
+            )
+        return message
+
+    def update_chat_message(self, message_id, body, attachment_ids=None):
+        """Rewrite one of my own messages: `attachment_ids` is the full list
+        the message should end up with - the ones kept out of it are deleted,
+        ids not on the message yet are freshly uploaded ones to pull in."""
+        self.ensure_one()
+        message = self._get_own_editable_chat_message(message_id)
+        body = (body or '').strip()
+        wanted_ids = {int(a) for a in (attachment_ids or [])}
+        existing = message.attachment_ids
+        kept = existing.filtered(lambda a: a.id in wanted_ids)
+        dropped = existing - kept
+        added = self._link_pending_chat_attachments(list(wanted_ids - set(existing.ids)))
+        if not body and not kept and not added:
+            raise UserError("A message cannot be left empty. Delete it instead.")
+        if added:
+            added.write({'res_model': self._name, 'res_id': self.id})
+        message.write({
+            'body': tools.plaintext2html(body) if body else '',
+            'attachment_ids': [Command.set((kept | added).ids)],
+            'helpdesk_chat_edited': True,
+        })
+        if dropped:
+            dropped.unlink()
+        self._notify_chat_changed()
+        return self.get_chat_thread_data()
+
+    def delete_chat_message(self, message_id):
+        self.ensure_one()
+        message = self._get_own_editable_chat_message(message_id)
+        # mail.message.unlink() only cascades attachments still parked on
+        # 'mail.message'; ours were moved onto the ticket when they were
+        # posted, so they have to be dropped by hand or they leak.
+        attachments = message.attachment_ids
+        message.unlink()
+        if attachments:
+            attachments.unlink()
+        self._notify_chat_changed()
         return self.get_chat_thread_data()
 
     def action_set_in_progress(self):

@@ -1,6 +1,6 @@
 {
     'name': 'Project Extended RK',
-    'version': '1.11',
+    'version': '1.14',
     'depends': ['project', 'sale', 'sale_timesheet', 'account', 'hr_timesheet', 'crm_extended_rk', 'aml_automation_extended_rk'],
     'author': 'Rohit',
     'category': 'Project',
@@ -8,8 +8,11 @@
         'security/ir.model.access.csv',
         'security/deadline_alert_groups.xml',
         'security/res_users_view.xml',
-        'views/project_groups.xml',
+        # project_project_views.xml must load first: it is what stops
+        # referencing the removed 'deadline' field, and project_groups.xml
+        # revalidates the same inheritance tree when it is written.
         'views/project_project_views.xml',
+        'views/project_groups.xml',
         'views/project_team_views.xml',
         'views/project_task_views.xml',
         'views/deadline_alert_views.xml',
@@ -19,7 +22,7 @@
         'wizards/deadline_alert_test_wizard_view.xml',
         'data/email_template.xml',
         'data/deadline_alert_cron.xml',
-        'data/project_hold_tag.xml',
+        'data/project_hold_stage.xml',
     ],
     'installable': True,
     'auto_install': False,

@@ -99,7 +99,7 @@ class TestEngagementLetterTracking(TransactionCase):
                 'price_unit': 1000.0,
                 # NOT NULL on sale_order_line in this database.
                 'manager_id': self.manager.id,
-                'deadline': self.today,
+                'date': self.today,
                 'engagement_start': self.today,
                 'engagement_end': self.today,
                 'estimated_hours': 1.0,
