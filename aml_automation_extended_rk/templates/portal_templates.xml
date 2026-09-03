@@ -75,7 +75,7 @@
                              onerror="this.style.display='none'"/>
                     </div>
                     <div class="aml-brand-text">
-                        <span class="aml-company"><t t-out="aml.company_id.name"/></span>
+                        <span class="aml-company">KGRN Chartered Accountants</span>
                         <span class="aml-subtitle">KYC / AML Onboarding Form</span>
                     </div>
                 </div>
@@ -1215,7 +1215,7 @@
             </main>
 
             <footer class="aml-footer">
-                <span>&#169; <t t-out="aml.company_id.name"/>. Your information is kept strictly confidential.</span>
+                <span>&#169; KGRN Chartered Accountants. Your information is kept strictly confidential.</span>
             </footer>
 
           </div>
@@ -1240,7 +1240,7 @@
                              onerror="this.style.display='none'"/>
                     </div>
                     <div class="aml-brand-text">
-                        <span class="aml-company"><t t-out="aml.company_id.name"/></span>
+                        <span class="aml-company">KGRN Chartered Accountants</span>
                         <span class="aml-subtitle">Additional Document Upload</span>
                     </div>
                 </div>
@@ -1315,7 +1315,7 @@
             </main>
 
             <footer class="aml-footer">
-                <span>&#169; <t t-out="aml.company_id.name"/>. Your information is kept strictly confidential.</span>
+                <span>&#169; KGRN Chartered Accountants. Your information is kept strictly confidential.</span>
             </footer>
 
           </div>

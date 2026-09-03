@@ -333,9 +333,9 @@ const amlForm = (function () {
                 return false;
             }
             const missingDirDocs = [];
+            // Proof of Residence is optional here – only the identity document is enforced.
             const MANDATORY_DIR_DOCS = {
                 passport: 'Passport Copy/Emirates ID/any government issued identity with compulsory condition',
-                proof_of_residence: 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
             };
             let firstDocEl = null;
             if (tbody) {
@@ -368,9 +368,9 @@ const amlForm = (function () {
                 showToast('Please add at least one Shareholder before proceeding.', 'error');
                 return false;
             }
+            // Proof of Residence is optional here – only the identity document is enforced.
             const IND_DOCS  = {
                 passport: 'Passport Copy/Emirates ID/any government issued identity with compulsory condition',
-                proof_of_residence: 'Proof of Residence (Utility Bill / Lease Agreement / Bank Statement) issued within the last 3 months showing the address of respective individuals',
             };
             const CORP_DOCS = { trade_license: 'Trade License/Certificate of Incorporation', memorandum: 'Memorandum of Association / Articles of Association' };
             const missingShDocs = [];
@@ -558,7 +558,7 @@ const amlForm = (function () {
                 : '';
             return `
             <div id="dir-doc-wrap-${rowId}-${dt}" style="display:flex;flex-direction:column;gap:4px;min-width:180px;max-width:280px;border-radius:4px;padding:2px;">
-                <span style="font-size:11px;color:#555;font-weight:600;">${dtLabels[dt]} <span style="color:#ff0000;">*</span></span>
+                <span style="font-size:11px;color:#555;font-weight:600;">${dtLabels[dt]}${dt === 'proof_of_residence' ? '' : ' <span style="color:#ff0000;">*</span>'}</span>
                 ${dt === 'proof_of_residence' ? `
                 <div style="margin:2px 0;padding-top:2px;border-top:1px dashed #ccc;">
                     <a href="${dirSampleUrl}" download target="_blank" style="font-size:11px;font-weight:700;color:#f25d23;text-decoration:none;">⬇ Declaration of proof of residence Download</a>
@@ -688,7 +688,7 @@ const amlForm = (function () {
             : '';
         return `
             <div id="sh-doc-wrap-${rowId}-${dt}" style="display:flex;flex-direction:column;gap:4px;min-width:180px;max-width:280px;border-radius:4px;padding:2px;">
-                <span style="font-size:11px;color:#555;font-weight:600;">${label} <span style="color:#ff0000;">*</span></span>
+                <span style="font-size:11px;color:#555;font-weight:600;">${label}${dt === 'proof_of_residence' ? '' : ' <span style="color:#ff0000;">*</span>'}</span>
                 ${sampleBlock}
                 <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#fdeee7;border:1px solid #f5b78e;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:500;color:#f25d23;">
                     &#128206; Upload
