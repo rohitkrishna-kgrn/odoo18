@@ -90,30 +90,17 @@ class CrmMailLead(models.Model):
     # ------------------------------------------------------------------
     # Fetching
     # ------------------------------------------------------------------
-    def action_fetch_now(self):
-        """'Fetch Now' button in the Mail Leads list header.
+    def action_fetch_mails(self):
+        """'Fetch Mails' button in the Mail Leads list header.
 
-        Wakes the fetch cron so it runs immediately instead of doing the work
-        in this request — a mailbox with a large backlog would otherwise run
-        for minutes and race the cron. The cron imports one batch per mailbox
-        and keeps coming back for the next batch until every mailbox is caught
-        up. ``self`` is an empty recordset (header button, no selection).
+        Arms a full import on every confirmed CRM mailbox — every message not
+        yet a Mail Lead, read and unread, any age — pulls the first small
+        batch synchronously so the list refreshes with results at once, then
+        wakes the cron to drain the rest automatically in the background.
+        ``self`` is an empty recordset (header button, no selection).
         """
-        self.env['crm.mail.server']._trigger_fetch_cron()
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'type': 'info',
-                'title': _("Fetch started"),
-                'message': _(
-                    "Fetching mail in the background. New leads appear within a "
-                    "minute — refresh the list. A full-mailbox import works "
-                    "through the backlog in batches, so it may keep adding "
-                    "leads for a while."),
-                'next': {'type': 'ir.actions.act_window_close'},
-            },
-        }
+        servers = self.env['crm.mail.server'].sudo().search([('state', '=', 'done')])
+        return servers.action_fetch_mails()
 
     # ------------------------------------------------------------------
     # Assignment
