@@ -22,16 +22,30 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
-MAIL_TIMEOUT = 60
+MAIL_TIMEOUT = 120
 
 # IMAP SEARCH only understands English month abbreviations, while
 # ``strftime('%b')`` follows the process locale — build the literal by hand.
 IMAP_MONTHS = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
 
-# Hard stop on a single fetch, so a mailbox that has been unread for weeks
-# cannot flood the pipeline in one cron beat.
+# Hard stop on a single fetch in *regular* mode, so a mailbox that has been
+# unread for weeks cannot flood the pipeline in one cron beat.
 MAX_MESSAGES_PER_FETCH = 100
+
+# 'Import entire mailbox' mode walks the whole folder by IMAP UID, this many
+# messages per cron beat. The cron's progress API pulls the next batch straight
+# away (up to 10 batches per worker pass, see ir.cron.MAX_BATCH_PER_CRON_JOB)
+# until the mailbox is caught up, then the job falls back to its normal
+# schedule.
+FULL_IMPORT_BATCH = 200
+
+# Advisory-lock namespace. A transaction-scoped ``pg_try_advisory_xact_lock``
+# on (this, server.id) guarantees the cron and a manual 'Fetch Now' never fetch
+# the *same* mailbox at once — concurrent writes to the crm.mail.server row
+# otherwise raise a serialization error and Odoo retries the whole call,
+# re-fetching everything. Released automatically at the next commit/rollback.
+FETCH_LOCK_NS = 0x43524D4C  # 'CRML'
 
 
 class CrmMailServer(models.Model):
@@ -99,6 +113,26 @@ class CrmMailServer(models.Model):
     keep_attachments = fields.Boolean(
         string='Keep Attachments', default=True,
         help="Download attachments and carry them onto the pipeline record.")
+
+    import_all_mail = fields.Boolean(
+        string='Import Entire Mailbox', default=False,
+        help="Import EVERY mail in the folder — read and unread, all the way "
+             "back — not only new unread mail. Each imported mail is flagged as "
+             "read in the mailbox so the import works through the backlog in "
+             "batches over successive runs (see Last Imported UID). Once the "
+             "mailbox is caught up the server keeps pulling only newer mail by "
+             "IMAP UID; you can leave this on or switch it back off.")
+    last_uid = fields.Integer(
+        string='Last Imported UID', readonly=True, copy=False,
+        help="Highest IMAP UID imported so far in 'Import Entire Mailbox' mode.")
+    last_uidvalidity = fields.Integer(
+        string='UID Validity', readonly=True, copy=False,
+        help="IMAP UIDVALIDITY of the folder when the UID watermark was taken. "
+             "If the mailbox reports a new value the watermark is reset.")
+    backlog_done = fields.Boolean(
+        string='Backlog Imported', readonly=True, copy=False,
+        help="Set once 'Import Entire Mailbox' has caught up; from then on only "
+             "newer mail (higher UID) is pulled.")
 
     last_fetch_date = fields.Datetime(string='Last Fetch', readonly=True, copy=False)
     last_error = fields.Text(string='Last Error', readonly=True, copy=False)
@@ -176,25 +210,33 @@ class CrmMailServer(models.Model):
         self.write({'state': 'draft'})
         return True
 
-    def button_fetch_now(self):
-        """Manual 'Fetch Now' — same code path as the cron, errors surfaced.
+    @api.model
+    def _trigger_fetch_cron(self):
+        """Wake the fetch cron so it runs now instead of at the next beat."""
+        cron = self.env.ref(
+            'crm_mail_lead_rk.ir_cron_crm_mail_lead_fetch', raise_if_not_found=False)
+        if cron:
+            cron.sudo()._trigger()
 
-        Unlike the cron this ignores the rolling time window: it pulls every
-        still-unread mail that has not been imported yet, so a message that was
-        already sitting in the inbox when the mailbox was set up is picked up.
+    def button_fetch_now(self):
+        """Manual 'Fetch Now' on the server form.
+
+        Does not fetch in the request itself — a mailbox with a large backlog
+        would run for minutes and race the cron. It just wakes the cron, which
+        imports one batch per mailbox and keeps coming back for the next batch
+        until every mailbox is caught up.
         """
-        totals = self.fetch_mail(raise_exception=True, ignore_window=True)
-        imported = totals.get('imported', 0)
+        self._trigger_fetch_cron()
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
-                'type': 'success' if imported else 'info',
-                'title': _("Mailbox checked"),
-                'message': (
-                    _("%s new mail lead(s) pulled into Mail Leads.", imported)
-                    if imported else
-                    _("No new unread mail — every message is already listed.")),
+                'type': 'info',
+                'title': _("Fetch started"),
+                'message': _(
+                    "Mail import is running in the background. New mail leads "
+                    "appear within a minute; a full-mailbox import works through "
+                    "the backlog in batches — watch the Mail Leads count."),
                 'next': {'type': 'ir.actions.act_window_close'},
             },
         }
@@ -262,47 +304,72 @@ class CrmMailServer(models.Model):
     # ------------------------------------------------------------------
     @api.model
     def _cron_fetch_mail(self):
-        """Entry point of the every-2-minutes cron."""
+        """Entry point of the every-2-minutes cron.
+
+        Each beat imports one batch per confirmed mailbox. When a mailbox in
+        'Import Entire Mailbox' mode still has a backlog, the cron's progress
+        API makes the runner come straight back for the next batch instead of
+        waiting for the next scheduled beat.
+        """
         servers = self.search([('state', '=', 'done')])
+        done = remaining = 0
         for server in servers:
             # One bad mailbox must not stop the others, and the mails already
             # imported by an earlier server stay imported.
             try:
-                server.fetch_mail(raise_exception=True, commit=True)
+                res = server.fetch_mail(raise_exception=True, commit=True)
                 self.env.cr.commit()
+                done += res.get('imported', 0) + res.get('skipped', 0)
+                remaining += res.get('remaining', 0)
             except Exception as err:  # noqa: BLE001 - cron must survive anything
                 self.env.cr.rollback()
                 _logger.warning(
                     "CRM mail server %s: fetch failed.", server.name, exc_info=True)
                 server.sudo().write({'last_error': tools.exception_to_unicode(err)})
                 self.env.cr.commit()
+        # remaining > 0 → tell the runner to reschedule ASAP for the next batch.
+        # 'done' must be non-zero for that to happen, so floor it at 1 when there
+        # is a backlog even if this batch only saw duplicates.
+        self.env['ir.cron']._notify_progress(
+            done=done or (1 if remaining else 0), remaining=remaining)
         return True
 
-    def fetch_mail(self, raise_exception=True, commit=False, ignore_window=False):
-        """Pull unread mail received since the last run into ``crm.mail.lead``.
+    def fetch_mail(self, raise_exception=True, commit=False):
+        """Import mail into ``crm.mail.lead`` for every server in ``self``.
+
+        Regular mode pulls only new *unread* mail inside the rolling time
+        window. 'Import Entire Mailbox' mode walks the whole folder by IMAP UID,
+        ``FULL_IMPORT_BATCH`` messages per call, marking each imported mail read
+        so the next call resumes past it.
 
         :param bool raise_exception: re-raise connection/parse failures instead
-            of only logging them.
-        :param bool commit: commit after each imported mail (cron usage only).
-        :param bool ignore_window: pull *every* still-unread mail that has not
-            been imported yet, not just the ones inside the rolling window used
-            by the cron. Used by the manual 'Fetch Now' buttons. Deduplication
-            is still on the message id, and ``MAX_MESSAGES_PER_FETCH`` still
-            caps a single run.
-        :return: aggregated counts across ``self``:
-            ``{'imported': int, 'skipped': int, 'failed': int, 'errors': int}``.
+            of only logging them onto ``last_error``.
+        :param bool commit: commit after each mailbox (cron usage).
+        :return: aggregated counts across ``self``::
+
+            {'imported', 'skipped', 'failed', 'errors', 'remaining'}
+
+          ``remaining`` is how many messages are still queued for a later batch
+          ('Import Entire Mailbox' mode only).
         """
         MailLead = self.env['crm.mail.lead'].sudo()
-        totals = {'imported': 0, 'skipped': 0, 'failed': 0, 'errors': 0}
+        totals = {'imported': 0, 'skipped': 0, 'failed': 0, 'errors': 0, 'remaining': 0}
         for server in self:
+            # Never fetch the same mailbox from two places at once (a scheduled
+            # beat and a manual Fetch Now, or two overlapping beats): the second
+            # writer to the crm.mail.server row would hit a serialization error
+            # and Odoo would retry the whole call, re-fetching everything. The
+            # lock is released automatically at the next commit/rollback.
+            self.env.cr.execute(
+                "SELECT pg_try_advisory_xact_lock(%s, %s)", (FETCH_LOCK_NS, server.id))
+            if not self.env.cr.fetchone()[0]:
+                _logger.info(
+                    "CRM mail server %s: a fetch is already running, skipping.",
+                    server.name)
+                continue
+
             connection = None
-            if ignore_window:
-                # Look all the way back; the real filter is "unread and not yet
-                # imported", applied by IMAP UNSEEN + the message-id dedup.
-                cutoff = fields.Datetime.now() - timedelta(days=3650)
-            else:
-                cutoff = server._get_fetch_cutoff()
-            imported = skipped = failed = 0
+            imported = skipped = failed = remaining = 0
             try:
                 connection = server._connect()
                 typ, _data = connection.select(server.folder or 'INBOX')
@@ -311,68 +378,21 @@ class CrmMailServer(models.Model):
                         "Mailbox folder %(folder)s not found on %(server)s.",
                         folder=server.folder, server=server.server))
 
-                # IMAP SINCE has day granularity only and compares against the
-                # server's own clock, so widen by a day here and apply the real
-                # cut-off below against each mail's own Date header.
-                typ, data = connection.search(
-                    None, 'UNSEEN', 'SINCE', server._imap_date(cutoff - timedelta(days=1)))
-                if typ != 'OK':
-                    raise UserError(_("IMAP search failed on %s.", server.name))
-
-                nums = data[0].split() if data and data[0] else []
-                if len(nums) > MAX_MESSAGES_PER_FETCH:
-                    _logger.warning(
-                        "CRM mail server %s: %d unread messages matched, importing "
-                        "only the %d most recent this run; the rest follow on the "
-                        "next cron beats.",
-                        server.name, len(nums), MAX_MESSAGES_PER_FETCH)
-                    nums = nums[-MAX_MESSAGES_PER_FETCH:]
-
-                for num in nums:
-                    # BODY.PEEK[] reads the message *without* setting \Seen, so
-                    # an unassigned mail stays unread in the user's inbox unless
-                    # 'Mark as Read in Mailbox' is on.
-                    typ, msg_data = connection.fetch(num, '(BODY.PEEK[])')
-                    if typ != 'OK':
-                        failed += 1
-                        continue
-                    raw = next(
-                        (part[1] for part in msg_data
-                         if isinstance(part, tuple) and len(part) > 1),
-                        None)
-                    if not raw:
-                        failed += 1
-                        continue
-                    try:
-                        values = server._prepare_mail_lead_values(raw, cutoff)
-                    except Exception:  # noqa: BLE001 - one unparseable mail
-                        _logger.warning(
-                            "CRM mail server %s: could not parse a message.",
-                            server.name, exc_info=True)
-                        failed += 1
-                        continue
-                    if not values:
-                        skipped += 1
-                        continue
-
-                    attachments = values.pop('__attachments__', [])
-                    mail_lead = MailLead.create(values)
-                    if attachments:
-                        mail_lead._store_attachments(attachments)
-                    imported += 1
-
-                    if server.mark_as_read:
-                        connection.store(num, '+FLAGS', '\\Seen')
-                    if commit:
-                        self.env.cr.commit()
+                if server.import_all_mail:
+                    imported, skipped, failed, remaining = server._fetch_full_mailbox(
+                        connection, MailLead)
+                else:
+                    imported, skipped, failed = server._fetch_new_unseen(
+                        connection, MailLead)
 
                 server.sudo().write({
                     'last_fetch_date': fields.Datetime.now(),
                     'last_error': False,
                 })
                 _logger.info(
-                    "CRM mail server %s: %d imported, %d skipped, %d failed.",
-                    server.name, imported, skipped, failed)
+                    "CRM mail server %s: %d imported, %d skipped, %d failed, "
+                    "%d remaining.",
+                    server.name, imported, skipped, failed, remaining)
             except Exception as err:  # noqa: BLE001
                 if raise_exception:
                     raise
@@ -382,16 +402,166 @@ class CrmMailServer(models.Model):
                 server.sudo().write({'last_error': tools.exception_to_unicode(err)})
             finally:
                 self._safe_disconnect(connection)
+
             totals['imported'] += imported
             totals['skipped'] += skipped
             totals['failed'] += failed
+            totals['remaining'] += remaining
+
+            if commit:
+                # Persist this mailbox's batch and drop its advisory lock before
+                # moving to the next server.
+                self.env.cr.commit()
         return totals
 
-    def _prepare_mail_lead_values(self, raw_message, cutoff):
+    def _fetch_new_unseen(self, connection, MailLead):
+        """Regular mode: new *unread* mail inside the rolling time window.
+
+        ``connection`` is already logged in and the folder selected.
+        Returns ``(imported, skipped, failed)``.
+        """
+        self.ensure_one()
+        cutoff = self._get_fetch_cutoff()
+        # IMAP SINCE has day granularity only and compares against the server's
+        # own clock, so widen by a day here and apply the real cut-off below
+        # against each mail's own Date header.
+        typ, data = connection.search(
+            None, 'UNSEEN', 'SINCE', self._imap_date(cutoff - timedelta(days=1)))
+        if typ != 'OK':
+            raise UserError(_("IMAP search failed on %s.", self.name))
+
+        nums = data[0].split() if data and data[0] else []
+        if len(nums) > MAX_MESSAGES_PER_FETCH:
+            _logger.warning(
+                "CRM mail server %s: %d unread messages matched, importing only "
+                "the %d most recent this run; the rest follow on the next beats. "
+                "Turn on 'Import Entire Mailbox' to work through a large backlog.",
+                self.name, len(nums), MAX_MESSAGES_PER_FETCH)
+            nums = nums[-MAX_MESSAGES_PER_FETCH:]
+
+        imported = skipped = failed = 0
+        for num in nums:
+            # BODY.PEEK[] reads the message *without* setting \Seen, so an
+            # unassigned mail stays unread in the inbox unless 'Mark as Read' is on.
+            typ, msg_data = connection.fetch(num, '(BODY.PEEK[])')
+            raw = self._extract_raw_message(msg_data) if typ == 'OK' else None
+            if not raw:
+                failed += 1
+                continue
+            try:
+                values = self._prepare_mail_lead_values(raw, cutoff)
+            except Exception:  # noqa: BLE001 - one unparseable mail
+                _logger.warning("CRM mail server %s: could not parse a message.",
+                                self.name, exc_info=True)
+                failed += 1
+                continue
+            if not values:
+                skipped += 1
+                continue
+            attachments = values.pop('__attachments__', [])
+            mail_lead = MailLead.create(values)
+            if attachments:
+                mail_lead._store_attachments(attachments)
+            imported += 1
+            if self.mark_as_read:
+                connection.store(num, '+FLAGS', '(\\Seen)')
+        return imported, skipped, failed
+
+    def _fetch_full_mailbox(self, connection, MailLead):
+        """'Import Entire Mailbox' mode: walk the folder by IMAP UID.
+
+        Every message — read or unread — becomes a ``crm.mail.lead`` and is then
+        flagged ``\\Seen`` in the mailbox. Only one ``FULL_IMPORT_BATCH`` is
+        processed per call; ``last_uid`` is the watermark the next call resumes
+        from. ``connection`` is already logged in and the folder selected.
+        Returns ``(imported, skipped, failed, remaining)``.
+        """
+        self.ensure_one()
+
+        # UIDVALIDITY tells us the folder's UID space is still the one our
+        # watermark belongs to; if Gmail ever reports a new value the watermark
+        # is meaningless and the walk restarts from the beginning.
+        uidvalidity = int(
+            (connection.untagged_responses.get('UIDVALIDITY') or [b'0'])[0] or 0)
+        last_uid = self.last_uid or 0
+        if uidvalidity and uidvalidity != (self.last_uidvalidity or 0):
+            if self.last_uidvalidity:
+                _logger.warning(
+                    "CRM mail server %s: mailbox UIDVALIDITY changed "
+                    "(%s -> %s), restarting the full import.",
+                    self.name, self.last_uidvalidity, uidvalidity)
+            last_uid = 0
+            self.sudo().write({'last_uidvalidity': uidvalidity, 'last_uid': 0})
+
+        typ, data = connection.uid('SEARCH', 'ALL')
+        if typ != 'OK':
+            raise UserError(_("IMAP UID search failed on %s.", self.name))
+        all_uids = sorted(int(x) for x in (data[0] or b'').split())
+        pending = [uid for uid in all_uids if uid > last_uid]
+        batch = pending[:FULL_IMPORT_BATCH]
+        remaining = len(pending) - len(batch)
+
+        imported = skipped = failed = 0
+        highest = last_uid
+        for uid in batch:
+            # A connection-level failure here (IMAP4.abort, socket drop) is NOT
+            # caught: it propagates out, the batch's DB work rolls back and the
+            # watermark stays put, so the next beat safely retries from here.
+            typ, msg_data = connection.uid('FETCH', str(uid), '(BODY.PEEK[])')
+            raw = self._extract_raw_message(msg_data) if typ == 'OK' else None
+            if not raw:
+                failed += 1
+            else:
+                try:
+                    with self.env.cr.savepoint():
+                        values = self._prepare_mail_lead_values(raw, cutoff=None)
+                        if values:
+                            attachments = values.pop('__attachments__', [])
+                            mail_lead = MailLead.create(values)
+                            if attachments:
+                                mail_lead._store_attachments(attachments)
+                            imported += 1
+                        else:
+                            skipped += 1
+                except Exception:  # noqa: BLE001 - one unparseable/un-storable mail
+                    _logger.warning("CRM mail server %s: could not import UID %s.",
+                                    self.name, uid, exc_info=True)
+                    failed += 1
+                # Best-effort: flag it read so the inbox drains as we go.
+                try:
+                    connection.uid('STORE', str(uid), '+FLAGS', '(\\Seen)')
+                except Exception:  # noqa: BLE001
+                    _logger.warning(
+                        "CRM mail server %s: could not flag UID %s as read.",
+                        self.name, uid, exc_info=True)
+            # Advance past every message we actually handled, so a single bad
+            # mail can never stall the walk.
+            highest = uid
+
+        vals = {}
+        if highest > (self.last_uid or 0):
+            vals['last_uid'] = highest
+        if not remaining and not self.backlog_done:
+            vals['backlog_done'] = True
+        elif remaining and self.backlog_done:
+            vals['backlog_done'] = False
+        if vals:
+            self.sudo().write(vals)
+        return imported, skipped, failed, remaining
+
+    @staticmethod
+    def _extract_raw_message(msg_data):
+        """Pull the raw RFC-2822 bytes out of an imaplib FETCH response."""
+        return next(
+            (part[1] for part in (msg_data or [])
+             if isinstance(part, tuple) and len(part) > 1),
+            None)
+
+    def _prepare_mail_lead_values(self, raw_message, cutoff=None):
         """Turn one raw RFC-2822 mail into ``crm.mail.lead`` values.
 
-        Returns ``None`` when the mail must be ignored (older than the window,
-        already imported, or a bounce).
+        Returns ``None`` when the mail must be ignored: a bounce, already
+        imported, or — when ``cutoff`` is given — older than it.
         """
         self.ensure_one()
         message = email.message_from_bytes(raw_message, policy=email.policy.SMTP)
@@ -403,8 +573,8 @@ class CrmMailServer(models.Model):
         message_id = (parsed.get('message_id') or '').strip()
         date_received = fields.Datetime.to_datetime(parsed.get('date')) or fields.Datetime.now()
         # The real "received in the last N minutes" test — IMAP's SINCE could
-        # only narrow this down to the day.
-        if date_received < cutoff:
+        # only narrow this down to the day. Skipped for a full-mailbox import.
+        if cutoff is not None and date_received < cutoff:
             return None
         if message_id and self.env['crm.mail.lead'].sudo().search_count(
                 [('server_id', '=', self.id), ('message_id', '=', message_id)], limit=1):

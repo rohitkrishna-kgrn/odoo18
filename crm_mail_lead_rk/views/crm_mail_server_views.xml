@@ -58,13 +58,28 @@
                             <field name="sequence" groups="base.group_no_one"/>
                         </group>
                         <group string="Polling">
-                            <field name="fetch_window_minutes"/>
-                            <field name="max_lookback_hours"/>
-                            <field name="mark_as_read"/>
+                            <field name="import_all_mail"/>
+                            <field name="fetch_window_minutes"
+                                   invisible="import_all_mail"/>
+                            <field name="max_lookback_hours"
+                                   invisible="import_all_mail"/>
+                            <field name="mark_as_read" invisible="import_all_mail"/>
                             <field name="keep_attachments"/>
                             <field name="last_fetch_date"/>
+                            <field name="last_uid" invisible="not import_all_mail"/>
+                            <field name="backlog_done" invisible="not import_all_mail"/>
                         </group>
                     </group>
+                    <div class="alert alert-warning" role="alert" colspan="2"
+                         invisible="not import_all_mail">
+                        <b>Import Entire Mailbox is on.</b> Every message in the
+                        folder — read and unread — is imported as a Mail Lead and
+                        then flagged as read in the mailbox. A large mailbox is
+                        worked through in batches of <b>200</b> per run; the
+                        import keeps running until <i>Backlog Imported</i> is
+                        ticked. Turn <i>Keep Attachments</i> off first if the
+                        mailbox is big and you do not need the files.
+                    </div>
                     <group string="IMAP Connection">
                         <group>
                             <field name="server" placeholder="imap.gmail.com"/>
@@ -126,8 +141,9 @@
             <p>
                 Add one record per Gmail inbox that should feed CRM Mail Leads,
                 and give each one the tag that identifies it — for example
-                <b>DM</b> and <b>Einvoicing</b>. Every 5 minutes Odoo pulls the
-                unread mail that arrived since the previous check.
+                <b>DM</b> and <b>Einvoicing</b>. Every 2 minutes Odoo pulls the
+                unread mail that arrived since the previous check, or turn on
+                <b>Import Entire Mailbox</b> to bring in the whole folder.
             </p>
         </field>
     </record>

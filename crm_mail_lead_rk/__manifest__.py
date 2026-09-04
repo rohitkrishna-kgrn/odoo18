@@ -1,6 +1,6 @@
 {
     'name': 'CRM Mail Leads RK',
-    'version': '18.0.1.2',
+    'version': '18.0.1.3',
     'author': 'Rohit',
     'category': 'Sales/CRM',
     'summary': 'Pull unread mail from dedicated Gmail inboxes into CRM Mail Leads '
@@ -17,11 +17,13 @@ Odoo's standard *Settings > Technical > Incoming Mail Servers* (fetchmail):
   (``DM`` / ``Einvoicing``).
 * A dedicated cron runs **every 2 minutes** and pulls only the mails that are
   still **unread** and that arrived **since the previous run**. Nothing else in
-  the mailbox is touched.
+  the mailbox is touched. A mailbox can instead be set to **Import Entire
+  Mailbox**: it then walks the whole folder by IMAP UID, imports every message
+  (read and unread) in batches, and flags each one read.
 * **CRM > Mail Leads** lists every pulled mail with its source tag. Each row has
   an **Assign To** button that asks for a salesperson and then creates the
-  matching CRM pipeline record. A **Fetch Now** button in the list header pulls
-  every still-unread mail that has not been imported yet, on demand.
+  matching CRM pipeline record. A **Fetch Now** button in the list header wakes
+  the cron so it fetches immediately instead of at the next beat.
 * A dedicated access group, *CRM / Mail Leads*, gates that menu.
 """,
     'depends': [
