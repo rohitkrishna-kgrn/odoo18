@@ -8,6 +8,11 @@
             <list string="Mail Leads" create="false" edit="false"
                   decoration-bf="state == 'new'" decoration-muted="state == 'assigned'">
                 <header>
+                    <!-- display="always" keeps it in the control panel next to
+                         the "Mail Leads" title even with no row selected. -->
+                    <button name="action_fetch_now" type="object"
+                            string="Fetch Now" display="always"
+                            class="btn-secondary" icon="fa-download"/>
                     <button name="action_open_assign_wizard" type="object"
                             string="Assign To" class="btn-primary"/>
                 </header>
@@ -149,7 +154,8 @@
             </p>
             <p>
                 Mail sent to the configured CRM mailboxes shows up here within
-                5 minutes, tagged with the inbox it arrived in. Use
+                2 minutes, tagged with the inbox it arrived in — or press
+                <b>Fetch Now</b> to pull it immediately. Use
                 <b>Assign To</b> on a row to pick a salesperson — that creates
                 the CRM pipeline record.
             </p>

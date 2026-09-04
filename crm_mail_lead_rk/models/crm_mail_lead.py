@@ -88,6 +88,63 @@ class CrmMailLead(models.Model):
         return True
 
     # ------------------------------------------------------------------
+    # Fetching
+    # ------------------------------------------------------------------
+    def action_fetch_now(self):
+        """'Fetch Now' button in the Mail Leads list header.
+
+        Pulls every still-unread mail that has not been imported yet from all
+        confirmed CRM mailboxes — not only the mails inside the rolling cron
+        window — so a message that was sitting in the inbox before the mailbox
+        was configured still lands here, ready to be assigned. Deduplication is
+        on the message id, so pressing it repeatedly is harmless.
+
+        ``self`` is an empty recordset (a header button with no selection), so
+        nothing about the current rows matters here.
+        """
+        # Respect the user's company / access on the mailboxes, then elevate for
+        # the IMAP work and the crm.mail.lead writes (same as the cron).
+        servers = self.env['crm.mail.server'].search([('state', '=', 'done')])
+        if not servers:
+            raise UserError(_(
+                "There is no confirmed CRM mailbox to fetch from. Add one under "
+                "CRM \N{RIGHTWARDS ARROW} Configuration \N{RIGHTWARDS ARROW} "
+                "Incoming Mail Servers (CRM)."))
+
+        totals = servers.sudo().fetch_mail(raise_exception=False, ignore_window=True)
+        imported = totals.get('imported', 0)
+
+        if totals.get('errors'):
+            notif_type = 'warning'
+            message = _(
+                "Fetched %(imported)s new mail lead(s). %(errors)s mailbox(es) "
+                "could not be reached — see the Last Error on the mail server.",
+                imported=imported, errors=totals['errors'])
+        elif imported:
+            notif_type = 'success'
+            message = _(
+                "%s new mail lead(s) fetched and waiting to be assigned.", imported)
+        else:
+            notif_type = 'info'
+            message = _(
+                "No new mail — every unread message in the CRM mailboxes is "
+                "already listed here.")
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'type': notif_type,
+                'title': _("Fetch Now"),
+                'message': message,
+                # Closing the (non-existent) dialog makes the list controller
+                # reload, so the freshly pulled rows appear under the current
+                # "To Assign" filter without a manual refresh.
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }
+
+    # ------------------------------------------------------------------
     # Assignment
     # ------------------------------------------------------------------
     def action_open_assign_wizard(self):

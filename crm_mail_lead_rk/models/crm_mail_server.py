@@ -177,15 +177,24 @@ class CrmMailServer(models.Model):
         return True
 
     def button_fetch_now(self):
-        """Manual 'Fetch Now' — same code path as the cron, errors surfaced."""
-        self.fetch_mail(raise_exception=True)
+        """Manual 'Fetch Now' — same code path as the cron, errors surfaced.
+
+        Unlike the cron this ignores the rolling time window: it pulls every
+        still-unread mail that has not been imported yet, so a message that was
+        already sitting in the inbox when the mailbox was set up is picked up.
+        """
+        totals = self.fetch_mail(raise_exception=True, ignore_window=True)
+        imported = totals.get('imported', 0)
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
-                'type': 'success',
+                'type': 'success' if imported else 'info',
                 'title': _("Mailbox checked"),
-                'message': _("Any new unread mail has been pulled into Mail Leads."),
+                'message': (
+                    _("%s new mail lead(s) pulled into Mail Leads.", imported)
+                    if imported else
+                    _("No new unread mail — every message is already listed.")),
                 'next': {'type': 'ir.actions.act_window_close'},
             },
         }
@@ -253,7 +262,7 @@ class CrmMailServer(models.Model):
     # ------------------------------------------------------------------
     @api.model
     def _cron_fetch_mail(self):
-        """Entry point of the every-5-minutes cron."""
+        """Entry point of the every-2-minutes cron."""
         servers = self.search([('state', '=', 'done')])
         for server in servers:
             # One bad mailbox must not stop the others, and the mails already
@@ -269,17 +278,30 @@ class CrmMailServer(models.Model):
                 self.env.cr.commit()
         return True
 
-    def fetch_mail(self, raise_exception=True, commit=False):
+    def fetch_mail(self, raise_exception=True, commit=False, ignore_window=False):
         """Pull unread mail received since the last run into ``crm.mail.lead``.
 
         :param bool raise_exception: re-raise connection/parse failures instead
             of only logging them.
         :param bool commit: commit after each imported mail (cron usage only).
+        :param bool ignore_window: pull *every* still-unread mail that has not
+            been imported yet, not just the ones inside the rolling window used
+            by the cron. Used by the manual 'Fetch Now' buttons. Deduplication
+            is still on the message id, and ``MAX_MESSAGES_PER_FETCH`` still
+            caps a single run.
+        :return: aggregated counts across ``self``:
+            ``{'imported': int, 'skipped': int, 'failed': int, 'errors': int}``.
         """
         MailLead = self.env['crm.mail.lead'].sudo()
+        totals = {'imported': 0, 'skipped': 0, 'failed': 0, 'errors': 0}
         for server in self:
             connection = None
-            cutoff = server._get_fetch_cutoff()
+            if ignore_window:
+                # Look all the way back; the real filter is "unread and not yet
+                # imported", applied by IMAP UNSEEN + the message-id dedup.
+                cutoff = fields.Datetime.now() - timedelta(days=3650)
+            else:
+                cutoff = server._get_fetch_cutoff()
             imported = skipped = failed = 0
             try:
                 connection = server._connect()
@@ -354,12 +376,16 @@ class CrmMailServer(models.Model):
             except Exception as err:  # noqa: BLE001
                 if raise_exception:
                     raise
+                totals['errors'] += 1
                 _logger.warning(
                     "CRM mail server %s: fetch failed.", server.name, exc_info=True)
                 server.sudo().write({'last_error': tools.exception_to_unicode(err)})
             finally:
                 self._safe_disconnect(connection)
-        return True
+            totals['imported'] += imported
+            totals['skipped'] += skipped
+            totals['failed'] += failed
+        return totals
 
     def _prepare_mail_lead_values(self, raw_message, cutoff):
         """Turn one raw RFC-2822 mail into ``crm.mail.lead`` values.
