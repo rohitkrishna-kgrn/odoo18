@@ -88,10 +88,24 @@ class MisProjectWise(models.Model):
                             CASE WHEN am.state = 'posted'
                                  THEN aml.price_subtotal ELSE 0 END
                         )                                                   AS invoiced_ex_vat,
+                        /* Paid = what Odoo Accounting itself shows as settled
+                           on the invoice (Total - Amount Due), apportioned to
+                           this SO line by its share of the invoice. A
+                           part-paid invoice therefore contributes the money
+                           actually received; the old rule tested
+                           payment_state IN ('paid','in_payment') and scored
+                           every partly-paid invoice as zero collected while
+                           leaving its full value in Outstanding. Ratio of two
+                           amounts in the same currency, so no conversion is
+                           needed. */
                         SUM(
                             CASE WHEN am.state = 'posted'
-                                      AND am.payment_state IN ('paid', 'in_payment')
-                                 THEN aml.price_subtotal ELSE 0 END
+                                      AND COALESCE(am.amount_total, 0) <> 0
+                                 THEN aml.price_subtotal
+                                      * (am.amount_total
+                                         - COALESCE(am.amount_residual, 0))
+                                      / am.amount_total
+                                 ELSE 0 END
                         )                                                   AS paid_ex_vat,
                         MAX(
                             CASE WHEN am.state = 'posted'

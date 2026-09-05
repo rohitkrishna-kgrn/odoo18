@@ -7,7 +7,16 @@
         name="MIS Dashboard"
         sequence="85"
         web_icon="mis_report_kgrn,static/description/icon.png"
-        groups="mis_report_kgrn.group_mis_user,mis_report_kgrn.group_mis_hr"/>
+        groups="mis_report_kgrn.group_mis_user,mis_report_kgrn.group_mis_hr,mis_report_kgrn.group_mis_coach"/>
+
+    <!-- Coach View → visible only to auto-detected coaches (+ Admin) -->
+    <menuitem
+        id="menu_mis_coach_dashboard"
+        name="Coach View"
+        parent="menu_mis_dashboard_root"
+        action="mis_report_kgrn.action_mis_coach_dashboard"
+        sequence="0"
+        groups="mis_report_kgrn.group_mis_coach,mis_report_kgrn.group_mis_admin"/>
 
     <!-- Project Wise → only list -->
     <menuitem

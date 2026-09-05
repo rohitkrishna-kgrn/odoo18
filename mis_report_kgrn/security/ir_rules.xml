@@ -155,5 +155,32 @@
             <field name="perm_unlink">0</field>
         </record>
 
+        <!-- ═══════════════════════════════════════════════════════════
+             mis.coach.dashboard  —  keyed on coach_id, not the PM/
+             salesperson hierarchy used everywhere above
+        ═══════════════════════════════════════════════════════════ -->
+
+        <record id="rule_mis_coach_dashboard_admin" model="ir.rule">
+            <field name="name">MIS Coach Dashboard: Admin sees all coaches' teams</field>
+            <field name="model_id" ref="model_mis_coach_dashboard"/>
+            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_admin'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="rule_mis_coach_dashboard_coach" model="ir.rule">
+            <field name="name">MIS Coach Dashboard: Coach sees only their own assigned employees</field>
+            <field name="model_id" ref="model_mis_coach_dashboard"/>
+            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_coach'))]"/>
+            <field name="domain_force">[('coach_user_id', '=', user.id)]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
     </data>
 </odoo>

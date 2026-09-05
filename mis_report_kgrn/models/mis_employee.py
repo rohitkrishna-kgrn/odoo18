@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import models, fields, api
 
 # Custom hr.employee fields are sensitive (roles, CTC, performance) and must
 # never be requested for regular users — otherwise Odoo's employee public-profile
@@ -135,3 +135,37 @@ class HrEmployee(models.Model):
             'domain': [('employee_id', '=', self.id)],
             'context': {'default_employee_id': self.id},
         }
+
+    # ── MIS Coach group auto-sync ────────────────────────────────────────
+    # "Coach" is never assigned by hand: whoever currently appears as
+    # someone's coach_id belongs to group_mis_coach (which gates the Coach
+    # View menu/report), and nobody else does. Recomputed from scratch on
+    # every relevant change so an employee dropped as the last coachee of a
+    # coach correctly drops that coach out of the group too.
+    @api.model
+    def _sync_mis_coach_group(self):
+        group = self.env.ref('mis_report_kgrn.group_mis_coach', raise_if_not_found=False)
+        if not group:
+            return
+        coach_user_ids = self.env['hr.employee'].sudo().search(
+            [('coach_id', '!=', False)]
+        ).mapped('coach_id.user_id').ids
+        group.sudo().write({'users': [(6, 0, coach_user_ids)]})
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        employees = super().create(vals_list)
+        if any('coach_id' in vals for vals in vals_list):
+            employees._sync_mis_coach_group()
+        return employees
+
+    def write(self, vals):
+        result = super().write(vals)
+        if 'coach_id' in vals or 'active' in vals:
+            self._sync_mis_coach_group()
+        return result
+
+    def unlink(self):
+        result = super().unlink()
+        self._sync_mis_coach_group()
+        return result

@@ -1273,7 +1273,7 @@ class MisPerformanceLine(models.Model):
                         CASE WHEN cur.name = 'USD' THEN 3.6725 ELSE 1 END)
                     END,
                 (CURRENT_DATE - am.invoice_date_due)::integer,
-                COALESCE(arp.name, ''),
+                COALESCE(ar.names, ''),
                 am.last_followup_date
             FROM   account_move am
             LEFT JOIN res_partner rp   ON rp.id  = am.partner_id
@@ -1285,8 +1285,16 @@ class MisPerformanceLine(models.Model):
             LEFT JOIN hr_department hd ON hd.id  = pp.department_id
             LEFT JOIN res_users pmu    ON pmu.id = pp.user_id
             LEFT JOIN res_partner pmp  ON pmp.id = pmu.partner_id
-            LEFT JOIN res_users aru    ON aru.id = am.ar_responsible_id
-            LEFT JOIN res_partner arp  ON arp.id = aru.partner_id
+            -- AR Responsible is a list on the invoice, so the names are
+            -- rolled up into one cell rather than joined one-to-one (which
+            -- would duplicate the invoice row per responsible person).
+            LEFT JOIN LATERAL (
+                SELECT string_agg(arp.name, ', ' ORDER BY arp.name) AS names
+                FROM   account_move_ar_responsible_rel rel
+                JOIN   res_users aru   ON aru.id = rel.user_id
+                JOIN   res_partner arp ON arp.id = aru.partner_id
+                WHERE  rel.move_id = am.id
+            ) ar ON TRUE
             LEFT JOIN res_currency cur ON cur.id = am.currency_id
             WHERE  am.move_type = 'out_invoice'
               AND  am.state = 'posted'

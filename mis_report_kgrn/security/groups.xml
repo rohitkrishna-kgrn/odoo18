@@ -46,5 +46,18 @@
             <field name="name">Performance Scorecard Recipient</field>
         </record>
 
+        <!-- MIS Coach: sees the Coach View — employees mapped to them via
+             hr.employee.coach_id, project-wise, with revenue/outstanding.
+             Independent of the User/Manager/Admin ladder above (coaching is
+             a separate mapping from the PM/salesperson hierarchy).
+             Membership is kept in sync automatically by HrEmployee's
+             create/write/unlink overrides in models/mis_employee.py
+             whenever coach_id changes — never assign this group by hand. -->
+        <record id="group_mis_coach" model="res.groups">
+            <field name="name">MIS Coach</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
     </data>
 </odoo>

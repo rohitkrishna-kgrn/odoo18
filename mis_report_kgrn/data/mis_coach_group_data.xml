@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- Backfill group_mis_coach from the coach_id mappings that already
+             exist. The create/write/unlink hooks on hr.employee only fire on
+             future edits, so without this the 96 mappings already in the
+             database would leave every real coach outside the group and the
+             Coach View unreachable. Deliberately outside noupdate="1": it
+             re-runs on every upgrade, which also heals any drift from data
+             imports or direct SQL that bypassed the ORM hooks. -->
+        <function model="hr.employee" name="_sync_mis_coach_group"/>
+
+    </data>
+</odoo>
