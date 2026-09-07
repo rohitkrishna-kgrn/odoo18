@@ -93,7 +93,8 @@
                     <label for="einv_overage_per_1000"/>
                     <div class="text-end" style="width:120px;">
                         <field name="einv_overage_per_1000" nolabel="1"
-                               options="{'no_symbol': True}" class="oe_inline"/>
+                               options="{'no_symbol': True}" class="oe_inline"
+                               required="einvoicing_service and has_asp_subscription"/>
                     </div>
                     <field name="currency_id" nolabel="1" readonly="1"
                            options="{'no_open': True}" class="oe_inline"/>
@@ -186,10 +187,34 @@
                             <field name="price" widget="monetary"/>
                         </list>
                     </field>
-                    <group class="oe_subtotal_footer">
-                        <field name="entity_amount_total"
-                               class="oe_subtotal_footer_separator"/>
-                    </group>
+                    <!-- Total line: the three totals side by side.
+                         `col="6"` is what puts them on one row - each labelled
+                         field takes two of the six columns - and it is
+                         deliberately a plain group rather than hand-rolled
+                         flex: a d-flex row of fixed-width boxes fought the
+                         field widget's own CSS and the values ended up printed
+                         over the next label. `oe_subtotal_footer` is no good
+                         either, it stacks one field per line.
+                         All three are typeable: the counts are summed from the
+                         rows until something is typed over them, and clearing
+                         a cell hands it back to the rows. -->
+                    <div class="mt-3 pt-2 border-top">
+                        <group col="6">
+                            <field name="entity_inbound_total_display"
+                                   string="Total Annual Inbound"
+                                   placeholder="e.g. 1,332"/>
+                            <field name="entity_outbound_total_display"
+                                   string="Total Annual Outbound"
+                                   placeholder="e.g. 3,522"/>
+                            <field name="entity_amount_total"
+                                   string="Entity Total"/>
+                        </group>
+                        <div class="text-muted small">
+                            Summed from the rows above, and typeable over. Clear a
+                            cell to hand it back to the rows; with no rows at all,
+                            what is typed here is what the proposal prints.
+                        </div>
+                    </div>
                 </page>
             </xpath>
         </field>
@@ -262,6 +287,27 @@
                     <button string="Cancel" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
+        </field>
+    </record>
+
+    <!-- Services lists: search field + Group By for the salesperson's manager.
+         Anchored on the base sale.order search view so it shows on every
+         Services menu (Quotations and Service Engagement). The native
+         "Salesperson" Group By already lives in that same group. -->
+    <record id="view_sales_order_filter_inherit_salesperson_manager" model="ir.ui.view">
+        <field name="name">sale.order.search.inherit.salesperson.manager</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="salesperson_manager_id" string="Salesperson's Manager"/>
+            </field>
+            <filter name="salesperson" position="after">
+                <filter string="Sales Team" name="groupby_team"
+                        context="{'group_by': 'team_id'}"/>
+                <filter string="Salesperson's Manager" name="groupby_salesperson_manager"
+                        context="{'group_by': 'salesperson_manager_id'}"/>
+            </filter>
         </field>
     </record>
 

@@ -1,6 +1,6 @@
 {
     'name': 'CRM Extended RK',
-    'version': '1.36',
+    'version': '1.42',
     'depends': [
         'account',
         'sale',              # For sale.order and sale.order.line
@@ -10,6 +10,7 @@
         'mail',              # Chatter logging + outbound discovery email
         'product',           # For product.product model
         'project',           # For project.project model
+        'hr',                # Salesperson -> hr.employee -> Manager (org chart)
         'base',              # Always safe to include base
     ],
     'author': 'Rohit',

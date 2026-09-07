@@ -202,6 +202,10 @@
   /* Up to six columns have to share 174mm of content width here, which the
      14px table padding does not leave room for. */
   .ent-wrap .tbl th, .ent-wrap .tbl td { padding: 8px 9px; }
+  /* Total line under the entity rows: the two annual counts, summed from the
+     rows above or typed into the quotation's own Total line. */
+  .ent-total td { border-top: 2px solid #1A2F4E; border-bottom: none;
+                  font-weight: 800; color: #1A2F4E; font-size: 12.5px; }
 
   /* ── Editable terms ── */
   .terms { margin-top: 20px; border-top: 2px solid #fef3ec; padding-top: 16px; page-break-inside: avoid; }
@@ -619,18 +623,25 @@
     </tr>
   </table>
 
-  <!-- Entity-wise fees — one block per row in the quotation's Entities tab -->
-  <div t-if="p['entity_rows']" class="ent-wrap">
-    <div class="ent-h">Entity-wise Fee Breakdown<t t-if="p['entity_count']"> — <t t-out="p['entity_count']"/> entities</t></div>
+  <!-- Entity-wise fees — the filled-in rows of the quotation's Entities tab,
+       under a Total line carrying the two annual invoice counts. Either half
+       stands on its own: a quotation with no entity rows still prints the
+       totals typed into its Total line, and rows nobody filled in never reach
+       here (see _entity_rows). -->
+  <div t-if="p['entity_rows'] or p['entity_totals']" class="ent-wrap">
+    <div class="ent-h">
+      <t t-if="p['entity_rows']">Entity-wise Fee Breakdown — <t t-out="p['entity_row_count']"/> entities</t>
+      <t t-else="">Annual Invoice Volumes</t>
+    </div>
     <table class="tbl" style="margin-top:0;">
       <thead>
         <tr>
-          <th style="width:72px;">Entity</th>
-          <th>Name</th>
+          <th style="width:72px;"><t t-if="p['entity_rows']">Entity</t></th>
+          <th t-if="p['entity_rows']">Name</th>
           <th t-if="p['has_entity_counts']" class="ent-cnt-h" style="width:74px;">Annual Inbound<br/>Invoice Count</th>
           <th t-if="p['has_entity_counts']" class="ent-cnt-h" style="width:74px;">Annual Outbound<br/>Invoice Count</th>
           <th t-if="p['has_entity_services']" style="width:150px;">Services</th>
-          <th style="text-align:right;width:118px;">Price (<t t-out="p['currency']"/>)</th>
+          <th t-if="p['entity_rows']" style="text-align:right;width:118px;">Price (<t t-out="p['currency']"/>)</th>
         </tr>
       </thead>
       <tbody>
@@ -642,6 +653,17 @@
           <td t-if="p['has_entity_counts']" class="ent-cnt"><t t-out="entity['outbound']"/></td>
           <td t-if="p['has_entity_services']" class="ent-svc"><t t-out="entity['services']"/></td>
           <td class="amount"><t t-out="p['currency']"/> <t t-out="entity['price']"/></td>
+        </tr>
+        <!-- Total line. Only the side that has a number is filled in; a blank
+             cell means nobody has answered, never 0. The fee and services
+             cells are deliberately left empty - the Total line carries the two
+             annual counts and nothing else. -->
+        <tr t-if="p['entity_totals']" class="ent-total">
+          <td class="ent-no" t-att-colspan="2 if p['entity_rows'] else 1">Total</td>
+          <td class="ent-cnt"><t t-out="p['entity_totals']['inbound']"/></td>
+          <td class="ent-cnt"><t t-out="p['entity_totals']['outbound']"/></td>
+          <td t-if="p['has_entity_services']"/>
+          <td t-if="p['entity_rows']"/>
         </tr>
       </tbody>
     </table>

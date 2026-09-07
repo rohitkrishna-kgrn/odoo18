@@ -208,6 +208,22 @@ $kgrn-red: #D92D20;
         overflow: hidden;
     }
 
+    .kgrn-card-head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 14px 16px 12px;
+        border-bottom: 1px solid $kgrn-border;
+
+        h2 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: $kgrn-navy;
+        }
+    }
+
     .kgrn-table {
         width: 100%;
         border-collapse: collapse;

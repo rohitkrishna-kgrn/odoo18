@@ -23,14 +23,20 @@ export class EinvoicingDashboard extends Component {
         const params = (this.props.action && this.props.action.params) || {};
         this.scope = params.scope || "einvoicing";
 
+        // Some dashboards are meant to open on everything rather than on a
+        // rolling window. Where that is set the date boxes start empty and
+        // Refresh empties them again, so the button always returns the full
+        // picture instead of silently re-applying a range nobody chose.
+        this.clearDates = Boolean(params.clear_dates);
+
         const today = new Date();
         this.state = useState({
             title: params.title || "eInvoicing Dashboard",
             subtitle: params.subtitle || "",
             loading: true,
             error: false,
-            dateFrom: toISO(new Date(today.getTime() - 3 * MONTH_MS)),
-            dateTo: toISO(today),
+            dateFrom: this.clearDates ? "" : toISO(new Date(today.getTime() - 3 * MONTH_MS)),
+            dateTo: this.clearDates ? "" : toISO(today),
             salespersonId: "",
             rows: [],
             kpis: {},
@@ -66,6 +72,16 @@ export class EinvoicingDashboard extends Component {
         }
     }
 
+    /** Refresh re-reads the data, and on an unfiltered dashboard clears the
+     *  dates on the way — the quick ranges are there when a window is wanted. */
+    refresh() {
+        if (this.clearDates) {
+            this.state.dateFrom = "";
+            this.state.dateTo = "";
+        }
+        this.load();
+    }
+
     /** Quick ranges keep the common cases one click away. */
     setRange(months) {
         const today = new Date();
@@ -93,6 +109,11 @@ export class EinvoicingDashboard extends Component {
     }
 
     openLead(row) {
+        // The "(No pipeline record)" row aggregates orders with no lead behind
+        // them, so there is nothing to open — its order links still work.
+        if (!row.id) {
+            return;
+        }
         this.action.doAction({
             type: "ir.actions.act_window",
             res_model: "crm.lead",
@@ -102,15 +123,33 @@ export class EinvoicingDashboard extends Component {
         });
     }
 
-    /** Open one side of the split — the Sxxxxx proposals or the SExxxxx agreements. */
-    openOrders(row, ids, label, ev) {
+    /** Open the orders behind one side of a pipeline record.
+     *
+     *  Titles are built here rather than in the template: OWL re-compiles a
+     *  `${...}` interpolation with a fresh expression compiler that has no
+     *  access to the enclosing t-foreach scope, so a template literal naming
+     *  the loop variable resolves to undefined at click time.
+     */
+    openRecordOrders(row, side, ev) {
+        const proposals = side === "proposals";
+        const label = proposals ? "Proposals" : "Agreements";
+        this.openOrderList(
+            row.crm_ref ? `${label} — ${row.crm_ref}` : label,
+            proposals ? row.proposal_ids : row.agreement_ids,
+            ev
+        );
+    }
+
+    /** Open one side of the split — the Sxxxxx proposals or the SExxxxx
+     *  agreements — from either the record table or the service table. */
+    openOrderList(title, ids, ev) {
         ev.stopPropagation();
         if (!ids.length) {
             return;
         }
         this.action.doAction({
             type: "ir.actions.act_window",
-            name: row.crm_ref ? `${label} — ${row.crm_ref}` : label,
+            name: title,
             res_model: "sale.order",
             domain: [["id", "in", ids]],
             views: [

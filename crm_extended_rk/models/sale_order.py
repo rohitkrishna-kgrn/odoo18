@@ -34,6 +34,42 @@ class SaleOrder(models.Model):
         required=True,
     )
 
+    # ------------------------------------------------------------------
+    # Salesperson's line manager, resolved from the HR org chart
+    #
+    # The salesperson (user_id) is matched to their hr.employee record and
+    # that employee's Manager (parent_id) is stored here, so the Services
+    # lists can be grouped and filtered by who the salesperson reports to.
+    # ------------------------------------------------------------------
+    salesperson_manager_id = fields.Many2one(
+        'hr.employee', string="Salesperson's Manager",
+        compute='_compute_salesperson_manager_id', store=True, index=True,
+        help="Manager of the salesperson's employee record (HR org chart). "
+             "Used to group and filter the Services lists by reporting line.")
+
+    @api.depends('user_id', 'company_id', 'user_id.employee_ids.parent_id')
+    def _compute_salesperson_manager_id(self):
+        # sudo + active_test=False: a salesperson does not necessarily have HR
+        # read access, and their employee record may sit in another of the
+        # group's companies (or be archived).
+        Employee = self.env['hr.employee'].sudo().with_context(active_test=False)
+        user_ids = self.mapped('user_id').ids
+        emp_by_user = {}
+        if user_ids:
+            for emp in Employee.search([('user_id', 'in', user_ids)]):
+                emp_by_user.setdefault(emp.user_id.id, Employee.browse())
+                emp_by_user[emp.user_id.id] |= emp
+        for order in self:
+            employees = emp_by_user.get(order.user_id.id)
+            if not employees:
+                order.salesperson_manager_id = False
+                continue
+            # Prefer the employee in this order's company; fall back to any.
+            same_company = employees.filtered(
+                lambda e: e.company_id == order.company_id)
+            order.salesperson_manager_id = (
+                same_company[:1] or employees[:1]).parent_id
+
     # eInvoicing engagement info (mirrors the opportunity)
     opportunity_einvoicing = fields.Boolean(
         string='Opportunity eInvoicing', compute='_compute_opportunity_einvoicing')
@@ -49,17 +85,154 @@ class SaleOrder(models.Model):
              "bottom of the list.")
     entity_ids = fields.One2many(
         'sale.order.entity', 'order_id', string='Entities', copy=True)
+    # Editable: the Total line lets the fee total be typed over, the same as
+    # the two counts beside it. It goes back to summing the Price column the
+    # next time any of those prices changes.
     entity_amount_total = fields.Monetary(
         string='Entity Total', compute='_compute_entity_amount_total',
-        store=True, currency_field='currency_id',
-        help="Sum of the per-entity prices. Printed under the commercial "
-             "structure in the proposal PDF; it does not change the order total, "
-             "which is driven by the order lines.")
+        store=True, readonly=False, currency_field='currency_id',
+        help="Sum of the per-entity prices, and typeable over if the total "
+             "quoted is not the sum of the parts. Editing any entity price "
+             "puts it back to the sum. Printed under the commercial structure "
+             "in the proposal PDF; it does not change the order total, which "
+             "is driven by the order lines.")
 
     @api.depends('entity_ids.price')
     def _compute_entity_amount_total(self):
         for order in self:
             order.entity_amount_total = sum(order.entity_ids.mapped('price'))
+
+    # ------------------------------------------------------------------
+    # Entity totals - Annual Inbound / Annual Outbound
+    #
+    # The Total line under the Entities list carries these two and nothing
+    # else. Normally they are the sum of the counts on the rows above it. On a
+    # quotation that carries no entity rows at all they are typed straight into
+    # the Total line instead, and are then the only figures the proposal has to
+    # print - the case where the client has stated a firm-wide volume without
+    # ever breaking it down per entity.
+    #
+    # Blank is kept apart from a stated 0 here for the same reason as on the
+    # rows (see sale.order.entity): an unanswered volume must never read as
+    # "no invoices a year".
+    # ------------------------------------------------------------------
+    # Typed into the Total line. Their own columns rather than a writable
+    # compute, so a typed figure is never silently overwritten by a later edit
+    # to the rows, and clearing the cell hands the total straight back to them.
+    entity_inbound_total_manual = fields.Integer(
+        string='Total Annual Inbound (Entered)', copy=False)
+    entity_outbound_total_manual = fields.Integer(
+        string='Total Annual Outbound (Entered)', copy=False)
+    entity_inbound_total_manual_set = fields.Boolean(
+        string='Total Annual Inbound Entered', copy=False)
+    entity_outbound_total_manual_set = fields.Boolean(
+        string='Total Annual Outbound Entered', copy=False)
+
+    entity_inbound_total = fields.Integer(
+        string='Total Annual Inbound', compute='_compute_entity_count_totals',
+        help="Supplier invoices a year across every entity on this quotation.")
+    entity_outbound_total = fields.Integer(
+        string='Total Annual Outbound', compute='_compute_entity_count_totals',
+        help="Customer invoices a year across every entity on this quotation.")
+    entity_inbound_total_set = fields.Boolean(
+        string='Inbound Total Known', compute='_compute_entity_count_totals')
+    entity_outbound_total_set = fields.Boolean(
+        string='Outbound Total Known', compute='_compute_entity_count_totals')
+
+    # The editable surface of the Total line. Text cells for the same reason as
+    # on the rows: a total nobody has a number for stays blank instead of
+    # showing a 0.
+    entity_inbound_total_display = fields.Char(
+        string='Total Annual Inbound', compute='_compute_entity_total_display',
+        inverse='_inverse_entity_total_display',
+        help="Summed from the Annual Inbound column above, and typeable over "
+             "when the firm-wide figure is not the sum of the rows - or when "
+             "there are no rows at all. Clear the cell to hand the total back "
+             "to the rows. Blank is not the same as 0: leave it blank when the "
+             "number is not known.")
+    entity_outbound_total_display = fields.Char(
+        string='Total Annual Outbound', compute='_compute_entity_total_display',
+        inverse='_inverse_entity_total_display',
+        help="Summed from the Annual Outbound column above, and typeable over "
+             "when the firm-wide figure is not the sum of the rows - or when "
+             "there are no rows at all. Clear the cell to hand the total back "
+             "to the rows. Blank is not the same as 0: leave it blank when the "
+             "number is not known.")
+
+    @api.depends('entity_ids',
+                 'entity_ids.inbound_invoice_count', 'entity_ids.inbound_count_set',
+                 'entity_ids.outbound_invoice_count', 'entity_ids.outbound_count_set',
+                 'entity_inbound_total_manual', 'entity_inbound_total_manual_set',
+                 'entity_outbound_total_manual', 'entity_outbound_total_manual_set')
+    def _compute_entity_count_totals(self):
+        for order in self:
+            for side in ('inbound', 'outbound'):
+                if order['entity_%s_total_manual_set' % side]:
+                    # Typed into the Total line, so it stands whatever the rows
+                    # add up to. Clearing the cell drops the flag and hands the
+                    # total back to them.
+                    order['entity_%s_total' % side] = (
+                        order['entity_%s_total_manual' % side])
+                    order['entity_%s_total_set' % side] = True
+                else:
+                    count, filled = order._entity_rows_total(side)
+                    order['entity_%s_total' % side] = count
+                    order['entity_%s_total_set' % side] = filled
+
+    def _entity_rows_total(self, side):
+        """What the rows alone add up to, as `(value, filled)`.
+
+        Only the rows carrying a stated count are summed. No rows, or none of
+        them stating one, leaves the total blank rather than 0 - nobody has
+        answered yet, which is not the same as "no invoices a year".
+        """
+        self.ensure_one()
+        stated = self.entity_ids.filtered('%s_count_set' % side)
+        return sum(stated.mapped('%s_invoice_count' % side)), bool(stated)
+
+    @api.depends('entity_inbound_total', 'entity_inbound_total_set',
+                 'entity_outbound_total', 'entity_outbound_total_set')
+    def _compute_entity_total_display(self):
+        for order in self:
+            for side in ('inbound', 'outbound'):
+                order['entity_%s_total_display' % side] = (
+                    '{:,}'.format(order['entity_%s_total' % side])
+                    if order['entity_%s_total_set' % side] else '')
+
+    def _inverse_entity_total_display(self):
+        Entity = self.env['sale.order.entity']
+        for order in self:
+            # Both cells are read before either is written: they share one
+            # compute, so writing the inbound number first would recompute -
+            # and so drop - an outbound number typed in the same save.
+            typed = {side: order['entity_%s_total_display' % side]
+                     for side in ('inbound', 'outbound')}
+            vals = {}
+            for side, raw in typed.items():
+                count, filled = Entity._parse_count(raw)
+                if (count, filled) == order._entity_rows_total(side):
+                    # The cell says exactly what the rows already add up to.
+                    # That is what the client echoes back after an edit to a
+                    # row recomputed this cell, and taking it for an override
+                    # would freeze the total at today's sum - the rows would
+                    # then be summed into a figure nobody updates again. Typing
+                    # the sum by hand lands here too, and is left automatic
+                    # because the answer is identical either way.
+                    count, filled = 0, False
+                if (count != order['entity_%s_total_manual' % side]
+                        or filled != order['entity_%s_total_manual_set' % side]):
+                    vals['entity_%s_total_manual' % side] = count
+                    vals['entity_%s_total_manual_set' % side] = filled
+            if vals:
+                order.write(vals)
+            # The cell keeps whatever string was typed into it until something
+            # drops it, so "3522" would sit there instead of the "3,522" the
+            # proposal prints - and an echo cleared just above would sit there
+            # over a total that is now back to the rows. Dropping it here has
+            # the display recompute off what actually applies.
+            order.invalidate_recordset([
+                'entity_inbound_total_display',
+                'entity_outbound_total_display'])
 
     # ------------------------------------------------------------------
     # S6 Annual ASP / Subscription Service - overage rate
@@ -92,11 +265,40 @@ class SaleOrder(models.Model):
                 if not line.display_type and line.product_id
             )
 
-    @api.constrains('einv_overage_per_1000')
+    def _einv_overage_is_shown(self):
+        """The orders where the Overage per 1,000 Invoices box is on screen.
+
+        The same two conditions as the view modifier and the proposal PDF row,
+        in one place so the three can never drift apart.
+        """
+        return self.filtered(
+            lambda o: o.einvoicing_service and o.has_asp_subscription)
+
+    def _check_einv_overage_filled(self):
+        """Refuse a blank rate on every order that displays the field.
+
+        `required` on a Monetary is ignored by the web client
+        (web/.../relational_model/record.js `_checkValidity` skips
+        float/integer/monetary), so the mandate is server-side only, and
+        @api.constrains alone was not enough: it fires only when one of its own
+        fields is written, so any save that touched something else slipped a
+        blank rate straight through. Called from create/write as well, which is
+        what makes it behave like a mandatory field on every save.
+        """
+        for order in self._einv_overage_is_shown():
+            if order.einv_overage_per_1000 <= 0:
+                raise ValidationError(_(
+                    "Overage per 1,000 Invoices is required on %s: the "
+                    "eInvoicing Service toggle is on and [S6] Annual ASP / "
+                    "Subscription Service is on the order lines. Enter the "
+                    "rate in the box above the Untaxed Amount.") % (order.name or _("this quotation")))
+
+    @api.constrains('einv_overage_per_1000', 'einvoicing_service', 'order_line')
     def _check_einv_overage_per_1000(self):
         for order in self:
             if order.einv_overage_per_1000 < 0:
                 raise ValidationError(_("Overage per 1,000 Invoices cannot be negative."))
+        self._check_einv_overage_filled()
 
     @api.constrains('entity_count')
     def _check_entity_count(self):
@@ -452,6 +654,9 @@ class SaleOrder(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         orders = super().create(vals_list)
+        # A blank subscription overage rate never gets to exist in the first
+        # place (see _check_einv_overage_filled).
+        orders._check_einv_overage_filled()
         # A count supplied without rows (import, API, server action) still has
         # to produce the rows; the form already sent both and they agree.
         for order, vals in zip(orders, vals_list):
@@ -489,6 +694,12 @@ class SaleOrder(models.Model):
         if vals.get('state') == 'sent':
             newly_sent = self.filtered(lambda o: o.state != 'sent')
         res = super().write(vals)
+        # Mandatory on *every* save while the field is on screen, not only when
+        # the rate, the toggle or the lines are the thing being written - an
+        # edit to any other field used to save a blank rate silently (S07911
+        # did exactly that on 2026-09-07). A cancellation is left alone: a rate
+        # cannot be demanded of an order on its way to the bin.
+        self.filtered(lambda o: o.state != 'cancel')._check_einv_overage_filled()
         if 'entity_count' in vals and 'entity_ids' not in vals:
             self._sync_entity_rows()
         elif 'entity_ids' in vals and 'entity_count' not in vals:
@@ -523,6 +734,11 @@ class SaleOrder(models.Model):
         return res
 
     def action_confirm(self):
+        # Checked before super() so the missing rate is reported on the
+        # Confirm button itself rather than after the advance-payment wizard
+        # has been filled in (project_extended_rk opens one and returns
+        # without writing, so the write guard alone would fire a step late).
+        self._check_einv_overage_filled()
         res = super().action_confirm()
         # Confirmed order -> opportunity moves to "Won".
         self._set_opportunity_stage('crm.stage_lead4')

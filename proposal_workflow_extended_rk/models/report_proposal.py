@@ -196,13 +196,22 @@ class ReportProposalMixin(models.AbstractModel):
     # ── entity fee breakdown (Section 10, under the totals) ───────────────
     @api.model
     def _entity_rows(self, order):
-        """Entity 1..N with their name and fee, in the order shown on the form.
+        """The entity rows worth printing, in the order shown on the form.
 
-        Numbered here with `enumerate` rather than read off `entity_no`, so the
-        PDF stays right even if a row's compute has not been triggered.
+        Number of Entities sizes the list on the quotation, so it routinely
+        holds rows nobody has filled in yet; those are dropped rather than
+        printed as a run of blank "To be confirmed" lines. A row counts as
+        filled in the moment it carries anything at all - a name, either annual
+        count, a service or a fee.
+
+        Numbered with `enumerate` over what survives the filter, so the printed
+        list always reads Entity 1..N with no gaps, whatever the row's own
+        `entity_no` says.
         """
         rows = []
-        for index, entity in enumerate(order.entity_ids, start=1):
+        kept = [entity for entity in order.entity_ids
+                if self._entity_has_data(entity)]
+        for index, entity in enumerate(kept, start=1):
             # Counts come from the eInvoicing discovery form, or from a number
             # typed on the quotation for an entity the form does not cover. An
             # entity nobody has answered for prints blank - never 0, which would
@@ -223,6 +232,40 @@ class ReportProposalMixin(models.AbstractModel):
                     name for name in entity.service_ids.mapped('name') if name),
             })
         return rows
+
+    @api.model
+    def _entity_has_data(self, entity):
+        """Has anyone put anything on this entity row?
+
+        A stated count of 0 is data and keeps the row; an unstated one does not,
+        which is why the `*_count_set` flags are read rather than the integers.
+        """
+        return bool(
+            (entity.name or '').strip()
+            or entity.inbound_count_set
+            or entity.outbound_count_set
+            or entity.service_ids
+            or entity.price
+        )
+
+    @api.model
+    def _entity_totals(self, order):
+        """The Total line under the entity table: the two annual counts.
+
+        Summed from the rows on the quotation, or - when it carries no entity
+        rows at all - typed straight into its Total line. Returns None when
+        neither count has been stated, and an empty Total line is then not
+        printed at all. Each side stands alone: a stated inbound total prints
+        while the outbound one is still blank.
+        """
+        if not (order.entity_inbound_total_set or order.entity_outbound_total_set):
+            return None
+        return {
+            'inbound': ('{:,}'.format(order.entity_inbound_total)
+                        if order.entity_inbound_total_set else ''),
+            'outbound': ('{:,}'.format(order.entity_outbound_total)
+                         if order.entity_outbound_total_set else ''),
+        }
 
     @api.model
     def _totals(self, order):
@@ -253,6 +296,7 @@ class ReportProposalMixin(models.AbstractModel):
         company = partner.commercial_partner_id
         services = self._services(order)
         entity_rows = self._entity_rows(order)
+        entity_totals = self._entity_totals(order)
         commercial_rows = self._commercial_rows(order)
         overage_row = self._overage_row(order)
         if overage_row:
@@ -283,12 +327,16 @@ class ReportProposalMixin(models.AbstractModel):
             'commercial_rows': commercial_rows,
             'overage_row': overage_row,
             'entity_rows': entity_rows,
-            'entity_count': order.entity_count,
-            # The two invoice-count columns only appear once the discovery form
-            # has actually supplied numbers, so proposals without one keep the
-            # table they had.
-            'has_entity_counts': any(row['inbound'] or row['outbound']
-                                     for row in entity_rows),
+            # What actually prints, not Number of Entities: the blank rows the
+            # quotation generated are filtered out above.
+            'entity_row_count': len(entity_rows),
+            'entity_totals': entity_totals,
+            # The two invoice-count columns only appear once numbers have
+            # actually been supplied, so proposals without any keep the table
+            # they had. The Total line alone is enough to warrant them - that is
+            # the only thing in the table on a quotation with no entity rows.
+            'has_entity_counts': bool(entity_totals) or any(
+                row['inbound'] or row['outbound'] for row in entity_rows),
             # Same rule for the services column: it only takes up room in the
             # table once an entity actually names one.
             'has_entity_services': any(row['services'] for row in entity_rows),

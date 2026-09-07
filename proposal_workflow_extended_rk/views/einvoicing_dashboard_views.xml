@@ -5,6 +5,7 @@
         <field name="name">eInvoicing Dashboard</field>
         <field name="tag">einvoicing_dashboard</field>
         <field name="params" eval="{'scope': 'einvoicing',
+                                    'clear_dates': True,
                                     'title': 'eInvoicing Dashboard',
                                     'subtitle': 'Pipeline records tied to eInvoicing services, with quotation and agreement progress.'}"/>
     </record>
@@ -41,7 +42,10 @@
     <record id="action_other_dashboard" model="ir.actions.client">
         <field name="name">Other Services Dashboard</field>
         <field name="tag">einvoicing_dashboard</field>
+        <!-- This dashboard opens on the whole pipeline: no date bounds until
+             someone picks them, and Refresh drops them again. -->
         <field name="params" eval="{'scope': 'other',
+                                    'clear_dates': True,
                                     'title': 'Other Services Dashboard',
                                     'subtitle': 'Pipeline records for every service other than eInvoicing, with quotation and agreement progress.'}"/>
     </record>

@@ -39,22 +39,52 @@ class EinvoicingDashboard(models.AbstractModel):
                 "to tick the matching dashboard checkbox on your user record "
                 "(Settings > Users > Access Rights)."))
 
-    # ── which pipeline records count as eInvoicing ────────────────────────
+    # ── which orders belong to which dashboard ────────────────────────────
+    @api.model
+    def _einvoicing_order_ids(self):
+        """Live orders that actually sell something from the eInvoicing catalogue.
+
+        The scope follows the *service on the order line*, not how the pipeline
+        record was tagged. Tagging the opportunity was the old rule and it swept
+        in whatever else that customer happened to buy — attestation work landed
+        on the eInvoicing dashboard because the lead came from an eInvoicing
+        discovery form.
+        """
+        return self.env['sale.order'].search([
+            ('state', '!=', 'cancel'),
+            ('order_line.product_id.is_einvoicing_product', '=', True),
+        ]).ids
+
+    @api.model
+    def _orders_in_scope(self, orders, scope, einvoicing_ids):
+        """The subset of `orders` this dashboard is responsible for."""
+        einvoicing_ids = set(einvoicing_ids)
+        live = orders.filtered(lambda order: order.state != 'cancel')
+        if scope == 'other':
+            return live.filtered(lambda order: order.id not in einvoicing_ids)
+        return live.filtered(lambda order: order.id in einvoicing_ids)
+
+    # ── which pipeline records count for one scope ────────────────────────
     @api.model
     def _lead_domain(self, date_from, date_to, salesperson_id, scope='einvoicing'):
         """Pipeline records for one scope.
 
-        eInvoicing: the opportunity is an eInvoicing discovery, or one of its
-        quotations carries a product flagged as an eInvoicing product.
-        Other: everything else in the pipeline — the negation of the above.
+        eInvoicing: the record has at least one live order selling an eInvoicing
+        service. Other: everything else. A customer who buys an eInvoicing
+        service *and* something else appears on both, each dashboard showing
+        only its own orders — so no order falls between the two.
         """
-        einvoicing = [
-            '|',
-            ('discovery_form_type', '=', 'einvoicing'),
-            ('order_ids.order_line.product_id.is_einvoicing_product', '=', True),
-        ]
+        einvoicing_ids = self._einvoicing_order_ids()
         domain = [('type', '=', 'opportunity')]
-        domain += (['!'] + einvoicing) if scope == 'other' else einvoicing
+        if scope == 'other':
+            # Only a record whose whole live order book is eInvoicing drops off.
+            einvoicing_set = set(einvoicing_ids)
+            pure = self.env['sale.order'].browse(einvoicing_ids).mapped(
+                'opportunity_id').filtered(lambda lead: not lead.order_ids.filtered(
+                    lambda o: o.state != 'cancel' and o.id not in einvoicing_set))
+            domain.append(('id', 'not in', pure.ids))
+        else:
+            domain.append(('order_ids', 'in', einvoicing_ids))
         if date_from:
             domain.append(('create_date', '>=', fields.Date.to_date(date_from)))
         if date_to:
@@ -98,6 +128,25 @@ class EinvoicingDashboard(models.AbstractModel):
         agreements = live.filtered(lambda o: SE_NAME_RE.match(o.name or ''))
         return live - agreements, agreements
 
+    @api.model
+    def _orphan_orders(self, einvoicing_ids, date_from, date_to, salesperson_id):
+        """Live eInvoicing orders with no pipeline record behind them.
+
+        They are real service work and the boxes have to account for them, so
+        they are gathered here and shown as one aggregate row. Dates filter on
+        `date_order` because there is no lead whose `create_date` could apply.
+        """
+        domain = [('id', 'in', einvoicing_ids), ('opportunity_id', '=', False)]
+        if date_from:
+            domain.append(('date_order', '>=', fields.Date.to_date(date_from)))
+        if date_to:
+            domain.append((
+                'date_order', '<=',
+                fields.Datetime.to_datetime(fields.Date.to_date(date_to)) + timedelta(days=1)))
+        if salesperson_id:
+            domain.append(('user_id', '=', int(salesperson_id)))
+        return self.env['sale.order'].search(domain)
+
     # ── payload ───────────────────────────────────────────────────────────
     @api.model
     def get_dashboard_data(self, date_from=None, date_to=None, salesperson_id=None,
@@ -107,11 +156,14 @@ class EinvoicingDashboard(models.AbstractModel):
             self._lead_domain(date_from, date_to, salesperson_id, scope),
             order='create_date desc')
 
+        einvoicing_ids = self._einvoicing_order_ids()
+
         now = fields.Datetime.now()
         currency = self.env.company.currency_id
         rows = []
         for lead in leads:
-            proposals, agreements = self._split_orders(lead.order_ids)
+            scoped = self._orders_in_scope(lead.order_ids, scope, einvoicing_ids)
+            proposals, agreements = self._split_orders(scoped)
             last = self._last_activity(lead)
             days = (now - last).days if last else False
             rows.append({
@@ -137,11 +189,45 @@ class EinvoicingDashboard(models.AbstractModel):
                 'is_stale': bool(days is not False and days > STALE_DAYS),
             })
 
+        # eInvoicing orders with no pipeline record would otherwise be invisible.
+        # Other Services deliberately skips this: most sale orders in the database
+        # carry no opportunity, and listing them would bury the pipeline that
+        # dashboard exists to show.
+        if scope != 'other':
+            orphans = self._orphan_orders(
+                einvoicing_ids, date_from, date_to, salesperson_id)
+            if orphans:
+                proposals, agreements = self._split_orders(orphans)
+                rows.append({
+                    'id': False,
+                    'crm_ref': '',
+                    'name': _('(No pipeline record)'),
+                    'partner': ', '.join(sorted(set(
+                        orphans.mapped('partner_id.display_name')))),
+                    'stage': '',
+                    'salesperson': ', '.join(sorted(
+                        {o.user_id.name for o in orphans if o.user_id})) or _('Unassigned'),
+                    'expected_revenue': 0.0,
+                    'proposal_names': proposals.mapped('name'),
+                    'proposal_ids': proposals.ids,
+                    'proposal_count': len(proposals),
+                    'proposal_value': sum(proposals.mapped('amount_total')),
+                    'agreement_names': agreements.mapped('name'),
+                    'agreement_ids': agreements.ids,
+                    'agreement_count': len(agreements),
+                    'agreement_value': sum(agreements.mapped('amount_total')),
+                    'proposal_doc': bool(proposals.filtered('proposal_generated_on')),
+                    'agreement_doc': bool(agreements.filtered('se_generated_on')),
+                    'last_activity': '',
+                    'days_since_activity': False,
+                    'is_stale': False,
+                })
+
         stale = [r for r in rows if r['is_stale']]
         return {
             'rows': rows,
             'kpis': {
-                'leads': len(rows),
+                'leads': len(leads),
                 # The two money boxes read their own side of the split: Expected
                 # Value is what the open Sxxxxx quotations are worth, Order Value
                 # what the converted SExxxxx engagements are worth. Together they
@@ -181,7 +267,12 @@ class EinvoicingDashboard(models.AbstractModel):
         self._check_access(scope)
         leads = self.env['crm.lead'].search(
             self._lead_domain(date_from, date_to, salesperson_id, scope))
-        proposal_orders, agreement_orders = self._split_orders(leads.order_ids)
+        einvoicing_ids = self._einvoicing_order_ids()
+        scoped = self._orders_in_scope(leads.order_ids, scope, einvoicing_ids)
+        if scope != 'other':
+            scoped |= self._orphan_orders(
+                einvoicing_ids, date_from, date_to, salesperson_id)
+        proposal_orders, agreement_orders = self._split_orders(scoped)
         orders = proposal_orders + agreement_orders
         now = fields.Datetime.now()
 
