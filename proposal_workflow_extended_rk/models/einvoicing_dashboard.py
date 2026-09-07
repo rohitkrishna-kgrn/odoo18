@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 """Data behind the eInvoicing dashboard (OWL client action)."""
+import re
 from datetime import timedelta
 
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 
 STALE_DAYS = 7
+
+# Approving a quotation renames it in place, keeping the number and swapping the
+# prefix: S07877 becomes SE07877 (sale_order_approval.SaleOrder.action_approve_
+# order). The number on the record is therefore the conversion marker the sales
+# team reads, and this is what splits the dashboard's two buckets.
+SE_NAME_RE = re.compile(r'^\s*SE\d', re.IGNORECASE)
 
 # Each dashboard scope has its own access checkbox. 'einvoicing' covers the
 # eInvoicing service catalogue; 'other' is its exact complement, so the two
@@ -74,6 +81,23 @@ class EinvoicingDashboard(models.AbstractModel):
             dates.append(lead.create_date)
         return max(dates) if dates else False
 
+    # ── proposal vs agreement ─────────────────────────────────────────────
+    @api.model
+    def _split_orders(self, orders):
+        """Split a pipeline record's live orders into proposals and agreements.
+
+        The split follows the conversion, not the paperwork: a quotation counts
+        as a proposal for exactly as long as its number still reads ``Sxxxxx``,
+        and moves to the agreement side the moment approval renames it to
+        ``SExxxxx``. The two buckets are exclusive by construction, so a
+        converted order can never be counted — or valued — on both sides.
+
+        Cancelled orders belong to neither.
+        """
+        live = orders.filtered(lambda o: o.state != 'cancel')
+        agreements = live.filtered(lambda o: SE_NAME_RE.match(o.name or ''))
+        return live - agreements, agreements
+
     # ── payload ───────────────────────────────────────────────────────────
     @api.model
     def get_dashboard_data(self, date_from=None, date_to=None, salesperson_id=None,
@@ -87,7 +111,7 @@ class EinvoicingDashboard(models.AbstractModel):
         currency = self.env.company.currency_id
         rows = []
         for lead in leads:
-            orders = lead.order_ids.filtered(lambda o: o.state != 'cancel')
+            proposals, agreements = self._split_orders(lead.order_ids)
             last = self._last_activity(lead)
             days = (now - last).days if last else False
             rows.append({
@@ -98,11 +122,16 @@ class EinvoicingDashboard(models.AbstractModel):
                 'stage': lead.stage_id.name or '',
                 'salesperson': lead.user_id.name or _('Unassigned'),
                 'expected_revenue': lead.expected_revenue,
-                'order_names': orders.mapped('name'),
-                'order_ids': orders.ids,
-                'order_total': sum(orders.mapped('amount_total')),
-                'proposal_count': len(orders.filtered('proposal_generated_on')),
-                'se_count': len(orders.filtered('se_generated_on')),
+                'proposal_names': proposals.mapped('name'),
+                'proposal_ids': proposals.ids,
+                'proposal_count': len(proposals),
+                'proposal_value': sum(proposals.mapped('amount_total')),
+                'agreement_names': agreements.mapped('name'),
+                'agreement_ids': agreements.ids,
+                'agreement_count': len(agreements),
+                'agreement_value': sum(agreements.mapped('amount_total')),
+                'proposal_doc': bool(proposals.filtered('proposal_generated_on')),
+                'agreement_doc': bool(agreements.filtered('se_generated_on')),
                 'last_activity': fields.Datetime.to_string(last) if last else '',
                 'days_since_activity': days,
                 'is_stale': bool(days is not False and days > STALE_DAYS),
@@ -113,10 +142,14 @@ class EinvoicingDashboard(models.AbstractModel):
             'rows': rows,
             'kpis': {
                 'leads': len(rows),
-                'pipeline_value': sum(r['expected_revenue'] for r in rows),
-                'order_value': sum(r['order_total'] for r in rows),
+                # The two money boxes read their own side of the split: Expected
+                # Value is what the open Sxxxxx quotations are worth, Order Value
+                # what the converted SExxxxx engagements are worth. Together they
+                # still add up to the pipeline's total live order value.
+                'pipeline_value': sum(r['proposal_value'] for r in rows),
+                'order_value': sum(r['agreement_value'] for r in rows),
                 'proposals': sum(r['proposal_count'] for r in rows),
-                'agreements': sum(r['se_count'] for r in rows),
+                'agreements': sum(r['agreement_count'] for r in rows),
                 'stale': len(stale),
             },
             'salespersons': [
@@ -148,7 +181,8 @@ class EinvoicingDashboard(models.AbstractModel):
         self._check_access(scope)
         leads = self.env['crm.lead'].search(
             self._lead_domain(date_from, date_to, salesperson_id, scope))
-        orders = leads.order_ids.filtered(lambda o: o.state != 'cancel')
+        proposal_orders, agreement_orders = self._split_orders(leads.order_ids)
+        orders = proposal_orders + agreement_orders
         now = fields.Datetime.now()
 
         # Pipeline by stage — how many records sit where, and what they are worth
@@ -161,9 +195,10 @@ class EinvoicingDashboard(models.AbstractModel):
             entry['value'] += lead.expected_revenue
         stage_items = sorted(by_stage.items(), key=lambda kv: kv[1]['sequence'])
 
-        # Order value by salesperson
+        # Order value by salesperson — the signed SExxxxx engagements, so this
+        # reads the same Order Value the KPI box does.
         by_person = {}
-        for order in orders:
+        for order in agreement_orders:
             name = order.user_id.name or _('Unassigned')
             by_person[name] = by_person.get(name, 0.0) + order.amount_total
         person_items = sorted(by_person.items(), key=lambda kv: kv[1], reverse=True)[:10]
@@ -180,7 +215,7 @@ class EinvoicingDashboard(models.AbstractModel):
             by_service[label] = by_service.get(label, 0.0) + line.price_subtotal
         service_items = sorted(by_service.items(), key=lambda kv: kv[1], reverse=True)
 
-        # Month-by-month: new pipeline records against order value booked
+        # Month-by-month: new pipeline records against agreement value booked
         months = self._month_buckets(date_from, date_to)
         lead_series = dict.fromkeys(months, 0)
         value_series = dict.fromkeys(months, 0.0)
@@ -188,17 +223,22 @@ class EinvoicingDashboard(models.AbstractModel):
             key = fields.Datetime.to_datetime(lead.create_date).strftime('%Y-%m')
             if key in lead_series:
                 lead_series[key] += 1
-        for order in orders:
+        for order in agreement_orders:
             if not order.date_order:
                 continue
             key = fields.Datetime.to_datetime(order.date_order).strftime('%Y-%m')
             if key in value_series:
                 value_series[key] += order.amount_total
 
-        # Conversion funnel through the document workflow
-        with_order = leads.filtered(lambda l: l.order_ids.filtered(lambda o: o.state != 'cancel'))
-        with_proposal = leads.filtered(lambda l: any(l.order_ids.mapped('proposal_generated_on')))
-        with_se = leads.filtered(lambda l: any(l.order_ids.mapped('se_generated_on')))
+        # Conversion funnel: where the pipeline stands right now. "Proposal Sent"
+        # and "Agreement" are the two sides of the split, so a record sits in one
+        # or the other — never both — and Agreement can exceed Proposal Sent once
+        # most quotations have converted.
+        proposal_ids, agreement_ids = set(proposal_orders.ids), set(agreement_orders.ids)
+        with_order = leads.filtered(
+            lambda l: not (proposal_ids | agreement_ids).isdisjoint(l.order_ids.ids))
+        with_proposal = leads.filtered(lambda l: not proposal_ids.isdisjoint(l.order_ids.ids))
+        with_se = leads.filtered(lambda l: not agreement_ids.isdisjoint(l.order_ids.ids))
         won = leads.filtered(lambda l: l.stage_id.is_won)
 
         # Activity health

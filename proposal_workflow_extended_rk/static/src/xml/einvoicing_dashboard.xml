@@ -56,25 +56,25 @@
                     <div class="kgrn-kpi-label">Pipeline Records</div>
                     <div class="kgrn-kpi-value"><t t-esc="state.kpis.leads"/></div>
                 </div>
-                <div class="kgrn-kpi">
+                <div class="kgrn-kpi" title="Quotations still numbered Sxxxxx — not yet converted to a Service Engagement.">
+                    <div class="kgrn-kpi-label">Proposals Sent</div>
+                    <div class="kgrn-kpi-value"><t t-esc="state.kpis.proposals"/></div>
+                </div>
+                <div class="kgrn-kpi" title="Total value of the Sxxxxx quotations counted under Proposals Sent.">
                     <div class="kgrn-kpi-label">Expected Value</div>
                     <div class="kgrn-kpi-value">
                         <t t-esc="formatMoney(state.kpis.pipeline_value)"/>
                     </div>
                 </div>
-                <div class="kgrn-kpi">
+                <div class="kgrn-kpi" title="Quotations converted on approval and renumbered SExxxxx.">
+                    <div class="kgrn-kpi-label">Agreements</div>
+                    <div class="kgrn-kpi-value"><t t-esc="state.kpis.agreements"/></div>
+                </div>
+                <div class="kgrn-kpi" title="Total value of the SExxxxx engagements counted under Agreements.">
                     <div class="kgrn-kpi-label">Order Value</div>
                     <div class="kgrn-kpi-value">
                         <t t-esc="formatMoney(state.kpis.order_value)"/>
                     </div>
-                </div>
-                <div class="kgrn-kpi">
-                    <div class="kgrn-kpi-label">Proposals Sent</div>
-                    <div class="kgrn-kpi-value"><t t-esc="state.kpis.proposals"/></div>
-                </div>
-                <div class="kgrn-kpi">
-                    <div class="kgrn-kpi-label">Agreements</div>
-                    <div class="kgrn-kpi-value"><t t-esc="state.kpis.agreements"/></div>
                 </div>
                 <div class="kgrn-kpi kgrn-kpi-alert" t-att-class="{ 'is-clear': !state.kpis.stale }">
                     <div class="kgrn-kpi-label">
@@ -94,10 +94,10 @@
                             <th>Customer</th>
                             <th>Stage</th>
                             <th>Salesperson</th>
-                            <th class="num">Expected</th>
-                            <th>Sale Orders</th>
+                            <th>Proposals (S)</th>
+                            <th class="num">Expected Value</th>
+                            <th>Agreements (SE)</th>
                             <th class="num">Order Value</th>
-                            <th class="mid">Docs</th>
                             <th class="mid">Last Activity</th>
                         </tr>
                     </thead>
@@ -115,23 +115,26 @@
                             <td><t t-esc="row.partner"/></td>
                             <td><span class="kgrn-stage"><t t-esc="row.stage"/></span></td>
                             <td><t t-esc="row.salesperson"/></td>
-                            <td class="num"><t t-esc="formatMoney(row.expected_revenue)"/></td>
                             <td>
-                                <a t-if="row.order_names.length" href="#"
-                                   t-on-click="(ev) => this.openOrders(row, ev)">
-                                    <t t-esc="row.order_names.join(', ')"/>
+                                <a t-if="row.proposal_names.length" href="#"
+                                   t-on-click="(ev) => this.openOrders(row, row.proposal_ids, 'Proposals', ev)">
+                                    <t t-esc="row.proposal_names.join(', ')"/>
                                 </a>
                                 <span t-else="" class="kgrn-muted">—</span>
+                                <span t-if="row.proposal_doc" class="kgrn-pill is-proposal"
+                                      title="Proposal PDF generated">P</span>
                             </td>
-                            <td class="num"><t t-esc="formatMoney(row.order_total)"/></td>
-                            <td class="mid">
-                                <span t-if="row.proposal_count" class="kgrn-pill is-proposal"
-                                      title="Proposal generated">P</span>
-                                <span t-if="row.se_count" class="kgrn-pill is-se"
-                                      title="Service Engagement Agreement generated">SE</span>
-                                <span t-if="!row.proposal_count and !row.se_count"
-                                      class="kgrn-muted">—</span>
+                            <td class="num"><t t-esc="formatMoney(row.proposal_value)"/></td>
+                            <td>
+                                <a t-if="row.agreement_names.length" href="#"
+                                   t-on-click="(ev) => this.openOrders(row, row.agreement_ids, 'Agreements', ev)">
+                                    <t t-esc="row.agreement_names.join(', ')"/>
+                                </a>
+                                <span t-else="" class="kgrn-muted">—</span>
+                                <span t-if="row.agreement_doc" class="kgrn-pill is-se"
+                                      title="Service Engagement Agreement PDF generated">SE</span>
                             </td>
+                            <td class="num"><t t-esc="formatMoney(row.agreement_value)"/></td>
                             <td class="mid">
                                 <span t-att-class="row.is_stale ? 'kgrn-pill is-stale' : 'kgrn-muted'"
                                       t-att-title="row.last_activity">

@@ -102,16 +102,17 @@ export class EinvoicingDashboard extends Component {
         });
     }
 
-    openOrders(row, ev) {
+    /** Open one side of the split — the Sxxxxx proposals or the SExxxxx agreements. */
+    openOrders(row, ids, label, ev) {
         ev.stopPropagation();
-        if (!row.order_ids.length) {
+        if (!ids.length) {
             return;
         }
         this.action.doAction({
             type: "ir.actions.act_window",
-            name: row.crm_ref ? `Orders — ${row.crm_ref}` : "Orders",
+            name: row.crm_ref ? `${label} — ${row.crm_ref}` : label,
             res_model: "sale.order",
-            domain: [["id", "in", row.order_ids]],
+            domain: [["id", "in", ids]],
             views: [
                 [false, "list"],
                 [false, "form"],
