@@ -7,16 +7,13 @@
         name="MIS Dashboard"
         sequence="85"
         web_icon="mis_report_kgrn,static/description/icon.png"
-        groups="mis_report_kgrn.group_mis_user,mis_report_kgrn.group_mis_hr,mis_report_kgrn.group_mis_coach"/>
+        groups="mis_report_kgrn.group_mis_user,mis_report_kgrn.group_mis_hr"/>
 
-    <!-- Coach View → visible only to auto-detected coaches (+ Admin) -->
-    <menuitem
-        id="menu_mis_coach_dashboard"
-        name="Coach View"
-        parent="menu_mis_dashboard_root"
-        action="mis_report_kgrn.action_mis_coach_dashboard"
-        sequence="0"
-        groups="mis_report_kgrn.group_mis_coach,mis_report_kgrn.group_mis_admin"/>
+    <!-- There is no Coach menu and no MIS Coach group. A coach reads their
+         coachees' rows inside the reports below, filtered by the coach term
+         in rule_mis_*_user (security/ir_rules.xml) — so a coach needs an MIS
+         role like anybody else, and being somebody's Coach only widens what
+         that role already shows. -->
 
     <!-- Project Wise → only list -->
     <menuitem
@@ -58,20 +55,50 @@
         sequence="3"
         groups="mis_report_kgrn.group_mis_user"/>
 
-    <!-- Performance Management (Admin + MIS HR) -->
+    <!-- Performance Management.
+         The parent is open to every MIS role because My/Team Performance
+         live under it; ir_ui_menu filters by groups PARENT-FIRST, so a
+         narrower parent would hide those two from Managers and Coaches no
+         matter what their own groups say. The firm-wide children below stay
+         restricted to Admin + MIS HR. -->
     <menuitem
         id="menu_mis_performance_root"
         name="Performance Management"
         parent="menu_mis_dashboard_root"
         sequence="4"
-        groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
+        groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr,mis_report_kgrn.group_mis_user"/>
+
+    <!-- My Performance — the logged-in MIS Manager's own scorecard.
+         Manager-and-above: a plain MIS User's own performance is not part of
+         this module's access model, and rule_mis_performance_user would
+         return nothing for them anyway. -->
+    <menuitem
+        id="menu_mis_perf_my"
+        name="My Performance"
+        parent="menu_mis_performance_root"
+        action="mis_report_kgrn.action_mis_perf_my"
+        sequence="1"
+        groups="mis_report_kgrn.group_mis_manager"/>
+
+    <!-- Team Performance — everyone assigned to this user on the employee
+         form, by the Manager field or the Coach field, de-duplicated.
+         Open to MIS User because that is how a Coach reaches their
+         coachees; someone who supervises nobody gets an empty list, which
+         is the correct answer rather than an error. -->
+    <menuitem
+        id="menu_mis_perf_team"
+        name="Team Performance"
+        parent="menu_mis_performance_root"
+        action="mis_report_kgrn.action_mis_perf_team"
+        sequence="2"
+        groups="mis_report_kgrn.group_mis_user"/>
 
     <menuitem
         id="menu_mis_perf_sales"
         name="Sales"
         parent="menu_mis_performance_root"
         action="mis_report_kgrn.action_mis_perf_sales"
-        sequence="1"
+        sequence="3"
         groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
     <menuitem
@@ -79,7 +106,7 @@
         name="Operations"
         parent="menu_mis_performance_root"
         action="mis_report_kgrn.action_mis_perf_operations"
-        sequence="2"
+        sequence="4"
         groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
     <menuitem
@@ -87,7 +114,7 @@
         name="Other Teams"
         parent="menu_mis_performance_root"
         action="mis_report_kgrn.action_mis_perf_other"
-        sequence="3"
+        sequence="5"
         groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
     <menuitem
@@ -95,7 +122,7 @@
         name="Scorecard Log"
         parent="menu_mis_performance_root"
         action="mis_report_kgrn.action_mis_performance_report_log"
-        sequence="4"
+        sequence="6"
         groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
     <menuitem
@@ -103,7 +130,7 @@
         name="Warning Notices"
         parent="menu_mis_performance_root"
         action="mis_report_kgrn.action_mis_warning_notice"
-        sequence="5"
+        sequence="7"
         groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
     <menuitem
@@ -111,7 +138,7 @@
         name="Run Warning Notice Check"
         parent="menu_mis_performance_root"
         action="mis_report_kgrn.action_server_mis_run_escalation"
-        sequence="6"
+        sequence="8"
         groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
     <!-- Configuration (Admin only) -->

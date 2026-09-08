@@ -136,36 +136,40 @@ class HrEmployee(models.Model):
             'context': {'default_employee_id': self.id},
         }
 
-    # ── MIS Coach group auto-sync ────────────────────────────────────────
-    # "Coach" is never assigned by hand: whoever currently appears as
-    # someone's coach_id belongs to group_mis_coach (which gates the Coach
-    # View menu/report), and nobody else does. Recomputed from scratch on
-    # every relevant change so an employee dropped as the last coachee of a
-    # coach correctly drops that coach out of the group too.
+    # ── Supervision-scope cache invalidation ─────────────────────────────
+    # The MIS record rules read res.users.mis_coachee_uids / mis_report_uids /
+    # mis_scope_uids, which are derived from the Coach and Manager fields on
+    # THIS model. ir.rule._compute_domain is ormcached per user and bakes
+    # those id lists straight into the cached domain, so re-pointing an
+    # employee at a different coach or manager would otherwise keep serving
+    # both the old and the new supervisor their previous row set until the
+    # workers happen to restart.
+    #
+    # There is no group membership to sync any more — the MIS Coach group is
+    # gone, and being somebody's coach or manager grants nothing by itself —
+    # so clearing the cache is the whole job.
     @api.model
-    def _sync_mis_coach_group(self):
-        group = self.env.ref('mis_report_kgrn.group_mis_coach', raise_if_not_found=False)
-        if not group:
-            return
-        coach_user_ids = self.env['hr.employee'].sudo().search(
-            [('coach_id', '!=', False)]
-        ).mapped('coach_id.user_id').ids
-        group.sudo().write({'users': [(6, 0, coach_user_ids)]})
+    def _mis_clear_scope_cache(self):
+        self.env.registry.clear_cache()
+
+    # `active` counts: the scope computes skip archived employees, so
+    # archiving the last coachee has to invalidate the cache too.
+    _MIS_SCOPE_FIELDS = ('coach_id', 'parent_id', 'user_id', 'active')
 
     @api.model_create_multi
     def create(self, vals_list):
         employees = super().create(vals_list)
-        if any('coach_id' in vals for vals in vals_list):
-            employees._sync_mis_coach_group()
+        if any(f in vals for vals in vals_list for f in self._MIS_SCOPE_FIELDS):
+            self._mis_clear_scope_cache()
         return employees
 
     def write(self, vals):
         result = super().write(vals)
-        if 'coach_id' in vals or 'active' in vals:
-            self._sync_mis_coach_group()
+        if any(f in vals for f in self._MIS_SCOPE_FIELDS):
+            self._mis_clear_scope_cache()
         return result
 
     def unlink(self):
         result = super().unlink()
-        self._sync_mis_coach_group()
+        self._mis_clear_scope_cache()
         return result

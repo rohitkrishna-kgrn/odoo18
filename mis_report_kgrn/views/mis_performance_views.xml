@@ -17,4 +17,38 @@
         <field name="tag">mis_performance_other</field>
     </record>
 
+    <!-- Own vs. team scorecard, kept as two separate screens so a supervisor
+         never has to pick their own line out of their team's. Both read
+         mis.performance.line and are filtered by rule_mis_performance_manager
+         / rule_mis_performance_user — the client only narrows within what
+         those rules already allow (see security/ir_rules.xml). -->
+    <record id="action_mis_perf_my" model="ir.actions.client">
+        <field name="name">My Performance</field>
+        <field name="tag">mis_performance_my</field>
+    </record>
+
+    <record id="action_mis_perf_team" model="ir.actions.client">
+        <field name="name">Team Performance</field>
+        <field name="tag">mis_performance_team</field>
+    </record>
+
+    <!-- Scoped Performance screens (MIS Manager / Coach).
+
+         Same OWL component and same model as the three team dashboards
+         above; the difference is who may open them and which rows come
+         back. "My Performance" is the logged-in manager's own scorecard,
+         "Team Performance" is everyone assigned to them on the employee
+         form via the Manager field or the Coach field, de-duplicated. Both
+         are filtered server-side by rule_mis_performance_* — the client
+         only chooses which half of that allowance to show. -->
+    <record id="action_mis_perf_my" model="ir.actions.client">
+        <field name="name">My Performance</field>
+        <field name="tag">mis_performance_my</field>
+    </record>
+
+    <record id="action_mis_perf_team" model="ir.actions.client">
+        <field name="name">Team Performance</field>
+        <field name="tag">mis_performance_team</field>
+    </record>
+
 </odoo>

@@ -100,18 +100,9 @@ class MisProjectRevenue(models.Model):
     # ── Role-based access ─────────────────────────────────────────────────
     @api.model
     def _get_access_domain(self):
-        user = self.env.user
-        if user.has_group('mis_report_kgrn.group_mis_admin'):
-            return []
-        if user.has_group('mis_report_kgrn.group_mis_manager'):
-            emp = self.env['hr.employee'].search([('user_id', '=', user.id)], limit=1)
-            if emp:
-                subordinates = self.env['hr.employee'].search([('parent_id', '=', emp.id)])
-                user_ids = (subordinates.mapped('user_id') | user).ids
-            else:
-                user_ids = [user.id]
-            return [('project_manager_id', 'in', user_ids)]
-        return [('project_manager_id', '=', user.id)]
+        """Role scope for this report — see ResUsers._mis_access_domain,
+        which is the single definition shared with security/ir_rules.xml."""
+        return self.env.user._mis_access_domain('project_manager_id')
 
     @api.model
     def search(self, domain=None, offset=0, limit=None, order=None):

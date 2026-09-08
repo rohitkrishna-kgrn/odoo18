@@ -3,11 +3,44 @@
     <data>
 
         <!-- ═══════════════════════════════════════════════════════════
-             mis.project.wise  —  record rules
-             Rule logic (groups OR together per user):
-               Admin  → admin rule (all data) wins
-               Manager→ manager rule (own + subordinates)
-               User   → user rule (own only)
+             THE ACCESS MODEL, IN ONE PLACE
+
+             Two independent assignments on the employee form decide who
+             sees whose data. Both are stock Odoo fields, neither is a
+             permission:
+
+               Manager (hr.employee.parent_id) -> user.mis_report_uids
+               Coach   (hr.employee.coach_id)  -> user.mis_coachee_uids
+                                                  user.mis_scope_uids
+                                                     = the two, de-duplicated
+
+             and three MIS roles, granted from the MIS Role field on the
+             user form:
+
+               MIS User    own rows, plus their coachees' rows if the
+                           employee form makes them somebody's Coach
+               MIS Manager the above, plus their direct reports' rows
+               MIS Admin   everything
+               MIS HR      everything, Performance Management only
+
+             There is NO "MIS Coach" group. Coaching widens what an
+             existing role can see and grants nothing on its own, so a
+             coach with no MIS role has no MIS access at all.
+
+             Rules from different groups OR together, and group_mis_manager
+             implies group_mis_user which implies base.group_user — so the
+             MIS User rule below also runs for a Manager and an Admin, and
+             the coach term reaches every role through it. That is why the
+             Manager rules carry no coach term of their own: adding one
+             would be a duplicate of a term the user rule already supplies.
+
+             ('field', 'in', []) is FALSE in an Odoo domain, so the empty
+             list a non-coach / childless manager computes means "add no
+             rows" — never "all rows".
+        ═══════════════════════════════════════════════════════════ -->
+
+        <!-- ═══════════════════════════════════════════════════════════
+             mis.project.wise
         ═══════════════════════════════════════════════════════════ -->
 
         <record id="rule_mis_project_wise_admin" model="ir.rule">
@@ -25,7 +58,7 @@
             <field name="name">MIS Project Wise: Manager sees own + direct reports</field>
             <field name="model_id" ref="model_mis_project_wise"/>
             <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_manager'))]"/>
-            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('project_manager_id', 'in', user.employee_ids[:1].child_ids.user_id.ids if user.employee_ids else [])]</field>
+            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('project_manager_id', 'in', user.mis_report_uids or [])]</field>
             <field name="perm_read">1</field>
             <field name="perm_write">0</field>
             <field name="perm_create">0</field>
@@ -33,10 +66,10 @@
         </record>
 
         <record id="rule_mis_project_wise_user" model="ir.rule">
-            <field name="name">MIS Project Wise: User sees own data only</field>
+            <field name="name">MIS Project Wise: User sees own + coachees</field>
             <field name="model_id" ref="model_mis_project_wise"/>
             <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_user'))]"/>
-            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('salesperson_id', '=', user.id)]</field>
+            <field name="domain_force">['|', '|', ('project_manager_id', '=', user.id), ('salesperson_id', '=', user.id), ('project_manager_id', 'in', user.mis_coachee_uids or [])]</field>
             <field name="perm_read">1</field>
             <field name="perm_write">0</field>
             <field name="perm_create">0</field>
@@ -44,7 +77,7 @@
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
-             mis.outstanding.line  —  same rules
+             mis.outstanding.line
         ═══════════════════════════════════════════════════════════ -->
 
         <record id="rule_mis_outstanding_admin" model="ir.rule">
@@ -62,7 +95,7 @@
             <field name="name">MIS Outstanding: Manager sees own + direct reports</field>
             <field name="model_id" ref="model_mis_outstanding_line"/>
             <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_manager'))]"/>
-            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('project_manager_id', 'in', user.employee_ids[:1].child_ids.user_id.ids if user.employee_ids else [])]</field>
+            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('project_manager_id', 'in', user.mis_report_uids or [])]</field>
             <field name="perm_read">1</field>
             <field name="perm_write">0</field>
             <field name="perm_create">0</field>
@@ -70,10 +103,10 @@
         </record>
 
         <record id="rule_mis_outstanding_user" model="ir.rule">
-            <field name="name">MIS Outstanding: User sees own data only</field>
+            <field name="name">MIS Outstanding: User sees own + coachees</field>
             <field name="model_id" ref="model_mis_outstanding_line"/>
             <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_user'))]"/>
-            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('salesperson_id', '=', user.id)]</field>
+            <field name="domain_force">['|', '|', ('project_manager_id', '=', user.id), ('salesperson_id', '=', user.id), ('project_manager_id', 'in', user.mis_coachee_uids or [])]</field>
             <field name="perm_read">1</field>
             <field name="perm_write">0</field>
             <field name="perm_create">0</field>
@@ -81,7 +114,7 @@
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
-             mis.project.revenue  —  task-level, same role logic
+             mis.project.revenue  —  task-level
         ═══════════════════════════════════════════════════════════ -->
 
         <record id="rule_mis_project_revenue_admin" model="ir.rule">
@@ -99,7 +132,7 @@
             <field name="name">MIS Revenue: Manager sees own + direct reports</field>
             <field name="model_id" ref="model_mis_project_revenue"/>
             <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_manager'))]"/>
-            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('project_manager_id', 'in', user.employee_ids[:1].child_ids.user_id.ids if user.employee_ids else [])]</field>
+            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('project_manager_id', 'in', user.mis_report_uids or [])]</field>
             <field name="perm_read">1</field>
             <field name="perm_write">0</field>
             <field name="perm_create">0</field>
@@ -107,10 +140,10 @@
         </record>
 
         <record id="rule_mis_project_revenue_user" model="ir.rule">
-            <field name="name">MIS Revenue: User sees own data only</field>
+            <field name="name">MIS Revenue: User sees own + coachees</field>
             <field name="model_id" ref="model_mis_project_revenue"/>
             <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_user'))]"/>
-            <field name="domain_force">[('project_manager_id', '=', user.id)]</field>
+            <field name="domain_force">['|', ('project_manager_id', '=', user.id), ('project_manager_id', 'in', user.mis_coachee_uids or [])]</field>
             <field name="perm_read">1</field>
             <field name="perm_write">0</field>
             <field name="perm_create">0</field>
@@ -137,7 +170,7 @@
             <field name="name">MIS Revenue Line: Manager sees own + direct reports</field>
             <field name="model_id" ref="model_mis_project_revenue_line"/>
             <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_manager'))]"/>
-            <field name="domain_force">['|', ('task_revenue_id.project_manager_id', '=', user.id), ('task_revenue_id.project_manager_id', 'in', user.employee_ids[:1].child_ids.user_id.ids if user.employee_ids else [])]</field>
+            <field name="domain_force">['|', ('task_revenue_id.project_manager_id', '=', user.id), ('task_revenue_id.project_manager_id', 'in', user.mis_report_uids or [])]</field>
             <field name="perm_read">1</field>
             <field name="perm_write">0</field>
             <field name="perm_create">0</field>
@@ -145,10 +178,10 @@
         </record>
 
         <record id="rule_mis_project_revenue_line_user" model="ir.rule">
-            <field name="name">MIS Revenue Line: User sees own data only</field>
+            <field name="name">MIS Revenue Line: User sees own + coachees</field>
             <field name="model_id" ref="model_mis_project_revenue_line"/>
             <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_user'))]"/>
-            <field name="domain_force">[('task_revenue_id.project_manager_id', '=', user.id)]</field>
+            <field name="domain_force">['|', ('task_revenue_id.project_manager_id', '=', user.id), ('task_revenue_id.project_manager_id', 'in', user.mis_coachee_uids or [])]</field>
             <field name="perm_read">1</field>
             <field name="perm_write">0</field>
             <field name="perm_create">0</field>
@@ -156,13 +189,38 @@
         </record>
 
         <!-- ═══════════════════════════════════════════════════════════
-             mis.coach.dashboard  —  keyed on coach_id, not the PM/
-             salesperson hierarchy used everywhere above
+             mis.performance.line  —  Performance Management scorecard
+
+             This model is scored per EMPLOYEE (user_id), not per project,
+             so it is the one place the Manager/Coach mapping is applied to
+             people rather than to the projects they manage.
+
+               Admin / HR  every employee.
+               Manager     themselves, plus everyone whose employee record
+                           names them as Manager OR as Coach — one merged,
+                           de-duplicated list (mis_scope_uids), so somebody
+                           who is both a direct report and a coachee is
+                           counted once.
+               User        their coachees only. A plain MIS User who coaches
+                           nobody computes [] and therefore sees NO rows —
+                           which is the intended "Regular User: no
+                           performance access" outcome, unchanged from
+                           before this model had any rule at all.
+
+             MIS HR needs its own all-rows rule rather than simply having
+             none: the moment an HR user is ALSO given an MIS role, the
+             User/Manager rules above would start applying to them and would
+             be the only rules they matched.
+
+             The My Performance / Team Performance screens narrow further on
+             the client (user_id = me / user_id != me), which can only ever
+             subset what these rules already allow — the split is
+             presentation, this is the security boundary.
         ═══════════════════════════════════════════════════════════ -->
 
-        <record id="rule_mis_coach_dashboard_admin" model="ir.rule">
-            <field name="name">MIS Coach Dashboard: Admin sees all coaches' teams</field>
-            <field name="model_id" ref="model_mis_coach_dashboard"/>
+        <record id="rule_mis_performance_admin" model="ir.rule">
+            <field name="name">MIS Performance: Admin sees all</field>
+            <field name="model_id" ref="model_mis_performance_line"/>
             <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_admin'))]"/>
             <field name="domain_force">[(1, '=', 1)]</field>
             <field name="perm_read">1</field>
@@ -171,11 +229,33 @@
             <field name="perm_unlink">0</field>
         </record>
 
-        <record id="rule_mis_coach_dashboard_coach" model="ir.rule">
-            <field name="name">MIS Coach Dashboard: Coach sees only their own assigned employees</field>
-            <field name="model_id" ref="model_mis_coach_dashboard"/>
-            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_coach'))]"/>
-            <field name="domain_force">[('coach_user_id', '=', user.id)]</field>
+        <record id="rule_mis_performance_hr" model="ir.rule">
+            <field name="name">MIS Performance: HR sees all</field>
+            <field name="model_id" ref="model_mis_performance_line"/>
+            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_hr'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="rule_mis_performance_manager" model="ir.rule">
+            <field name="name">MIS Performance: Manager sees own + team (Manager and Coach fields)</field>
+            <field name="model_id" ref="model_mis_performance_line"/>
+            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_manager'))]"/>
+            <field name="domain_force">['|', ('user_id', '=', user.id), ('user_id', 'in', user.mis_scope_uids or [])]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="rule_mis_performance_user" model="ir.rule">
+            <field name="name">MIS Performance: User sees their coachees only</field>
+            <field name="model_id" ref="model_mis_performance_line"/>
+            <field name="groups" eval="[(4, ref('mis_report_kgrn.group_mis_user'))]"/>
+            <field name="domain_force">[('user_id', 'in', user.mis_coachee_uids or [])]</field>
             <field name="perm_read">1</field>
             <field name="perm_write">0</field>
             <field name="perm_create">0</field>

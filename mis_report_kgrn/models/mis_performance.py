@@ -1,6 +1,7 @@
 from dateutil.relativedelta import relativedelta
 
-from odoo import models, fields, api, tools
+from odoo import models, fields, api, tools, _
+from odoo.exceptions import AccessError
 
 
 # ── Timesheet-weighted revenue allocation (HR-PMS-001 §E1) ────────────────
@@ -791,6 +792,58 @@ class MisPerformanceLine(models.Model):
         """.replace('%(task_weights)s', _task_weight_ctes(16))
                              % self._table)
 
+    # ── Who is assigned to me? (Team Performance screen) ─────────────────
+    @api.model
+    def get_scope_user_ids(self):
+        """User ids of everyone assigned to the CALLER on the employee form
+        — Manager field plus Coach field, de-duplicated, excluding the
+        caller.
+
+        Takes no argument and never answers about anybody else, so it is
+        safe for every MIS role. It exists so "Team Performance" means the
+        same thing for all of them: filtering on "not me" would hand an MIS
+        Admin the entire firm, because their record rule allows every row.
+        The rules stay the boundary — this only chooses which part of the
+        allowance the screen shows.
+        """
+        return self.env.user.mis_scope_uids or []
+
+    # ── Row-level authorisation for the raw-SQL RPC methods ──────────────
+    # The methods below read straight from Postgres with the employee/user
+    # handed to them by the caller, so neither the ir.model.access entry nor
+    # the record rules on this model apply to them, and call_kw does not
+    # check ACLs for an arbitrary @api.model method either. Now that MIS
+    # Managers and Coaches can reach the Performance screens, an unguarded
+    # argument would let anyone who can open one read ANY employee's revenue
+    # by editing the RPC payload — the "direct API call / request
+    # manipulation" hole, not merely a hidden button.
+    def _mis_assert_full_access(self, what):
+        if not (self.env.user.has_group('mis_report_kgrn.group_mis_admin')
+                or self.env.user.has_group('mis_report_kgrn.group_mis_hr')):
+            raise AccessError(_("You are not allowed to view %s.") % what)
+
+    def _mis_assert_employee_access(self, employee_id, user_id):
+        """Re-run the record rules against the requested employee.
+
+        Admin and MIS HR short-circuit: they may read every scorecard, and
+        an employee who happens to have no row yet must not look like an
+        access failure to them.
+        """
+        if (self.env.user.has_group('mis_report_kgrn.group_mis_admin')
+                or self.env.user.has_group('mis_report_kgrn.group_mis_hr')):
+            return
+        if employee_id:
+            domain = [('employee_id', '=', int(employee_id))]
+        elif user_id:
+            domain = [('user_id', '=', int(user_id))]
+        else:
+            raise AccessError(_("No employee given for the revenue breakdown."))
+        # search_count goes through _apply_ir_rules, so this is exactly the
+        # scope the list view itself is filtered by.
+        if not self.search_count(domain, limit=1):
+            raise AccessError(
+                _("You are not allowed to view this employee's performance."))
+
     # ── Revenue breakdown (for the OWL wizard) ───────────────────────────
     @api.model
     def get_revenue_breakdown(self, employee_id, user_id, period_date):
@@ -805,6 +858,7 @@ class MisPerformanceLine(models.Model):
         share_pct, so the number on the scorecard can be traced back to the
         timesheets behind it. `period_date` is any date within the month
         ('YYYY-MM-DD')."""
+        self._mis_assert_employee_access(employee_id, user_id)
         uid = user_id or 0
         cr = self.env.cr
 
@@ -1255,7 +1309,14 @@ class MisPerformanceLine(models.Model):
     def get_overdue_invoices(self):
         """Full aging list of unpaid, past-due customer invoices. Amounts
         are converted to AED using the latest available currency rate (same
-        convention as the CTC INR→AED conversion in init())."""
+        convention as the CTC INR→AED conversion in init()).
+
+        Firm-wide AR with no per-user scoping of its own, so it stays with
+        the roles that may already see every row: Admin and MIS HR. A
+        Manager or Coach never reaches it — the Performance Management
+        export that calls it is switched off on their screens — and asking
+        for it directly is refused rather than silently answered."""
+        self._mis_assert_full_access(_("the firm-wide overdue invoice list"))
         self.env.cr.execute("""
             SELECT
                 am.name,

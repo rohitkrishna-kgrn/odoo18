@@ -7,4 +7,3 @@ from . import mis_project_revenue
 from . import mis_performance
 from . import mis_performance_report_log
 from . import mis_warning_notice
-from . import mis_coach_dashboard

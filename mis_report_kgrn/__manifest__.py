@@ -1,6 +1,6 @@
 {
     'name': 'MIS Dashboard',
-    'version': '18.0.3.6.2',
+    'version': '18.0.4.2.0',
     'summary': 'Project-wise MIS Dashboard & Outstanding Report',
     'category': 'Project',
     'author': 'KGRN',
@@ -23,7 +23,6 @@
         'views/mis_res_users_view.xml',
         'views/mis_revenue_role_views.xml',
         'views/mis_employee_views.xml',
-        'views/mis_coach_dashboard_views.xml',
         'views/mis_project_wise_views.xml',
         'views/mis_outstanding_views.xml',
         'views/mis_project_revenue_views.xml',
@@ -34,7 +33,7 @@
         'data/mis_warning_notice_data.xml',
         'views/mis_menus.xml',
         'data/mis_performance_scorecard_data.xml',
-        'data/mis_coach_group_data.xml',
+        'data/mis_coach_access_migration.xml',
     ],
     'assets': {
         'web.assets_backend': [

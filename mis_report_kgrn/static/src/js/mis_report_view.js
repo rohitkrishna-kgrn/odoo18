@@ -6,6 +6,7 @@ import { useService } from "@web/core/utils/hooks";
 import { Dialog } from "@web/core/dialog/dialog";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { formatMonetary, formatFloat, formatInteger } from "@web/views/fields/formatters";
+import { user } from "@web/core/user";
 
 // 'YYYY-MM' slice of a 'YYYY-MM-DD' date string — used to compare a
 // monthly-bucketed row (e.g. a Performance Management row keyed by the
@@ -447,6 +448,59 @@ REPORT_CONFIGS.mis_performance_operations = makePerformanceConfig(
 );
 REPORT_CONFIGS.mis_performance_other = makePerformanceConfig("other", "Other Teams Performance");
 
+// ── My Performance / Team Performance ────────────────────────────────────
+// The same scorecard, split in two so a supervisor never has to pick their
+// own line out of their team's:
+//
+//   My Performance    only the logged-in user's own rows.
+//   Team Performance  only OTHER people's rows.
+//
+// Both are pure narrowings of what the record rules on mis.performance.line
+// already allow (rule_mis_performance_manager / _user in
+// security/ir_rules.xml) — an MIS Manager is allowed themselves plus their
+// direct reports and coachees, a Coach is allowed their coachees only. So
+// "everything except me" IS the team, without the client ever being told
+// who the team is, and tampering with the domain can only ever return a
+// subset of the same permitted rows. The split is presentation; the rules
+// are the boundary.
+//
+// Unlike the three team dashboards these span every team — a manager's
+// reports and a coach's coachees are not confined to one — and carry NO
+// baseDomain, so a row whose employee has no team set still shows up
+// instead of silently vanishing.
+const ALL_PERFORMANCE_TEAMS = ["sales", "audit", "tax", "accounting",
+                               "einvoicing", "other"];
+
+function makeScopedPerformanceConfig(title, scope, defaultGroupBy) {
+    const config = makePerformanceConfig(ALL_PERFORMANCE_TEAMS, title);
+    config.baseDomain = [];
+    config.scope = scope;
+    config.defaultGroupBy = defaultGroupBy;
+    // The Performance Management export is firm-wide (it pulls every overdue
+    // invoice in the company via get_overdue_invoices, which is Admin/HR
+    // only server-side). Off here, so the button is not offered to somebody
+    // the server would refuse.
+    config.performanceManagementReport = false;
+    config.selectable = false;
+    // The Employee cell links through to the hr.employee form, which a
+    // Coach or an MIS Manager without HR rights cannot open — hr.employee
+    // read is group_hr_user only, everyone else gets hr.employee.public.
+    // (The name itself still shows: Many2one.convert_to_read resolves
+    // display_name as superuser, so the grid is fine.) Drop the link rather
+    // than hand them an access error on click.
+    config.columns = config.columns.map((col) =>
+        col.name === "employee_id" ? { ...col, open: null } : col
+    );
+    return config;
+}
+
+REPORT_CONFIGS.mis_performance_my = makeScopedPerformanceConfig(
+    "My Performance", "my", []
+);
+REPORT_CONFIGS.mis_performance_team = makeScopedPerformanceConfig(
+    "Team Performance", "team", ["employee_id"]
+);
+
 export class MisReportView extends Component {
     static template = "mis_report_kgrn.MisReportView";
     static props = ["*"];
@@ -525,12 +579,37 @@ export class MisReportView extends Component {
         return [...names];
     }
 
+    // My Performance vs Team Performance — see makeScopedPerformanceConfig.
+    // Narrowing only: whatever this adds, the record rules on the model have
+    // already decided which rows exist to be narrowed.
+    async scopedDomain() {
+        const domain = this.config.baseDomain ? [...this.config.baseDomain] : [];
+        if (this.config.scope === "my") {
+            domain.push(["user_id", "=", user.userId]);
+        } else if (this.config.scope === "team") {
+            // Asked of the server rather than expressed as "everyone but
+            // me". For a Manager or a Coach the two are the same, because
+            // their record rule already stops at the people assigned to
+            // them — but an MIS ADMIN is allowed every row, so "not me"
+            // would put the whole firm on a screen labelled Team. This
+            // returns only the caller's own Manager-field + Coach-field
+            // assignees (mis_scope_uids), so the screen means the same
+            // thing for every role, and an empty list correctly yields no
+            // rows for somebody who supervises nobody.
+            const scopeIds = await this.orm.call(
+                this.config.resModel, "get_scope_user_ids", []
+            );
+            domain.push(["user_id", "in", scopeIds || []]);
+        }
+        return domain;
+    }
+
     async load() {
         this.state.loading = true;
         try {
             const records = await this.orm.searchRead(
                 this.config.resModel,
-                this.config.baseDomain ? [...this.config.baseDomain] : [],
+                await this.scopedDomain(),
                 this.fieldNames
             );
             this.state.allRecords = records;
@@ -1277,3 +1356,5 @@ registry.category("actions").add("mis_project_revenue", MisReportView);
 registry.category("actions").add("mis_performance_sales", MisReportView);
 registry.category("actions").add("mis_performance_operations", MisReportView);
 registry.category("actions").add("mis_performance_other", MisReportView);
+registry.category("actions").add("mis_performance_my", MisReportView);
+registry.category("actions").add("mis_performance_team", MisReportView);

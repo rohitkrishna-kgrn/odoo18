@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- The MIS Coach group is gone: coaching is a property of the
+             employee record, not a permission. But 18 users held that group
+             as their ONLY MIS access (the old auto-sync put them there), and
+             deleting it would take their MIS Dashboard away without anyone
+             asking for that. This gives those users MIS User instead, so
+             what they can see is unchanged: their own rows plus their
+             coachees', now via rule_mis_*_user.
+
+             Deliberately OUTSIDE noupdate="1" so it also re-runs on a later
+             -u; it is a no-op once the group has been dropped, and it never
+             touches archived users. It must run while the group still
+             exists — data files load before ir.model.data._process_end
+             deletes records the module no longer declares. -->
+        <function model="res.users" name="_mis_migrate_coach_group"/>
+
+    </data>
+</odoo>
