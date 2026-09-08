@@ -20,8 +20,9 @@
                 <field name="date_received"/>
                 <field name="tag_id" widget="badge" decoration-info="state == 'new'"/>
                 <field name="name" string="Subject"/>
-                <field name="email_from"/>
+                <field name="email_from" string="From (Client)"/>
                 <field name="contact_name" optional="show"/>
+                <field name="forwarded_by" string="Forwarded By" optional="hide"/>
                 <field name="server_id" optional="hide"/>
                 <field name="attachment_count" string="Files" optional="hide"/>
                 <field name="user_id" string="Assigned To" optional="show" widget="many2one_avatar_user"/>
@@ -74,8 +75,13 @@
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                         <group>
-                            <field name="email_from"/>
+                            <field name="email_from" string="From (Client)"
+                                   placeholder="No external sender identified"/>
                             <field name="contact_name"/>
+                            <!-- Only ever filled when a colleague forwarded the
+                                 mail in: the client above was read out of the
+                                 forwarded content, not off the From header. -->
+                            <field name="forwarded_by" invisible="not forwarded_by"/>
                             <field name="email_to"/>
                             <field name="email_cc" invisible="not email_cc"/>
                         </group>
@@ -103,6 +109,7 @@
                             <group>
                                 <field name="message_id"/>
                                 <field name="email_from_raw"/>
+                                <field name="sender_source"/>
                             </group>
                         </page>
                     </notebook>
@@ -118,7 +125,7 @@
             <search string="Mail Leads">
                 <field name="name" string="Subject"/>
                 <field name="email_from" string="From"
-                       filter_domain="['|', ('email_from', 'ilike', self), ('contact_name', 'ilike', self)]"/>
+                       filter_domain="['|', '|', ('email_from', 'ilike', self), ('contact_name', 'ilike', self), ('forwarded_by', 'ilike', self)]"/>
                 <field name="tag_id"/>
                 <field name="server_id"/>
                 <field name="user_id"/>
@@ -132,11 +139,18 @@
                         domain="[('date_received', '&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
                 <filter name="filter_with_attachments" string="With Attachments"
                         domain="[('attachment_ids', '!=', False)]"/>
+                <separator/>
+                <filter name="filter_forwarded" string="Forwarded by Staff"
+                        domain="[('forwarded_by', '!=', False)]"/>
+                <filter name="filter_no_sender" string="Sender Not Identified"
+                        domain="[('email_from', '=', False)]"/>
                 <group expand="0" string="Group By">
                     <filter name="group_tag" string="Tag" context="{'group_by': 'tag_id'}"/>
                     <filter name="group_server" string="Mailbox" context="{'group_by': 'server_id'}"/>
                     <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
                     <filter name="group_user" string="Assigned To" context="{'group_by': 'user_id'}"/>
+                    <filter name="group_forwarded_by" string="Forwarded By"
+                            context="{'group_by': 'forwarded_by'}"/>
                     <filter name="group_date" string="Received On" context="{'group_by': 'date_received:day'}"/>
                 </group>
             </search>

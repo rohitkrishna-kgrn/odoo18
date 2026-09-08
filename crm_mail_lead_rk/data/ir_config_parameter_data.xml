@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- noupdate: this is a setting the business edits (Settings > Technical >
+         System Parameters). A module upgrade must never push the default back
+         over their list. -->
+    <data noupdate="1">
+
+        <record id="param_internal_domains" model="ir.config_parameter">
+            <field name="key">crm_mail_lead_rk.internal_domains</field>
+            <field name="value">kgrnaudit.com</field>
+        </record>
+
+    </data>
+</odoo>

@@ -23,9 +23,35 @@ class CrmMailLead(models.Model):
         store=True, readonly=True, index=True,
         help="Which inbox this mail arrived in.")
 
-    email_from = fields.Char(string='From', readonly=True, index=True)
+    email_from = fields.Char(
+        string='From', readonly=True, index=True,
+        help="The external client this mail is really from. When a colleague "
+             "forwards an enquiry, this is the original sender read out of the "
+             "forwarded mail — not the colleague, who is shown under "
+             "'Forwarded By'. Empty means the mail came from an internal "
+             "address and no external client could be identified in it — the "
+             "mail is still imported in full, it simply has no client to "
+             "show.")
     email_from_raw = fields.Char(string='From (raw)', readonly=True)
     contact_name = fields.Char(string='Contact Name', readonly=True)
+    forwarded_by = fields.Char(
+        string='Forwarded By', readonly=True, index=True,
+        help="The internal colleague whose address was on the From header. "
+             "Set whenever the mail came in from an @kgrnaudit.com address — "
+             "forwarded or not — so the sender is never lost even though it "
+             "is kept out of From (Client). Empty when the client wrote in "
+             "directly.")
+    sender_source = fields.Selection(
+        [('header', 'From header'),
+         ('forwarded', 'Forwarded header block'),
+         ('headers', 'Forwarding headers'),
+         ('body', 'Address in the message body'),
+         ('unknown', 'Not identified'),
+         ('internal', 'Internal mail, no client found')],
+        string='Sender Identified From', readonly=True, default='header',
+        help="How the From address above was worked out. Anything other "
+             "than 'From header' means the mail arrived forwarded by internal "
+             "staff and the client was read out of its content.")
     email_to = fields.Char(string='To', readonly=True)
     email_cc = fields.Char(string='Cc', readonly=True)
     date_received = fields.Datetime(string='Received On', readonly=True, index=True)
@@ -177,12 +203,15 @@ class CrmMailLead(models.Model):
             lead.message_post(
                 body=_(
                     "Created from the Mail Lead <b>%(subject)s</b> received on "
-                    "%(date)s in the %(tag)s mailbox, from %(sender)s. "
+                    "%(date)s in the %(tag)s mailbox, from %(sender)s.%(forwarded)s "
                     "Assigned to %(user)s by %(actor)s.",
                     subject=record.name or '',
                     date=fields.Datetime.to_string(record.date_received) or '',
                     tag=record.tag_id.display_name or _("(untagged)"),
-                    sender=record.email_from_raw or record.email_from or '',
+                    sender=record.email_from or _("an unidentified sender"),
+                    forwarded=(
+                        _(" Forwarded by %s.", record.forwarded_by)
+                        if record.forwarded_by else ''),
                     user=user.display_name,
                     actor=self.env.user.display_name,
                 ),
