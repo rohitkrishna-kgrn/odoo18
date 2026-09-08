@@ -132,7 +132,7 @@
                 <link rel="icon" type="image/png"
                       t-att-href="logo_src or ('/web/image/res.company/%s/logo' % logo_company.id)"/>
                 <link rel="stylesheet" href="/web/static/lib/bootstrap/css/bootstrap.css"/>
-                <link rel="stylesheet" href="/crm_extended_rk/static/src/css/discovery_form.css"/>
+                <link rel="stylesheet" href="/crm_extended_rk/static/src/css/discovery_form.css?v=1.43"/>
             </head>
             <body class="disc-body">
                 <t t-out="0"/>
@@ -255,7 +255,7 @@
                  entities such as &amp; correctly; script-tag text would not). -->
             <input type="hidden" class="disc-prefill-json" t-att-value="prefill_json"/>
             <input type="hidden" class="disc-submitted-json" t-att-value="submitted_payload or '{}'"/>
-            <script src="/crm_extended_rk/static/src/js/discovery_form.js"/>
+            <script src="/crm_extended_rk/static/src/js/discovery_form.js?v=1.43"/>
         </t>
     </template>
 

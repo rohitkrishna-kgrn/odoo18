@@ -156,20 +156,33 @@
         // ============================================================
         // Field interactions: choice styling + "Other" manual input
         // ============================================================
+        function syncChoiceStyles(field) {
+            field.querySelectorAll(".disc-choice").forEach(function (c) {
+                var inp = c.querySelector("input");
+                c.classList.toggle("is-selected", !!(inp && inp.checked));
+            });
+        }
+
         function setupFieldInteractions(scope) {
             scope.querySelectorAll(".disc-choice input").forEach(function (input) {
                 input.addEventListener("change", function () {
                     var field = input.closest(".disc-field, .disc-efield");
-                    if (input.type === "radio" && field) {
-                        field.querySelectorAll(".disc-choice").forEach(function (c) {
-                            c.classList.remove("is-selected");
+                    // The radios carry no `name` (entity blocks are cloned, so a
+                    // shared name would tie separate entities together), so the
+                    // single-choice rule is enforced here.
+                    if (input.type === "radio" && input.checked && field) {
+                        field.querySelectorAll(".disc-opt").forEach(function (o) {
+                            if (o !== input) { o.checked = false; }
                         });
                     }
-                    var label = input.closest(".disc-choice");
-                    if (label) { label.classList.toggle("is-selected", input.checked); }
-                    if (field) { updateOther(field); }
+                    if (field) { syncChoiceStyles(field); updateOther(field); }
+                    else {
+                        var label = input.closest(".disc-choice");
+                        if (label) { label.classList.toggle("is-selected", input.checked); }
+                    }
                 });
             });
+            setupRadioDeselect(scope);
             scope.querySelectorAll("select.disc-value").forEach(function (sel) {
                 sel.addEventListener("change", function () {
                     var field = sel.closest(".disc-field, .disc-efield");
@@ -181,6 +194,38 @@
                 if (field) { updateOther(field); }
             });
             setupFileInputs(scope);
+        }
+
+        // ============================================================
+        // Radio de-select: clicking the chosen option again clears it
+        // (a radio never fires `change` on a second click, so the toggle
+        // is driven from the click and applied after the browser has
+        // finished its own activation behaviour).
+        // ============================================================
+        function setupRadioDeselect(scope) {
+            scope.querySelectorAll(".disc-options-radio .disc-choice").forEach(function (label) {
+                var input = label.querySelector("input[type=radio]");
+                if (!input) { return; }
+                var wasChecked = false;
+                var remember = function () { wasChecked = input.checked; };
+                // pointerdown covers touch/pen, mousedown the browsers without it.
+                label.addEventListener("pointerdown", remember);
+                label.addEventListener("mousedown", remember);
+                label.addEventListener("keydown", function (ev) {
+                    if (ev.key === " " || ev.key === "Spacebar") { remember(); }
+                });
+                label.addEventListener("click", function (ev) {
+                    if (!wasChecked) { return; }
+                    wasChecked = false;
+                    // Stop the label forwarding the click (and the input's own
+                    // activation) from re-checking what we are about to clear.
+                    ev.preventDefault();
+                    window.setTimeout(function () {
+                        input.checked = false;
+                        input.dispatchEvent(new Event("change"));
+                    }, 0);
+                });
+            });
         }
 
         // ============================================================
