@@ -3,7 +3,7 @@ from collections import Counter
 from odoo import api, models, fields, _
 
 from .crm_lead_discovery_entity import entity_name_key
-from .crm_tag import APPROVED_TAG_DOMAIN
+from .crm_tag import APPROVED_TAG_DOMAIN, TAG_SYNC_CTX, log_tag_change
 from odoo.exceptions import UserError, ValidationError
 
 # Reference of the annual subscription service in the eInvoicing catalogue.
@@ -265,40 +265,13 @@ class SaleOrder(models.Model):
                 if not line.display_type and line.product_id
             )
 
-    def _einv_overage_is_shown(self):
-        """The orders where the Overage per 1,000 Invoices box is on screen.
-
-        The same two conditions as the view modifier and the proposal PDF row,
-        in one place so the three can never drift apart.
-        """
-        return self.filtered(
-            lambda o: o.einvoicing_service and o.has_asp_subscription)
-
-    def _check_einv_overage_filled(self):
-        """Refuse a blank rate on every order that displays the field.
-
-        `required` on a Monetary is ignored by the web client
-        (web/.../relational_model/record.js `_checkValidity` skips
-        float/integer/monetary), so the mandate is server-side only, and
-        @api.constrains alone was not enough: it fires only when one of its own
-        fields is written, so any save that touched something else slipped a
-        blank rate straight through. Called from create/write as well, which is
-        what makes it behave like a mandatory field on every save.
-        """
-        for order in self._einv_overage_is_shown():
-            if order.einv_overage_per_1000 <= 0:
-                raise ValidationError(_(
-                    "Overage per 1,000 Invoices is required on %s: the "
-                    "eInvoicing Service toggle is on and [S6] Annual ASP / "
-                    "Subscription Service is on the order lines. Enter the "
-                    "rate in the box above the Untaxed Amount.") % (order.name or _("this quotation")))
-
-    @api.constrains('einv_overage_per_1000', 'einvoicing_service', 'order_line')
+    # The rate is optional: a blank / 0.00 box saves and confirms like any
+    # other field. Only a negative amount is refused.
+    @api.constrains('einv_overage_per_1000')
     def _check_einv_overage_per_1000(self):
         for order in self:
             if order.einv_overage_per_1000 < 0:
                 raise ValidationError(_("Overage per 1,000 Invoices cannot be negative."))
-        self._check_einv_overage_filled()
 
     @api.constrains('entity_count')
     def _check_entity_count(self):
@@ -651,12 +624,29 @@ class SaleOrder(models.Model):
         """Picking an opportunity on the form pulls its tags straight in."""
         self._tags_from_opportunity()
 
+    def _tags_from_partner(self):
+        """Carry the tags already on the contact onto the quotation.
+
+        Additive, and the counterpart of _tags_from_opportunity for the
+        quotations raised straight off a contact, with no pipeline record
+        behind them to inherit from.
+        """
+        for order in self.filtered('partner_id'):
+            missing = order.partner_id._crm_tags() - order.tag_ids
+            if missing:
+                order.tag_ids = [(4, tag.id) for tag in missing]
+
+    @api.onchange('partner_id')
+    def _onchange_partner_id_tags(self):
+        """Picking the customer on the form fills its tags in straight away."""
+        for order in self.filtered('partner_id'):
+            # A recordset, not a command list: commands on an x2many in an
+            # onchange drop rows silently.
+            order.tag_ids |= order.partner_id._crm_tags()
+
     @api.model_create_multi
     def create(self, vals_list):
         orders = super().create(vals_list)
-        # A blank subscription overage rate never gets to exist in the first
-        # place (see _check_einv_overage_filled).
-        orders._check_einv_overage_filled()
         # A count supplied without rows (import, API, server action) still has
         # to produce the rows; the form already sent both and they agree.
         for order, vals in zip(orders, vals_list):
@@ -683,6 +673,10 @@ class SaleOrder(models.Model):
                 'proposal_created',
                 _("Proposal %s created") % order.name,
                 order_id=order.id)
+        # Tags travel between the quotation, its contact and its leads - see
+        # res_partner._sync_crm_tags.
+        orders._tags_from_partner()
+        self.env['res.partner']._apply_crm_tags_from(orders.filtered('tag_ids'), mirror=False)
         return orders
 
     def write(self, vals):
@@ -693,13 +687,13 @@ class SaleOrder(models.Model):
         newly_sent = self.env['sale.order']
         if vals.get('state') == 'sent':
             newly_sent = self.filtered(lambda o: o.state != 'sent')
+        # The sync writes its own chatter note, saying where the tags came from.
+        tags_before = ({order.id: order.tag_ids for order in self}
+                       if 'tag_ids' in vals and not self.env.context.get(TAG_SYNC_CTX) else {})
         res = super().write(vals)
-        # Mandatory on *every* save while the field is on screen, not only when
-        # the rate, the toggle or the lines are the thing being written - an
-        # edit to any other field used to save a blank rate silently (S07911
-        # did exactly that on 2026-09-07). A cancellation is left alone: a rate
-        # cannot be demanded of an order on its way to the bin.
-        self.filtered(lambda o: o.state != 'cancel')._check_einv_overage_filled()
+        for order in self:
+            if order.id in tags_before:
+                log_tag_change(order, tags_before[order.id], order.tag_ids)
         if 'entity_count' in vals and 'entity_ids' not in vals:
             self._sync_entity_rows()
         elif 'entity_ids' in vals and 'entity_count' not in vals:
@@ -713,6 +707,8 @@ class SaleOrder(models.Model):
                 _("Proposal %s shared with client") % order.name,
                 order_id=order.id)
             order.opportunity_id._journey_on_proposal_sent()
+        if 'tag_ids' in vals or 'partner_id' in vals:
+            self.env['res.partner']._apply_crm_tags_from(self)
         return res
 
     # Tags are optional on a quotation. They used to be enforced before the
@@ -734,11 +730,6 @@ class SaleOrder(models.Model):
         return res
 
     def action_confirm(self):
-        # Checked before super() so the missing rate is reported on the
-        # Confirm button itself rather than after the advance-payment wizard
-        # has been filled in (project_extended_rk opens one and returns
-        # without writing, so the write guard alone would fire a step late).
-        self._check_einv_overage_filled()
         res = super().action_confirm()
         # Confirmed order -> opportunity moves to "Won".
         self._set_opportunity_stage('crm.stage_lead4')

@@ -4,7 +4,7 @@ from datetime import timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
-from .crm_tag import APPROVED_TAG_DOMAIN
+from .crm_tag import APPROVED_TAG_DOMAIN, TAG_SYNC_CTX, log_tag_change
 from .discovery_schema import form_selection
 
 
@@ -330,6 +330,27 @@ class CrmLead(models.Model):
                 **vals))
         return events
 
+    def _tags_from_partner(self):
+        """Carry the tags already on the contact onto the lead.
+
+        Purely additive, and only from a contact that carries CRM tags - the
+        classification usually exists on the client long before the
+        opportunity does, so picking the client should not mean re-typing it.
+        """
+        for lead in self.filtered('partner_id'):
+            missing = lead.partner_id._crm_tags() - lead.tag_ids
+            if missing:
+                lead.tag_ids = [(4, tag.id) for tag in missing]
+
+    @api.onchange('partner_id')
+    def _onchange_partner_id_tags(self):
+        """Picking the client on the form (or the quick-create popup, where
+        Tags is mandatory) fills its tags in straight away."""
+        for lead in self.filtered('partner_id'):
+            # A recordset, not a command list: commands on an x2many in an
+            # onchange drop rows silently.
+            lead.tag_ids |= lead.partner_id._crm_tags()
+
     @api.model_create_multi
     def create(self, vals_list):
         leads = super().create(vals_list)
@@ -339,6 +360,10 @@ class CrmLead(models.Model):
                 _("Lead created"),
                 note=_("Source: %s") % (lead.source_id.name or _("not set")))
         leads._journey_on_lead_created()
+        # Tags travel between the lead, its contact and its quotations - see
+        # res_partner._sync_crm_tags.
+        leads._tags_from_partner()
+        self.env['res.partner']._apply_crm_tags_from(leads.filtered('tag_ids'), mirror=False)
         return leads
 
     def write(self, vals):
@@ -346,7 +371,15 @@ class CrmLead(models.Model):
         previous_stages = {}
         if 'stage_id' in vals:
             previous_stages = {lead.id: lead.stage_id for lead in self}
+        # The sync writes its own chatter note, saying where the tags came from.
+        tags_before = ({lead.id: lead.tag_ids for lead in self}
+                       if 'tag_ids' in vals and not self.env.context.get(TAG_SYNC_CTX) else {})
         res = super().write(vals)
+        for lead in self:
+            if lead.id in tags_before:
+                log_tag_change(lead, tags_before[lead.id], lead.tag_ids)
+        if 'tag_ids' in vals or 'partner_id' in vals:
+            self.env['res.partner']._apply_crm_tags_from(self)
         if previous_stages:
             for lead in self:
                 old_stage = previous_stages.get(lead.id)

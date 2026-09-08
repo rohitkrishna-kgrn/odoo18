@@ -93,8 +93,7 @@
                     <label for="einv_overage_per_1000"/>
                     <div class="text-end" style="width:120px;">
                         <field name="einv_overage_per_1000" nolabel="1"
-                               options="{'no_symbol': True}" class="oe_inline"
-                               required="einvoicing_service and has_asp_subscription"/>
+                               options="{'no_symbol': True}" class="oe_inline"/>
                     </div>
                     <field name="currency_id" nolabel="1" readonly="1"
                            options="{'no_open': True}" class="oe_inline"/>

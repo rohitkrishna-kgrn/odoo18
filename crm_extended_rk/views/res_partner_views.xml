@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Contacts pick from the CRM tag list and nothing else: no "Create"
+         link, and no editing a tag from the contact form. The list itself is
+         restricted by the domain on res.partner.category_id
+         (models/res_partner.py), so these views only need the options that
+         hide the create links - the same split the CRM views use. -->
+    <record id="view_partner_form_tags_no_create" model="ir.ui.view">
+        <field name="name">res.partner.form.tags.no.create</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <field name="category_id" position="attributes">
+                <attribute name="options">{'color_field': 'color', 'no_create': True, 'no_create_edit': True}</attribute>
+                <attribute name="placeholder">e.g. DIRECT, MAINLAND</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_partner_tree_tags_no_create" model="ir.ui.view">
+        <field name="name">res.partner.list.tags.no.create</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <field name="category_id" position="attributes">
+                <attribute name="options">{'color_field': 'color', 'no_create': True, 'no_create_edit': True}</attribute>
+            </field>
+        </field>
+    </record>
+
+</odoo>
