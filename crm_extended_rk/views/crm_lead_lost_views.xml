@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- "Mark Lost" popup: drop the crm.lost.reason dropdown and let the user
+         type the reason by hand. lost_reason_id is kept in the arch but
+         hidden so nothing that anchors on it breaks. -->
+    <record id="crm_lead_lost_view_form_manual_reason" model="ir.ui.view">
+        <field name="name">crm.lead.lost.form.manual.reason</field>
+        <field name="model">crm.lead.lost</field>
+        <field name="inherit_id" ref="crm.crm_lead_lost_view_form"/>
+        <field name="arch" type="xml">
+            <field name="lost_reason_id" position="attributes">
+                <attribute name="invisible">1</attribute>
+                <attribute name="required">0</attribute>
+            </field>
+            <field name="lost_reason_id" position="after">
+                <field name="lost_reason_text" placeholder="Type the reason this was lost"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>

@@ -1,6 +1,7 @@
 from . import sale_order
 from . import sale_order_invoice_wizard
 from . import crm_lead
+from . import crm_lead_lost
 from . import crm_lead_event
 from . import crm_lead_journey_report
 from . import mail_activity

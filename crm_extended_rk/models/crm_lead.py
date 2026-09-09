@@ -50,6 +50,11 @@ class CrmLead(models.Model):
         'sale.order', string='Sale Order', copy=False, readonly=True,
         help="Quotation / sale order created from this pipeline.")
 
+    # Free-text reason captured by the "Mark Lost" popup (which no longer
+    # offers the crm.lost.reason dropdown). The legacy lost_reason_id is kept
+    # for opportunities lost before this change but is never written to now.
+    lost_reason_note = fields.Char(string='Lost Reason', copy=False, tracking=True)
+
     stage_reason_ids = fields.One2many(
         'crm.lead.stage.reason', 'lead_id', string='Qualification Reasons', copy=False)
 

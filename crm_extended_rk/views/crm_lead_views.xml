@@ -20,6 +20,13 @@
                 <field name="is_stage_not_qualified" invisible="1"/>
             </xpath>
 
+            <!-- Free-text lost reason typed in the "Mark Lost" popup. Lost
+                 opportunities stay active here (parked in the Lost stage), so
+                 key the visibility off the stage, not the archive flag. -->
+            <xpath expr="//field[@name='lost_reason_id']" position="after">
+                <field name="lost_reason_note" invisible="not is_stage_lost" readonly="1"/>
+            </xpath>
+
             <!-- Notebook tab: reasons logged whenever the lead is moved to/from
                  Not Qualified via the header buttons. Read-only audit trail;
                  entries are only ever created through the reason wizard. -->

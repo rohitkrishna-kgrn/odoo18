@@ -201,12 +201,25 @@ class SaleOrder(models.Model):
 
     def _inverse_entity_total_display(self):
         Entity = self.env['sale.order.entity']
+        cache = self.env.cache
         for order in self:
-            # Both cells are read before either is written: they share one
-            # compute, so writing the inbound number first would recompute -
-            # and so drop - an outbound number typed in the same save.
-            typed = {side: order['entity_%s_total_display' % side]
-                     for side in ('inbound', 'outbound')}
+            # Only the cells this save actually carried are looked at, for the
+            # same reason as on the rows (see
+            # sale.order.entity._inverse_count_display): the two share one
+            # compute, so the ORM protects both while either is written and the
+            # untouched one reads back as False - which would silently drop a
+            # figure typed into the other total. A cell the client never sent
+            # is not a cleared cell.
+            #
+            # Whatever is there is read before either is written, too: the
+            # shared compute means writing the inbound number first would
+            # recompute - and so drop - an outbound number typed in the same
+            # save.
+            typed = {}
+            for side in ('inbound', 'outbound'):
+                field = self._fields['entity_%s_total_display' % side]
+                if cache.contains(order, field):
+                    typed[side] = order['entity_%s_total_display' % side]
             vals = {}
             for side, raw in typed.items():
                 count, filled = Entity._parse_count(raw)

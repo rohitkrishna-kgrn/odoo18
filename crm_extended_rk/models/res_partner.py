@@ -73,7 +73,8 @@ class ResPartner(models.Model):
             records = (list(leads_by_partner.get(partner, Lead))
                        + list(orders_by_partner.get(partner, Order)))
             for record in records:
-                if source is not None and record in source:
+                if (source is not None and record._name == source._name
+                        and record in source):
                     continue
                 keep = record.tag_ids.filtered(lambda t: not t.selectable) if mirror else record.tag_ids
                 self._set_tags_safely(record, 'tag_ids', keep | tags, source)

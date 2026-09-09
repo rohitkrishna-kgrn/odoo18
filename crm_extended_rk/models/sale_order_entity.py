@@ -144,12 +144,24 @@ class SaleOrderEntity(models.Model):
                 if entity.outbound_count_set else '')
 
     def _inverse_count_display(self):
+        cache = self.env.cache
         for entity in self:
-            # Both cells are read before anything is written: they share one
-            # compute, so writing the inbound integer first would recompute —
-            # and so drop — an outbound value typed in the same edit.
-            typed = {'inbound': entity.inbound_count_display,
-                     'outbound': entity.outbound_count_display}
+            # Only the cells this save actually carried are looked at. The two
+            # share one compute, so the ORM protects both while either is being
+            # written and the untouched one reads back as False — which, taken
+            # at face value, reads as "the user emptied it" and wipes a count
+            # nobody touched. A cell the client never sent is not a cleared
+            # cell: emptying one has to be typed, by hand, into that cell.
+            #
+            # Whatever is there is read before anything is written, too: the
+            # shared compute means writing the inbound integer first would
+            # recompute — and so drop — an outbound value typed in the same
+            # edit.
+            typed = {}
+            for side in ('inbound', 'outbound'):
+                field = self._fields['%s_count_display' % side]
+                if cache.contains(entity, field):
+                    typed[side] = entity['%s_count_display' % side]
             vals = {}
             for side, raw in typed.items():
                 count, filled = entity._parse_count(raw)
@@ -167,9 +179,11 @@ class SaleOrderEntity(models.Model):
                 continue
             # A typed number is no longer the form's, so the badge says so and
             # the fetch button knows to leave it alone.
+            # Both sides, not just the ones typed into: a row still carrying
+            # an untouched count on the other side is still filled in.
             still_filled = any(
                 vals.get('%s_count_set' % side, entity['%s_count_set' % side])
-                for side in typed)
+                for side in ('inbound', 'outbound'))
             vals['discovery_state'] = 'manual' if still_filled else 'none'
             entity.write(vals)
 

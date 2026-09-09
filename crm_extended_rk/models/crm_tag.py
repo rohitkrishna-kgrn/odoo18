@@ -52,7 +52,9 @@ def log_tag_change(record, before, after, source=None):
     if removed:
         parts.append(Markup("<b>removed</b> %s") % ", ".join(removed.mapped('display_name')))
     detail = Markup(" &middot; ").join(parts)
-    from_elsewhere = source is not None and record not in source
+    # `in` on a recordset raises across models, so compare the model first.
+    from_elsewhere = source is not None and not (
+        record._name == source._name and record in source)
     name = source.display_name if from_elsewhere and len(source) == 1 else None
     if name:
         body = Markup("Tags synced from %s &mdash; %s") % (name, detail)
