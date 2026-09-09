@@ -22,6 +22,12 @@ LOGO_PATH = 'proposal_workflow_extended_rk/static/src/img/logo-kgrn.png'
 
 RECURRING_RE = re.compile(r'annual|subscription', re.IGNORECASE)
 
+# Catalogue services billed as a recurring annual fee rather than a one-time
+# engagement fee, regardless of what their service name reads as. S6 (Annual
+# ASP / Subscription) also matches RECURRING_RE; S7A (Standard Support) does
+# not, so it is listed here explicitly.
+RECURRING_CODES = frozenset({'S6', 'S7A'})
+
 
 class ReportProposalMixin(models.AbstractModel):
     """Shared values for both halves of the proposal (see report_paperformat.xml
@@ -96,8 +102,9 @@ class ReportProposalMixin(models.AbstractModel):
     # ── service narratives (Sections 3-6) ─────────────────────────────────
     @api.model
     def _fee_structure(self, code, name):
-        """pdf.js: S6 or an 'annual'/'subscription' name reads as recurring."""
-        recurring = (code or '').upper() == 'S6' or bool(RECURRING_RE.search(name or ''))
+        """pdf.js: a RECURRING_CODES service or an 'annual'/'subscription' name
+        reads as recurring."""
+        recurring = (code or '').upper() in RECURRING_CODES or bool(RECURRING_RE.search(name or ''))
         return {
             'recurring': recurring,
             'label': 'Annual · Recurring' if recurring else 'One-time / Fixed',
@@ -178,13 +185,18 @@ class ReportProposalMixin(models.AbstractModel):
     def _overage_row(self, order):
         """The S6 overage rate, printed under the priced services.
 
-        Printed for every eInvoicing engagement carrying S6 — the same two
+        Printed for an eInvoicing engagement carrying S6 — the same two
         conditions that show the field on the quotation, so the proposal never
-        states a rate the salesperson cannot see. The amount is whatever was
-        typed there: no default, no formula, and no part in the subtotal, VAT
-        or total, which is why it sits below the last service row.
+        states a rate the salesperson cannot see — and only once a rate has
+        actually been typed. An empty box says nothing about overage, so the
+        row is left out entirely rather than quoting "AED 0.00", which reads as
+        a promise that overage is free. The amount is whatever was typed there:
+        no default, no formula, and no part in the subtotal, VAT or total,
+        which is why it sits below the last service row.
         """
         if not order.einvoicing_service or not order.has_asp_subscription:
+            return None
+        if order.einv_overage_per_1000 <= 0:
             return None
         return {
             'label': 'Overage per 1,000 Invoices',
