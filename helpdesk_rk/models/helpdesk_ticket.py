@@ -156,6 +156,29 @@ class HelpdeskTicket(models.Model):
                 count += 1
             rec.unread_count = count
 
+    @api.model
+    def get_unread_chat_notifications(self):
+        """Snapshot of open tickets with unread conversation messages for the
+        current user - the creator's own tickets, and whatever a support
+        agent is assigned. Shown once as toasts the moment the user opens
+        Odoo (see ticket_open_notification_service.js), which is the only
+        way to surface messages that arrived while they were logged out:
+        the live bus toast in chat_notification_service.js only fires for
+        messages sent while the user's session is already connected."""
+        tickets = self.search([
+            ('stage_id', 'not in', ('draft', 'done', 'rejected')),
+            '|', ('user_id', '=', self.env.uid), ('assigned_user_id', '=', self.env.uid),
+        ])
+        return [
+            {
+                'ticket_id': ticket.id,
+                'ticket_number': ticket.ticket_number,
+                'ticket_name': ticket.name,
+                'unread_count': ticket.unread_count,
+            }
+            for ticket in tickets if ticket.unread_count
+        ]
+
     def mark_chat_read(self):
         self.ensure_one()
         Read = self.env['helpdesk_rk.ticket.chat.read'].sudo()
