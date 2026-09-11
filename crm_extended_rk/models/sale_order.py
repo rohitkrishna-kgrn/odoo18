@@ -9,6 +9,11 @@ from odoo.exceptions import UserError, ValidationError
 # Reference of the annual subscription service in the eInvoicing catalogue.
 ASP_SUBSCRIPTION_CODE = 'S6'
 
+# Order lines drive project/task creation 1:1 with quantity (see
+# project_extended_rk._create_project_and_tasks), so an unbounded quantity
+# would spawn that many tasks. Cap it here.
+MAX_ORDER_LINE_QTY = 50
+
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
@@ -820,6 +825,31 @@ class SaleOrderLine(models.Model):
     def _onchange_product_id_fetch_estimated_hours(self):
         if self.product_id:
             self.estimated_hours = self.product_id.product_tmpl_id.estimated_hours  # get from product template
+
+    @api.onchange('product_uom_qty')
+    def _onchange_product_uom_qty_max_limit(self):
+        if self.product_uom_qty > MAX_ORDER_LINE_QTY:
+            self.product_uom_qty = 0
+            return {
+                'warning': {
+                    'title': _("Quantity Limit Exceeded"),
+                    'message': _(
+                        "Quantity cannot exceed %(max)s. Please re-enter the quantity.",
+                        max=MAX_ORDER_LINE_QTY,
+                    ),
+                }
+            }
+
+    @api.constrains('product_uom_qty')
+    def _check_product_uom_qty_max_limit(self):
+        for line in self:
+            if line.product_uom_qty > MAX_ORDER_LINE_QTY:
+                raise ValidationError(_(
+                    "Quantity cannot exceed %(max)s. Line '%(line)s' has a quantity of %(qty)s.",
+                    max=MAX_ORDER_LINE_QTY,
+                    line=line.name or line.product_id.display_name,
+                    qty=line.product_uom_qty,
+                ))
 
     @api.onchange('manager_id')
     def _onchange_manager_id_dedicated_check(self):
