@@ -200,7 +200,7 @@ class SaleOrder(models.Model):
             'date': order_line.engagement_end,
             'auto_invoice': sale_order.auto_invoice,
             'budgeted_amount': advance_diff,
-            'billable_type': sale_order.billable_type 
+            'billable_type': sale_order.billable_type
         }
 
         project = Project.create(project_vals)

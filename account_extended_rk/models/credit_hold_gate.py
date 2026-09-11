@@ -7,34 +7,28 @@ from .res_partner_credit_hold import CREDIT_HOLD_OVERDUE_DAYS
 class ResPartnerCreditHoldGate(models.Model):
     _inherit = 'res.partner'
 
-    def _credit_hold_consume_or_block(self, scope, description):
+    def _credit_hold_block(self, description):
         """Gatekeeper for every restricted flow.
 
-        Returns the override that should be burned once the record exists, or
-        an empty recordset when the customer is not on hold. Raises when the
-        customer is on hold and no Managing Partner override is waiting.
+        Raises when the customer is on hold. A Managing Partner override
+        releases the hold immediately (see credit_hold_override.py), so by
+        the time a record can be created there is nothing left to check for
+        here beyond the flag itself.
         """
         if not self:
-            return self.env['res.partner.credit.hold.override']
+            return
 
         partner = self.commercial_partner_id
         if not partner.credit_hold:
-            return self.env['res.partner.credit.hold.override']
-
-        override = self.env['res.partner.credit.hold.override']._find_available(
-            partner, scope,
-        )
-        if override:
-            return override
+            return
 
         raise UserError(_(
             "%(customer)s is on CREDIT HOLD — %(description)s cannot be created.\n\n"
             "%(count)s invoice(s) totalling %(amount)s are more than %(days)s days "
             "past due (oldest %(age)s days), on hold since %(since)s.\n\n"
             "Either clear the outstanding balance, or ask a Managing Partner to "
-            "record an override with a reason on the customer record "
-            "(Credit Hold tab → Override Credit Hold). An override authorises one "
-            "record only and does not lift the hold.",
+            "override and release the hold on the customer record "
+            "(Credit Hold tab → Override Credit Hold).",
             customer=partner.display_name,
             description=description,
             count=len(partner.credit_hold_invoice_ids),
@@ -60,26 +54,15 @@ class ProjectProject(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        # Which override (if any) covers each project about to be created.
-        # Resolved before super() so a blocked create never touches the
-        # database, and consumed after so the log can name the project.
-        overrides = []
         for vals in vals_list:
             partner = self.env['res.partner'].browse(vals.get('partner_id'))
             if not partner and vals.get('sale_order_id'):
                 partner = self.env['sale.order'].browse(
                     vals['sale_order_id']).partner_id
-            overrides.append(
-                partner._credit_hold_consume_or_block('project', _("a new project"))
-                if partner else self.env['res.partner.credit.hold.override']
-            )
+            if partner:
+                partner._credit_hold_block(_("a new project"))
 
-        projects = super().create(vals_list)
-
-        for project, override in zip(projects, overrides):
-            if override:
-                override._consume(project)
-        return projects
+        return super().create(vals_list)
 
 
 class SaleOrder(models.Model):
@@ -97,36 +80,18 @@ class SaleOrder(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        overrides = []
         for vals in vals_list:
             partner = self.env['res.partner'].browse(vals.get('partner_id'))
-            overrides.append(
-                partner._credit_hold_consume_or_block('proposal', _("a new proposal"))
-                if partner else self.env['res.partner.credit.hold.override']
-            )
+            if partner:
+                partner._credit_hold_block(_("a new proposal"))
 
-        orders = super().create(vals_list)
-
-        for order, override in zip(orders, overrides):
-            if override:
-                override._consume(order)
-        return orders
+        return super().create(vals_list)
 
     def action_submit_for_approval(self):
         # A proposal drafted before the hold landed must not sail through
         # approval afterwards, so submission is gated as well as creation.
-        # An override already burned on *this* order still covers it, though —
-        # otherwise authorising a proposal would take two overrides, one to
-        # draft it and another to submit it.
-        Override = self.env['res.partner.credit.hold.override']
         for order in self.filtered(lambda o: o.partner_id):
-            if Override._already_consumed_on(order):
-                continue
-            override = order.partner_id._credit_hold_consume_or_block(
-                'proposal', _("proposal %s", order.name),
-            )
-            if override:
-                override._consume(order)
+            order.partner_id._credit_hold_block(_("proposal %s", order.name))
         return super().action_submit_for_approval()
 
     @api.onchange('partner_id')

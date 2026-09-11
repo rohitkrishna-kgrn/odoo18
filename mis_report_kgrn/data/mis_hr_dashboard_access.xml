@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- group_mis_hr implies group_mis_user (2026-09-10) so MIS HR also
+             sees the default MIS User view of Project Wise / Revenue /
+             Outstandings. security/groups.xml holds the implication for
+             fresh installs but is noupdate="1", so an existing DB is fixed
+             here instead. Outside noupdate so it re-runs on a later -u;
+             idempotent once the implication exists. -->
+        <function model="res.users" name="_mis_grant_hr_dashboard_access"/>
+
+    </data>
+</odoo>

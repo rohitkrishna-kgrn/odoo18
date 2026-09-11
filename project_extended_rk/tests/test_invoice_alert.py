@@ -88,7 +88,7 @@ class TestEngagementInvoiceAlert(TransactionCase):
             'partner_id': self.partner.id,
             'invoice_date': self.today,
             # account_extended_rk makes this mandatory on customer invoices.
-            'ar_responsible_id': self.manager.id,
+            'ar_responsible_ids': [(6, 0, self.manager.ids)],
             'invoice_date_due': self.today + timedelta(days=due_offset_days),
             'invoice_line_ids': [(0, 0, {
                 'product_id': self.product.id,

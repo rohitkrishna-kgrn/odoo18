@@ -447,7 +447,7 @@
         <field name="arch" type="xml">
             <list string="AML Requests" decoration-danger="state in ('hit_detected','rejected','cancelled')"
                   decoration-success="state in ('no_hit','approved','bypassed')"
-                  decoration-warning="state == 'additional_info'">
+                  decoration-warning="state == 'additional_info' or display_status == 'overridden'">
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="kyc_type"/>
@@ -455,11 +455,12 @@
                 <field name="aml_user_id"/>
                 <field name="deadline"/>
                 <field name="start_datetime" optional="hide"/>
-                <field name="state" widget="badge"
-                    decoration-success="state in ('no_hit','approved','bypassed')"
-                    decoration-danger="state in ('hit_detected','rejected','cancelled')"
-                    decoration-warning="state in ('new','additional_info')"
-                    decoration-info="state in ('accepted','in_progress')"/>
+                <field name="state" column_invisible="1"/>
+                <field name="display_status" widget="badge" string="Status"
+                    decoration-success="display_status in ('no_hit','approved','bypassed')"
+                    decoration-danger="display_status in ('hit_detected','rejected','cancelled')"
+                    decoration-warning="display_status in ('new','additional_info','overridden')"
+                    decoration-info="display_status in ('accepted','in_progress')"/>
             </list>
         </field>
     </record>

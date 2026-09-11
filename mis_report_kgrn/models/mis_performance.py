@@ -792,22 +792,6 @@ class MisPerformanceLine(models.Model):
         """.replace('%(task_weights)s', _task_weight_ctes(16))
                              % self._table)
 
-    # ── Who is assigned to me? (Team Performance screen) ─────────────────
-    @api.model
-    def get_scope_user_ids(self):
-        """User ids of everyone assigned to the CALLER on the employee form
-        — Manager field plus Coach field, de-duplicated, excluding the
-        caller.
-
-        Takes no argument and never answers about anybody else, so it is
-        safe for every MIS role. It exists so "Team Performance" means the
-        same thing for all of them: filtering on "not me" would hand an MIS
-        Admin the entire firm, because their record rule allows every row.
-        The rules stay the boundary — this only chooses which part of the
-        allowance the screen shows.
-        """
-        return self.env.user.mis_scope_uids or []
-
     # ── Row-level authorisation for the raw-SQL RPC methods ──────────────
     # The methods below read straight from Postgres with the employee/user
     # handed to them by the caller, so neither the ir.model.access entry nor

@@ -56,42 +56,22 @@
         groups="mis_report_kgrn.group_mis_user"/>
 
     <!-- Performance Management.
-         The parent is open to every MIS role because My/Team Performance
-         live under it; ir_ui_menu filters by groups PARENT-FIRST, so a
-         narrower parent would hide those two from Managers and Coaches no
-         matter what their own groups say. The firm-wide children below stay
-         restricted to Admin + MIS HR. -->
+         My Performance and Team Performance were removed 2026-09-09 (for
+         everyone, not just MIS User) — see static/src/js/mis_report_view.js
+         and mis_performance_views.xml. Every remaining child (Sales/Operations/
+         Other Teams/Scorecard Log/Warning Notices/Run Check) is Admin+HR
+         only, so the parent no longer needs Manager or User in its groups —
+         both are explicitly unlinked below, not just omitted, because
+         <menuitem groups="..."> only LINKS the groups listed
+         (Command.link per group in Odoo's convert.py) and never unlinks a
+         group already on the record just because it's missing from this
+         string. -->
     <menuitem
         id="menu_mis_performance_root"
         name="Performance Management"
         parent="menu_mis_dashboard_root"
         sequence="4"
-        groups="mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr,mis_report_kgrn.group_mis_user"/>
-
-    <!-- My Performance — the logged-in MIS Manager's own scorecard.
-         Manager-and-above: a plain MIS User's own performance is not part of
-         this module's access model, and rule_mis_performance_user would
-         return nothing for them anyway. -->
-    <menuitem
-        id="menu_mis_perf_my"
-        name="My Performance"
-        parent="menu_mis_performance_root"
-        action="mis_report_kgrn.action_mis_perf_my"
-        sequence="1"
-        groups="mis_report_kgrn.group_mis_manager"/>
-
-    <!-- Team Performance — everyone assigned to this user on the employee
-         form, by the Manager field or the Coach field, de-duplicated.
-         Open to MIS User because that is how a Coach reaches their
-         coachees; someone who supervises nobody gets an empty list, which
-         is the correct answer rather than an error. -->
-    <menuitem
-        id="menu_mis_perf_team"
-        name="Team Performance"
-        parent="menu_mis_performance_root"
-        action="mis_report_kgrn.action_mis_perf_team"
-        sequence="2"
-        groups="mis_report_kgrn.group_mis_user"/>
+        groups="-mis_report_kgrn.group_mis_user,-mis_report_kgrn.group_mis_manager,mis_report_kgrn.group_mis_admin,mis_report_kgrn.group_mis_hr"/>
 
     <menuitem
         id="menu_mis_perf_sales"

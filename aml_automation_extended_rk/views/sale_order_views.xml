@@ -11,6 +11,8 @@
                 <field name="kyc_type" widget="radio" options="{'horizontal': true}"
                        required="not id"/>
                 <field name="aml_gate_completed" readonly="1"/>
+                <field name="aml_gate_status" invisible="1"/>
+                <field name="aml_gate_override_allowed" invisible="1"/>
             </xpath>
 
             <!-- AML smart button -->
@@ -26,10 +28,16 @@
                 </button>
             </xpath>
 
-            <!-- Admin-only exception: allow project creation before AML/KYC is Completed -->
+            <!-- Exception path: allow project creation before AML/KYC is Completed.
+                 Limited to the company's designated Quotation Approver via the
+                 aml_gate_override_allowed computed flag (the same check is
+                 re-applied server-side in write()). Hidden once aml_gate_status
+                 is 'completed' (a real AML approval/bypass) but NOT once it is
+                 'overridden' - the approver must still be able to see/revert
+                 their own override. -->
             <xpath expr="//page[@name='other_information']" position="after">
                 <page string="AML Gate Override" name="aml_gate_override_page"
-                      groups="base.group_system" invisible="aml_gate_completed">
+                      invisible="aml_gate_status == 'completed' or not aml_gate_override_allowed">
                     <group>
                         <field name="aml_gate_override"/>
                         <field name="aml_gate_override_reason" invisible="not aml_gate_override"
@@ -39,6 +47,25 @@
                     </group>
                 </page>
             </xpath>
+        </field>
+    </record>
+
+    <!-- Services search filter: orders where the AML/KYC form was actually
+         sent (has at least one aml.request) but the gate isn't cleared yet.
+         Excludes orders that never had a form sent at all. Anchored on the
+         base sale.order search view (not the Services-specific "quotation"
+         primary view) so it shows on every Services menu, same pattern as
+         view_sales_order_filter_inherit_salesperson_manager in
+         crm_extended_rk. -->
+    <record id="view_sales_order_filter_inherit_pending_aml" model="ir.ui.view">
+        <field name="name">sale.order.search.inherit.pending.aml</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <filter name="my_sale_orders_filter" position="after">
+                <filter string="Pending AML" name="pending_aml"
+                        domain="[('aml_request_ids', '!=', False), ('aml_gate_completed', '=', False)]"/>
+            </filter>
         </field>
     </record>
 

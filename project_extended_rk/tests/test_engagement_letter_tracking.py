@@ -137,7 +137,7 @@ class TestEngagementLetterTracking(TransactionCase):
             'invoice_date': self.today,
             'invoice_date_due': self.today + timedelta(days=30),
             # account_extended_rk makes this mandatory on customer invoices.
-            'ar_responsible_id': self.manager.id,
+            'ar_responsible_ids': [(6, 0, self.manager.ids)],
             'advance_invoice': advance_flag,
             'invoice_line_ids': [(0, 0, {
                 'product_id': self.product.id,

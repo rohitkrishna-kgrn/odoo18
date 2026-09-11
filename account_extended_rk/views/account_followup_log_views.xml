@@ -28,7 +28,7 @@
                 <field name="response" string="Client Response" readonly="1"/>
                 <field name="user_id" string="Logged By" readonly="1"
                        widget="many2one_avatar_user"/>
-                <field name="ar_responsible_id" string="AR Responsible"
+                <field name="ar_responsible_ids" string="AR Responsible"
                        readonly="1" optional="show"/>
                 <field name="invoice_date_due" string="Due Date" readonly="1" optional="hide"/>
                 <field name="aging_bucket" string="Aging Bucket" readonly="1" optional="hide"/>
@@ -48,7 +48,7 @@
                 <field name="move_id" string="Invoice"/>
                 <field name="partner_id" string="Client"/>
                 <field name="user_id" string="Logged By"/>
-                <field name="ar_responsible_id" string="AR Responsible"/>
+                <field name="ar_responsible_ids" string="AR Responsible"/>
                 <field name="response" string="Client Response"/>
                 <separator/>
                 <filter string="Email" name="filter_method_email"
@@ -88,7 +88,7 @@
                 <filter string="Logged By" name="group_user"
                         context="{'group_by': 'user_id'}"/>
                 <filter string="AR Responsible" name="group_ar_responsible"
-                        context="{'group_by': 'ar_responsible_id'}"/>
+                        context="{'group_by': 'ar_responsible_ids'}"/>
                 <filter string="Aging Bucket" name="group_aging_bucket"
                         context="{'group_by': 'aging_bucket'}"/>
                 <filter string="Follow-up Month" name="group_date"
@@ -102,7 +102,7 @@
         <field name="model">account.invoice.followup.log</field>
         <field name="arch" type="xml">
             <pivot string="Invoice Follow-up Log">
-                <field name="ar_responsible_id" type="row"/>
+                <field name="ar_responsible_ids" type="row"/>
                 <field name="method" type="col"/>
             </pivot>
         </field>

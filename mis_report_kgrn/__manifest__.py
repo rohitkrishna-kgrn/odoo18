@@ -34,6 +34,7 @@
         'views/mis_menus.xml',
         'data/mis_performance_scorecard_data.xml',
         'data/mis_coach_access_migration.xml',
+        'data/mis_hr_dashboard_access.xml',
     ],
     'assets': {
         'web.assets_backend': [

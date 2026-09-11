@@ -35,6 +35,15 @@ class AmlRequest(models.Model):
     ], default='draft', tracking=True, string='Status', index=True,
        group_expand='_group_expand_states')
 
+    # Display-only counterpart of state: the pipeline stage doesn't change when
+    # the linked sale order's AML gate is overridden (the request itself may
+    # still be sitting in Draft/New), but the "Status" column should show
+    # Overridden rather than the stale pipeline stage.
+    display_status = fields.Selection(
+        selection='_selection_display_status', string='Status',
+        compute='_compute_display_status', store=True,
+    )
+
     sale_order_id = fields.Many2one('sale.order', string='Sale Order', readonly=True, tracking=True)
     partner_id = fields.Many2one('res.partner', string='Client', readonly=True, tracking=True)
     kyc_type = fields.Selection([
@@ -45,7 +54,13 @@ class AmlRequest(models.Model):
     deadline = fields.Datetime(string='Deadline', tracking=True)
     start_datetime = fields.Datetime(string='Start Date & Time', readonly=True, tracking=True)
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company)
-    aml_user_id = fields.Many2one('res.users', string='AML Officer', tracking=True)
+    # The AML Officer must be an AML team member - the dropdown only lists
+    # users who hold the AML User or AML Manager group (a manager carries the
+    # user group by implication). Re-checked in write().
+    aml_user_id = fields.Many2one(
+        'res.users', string='AML Officer', tracking=True,
+        domain=lambda self: self._aml_officer_domain(),
+    )
 
     # Signature / Declaration
     signature_data = fields.Binary(string='Client Signature', attachment=True)
@@ -257,6 +272,42 @@ class AmlRequest(models.Model):
             rec.is_aml_manager = is_mgr
             rec.is_aml_user = is_usr
 
+    @api.model
+    def _selection_display_status(self):
+        return self._fields['state'].selection + [('overridden', 'Overridden')]
+
+    @api.depends('state', 'sale_order_id.aml_gate_override')
+    def _compute_display_status(self):
+        for rec in self:
+            rec.display_status = 'overridden' if rec.sale_order_id.aml_gate_override else rec.state
+
+    # =========================================================================
+    # AML Officer eligibility (AML User / AML Manager only)
+    # =========================================================================
+    @api.model
+    def _aml_officer_group_ids(self):
+        return (
+            self.env.ref('aml_automation_extended_rk.group_aml_user')
+            | self.env.ref('aml_automation_extended_rk.group_aml_manager')
+        ).ids
+
+    @api.model
+    def _aml_officer_domain(self):
+        """Domain limiting the AML Officer picker to AML team members."""
+        return [('groups_id', 'in', self._aml_officer_group_ids())]
+
+    def _check_aml_officer(self, user):
+        """The AML Officer must hold an AML group; block anyone else even if
+        the assignment comes in through RPC rather than the restricted
+        dropdown."""
+        if user and not (
+            user.has_group('aml_automation_extended_rk.group_aml_user')
+            or user.has_group('aml_automation_extended_rk.group_aml_manager')
+        ):
+            raise UserError(_(
+                "%s cannot be set as AML Officer - only AML Users and AML "
+                "Managers can be assigned.", user.display_name))
+
     def _compute_access_url(self):
         for record in self:
             record.access_url = '/aml/form/%s' % (record.access_token or '')
@@ -265,9 +316,11 @@ class AmlRequest(models.Model):
     # CRUD
     # =========================================================================
     def write(self, vals):
-        if 'aml_user_id' in vals and not self.env.su \
-                and not self.env.user.has_group('aml_automation_extended_rk.group_aml_manager'):
-            raise UserError(_("Only AML Managers can reassign the AML Officer."))
+        if 'aml_user_id' in vals and not self.env.su:
+            if not self.env.user.has_group('aml_automation_extended_rk.group_aml_manager'):
+                raise UserError(_("Only AML Managers can reassign the AML Officer."))
+            if vals['aml_user_id']:
+                self._check_aml_officer(self.env['res.users'].browse(vals['aml_user_id']))
 
         previous_officers = {}
         if 'aml_user_id' in vals:

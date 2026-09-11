@@ -9,7 +9,7 @@
                 <search string="AR Aging">
                     <field name="name" string="Invoice"/>
                     <field name="partner_id" string="Client"/>
-                    <field name="ar_responsible_id" string="AR Responsible"/>
+                    <field name="ar_responsible_ids" string="AR Responsible"/>
                     <field name="engagement_team_id" string="Team"/>
                     <field name="engagement_pm_id" string="PM"/>
                     <separator/>
@@ -43,7 +43,7 @@
                     <filter string="Client" name="group_client"
                             context="{'group_by': 'partner_id'}"/>
                     <filter string="AR Responsible" name="group_ar_responsible"
-                            context="{'group_by': 'ar_responsible_id'}"/>
+                            context="{'group_by': 'ar_responsible_ids'}"/>
                     <filter string="No Follow-Up Logged" name="group_no_followup_logged"
                             context="{'group_by': 'ar_no_followup_flag'}"/>
                     <filter string="Last Follow-up Method" name="group_last_followup_method"
@@ -63,7 +63,9 @@
                     <field name="partner_id" string="Client"/>
                     <field name="engagement_team_id" string="Team" optional="show"/>
                     <field name="engagement_pm_id" string="PM" optional="show"/>
-                    <field name="ar_responsible_id" string="AR Responsible"/>
+                    <field name="ar_responsible_ids" string="AR Responsible"
+                           widget="many2many_tags"
+                           options="{'no_create': True, 'no_open': True}"/>
                     <field name="invoice_date_due" string="Due Date" optional="show"/>
                     <field name="invoice_age_days" string="Age (Days)"/>
                     <field name="aging_bucket" string="Aging Bucket"/>

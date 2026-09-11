@@ -21,7 +21,9 @@
                            employee form makes them somebody's Coach
                MIS Manager the above, plus their direct reports' rows
                MIS Admin   everything
-               MIS HR      everything, Performance Management only
+               MIS HR      all of Performance Management, plus the MIS User
+                           view of Project Wise / Revenue / Outstandings
+                           (implies group_mis_user since 2026-09-10)
 
              There is NO "MIS Coach" group. Coaching widens what an
              existing role can see and grants nothing on its own, so a

@@ -37,6 +37,11 @@ class ProjectProject(models.Model):
     sale_order_id = fields.Many2one('sale.order', string="Sales Order")
     budgeted_amount = fields.Float(string="Budgeted Amount")
     calculated_advance_amount = fields.Float(string="Balance")
+    # Carried over from the sale order at confirmation by
+    # SaleOrder._create_project_and_tasks(). Defined here (rather than in the
+    # dormant my_project_stage_automation) so the project/task creation does
+    # not crash with "Invalid field 'auto_invoice'".
+    auto_invoice = fields.Boolean(string="Auto Invoice", default=True)
     customer_id = fields.Many2one(
         'res.partner',
         string="Customer",
@@ -298,6 +303,9 @@ class ProjectTask(models.Model):
         readonly=True,
     )
     billable_type = fields.Selection([('billable', 'Billable'),('non_billable', 'Non-Billable')], string="Billing Type", default='billable')
+    # Carried over from the sale order at confirmation, see the same field on
+    # project.project above.
+    auto_invoice = fields.Boolean(string="Auto Invoice", default=True)
 
     is_on_hold = fields.Boolean(
         string="On Hold",

@@ -69,7 +69,9 @@
                     <field name="retainership_period_start" string="Period From"/>
                     <field name="retainership_period_end" string="Period To"/>
                     <field name="sale_order_line_id" optional="show"/>
-                    <field name="ar_responsible_id" optional="show"/>
+                    <field name="ar_responsible_ids" optional="show"
+                           widget="many2many_tags"
+                           options="{'no_create': True, 'no_open': True}"/>
                     <field name="activity_ids" widget="list_activity" optional="show"/>
                     <field name="amount_untaxed" string="Untaxed" optional="hide"/>
                     <field name="amount_total" sum="Total"/>

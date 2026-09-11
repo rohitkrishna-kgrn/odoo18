@@ -99,7 +99,8 @@ class WeeklyOverdueInvoiceReportLog(models.Model):
                 'partner_name': move.partner_id.display_name,
                 'team_name': move.engagement_team_id.name or '',
                 'pm_name': move.engagement_pm_id.name or '',
-                'ar_responsible_name': move.ar_responsible_id.name or '',
+                'ar_responsible_name': ', '.join(
+                    move.ar_responsible_ids.mapped('name')),
                 'aging_bucket': move.aging_bucket,
                 'days_overdue': move.invoice_age_days,
                 'amount_due': move.amount_residual,

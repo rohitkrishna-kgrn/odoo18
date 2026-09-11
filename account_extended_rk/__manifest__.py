@@ -1,8 +1,8 @@
 {
     'name': 'Account Extended RK',
-    'version': '2.13',
+    'version': '2.17',
     'category': 'Accounting',
-    'summary': 'Mandatory AR Responsible and Sale Order Line on invoices (the service engagement is derived from that line), locked late-payment penalty footer, a settle/close lock on invoices over 180 days outstanding, a collection follow-up log fed from the invoice chatter (each Log note and each completed activity is recorded with its date, method and the client response, and feeds the AR reports), an auto-flag for invoices over 30 days overdue with no follow-up logged, and retainership contracts that raise draft invoices on a recurring schedule for finance to review and post, auto-archiving of customer invoices left unapproved in draft for 7 days (creator warned 2 days before), and an automated customer Credit Hold at 180 days overdue that blocks new projects and proposals until the arrears clear, with a single-use Managing Partner override, and an engagement billing plan (advance / progress / completion milestones) that every Completion invoice is checked against before it can be posted',
+    'summary': 'Mandatory AR Responsible and Sale Order Line on invoices (the service engagement is derived from that line), locked late-payment penalty footer, a settle/close lock on invoices over 180 days outstanding, a collection follow-up log fed from the invoice chatter (each Log note and each completed activity is recorded with its date, method and the client response, and feeds the AR reports), an auto-flag for invoices over 30 days overdue with no follow-up logged, a payment gate requiring at least one follow-up logged before a customer invoice can be paid, and retainership contracts that raise draft invoices on a recurring schedule for finance to review and post, auto-archiving of customer invoices left unapproved in draft for 7 days (creator warned 2 days before), and an automated customer Credit Hold at 180 days overdue that blocks new projects and proposals until the arrears clear, with a single-use Managing Partner override, and an engagement billing plan (advance / progress / completion milestones) that every Completion invoice is checked against before it can be posted',
     'depends': [
         'account',
         'sale',
@@ -31,8 +31,13 @@
         'views/mail_activity_type_views.xml',
         'data/followup_activity_type.xml',
         'views/billing_milestone_views.xml',
-        'views/account_move_completion_views.xml',
+        # Before the completion views: one of those inherits the AR Aging
+        # search view defined here, and a child view is validated against
+        # whatever arch its parent currently has in the database — so the
+        # parent has to be rewritten first, or an upgrade that renames a field
+        # on it fails while loading the child.
         'views/ar_aging_dashboard_views.xml',
+        'views/account_move_completion_views.xml',
         'views/product_template_views.xml',
         'views/retainership_contract_views.xml',
         'views/retainership_invoice_views.xml',

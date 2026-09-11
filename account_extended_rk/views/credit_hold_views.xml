@@ -12,22 +12,18 @@
 
             <!-- Impossible to miss when the customer is opened. -->
             <div name="button_box" position="before">
+                <div class="d-flex justify-content-end gap-2 mb-2" invisible="not credit_hold">
+                    <button name="action_credit_hold_override" type="object"
+                            string="Override Credit Hold" class="btn-primary"
+                            groups="account.group_account_manager"/>
+                    <button name="action_credit_hold_request_removal" type="object"
+                            string="Request Credit Hold Removal" class="btn-warning"
+                            confirm="This emails the company's Quotation Approver, asking them to review this customer's credit hold. Continue?"/>
+                </div>
                 <div class="alert alert-danger" role="alert"
                      invisible="not credit_hold">
                     <field name="credit_hold_warning" readonly="1" nolabel="1"/>
                 </div>
-            </div>
-
-            <div name="button_box" position="inside">
-                <button name="action_credit_hold_override" type="object"
-                        class="oe_stat_button" icon="fa-unlock-alt"
-                        invisible="not credit_hold"
-                        groups="account.group_account_manager">
-                    <div class="o_field_widget o_stat_info">
-                        <span class="o_stat_text">Override</span>
-                        <span class="o_stat_text">Credit Hold</span>
-                    </div>
-                </button>
             </div>
 
             <notebook position="inside">
@@ -44,8 +40,6 @@
                                    invisible="not credit_hold"/>
                             <field name="credit_hold_release_date" readonly="1"
                                    invisible="credit_hold"/>
-                            <field name="credit_hold_override_available_count"
-                                   readonly="1" invisible="not credit_hold"/>
                             <field name="currency_id" invisible="1"/>
                         </group>
                         <group string="Actions">
@@ -53,10 +47,6 @@
                                     string="Re-evaluate Now" class="btn-secondary"
                                     help="Re-check this customer's outstanding invoices
                                           immediately instead of waiting for the nightly sweep."/>
-                            <button name="action_credit_hold_override" type="object"
-                                    string="Override Credit Hold" class="btn-primary"
-                                    invisible="not credit_hold"
-                                    groups="account.group_account_manager"/>
                         </group>
                     </group>
 
@@ -78,14 +68,12 @@
 
                     <separator string="Managing Partner Overrides"/>
                     <field name="credit_hold_override_ids" readonly="1">
-                        <list decoration-muted="state != 'available'">
+                        <list>
                             <field name="override_date"/>
                             <field name="user_id"/>
-                            <field name="scope"/>
                             <field name="reason"/>
-                            <field name="state"/>
-                            <field name="consumed_reference"/>
-                            <field name="consumed_date"/>
+                            <field name="hold_amount"/>
+                            <field name="currency_id" column_invisible="1"/>
                         </list>
                     </field>
 
@@ -145,35 +133,26 @@
             <form string="Credit Hold Override">
                 <sheet>
                     <div class="alert alert-warning" role="alert">
-                        This override authorises <b>one</b> project or proposal only.
-                        It is consumed by the first record it lets through, and it does
-                        <b>not</b> lift the credit hold — the customer stays on hold
-                        until the overdue invoices are settled.
+                        Saving this <b>releases the credit hold immediately</b>. The
+                        overdue invoices behind it are untouched, so the next
+                        evaluation (nightly sweep, a payment, or Re-evaluate Now)
+                        places the hold again if they are still overdue by then.
                     </div>
                     <group>
                         <group>
                             <field name="partner_id" readonly="1"/>
-                            <field name="scope"/>
                             <field name="user_id"/>
                             <field name="override_date"/>
                         </group>
                         <group>
                             <field name="hold_amount"/>
                             <field name="hold_invoice_count"/>
-                            <field name="state"/>
                             <field name="currency_id" invisible="1"/>
                         </group>
                     </group>
                     <group string="Reason (required)">
                         <field name="reason" nolabel="1" required="1"
-                               placeholder="Why may this customer take on new work while on credit hold?"/>
-                    </group>
-                    <group string="Used On" invisible="state != 'consumed'">
-                        <field name="consumed_reference" readonly="1"/>
-                        <field name="consumed_by_id" readonly="1"/>
-                        <field name="consumed_date" readonly="1"/>
-                        <button name="action_open_record" type="object" string="Open Record"
-                                class="btn-link" icon="fa-arrow-right"/>
+                               placeholder="Why is this customer's credit hold being released?"/>
                     </group>
                 </sheet>
             </form>
@@ -184,22 +163,13 @@
         <field name="name">res.partner.credit.hold.override.list</field>
         <field name="model">res.partner.credit.hold.override</field>
         <field name="arch" type="xml">
-            <list string="Credit Hold Overrides" create="0"
-                  decoration-muted="state != 'available'">
+            <list string="Credit Hold Overrides" create="0">
                 <field name="override_date"/>
                 <field name="partner_id"/>
                 <field name="user_id"/>
-                <field name="scope"/>
                 <field name="reason"/>
                 <field name="hold_amount"/>
-                <field name="state"/>
-                <field name="consumed_reference"/>
-                <field name="consumed_by_id"/>
-                <field name="consumed_date"/>
                 <field name="currency_id" column_invisible="1"/>
-                <button name="action_revoke" type="object" string="Revoke"
-                        icon="fa-ban" invisible="state != 'available'"
-                        groups="account.group_account_manager"/>
             </list>
         </field>
     </record>
@@ -211,8 +181,8 @@
         <field name="context">{'create': False}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No credit hold overrides recorded</p>
-            <p>Managing Partners authorise overrides from the Credit Hold tab of a
-               customer who is on hold. Every authorisation and every use is logged here.</p>
+            <p>Managing Partners release a customer's credit hold from the Credit
+               Hold tab. Every release, and the reason given for it, is logged here.</p>
         </field>
     </record>
 

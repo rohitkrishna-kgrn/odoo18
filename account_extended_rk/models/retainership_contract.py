@@ -72,8 +72,9 @@ class RetainershipContract(models.Model):
         required=True,
         domain=[('share', '=', False)],
         tracking=True,
-        help="Carried onto every generated invoice as the AR Responsible, "
-             "which is mandatory on customer invoices here.",
+        help="Carried onto every generated invoice as its AR Responsible, "
+             "which is mandatory on customer invoices here. The invoice takes "
+             "a list, so more names can be added on the invoice itself.",
     )
 
     product_id = fields.Many2one(
@@ -419,7 +420,7 @@ class RetainershipContract(models.Model):
             # sale_line_ids onto the invoice line -- that would count retainer
             # billing against the sale order line's invoiced quantity and can
             # close out the order.
-            'ar_responsible_id': self.ar_responsible_id.id,
+            'ar_responsible_ids': [Command.set(self.ar_responsible_id.ids)],
             'service_engagement_id': self.service_engagement_id.id,
             # invoice_type_classification is derived from retainership_contract_id
             # below, so it is not set here.

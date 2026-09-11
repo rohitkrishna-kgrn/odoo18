@@ -1,14 +1,17 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 
+from .res_partner_credit_hold import CREDIT_HOLD_OVERDUE_DAYS
+
 
 class CreditHoldOverride(models.Model):
-    """A Managing Partner's authorisation to let one blocked record through.
+    """A Managing Partner's authorisation to lift a customer's credit hold.
 
-    Single-use by design: the override is consumed by the first project or
-    proposal it lets through, and stamps which record that was. It never
-    changes `credit_hold` on the customer — the underlying arrears are
-    untouched and the next record is blocked again.
+    The hold is released the moment this record is created — it is not a
+    standing authorisation for some future project or proposal. The
+    underlying arrears are untouched, so the next evaluation (nightly cron,
+    a payment reconciliation, or the manual Re-evaluate button) puts the
+    hold straight back if the triggering invoices are still overdue by then.
     """
     _name = 'res.partner.credit.hold.override'
     _description = 'Credit Hold Managing Partner Override'
@@ -28,33 +31,8 @@ class CreditHoldOverride(models.Model):
     )
     reason = fields.Text(
         string='Override Reason', required=True,
-        help="Why this customer may take on new work despite being on credit "
-             "hold. Recorded permanently against the customer.",
-    )
-    scope = fields.Selection(
-        [
-            ('project', 'One new project'),
-            ('proposal', 'One new proposal'),
-            ('any', 'One project or proposal'),
-        ],
-        string='Applies To', required=True, default='any',
-    )
-    state = fields.Selection(
-        [
-            ('available', 'Not Yet Used'),
-            ('consumed', 'Used'),
-            ('revoked', 'Revoked'),
-        ],
-        string='Status', required=True, default='available', readonly=True,
-    )
-
-    consumed_date = fields.Datetime(string='Used On', readonly=True)
-    consumed_by_id = fields.Many2one('res.users', string='Used By', readonly=True)
-    consumed_model = fields.Char(string='Record Model', readonly=True)
-    consumed_res_id = fields.Integer(string='Record ID', readonly=True)
-    consumed_reference = fields.Char(
-        string='Project / Proposal', readonly=True,
-        help="The record this override let through.",
+        help="Why this customer's credit hold is being lifted. Recorded "
+             "permanently against the customer.",
     )
 
     # Snapshot of the arrears at the moment of authorisation, so the log shows
@@ -74,8 +52,8 @@ class CreditHoldOverride(models.Model):
         for override in self:
             if not (override.reason or '').strip():
                 raise ValidationError(_(
-                    "An override reason is required. Record why this customer "
-                    "may take on new work while on credit hold."
+                    "An override reason is required. Record why this customer's "
+                    "credit hold is being lifted."
                 ))
 
     @api.model_create_multi
@@ -106,96 +84,31 @@ class CreditHoldOverride(models.Model):
 
         overrides = super().create(vals_list)
         for override in overrides:
-            override.partner_id.message_post(body=_(
-                "<p><b>Credit hold override authorised by %(user)s</b> "
-                "(%(scope)s).</p><p>Reason: %(reason)s</p>"
-                "<p>The credit hold itself remains in force.</p>",
-                user=override.user_id.display_name,
-                scope=dict(self._fields['scope'].selection)[override.scope],
-                reason=override.reason,
-            ))
+            override._release()
         return overrides
 
-    def action_revoke(self):
-        """Withdraw an override that has not been used yet."""
-        for override in self:
-            if override.state != 'available':
-                raise UserError(_(
-                    "Only an unused override can be revoked."
-                ))
-            override.state = 'revoked'
-            override.partner_id.message_post(body=_(
-                "Credit hold override authorised by %(user)s was revoked by "
-                "%(revoker)s before it was used.",
-                user=override.user_id.display_name,
-                revoker=self.env.user.display_name,
-            ))
-        return True
-
-    # ------------------------------------------------------------------
-    # Consumption
-    # ------------------------------------------------------------------
-
-    @api.model
-    def _find_available(self, partner, scope):
-        """The oldest unused override covering `scope` for this customer."""
-        if not partner:
-            return self.browse()
-        return self.sudo().search([
-            ('partner_id', '=', partner.commercial_partner_id.id),
-            ('state', '=', 'available'),
-            ('scope', 'in', (scope, 'any')),
-        ], order='override_date asc', limit=1)
-
-    @api.model
-    def _already_consumed_on(self, record):
-        """True when an override was already burned on this exact record."""
-        return bool(self.sudo().search_count([
-            ('state', '=', 'consumed'),
-            ('consumed_model', '=', record._name),
-            ('consumed_res_id', '=', record.id),
-        ]))
-
-    def _consume(self, record):
-        """Burn this override on `record` and log what it let through."""
+    def _release(self):
+        """Lift the hold on `partner_id` right now and log why."""
         self.ensure_one()
-        self.sudo().write({
-            'state': 'consumed',
-            'consumed_date': fields.Datetime.now(),
-            'consumed_by_id': self.env.user.id,
-            'consumed_model': record._name,
-            'consumed_res_id': record.id,
-            'consumed_reference': record.display_name,
+        partner = self.partner_id
+        cleared = partner.credit_hold_invoice_ids
+        partner.write({
+            'credit_hold': False,
+            'credit_hold_invoice_ids': [fields.Command.clear()],
+            'credit_hold_amount': 0.0,
+            'credit_hold_max_age_days': 0,
+            'credit_hold_date': False,
+            'credit_hold_release_date': fields.Datetime.now(),
         })
-        body = _(
-            "<p><b>Created under a credit hold override.</b></p>"
-            "<p>Authorised by %(user)s on %(date)s. Reason: %(reason)s</p>",
-            user=self.user_id.display_name,
-            date=self.override_date,
-            reason=self.reason,
-        )
-        # Logged in both places: on the record so anyone opening it sees why it
-        # exists, and on the customer so the credit history is complete.
-        record.message_post(body=body)
-        self.partner_id.message_post(body=_(
-            "<p><b>Credit hold override used.</b></p>"
-            "<p>%(ref)s was created by %(actor)s under the override authorised "
-            "by %(user)s. Reason: %(reason)s</p>"
-            "<p>The credit hold remains in force.</p>",
-            ref=record.display_name,
-            actor=self.env.user.display_name,
+        partner._credit_hold_log_event('release', cleared, 0.0, 0, silent=False)
+        partner.message_post(body=_(
+            "<p><b>Credit hold overridden and released by %(user)s.</b></p>"
+            "<p>Reason: %(reason)s</p>"
+            "<p>The overdue invoices behind the hold have not been settled — "
+            "the next evaluation will place the hold again if they are still "
+            "more than %(days)s days overdue.</p>",
             user=self.user_id.display_name,
             reason=self.reason,
+            days=CREDIT_HOLD_OVERDUE_DAYS,
         ))
         return True
-
-    def action_open_record(self):
-        self.ensure_one()
-        if not (self.consumed_model and self.consumed_res_id):
-            raise UserError(_("This override has not been used yet."))
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': self.consumed_model,
-            'res_id': self.consumed_res_id,
-            'view_mode': 'form',
-        }

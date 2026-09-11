@@ -215,3 +215,33 @@ class ResUsers(models.Model):
         # ir.model.data row with it so the checkbox cannot come back.
         coach_grp.sudo().unlink()
         self.env.registry.clear_cache()
+
+    # ── Give MIS HR the default MIS User dashboard view ───────────────────
+    @api.model
+    def _mis_grant_hr_dashboard_access(self):
+        """Make group_mis_hr imply group_mis_user on an existing database.
+
+        security/groups.xml carries the implication for fresh installs, but
+        it is noupdate="1" so `-u` never re-writes an existing group_mis_hr
+        record — same reason _mis_migrate_coach_group exists. This forces the
+        link; res.groups.write propagates it to every current MIS HR user
+        (adding them to group_mis_user) in the same call.
+
+        Effect: MIS HR now also sees Project Wise / Project Revenue /
+        Outstandings, scoped to their own projects and coachees by
+        rule_mis_*_user exactly as a plain MIS User is — Performance
+        Management access is unchanged (group_mis_hr already carried it).
+
+        Runs from data/mis_hr_dashboard_access.xml, outside noupdate, so it
+        also repairs a database upgraded before this change. Idempotent: a
+        no-op once the implication is in place.
+        """
+        hr_grp = self.env.ref('mis_report_kgrn.group_mis_hr',
+                              raise_if_not_found=False)
+        user_grp = self.env.ref('mis_report_kgrn.group_mis_user',
+                                raise_if_not_found=False)
+        if not hr_grp or not user_grp:
+            return
+        if user_grp not in hr_grp.implied_ids:
+            hr_grp.sudo().write({'implied_ids': [(4, user_grp.id)]})
+            self.env.registry.clear_cache()

@@ -106,8 +106,14 @@ class AccountInvoiceFollowupLog(models.Model):
     # ------------------------------------------------------------------
     partner_id = fields.Many2one(
         related='move_id.partner_id', string='Client', store=True, index=True)
-    ar_responsible_id = fields.Many2one(
-        related='move_id.ar_responsible_id', string='AR Responsible', store=True)
+    # Deliberately compute+store rather than a stored related field: a stored
+    # related many2many is not backfilled onto existing rows on upgrade, and
+    # these columns exist precisely so the AR export can group on them.
+    ar_responsible_ids = fields.Many2many(
+        'res.users',
+        'account_followup_log_ar_responsible_rel', 'log_id', 'user_id',
+        string='AR Responsible',
+        compute='_compute_ar_responsible_ids', store=True)
     invoice_date_due = fields.Date(
         related='move_id.invoice_date_due', string='Due Date', store=True)
     aging_bucket = fields.Selection(
@@ -117,6 +123,11 @@ class AccountInvoiceFollowupLog(models.Model):
         currency_field='currency_id')
     currency_id = fields.Many2one(related='move_id.currency_id')
     move_state = fields.Selection(related='move_id.state', string='Invoice Status')
+
+    @api.depends('move_id.ar_responsible_ids')
+    def _compute_ar_responsible_ids(self):
+        for log in self:
+            log.ar_responsible_ids = log.move_id.ar_responsible_ids
 
     _sql_constraints = [
         # One follow-up per chatter message. NULLs do not collide in Postgres,

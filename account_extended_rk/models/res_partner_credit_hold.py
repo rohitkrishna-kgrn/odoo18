@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 
 from markupsafe import Markup
 
@@ -88,26 +89,12 @@ class ResPartner(models.Model):
         readonly=True,
     )
 
-    credit_hold_override_available_count = fields.Integer(
-        string='Unused Overrides',
-        compute='_compute_credit_hold_override_available_count',
-    )
-
     credit_hold_warning = fields.Char(
         string='Credit Hold Warning',
         compute='_compute_credit_hold_warning',
         help="Live banner text. Recomputed on every form load so it is correct "
              "even before the daily sweep has run.",
     )
-
-    @api.depends('credit_hold_override_ids.state')
-    def _compute_credit_hold_override_available_count(self):
-        for partner in self:
-            partner.credit_hold_override_available_count = len(
-                partner.credit_hold_override_ids.filtered(
-                    lambda o: o.state == 'available'
-                )
-            )
 
     @api.depends('credit_hold', 'credit_hold_amount', 'credit_hold_max_age_days',
                  'credit_hold_date')
@@ -346,8 +333,8 @@ class ResPartner(models.Model):
                 self._credit_hold_invoice_table(invoices),
                 _("Restrictions now in force: new projects cannot be created for "
                   "this customer, and new proposals cannot be created or submitted "
-                  "for approval. A Managing Partner can authorise a single "
-                  "exception, with a reason, from the customer form."),
+                  "for approval. A Managing Partner can override and release the "
+                  "hold, with a reason, from the customer form."),
             )
         else:
             body = Markup(
@@ -408,3 +395,68 @@ class ResPartner(models.Model):
             'target': 'new',
             'context': {'default_partner_id': self.commercial_partner_id.id},
         }
+
+    # ------------------------------------------------------------------
+    # Removal request
+    # ------------------------------------------------------------------
+
+    def action_credit_hold_request_removal(self):
+        """Email the company's Quotation Approver to review this hold.
+
+        This only asks the Approver to look at it — it does not touch
+        `credit_hold` itself. Removing the hold still only happens through
+        the settlement of the overdue invoices, or a Managing Partner
+        override recorded on this customer.
+        """
+        self.ensure_one()
+        if not self.credit_hold:
+            raise UserError(_(
+                "%s is not on credit hold, so there is nothing to request "
+                "removal of.", self.display_name,
+            ))
+
+        approver = (
+            self.company_id.approver_user_id or self.env.company.approver_user_id
+        ).sudo()
+        if not approver:
+            raise UserError(_(
+                "No Quotation Approver is configured. Ask an administrator "
+                "to set one on the company record (Quotation Approval)."
+            ))
+        if not approver.email:
+            raise UserError(_(
+                "%s (Quotation Approver) has no email address on file.",
+                approver.display_name,
+            ))
+
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url').rstrip('/')
+        partner_url = '%s/web#id=%s&model=res.partner&view_type=form' % (base_url, self.id)
+
+        mail_values = {
+            'subject': _("Credit Hold Removal Requested: %s") % self.display_name,
+            'body_html': Markup(
+                "<p>Dear %(approver)s,</p>"
+                "<p>%(requester)s has requested that the credit hold on "
+                "<strong>%(partner)s</strong> be reviewed for removal.</p>"
+                "<p><a href='%(url)s'>Open %(partner)s</a></p>"
+                "<p>Thank you.</p>"
+            ) % {
+                'approver': approver.name,
+                'requester': self.env.user.display_name,
+                'partner': self.display_name,
+                'url': partner_url,
+            },
+            'email_to': approver.email,
+            'author_id': self.env.user.partner_id.id,
+            'model': 'res.partner',
+            'res_id': self.id,
+        }
+        self.env['mail.mail'].sudo().create(mail_values).send()
+
+        self.message_post(body=_(
+            "Credit hold removal requested by %(user)s. Emailed to Quotation "
+            "Approver %(approver)s.",
+            user=self.env.user.display_name,
+            approver=approver.display_name,
+        ))
+        return True

@@ -1,5 +1,6 @@
 from . import billing_milestone
 from . import account_move
+from . import account_payment_register
 from . import account_move_completion
 from . import account_move_stale_draft
 from . import account_followup_log

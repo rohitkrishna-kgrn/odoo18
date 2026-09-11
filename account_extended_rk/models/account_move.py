@@ -17,6 +17,14 @@ AR_CLOSE_LOCK_DAYS = 180
 # Follow-up Log is flagged automatically.
 AR_NO_FOLLOWUP_FLAG_DAYS = 30
 
+# Shown when payment is blocked for want of a logged follow-up. Kept as a
+# module constant so the wizard-side gate in account_payment_register.py
+# raises the identical wording.
+FOLLOWUP_REQUIRED_FOR_PAYMENT_MSG = (
+    "Payment cannot be processed. Please log at least one follow-up before "
+    "making the payment."
+)
+
 
 class AccountMove(models.Model):
     _inherit = 'account.move'
@@ -25,12 +33,17 @@ class AccountMove(models.Model):
     # customer invoices/credit notes so it can't be removed or altered.
     narration = fields.Html(readonly=True)
 
-    ar_responsible_id = fields.Many2one(
+    # Collection ownership is a list, not a single name: more than one person
+    # chases the same invoice here, and the aged-AR gate below asks that
+    # somebody has accepted ownership -- not that exactly one person has.
+    ar_responsible_ids = fields.Many2many(
         'res.users',
+        'account_move_ar_responsible_rel', 'move_id', 'user_id',
         string='AR Responsible',
         domain=[('share', '=', False)],
         tracking=True,
-        help="User responsible for following up on collection of this invoice.",
+        help="Users responsible for following up on collection of this "
+             "invoice. Any one of them can confirm AR ownership.",
     )
 
     # No longer a field anyone fills in: the Sale Order Line is the single
@@ -326,7 +339,7 @@ class AccountMove(models.Model):
         moves._compute_ar_close_lock()
         moves._compute_ar_no_followup_flag()
 
-    @api.constrains('ar_responsible_id', 'move_type')
+    @api.constrains('ar_responsible_ids', 'move_type')
     def _check_ar_responsible_required(self):
         # Invoices the system raises for itself have nobody to ask: the advance
         # invoice created when a sale order is approved would otherwise make
@@ -336,10 +349,10 @@ class AccountMove(models.Model):
         if self.env.context.get('skip_ar_responsible_check'):
             return
         for move in self:
-            if move.move_type in ('out_invoice', 'out_refund') and not move.ar_responsible_id:
+            if move.move_type in ('out_invoice', 'out_refund') and not move.ar_responsible_ids:
                 raise ValidationError(
                     "AR Responsible is mandatory on customer invoices and credit notes. "
-                    "Please set an AR Responsible before saving."
+                    "Please set at least one AR Responsible before saving."
                 )
 
     @api.constrains('sale_order_line_id', 'service_engagement_id', 'move_type')
@@ -360,7 +373,7 @@ class AccountMove(models.Model):
     @api.depends('move_type', 'advance_invoice', 'retainership_contract_id',
                  'billing_stage', 'invoice_type_manual')
     def _compute_invoice_type_classification(self):
-        """Classification follows what the document actually is.
+        """Classification follows what the document actually is, or is blank.
 
         Retainer is checked before advance: an invoice raised by the
         retainership scheduler is a retainer whatever else is set on it. The
@@ -370,37 +383,24 @@ class AccountMove(models.Model):
         `billing_stage` is what rescues the Advance bucket. The manual
         `advance_invoice` tick is set on **zero** rows in this database -- the
         `_create_advance_invoice` helper that would set it is never called from
-        anywhere -- so before this every one of the 3,975 customer documents
-        fell through to Completion and the dashboard's split view had nothing
-        to split.
+        anywhere -- so without the stage every pre-completion customer document
+        would classify as blank and the dashboard's split view would have
+        nothing in the Advance bucket.
 
-        The stage applies the firm's rule instead: **the Completion invoice is
-        the last invoice on the project**, and anything raised before it is an
-        Advance. Two existing signals are honoured first so that no document
-        already reported as an advance loses the label -- the manual tick, and
-        the Engagement dashboard's own advance resolver. See
-        models/account_move_completion.py.
+        Completion is never inferred. It is the one classification that is a
+        judgement -- "this is the invoice that closes the engagement" -- so the
+        field stays blank until someone picks Completion by hand. An invoice
+        the billing waterfall has placed at the end of the plan still reads
+        `billing_stage == 'completion'`, and the completion check and the
+        closing-invoice reports run off that; the Invoice Type only ever
+        reports a Completion that a person actually chose.
         """
         for move in self:
             move.invoice_type_classification = (
                 move._automatic_invoice_type()
                 or move.invoice_type_manual
-                or move._derived_completion_type()
                 or False
             )
-
-    def _derived_completion_type(self):
-        """'completion' when the billing plan already places this invoice at
-        the end of the engagement, otherwise False.
-
-        The manual tick above still wins, and the field stays editable -- this
-        is only a fallback so the dashboard's split view is not left blank for
-        an invoice the system has *already* worked out is the closing one.
-        Without it 1,334 customer invoices carried billing_stage='completion'
-        and an empty Invoice Type at the same time.
-        """
-        self.ensure_one()
-        return 'completion' if self.billing_stage == 'completion' else False
 
     def _automatic_invoice_type(self):
         """The classification the document gives away by itself, or False.
@@ -506,11 +506,12 @@ class AccountMove(models.Model):
         if not self._ar_close_lock_applies():
             return []
         blockers = []
-        if not self.ar_responsible_id:
+        if not self.ar_responsible_ids:
             blockers.append("an AR Responsible must be assigned")
         elif not self.ar_responsible_confirmed:
             blockers.append(
-                "the AR Responsible (%s) must be confirmed" % self.ar_responsible_id.name
+                "the AR Responsible (%s) must be confirmed"
+                % self._ar_responsible_names()
             )
         if not self.followup_log_ids:
             blockers.append(
@@ -521,7 +522,7 @@ class AccountMove(models.Model):
 
     @api.depends(
         'invoice_age_days', 'state', 'payment_state', 'move_type',
-        'ar_responsible_id', 'ar_responsible_confirmed', 'followup_log_ids',
+        'ar_responsible_ids', 'ar_responsible_confirmed', 'followup_log_ids',
     )
     def _compute_ar_close_lock(self):
         for move in self:
@@ -531,7 +532,7 @@ class AccountMove(models.Model):
     # Kept separate from _compute_ar_close_lock: Odoo rejects a single compute
     # method that feeds both stored and non-stored fields.
     @api.depends(
-        'ar_close_lock_required', 'ar_responsible_id',
+        'ar_close_lock_required', 'ar_responsible_ids',
         'ar_responsible_confirmed', 'followup_log_ids',
     )
     def _compute_ar_close_block_reason(self):
@@ -559,20 +560,55 @@ class AccountMove(models.Model):
                 % (AR_CLOSE_LOCK_DAYS, "\n".join(messages))
             )
 
+    def _check_followup_required_for_payment(self):
+        """Raise if any customer invoice in self has never had a follow-up
+        logged against it.
+
+        Scoped to move_type == 'out_invoice', matching every other follow-up
+        gate in this module (the aged-AR close lock above, the no-follow-up
+        flag below) -- the Follow-up Log tracks chasing a client for money,
+        which has no meaning on a vendor bill or a credit note.
+
+        Reads followup_log_ids rather than the stored followup_count so the
+        check is correct even for an invoice created and paid for in the same
+        transaction, before the stored compute has flushed.
+        """
+        unlogged = self.filtered(
+            lambda m: m.move_type == 'out_invoice' and not m.followup_log_ids
+        )
+        if unlogged:
+            raise UserError(
+                "%s\n\n%s" % (
+                    FOLLOWUP_REQUIRED_FOR_PAYMENT_MSG,
+                    "\n".join(unlogged.mapped('display_name')),
+                )
+            )
+
+    def _ar_responsible_names(self):
+        """The AR Responsibles as one comma-separated string for messages."""
+        self.ensure_one()
+        return ", ".join(self.ar_responsible_ids.mapped('name'))
+
     def action_confirm_ar_responsible(self):
-        """Confirm AR ownership so an aged invoice can later be settled/closed."""
+        """Confirm AR ownership so an aged invoice can later be settled/closed.
+
+        Any one of the named AR Responsibles can confirm for the invoice: the
+        gate asks that collection has an owner who has accepted it, so waiting
+        for every name on the list would only hold the invoice hostage to
+        whoever is on leave.
+        """
         for move in self:
-            if not move.ar_responsible_id:
+            if not move.ar_responsible_ids:
                 raise UserError(
                     "Assign an AR Responsible on %s before confirming."
                     % move.display_name
                 )
             is_manager = self.env.user.has_group('account.group_account_manager')
-            if move.ar_responsible_id != self.env.user and not is_manager:
+            if self.env.user not in move.ar_responsible_ids and not is_manager:
                 raise UserError(
                     "Only %s (the AR Responsible) or an accounting manager can "
                     "confirm AR responsibility on %s."
-                    % (move.ar_responsible_id.name, move.display_name)
+                    % (move._ar_responsible_names(), move.display_name)
                 )
             move.write({
                 'ar_responsible_confirmed': True,
@@ -581,7 +617,7 @@ class AccountMove(models.Model):
             })
             move.message_post(
                 body="AR responsibility confirmed by %s for AR Responsible %s."
-                     % (self.env.user.name, move.ar_responsible_id.name)
+                     % (self.env.user.name, move._ar_responsible_names())
             )
         return True
 
@@ -669,13 +705,25 @@ class AccountMove(models.Model):
         return moves
 
     def write(self, vals):
-        # Reassigning the AR Responsible invalidates a previous confirmation —
-        # the new owner has to confirm for themselves.
-        if 'ar_responsible_id' in vals and not vals.get('ar_responsible_confirmed'):
-            new_responsible = vals['ar_responsible_id']
+        # Taking someone off the AR Responsible list invalidates a previous
+        # confirmation — the person who accepted ownership may be the one just
+        # removed, so ownership has to be accepted again. Adding a name is
+        # deliberately left alone: everyone who accepted the invoice is still
+        # on it, so there is nothing to re-confirm.
+        # The list can only be compared after the write, so the old one is
+        # captured here rather than read out of `vals` (which carries x2many
+        # commands, not a resolved set).
+        confirmed_before = {}
+        if 'ar_responsible_ids' in vals and not vals.get('ar_responsible_confirmed'):
+            confirmed_before = {
+                move.id: set(move.ar_responsible_ids.ids)
+                for move in self if move.ar_responsible_confirmed
+            }
+        res = super().write(vals)
+        if confirmed_before:
             to_reset = self.filtered(
-                lambda m: m.ar_responsible_confirmed
-                and m.ar_responsible_id.id != new_responsible
+                lambda m: m.id in confirmed_before
+                and not confirmed_before[m.id] <= set(m.ar_responsible_ids.ids)
             )
             if to_reset:
                 super(AccountMove, to_reset).write({
@@ -683,7 +731,6 @@ class AccountMove(models.Model):
                     'ar_responsible_confirmed_by_id': False,
                     'ar_responsible_confirmed_date': False,
                 })
-        res = super().write(vals)
         # Re-point the engagement whenever the line the invoice bills against
         # changes, directly or through the invoice lines it is computed from.
         if 'sale_order_line_id' in vals or 'invoice_line_ids' in vals:
@@ -695,12 +742,14 @@ class AccountMove(models.Model):
     def action_force_register_payment(self):
         # Also covers action_register_payment, which delegates here.
         self._check_ar_close_lock()
+        self._check_followup_required_for_payment()
         return super().action_force_register_payment()
 
     def js_assign_outstanding_line(self, line_id):
         # 'Add' on the outstanding-credits widget settles the invoice without
         # going through the payment wizard.
         self._check_ar_close_lock()
+        self._check_followup_required_for_payment()
         return super().js_assign_outstanding_line(line_id)
 
     def button_cancel(self):

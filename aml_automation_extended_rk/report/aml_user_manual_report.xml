@@ -406,8 +406,9 @@
                         <div class="amlman-note">
                             <strong>The AML gate.</strong> A project cannot be created for an engagement until the
                             latest AML request on that sale order is <strong>Approved</strong> or
-                            <strong>Bypassed</strong>. Only a System Administrator can override this, and only
-                            with a written reason that is stored on the order (see Section 6).
+                            <strong>Bypassed</strong>. Only an AML User, an AML Manager or the company's
+                            Quotation Approver can override this, and only with a written reason that is
+                            stored on the order (see Section 6).
                         </div>
                     </div>
 
@@ -521,8 +522,8 @@
                                 <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
                             <tr><td>Open AML smart button on sale order</td><td>Any</td>
                                 <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
-                            <tr><td>AML Gate Override on sale order</td><td>While AML not completed</td>
-                                <td class="amlman-no">–</td><td class="amlman-no">–</td><td class="amlman-no">–</td><td class="amlman-yes">Yes</td></tr>
+                            <tr><td>AML Gate Override on sale order <span class="amlman-muted">(also the Quotation Approver)</span></td><td>While AML not completed</td>
+                                <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
                         </table>
 
                         <div class="amlman-tip">
@@ -599,8 +600,8 @@
                         <div class="amlman-note">
                             <strong>Do not ask for an override as a shortcut.</strong> The AML gate exists to keep
                             the firm compliant. An override is an audited exception recorded against your order
-                            with the administrator's name, the reason and the timestamp; it is not a way to save
-                            time on a slow client.
+                            with the name of the person who set it, the reason and the timestamp; it is not a way
+                            to save time on a slow client.
                         </div>
                     </div>
 
@@ -787,7 +788,8 @@
                         <h3>5.2 Assigning the case</h3>
                         <ol>
                             <li>Open the request and set <strong>AML Officer</strong> in <em>Request Details</em>.
-                                The field is visible to managers only.</li>
+                                The field is visible to managers only, and the dropdown lists only users who
+                                hold the <strong>AML User</strong> or <strong>AML Manager</strong> group.</li>
                             <li>Saving sends the officer an assignment email and makes the record visible to
                                 them – until then, no officer can see it.</li>
                             <li>Adjust the <strong>Deadline</strong> if the automatic 24 hours from submission
@@ -860,7 +862,9 @@
                         <h3>6.2 The AML gate override</h3>
                         <p>
                             When AML/KYC is not yet completed, an <strong>AML Gate Override</strong> tab appears
-                            on the sale order for administrators only.
+                            on the sale order for <strong>AML Users</strong>, <strong>AML Managers</strong> and the
+                            company's <strong>Quotation Approver</strong>. Everyone else - administrators included -
+                            neither sees the tab nor can set the flag another way.
                         </p>
                         <ol>
                             <li>Tick <strong>Override AML Gate</strong>.</li>
@@ -1222,11 +1226,11 @@
                                     Request additional documents from <em>In Progress</em> instead
                                     (Section 4.4).</td></tr>
                             <tr><td>"Cannot create a project … AML/KYC has not been marked Completed"</td>
-                                <td>Working as designed. Complete AML (Approved or Bypassed), or have an
-                                    administrator record an override with a reason.</td></tr>
-                            <tr><td>"Only Administrators can override the AML/KYC completion gate"</td>
-                                <td>The override is restricted to the Settings group. Raise it with IT and the
-                                    Compliance Officer.</td></tr>
+                                <td>Working as designed. Complete AML (Approved or Bypassed), or have an AML
+                                    User, AML Manager or the Quotation Approver record an override with a reason.</td></tr>
+                            <tr><td>"Only AML Users, AML Managers or the designated Quotation Approver can override the AML/KYC completion gate"</td>
+                                <td>The override is restricted to those three roles. Ask one of them, and involve
+                                    the Compliance Officer.</td></tr>
                             <tr><td>"Enter a reason before overriding the AML/KYC gate"</td>
                                 <td>The reason field is mandatory. Fill it in and save again.</td></tr>
                             <tr><td>An officer cannot delete a request or a line</td>
