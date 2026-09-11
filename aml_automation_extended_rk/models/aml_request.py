@@ -673,46 +673,58 @@ class AmlRequest(models.Model):
     # =========================================================================
     def action_accept(self):
         self.ensure_one()
-        if not self.env.user.has_group('aml_automation_extended_rk.group_aml_manager'):
-            raise UserError(_("Only AML Managers can accept requests."))
+        # group_aml_manager implies group_aml_user, so this single check
+        # covers both roles - Managers and Users have identical rights here.
+        if not self.env.user.has_group('aml_automation_extended_rk.group_aml_user'):
+            raise UserError(_("Only AML Managers and AML Users can accept requests."))
         if self.state != 'new':
             raise UserError(_("Only new requests can be accepted."))
 
+        acting_partner = self.env.user.partner_id
         self.write({'state': 'accepted'})
-        self.message_post(body=_("Request accepted."))
+        # Once written, the record may fall outside a plain AML User's
+        # visibility rule (it's no longer 'new' and may still be unassigned)
+        # even though the action itself was legitimate - sudo the trailing
+        # audit note and pin the real actor as author so chatter attribution
+        # is unaffected either way.
+        self.sudo().message_post(body=_("Request accepted."), author_id=acting_partner.id)
 
     def action_bypass(self):
         self.ensure_one()
-        if not self.env.user.has_group('aml_automation_extended_rk.group_aml_manager'):
-            raise UserError(_("Only AML Managers can bypass requests."))
+        if not self.env.user.has_group('aml_automation_extended_rk.group_aml_user'):
+            raise UserError(_("Only AML Managers and AML Users can bypass requests."))
         if self.state != 'new':
             raise UserError(_("Only new requests can be bypassed."))
+        acting_partner = self.env.user.partner_id
         self.write({'state': 'bypassed'})
-        self.message_post(body=_("Request bypassed. No AML check required."))
-        self._notify_management_and_salesperson(
-            subject=_("AML Request %s – Bypassed (No AML Required)") % self.name,
-            intro=_("AML Request <strong>%s</strong> has been bypassed. No AML check is required.") % self.name,
+        record = self.sudo()
+        record.message_post(body=_("Request bypassed. No AML check required."), author_id=acting_partner.id)
+        record._notify_management_and_salesperson(
+            subject=_("AML Request %s – Bypassed (No AML Required)") % record.name,
+            intro=_("AML Request <strong>%s</strong> has been bypassed. No AML check is required.") % record.name,
             kv_rows=[
-                (_('Client'), self.partner_id.name),
-                (_('Sale Order'), self.sale_order_id.name or '-'),
+                (_('Client'), record.partner_id.name),
+                (_('Sale Order'), record.sale_order_id.name or '-'),
                 (_('Status'), _('Bypassed')),
             ],
         )
 
     def action_cancel(self):
         self.ensure_one()
-        if not self.env.user.has_group('aml_automation_extended_rk.group_aml_manager'):
-            raise UserError(_("Only AML Managers can cancel requests."))
+        if not self.env.user.has_group('aml_automation_extended_rk.group_aml_user'):
+            raise UserError(_("Only AML Managers and AML Users can cancel requests."))
         if self.state != 'new':
             raise UserError(_("Only new requests can be cancelled."))
+        acting_partner = self.env.user.partner_id
         self.write({'state': 'cancelled'})
-        self.message_post(body=_("Request cancelled."))
-        self._notify_management_and_salesperson(
-            subject=_("AML Request %s – Cancelled") % self.name,
-            intro=_("AML Request <strong>%s</strong> has been cancelled.") % self.name,
+        record = self.sudo()
+        record.message_post(body=_("Request cancelled."), author_id=acting_partner.id)
+        record._notify_management_and_salesperson(
+            subject=_("AML Request %s – Cancelled") % record.name,
+            intro=_("AML Request <strong>%s</strong> has been cancelled.") % record.name,
             kv_rows=[
-                (_('Client'), self.partner_id.name),
-                (_('Sale Order'), self.sale_order_id.name or '-'),
+                (_('Client'), record.partner_id.name),
+                (_('Sale Order'), record.sale_order_id.name or '-'),
                 (_('Status'), _('Cancelled')),
             ],
         )

@@ -58,6 +58,13 @@ class SaleOrder(models.Model):
 
     _AML_GATE_OVERRIDE_FIELDS = {'aml_gate_override', 'aml_gate_override_reason'}
 
+    # Same set action_cancel's cascade below uses - any request still sitting
+    # in an open pipeline stage when the gate is overridden.
+    _AML_GATE_OVERRIDE_BYPASSABLE_STATES = (
+        'draft', 'new', 'accepted', 'in_progress',
+        'hit_detected', 'additional_info', 'no_hit',
+    )
+
     # Both computes run for anyone opening a sale order, including salespeople
     # with no AML group. They read through sudo so the AML records stay
     # restricted while the gate status itself remains visible on the quotation.
@@ -166,6 +173,8 @@ class SaleOrder(models.Model):
         return aml
 
     def write(self, vals):
+        trigger_override_bypass = bool(vals.get('aml_gate_override'))
+
         if self._AML_GATE_OVERRIDE_FIELDS.intersection(vals) and not self.env.su:
             self._check_aml_gate_override_rights()
             if vals.get('aml_gate_override'):
@@ -183,7 +192,10 @@ class SaleOrder(models.Model):
             # real gate; other fields are untouched.
             if set(vals) <= (self._AML_GATE_OVERRIDE_FIELDS
                              | {'aml_gate_override_by', 'aml_gate_override_date'}):
-                return self.sudo().write(vals)
+                res = self.sudo().write(vals)
+                if trigger_override_bypass:
+                    self._bypass_aml_requests_on_override()
+                return res
 
         if vals.get('state') == 'cancel':
             cancellable_states = ('draft', 'new', 'accepted', 'in_progress',
@@ -200,7 +212,29 @@ class SaleOrder(models.Model):
                             body=_("Request automatically cancelled because Sale Order %s was cancelled.")
                                  % order.name
                         )
-        return super().write(vals)
+
+        res = super().write(vals)
+        if trigger_override_bypass:
+            self._bypass_aml_requests_on_override()
+        return res
+
+    def _bypass_aml_requests_on_override(self):
+        """Auto-bypass any AML request still sitting in an open pipeline stage
+        once the linked order's AML/KYC gate is overridden. Without this the
+        request stays wherever it was (e.g. still "New"), so its form keeps
+        showing Accept/Bypass/Cancel etc. even though the gate is already
+        Overridden and nothing about those buttons is still relevant."""
+        for order in self:
+            to_bypass = order.sudo().aml_request_ids.filtered(
+                lambda r: r.state in self._AML_GATE_OVERRIDE_BYPASSABLE_STATES
+            )
+            if to_bypass:
+                to_bypass.sudo().write({'state': 'bypassed'})
+                for aml in to_bypass:
+                    aml.sudo().message_post(
+                        body=_("Request automatically bypassed because Sale Order %s's "
+                               "AML/KYC gate was overridden.") % order.name
+                    )
 
     def action_view_aml_requests(self):
         self.ensure_one()

@@ -8,13 +8,14 @@
         groups="aml_automation_extended_rk.group_aml_user"
         web_icon="aml_automation_extended_rk,static/description/icon.png"/>
 
-    <!-- New AML Requests – Manager only -->
+    <!-- New AML Requests – Managers and AML Users (screening queue: Accept,
+         Bypass, Cancel, Resend KYC Email are all available to both roles) -->
     <menuitem id="menu_aml_new_requests"
         name="New AML Requests"
         parent="menu_aml_root"
         action="action_aml_new_requests"
         sequence="10"
-        groups="aml_automation_extended_rk.group_aml_manager"/>
+        groups="aml_automation_extended_rk.group_aml_manager,aml_automation_extended_rk.group_aml_user"/>
 
     <!-- Pipeline – AML Users and Managers -->
     <menuitem id="menu_aml_pipeline"
