@@ -11,11 +11,17 @@
                         <field name="closure_invoice_confirmed" widget="boolean_toggle" readonly="1"/>
                         <group>
                             <field name="closure_invoice_type" readonly="not is_closure_pm"/>
+                            <!-- default_move_type drives the Invoice Type column, which
+                                 account_extended_rk adds to the invoice list globally and
+                                 hides unless the context marks this an out_invoice / out_refund
+                                 list. This module used to ship its own inherited list view for
+                                 that column, but inheriting account.view_invoice_tree leaked a
+                                 duplicate Invoice Type column into the whole Accounting list. -->
                             <field name="closure_invoice_move_id"
                                    readonly="not is_closure_pm"
                                    invisible="closure_invoice_type != 'odoo'"
                                    domain="[('move_type', '=', 'out_invoice'), ('partner_id', '=', partner_id), ('state', '=', 'posted'), '|', ('sale_order_line_id.project_id', '=', id), ('service_engagement_id', '=', id)]"
-                                   context="{'list_view_ref': 'project_closure_invoice_gate_rk.view_invoice_tree_project_closure_selector'}"/>
+                                   context="{'default_move_type': 'out_invoice'}"/>
                             <field name="partner_id" invisible="1"/>
                             <field name="closure_group_invoice_number"
                                    readonly="not is_closure_pm"

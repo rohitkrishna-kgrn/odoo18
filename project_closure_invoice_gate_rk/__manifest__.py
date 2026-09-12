@@ -1,6 +1,6 @@
 {
     "name": "Project Closure Invoice Gate",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.0.1",
     "category": "Project",
     "summary": "Block Project (and its Tasks) closure until the Project Manager confirms invoicing",
     "description": """
@@ -19,7 +19,6 @@ actions, kanban drag, or direct field edits).
     "depends": ["project", "project_extended_rk", "account_extended_rk"],
     "data": [
         "views/project_project_views.xml",
-        "views/account_move_views.xml",
     ],
     "installable": True,
     "application": False,

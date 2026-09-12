@@ -12,7 +12,7 @@ p = env['res.partner'].create({'name':'Attach Test LLC','company_type':'company'
 prod = env['product.product'].create({'name':'Advisory','type':'service','einv_sac_code':'9983'})
 inv = env['account.move'].create({'move_type':'out_invoice','company_id':1,
     'journal_id':journal.id,'partner_id':p.id,'invoice_date':'2026-08-18',
-    'ar_responsible_id':env.ref('base.user_admin').id,
+    'ar_responsible_ids':[(6, 0, [env.ref('base.user_admin').id])],
     'service_engagement_id':eng.id if eng else False,
     'invoice_type_classification':'completion',
     'invoice_line_ids':[(0,0,{'product_id':prod.id,'name':'Advisory work',

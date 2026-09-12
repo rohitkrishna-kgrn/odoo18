@@ -16,9 +16,9 @@ import { _t } from "@web/core/l10n/translation";
  * form happens to be open.
  */
 export const helpdeskChatNotificationService = {
-    dependencies: ["bus_service", "notification", "action"],
+    dependencies: ["bus_service", "notification", "action", "menu"],
 
-    start(env, { bus_service: busService, notification, action }) {
+    start(env, { bus_service: busService, notification, action, menu }) {
         // Ticket whose chat panel is open and unfolded right now: the user is
         // already watching those messages arrive, so a toast would be noise.
         const state = { activeTicketId: null };
@@ -33,6 +33,46 @@ export const helpdeskChatNotificationService = {
             }
         }
 
+        // A plain ad-hoc act_window dict opens the ticket form fine, but the
+        // web client only ever switches the left app menu from menuService's
+        // own selectMenu() - a raw dict has no matching ir.ui.menu, so the
+        // navbar silently stays on whatever app the user was already in.
+        // Routing through the ticket's real menu action (and calling
+        // setCurrentMenu ourselves, exactly as selectMenu does) makes this
+        // button behave like an actual click on the Helpdesk menu.
+        //
+        // NB: menusData's "actionModel" is the polymorphic type of the
+        // *action* record itself (always "ir.actions.act_window" for these),
+        // never the res_model it opens - matching on it can never find
+        // anything. The menu's xmlid is what's actually unique per entry, so
+        // match on the two known Helpdesk-ticket menu xmlids instead; only
+        // one of them is visible to any given user (support/admin get "All
+        // Tickets", everyone else in the Helpdesk User group gets "Tickets").
+        const HELPDESK_TICKET_MENU_XMLIDS = [
+            "helpdesk_rk.menu_helpdesk_tickets_all",
+            "helpdesk_rk.menu_helpdesk_tickets_own",
+        ];
+        function openTicket(ticketId) {
+            const ticketMenu = menu
+                .getAll()
+                .find((m) => HELPDESK_TICKET_MENU_XMLIDS.includes(m.xmlid));
+            if (ticketMenu) {
+                action.doAction(ticketMenu.actionID, {
+                    props: { resId: ticketId },
+                    clearBreadcrumbs: true,
+                    onActionReady: () => menu.setCurrentMenu(ticketMenu),
+                });
+            } else {
+                action.doAction({
+                    type: "ir.actions.act_window",
+                    res_model: "helpdesk_rk.ticket",
+                    res_id: ticketId,
+                    views: [[false, "form"]],
+                    target: "current",
+                });
+            }
+        }
+
         busService.subscribe("helpdesk_rk_chat_notification", (payload) => {
             if (!payload || !payload.message_id || announced.has(payload.message_id)) {
                 return;
@@ -44,26 +84,25 @@ export const helpdeskChatNotificationService = {
             const reference = payload.ticket_number
                 ? `${payload.ticket_number} - ${payload.ticket_name}`
                 : payload.ticket_name;
-            notification.add(payload.preview || _t("Sent you a message."), {
+            // notification.add() returns a closer for this exact toast - the
+            // button's own onClick has to call it, since clicking a button
+            // does not dismiss the toast on its own.
+            const closeToast = notification.add(payload.preview || _t("Sent you a message."), {
                 title: _t("%(author)s - %(ticket)s", {
                     author: payload.author_name,
                     ticket: reference,
                 }),
                 type: "info",
-                autocloseDelay: 8000,
+                autocloseDelay: 5000,
                 buttons: [
                     {
                         name: _t("Open Ticket"),
                         primary: true,
                         icon: "fa-external-link",
-                        onClick: () =>
-                            action.doAction({
-                                type: "ir.actions.act_window",
-                                res_model: "helpdesk_rk.ticket",
-                                res_id: payload.ticket_id,
-                                views: [[false, "form"]],
-                                target: "current",
-                            }),
+                        onClick: () => {
+                            closeToast();
+                            openTicket(payload.ticket_id);
+                        },
                     },
                 ],
             });

@@ -1,264 +1,314 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
   <template id="report_invoice_template_rk">
-    <t t-name="template_rk.report_invoice_template_rk">
-      <t t-call="web.html_container">
-        <t t-foreach="docs" t-as="o">
-          <div class="page" style="width: full; min-height: 297px; padding: 25px 20px; box-sizing: border-box;">
+    <t t-call="web.html_container">
+      <t t-foreach="docs" t-as="o">
+       <div class="article" t-att-data-oe-model="o and o._name" t-att-data-oe-id="o and o.id" t-att-data-oe-lang="o and o.env.context.get('lang')">
 
-            <style>
-              * {
-                font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-                color: #111;
-                font-size: 16px;
-                line-height: 1.6;
-              }
+        <!-- Everything the layout needs, resolved once per document -->
+        <t t-set="brand"
+           t-value="o.company_id.invoice_color if (o.company_id.invoice_color or '').lower() not in ('', 'false', '#000', '#000000', '#fff', '#ffffff') else '#1f3a5f'"/>
+        <t t-set="customer" t-value="o.commercial_partner_id"/>
+        <t t-set="contact" t-value="o.partner_id"/>
+        <t t-set="company_addr"
+           t-value="', '.join([p for p in [o.company_id.street, o.company_id.street2, o.company_id.city, o.company_id.state_id.name, o.company_id.zip, o.company_id.country_id.name] if p])"/>
+        <t t-set="contact_addr"
+           t-value="', '.join([p for p in [contact.street, contact.street2, contact.city, contact.state_id.name, contact.zip, contact.country_id.name] if p])"/>
 
-              h1, h2, h3, h4 {
-                margin: 0;
-                padding: 0;
-              }
+        <div class="page">
+          <style>
+            .rkti_wrap {
+              font-family: 'DejaVu Sans', Arial, sans-serif;
+              color: #1a1a1a;
+              font-size: 12.5px;
+              line-height: 1.55;
+            }
+            .rkti_title {
+              background-color: <t t-esc="brand"/>;
+              color: #ffffff;
+              text-align: center;
+              font-size: 22px;
+              font-weight: bold;
+              letter-spacing: 2px;
+              padding: 10px 8px 4px 8px;
+            }
+            .rkti_subtitle {
+              background-color: <t t-esc="brand"/>;
+              color: #ffffff;
+              text-align: center;
+              font-size: 10px;
+              font-style: italic;
+              padding: 0 8px 8px 8px;
+              margin-bottom: 14px;
+            }
+            .rkti_letterhead { text-align: right; margin-bottom: 12px; border: none; }
+            .rkti_logo { max-height: 64px; max-width: 200px; border: none; }
+            .rkti_band {
+              background-color: <t t-esc="brand"/>;
+              color: #ffffff;
+              font-weight: bold;
+              font-size: 11px;
+              letter-spacing: 0.5px;
+              padding: 7px 10px;
+            }
+            table.rkti_meta { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+            table.rkti_meta > tbody > tr > td {
+              width: 50%;
+              vertical-align: top;
+              border: 1px solid #d0d0d0;
+              padding: 0;
+            }
+            table.rkti_meta > tbody > tr > td + td { border-left: none; }
+            table.rkti_kv { width: 100%; border-collapse: collapse; }
+            table.rkti_kv td { padding: 5px 10px; vertical-align: top; font-size: 11.5px; }
+            table.rkti_kv td.rkti_k { width: 42%; color: #555; }
+            .rkti_block { margin-bottom: 16px; border: 1px solid #d0d0d0; }
 
-              .company-name {
-                font-size: 20px;
-                font-weight: 700;
-                color: <t t-esc="o.company_id.invoice_color or '#000'" />;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-              }
+            table.rkti_items { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+            table.rkti_items th {
+              background-color: <t t-esc="brand"/>;
+              color: #ffffff;
+              font-size: 10px;
+              font-weight: bold;
+              text-align: center;
+              padding: 8px 6px;
+              border: 1px solid <t t-esc="brand"/>;
+            }
+            table.rkti_items td {
+              font-size: 11.5px;
+              padding: 8px 6px;
+              border: 1px solid #d0d0d0;
+              vertical-align: middle;
+            }
+            table.rkti_items td.rkti_c { text-align: center; }
+            table.rkti_items td.rkti_r { text-align: right; white-space: nowrap; }
+            table.rkti_items td.rkti_section { font-weight: bold; background-color: #f2f2f2; }
+            table.rkti_items td.rkti_note { font-style: italic; color: #555; }
 
-              .section-title {
-                font-weight: bold;
-                margin-top: 20px;
-                margin-bottom: 5px;
-                color: #444;
-                font-size: 18px;
-                border-bottom: 1px solid #ccc;
-                padding-bottom: 4px;
-              }
+            table.rkti_totals {
+              width: 46%;
+              margin-left: 54%;
+              border-collapse: collapse;
+              margin-bottom: 12px;
+            }
+            table.rkti_totals td { padding: 6px 9px; font-size: 11px; border: 1px solid #d0d0d0; }
+            table.rkti_totals td.rkti_r { text-align: right; white-space: nowrap; }
+            table.rkti_totals tr.rkti_grand td { font-weight: bold; font-size: 12.5px; }
+            table.rkti_totals tr.rkti_grand td.rkti_r {
+              background-color: <t t-esc="brand"/>;
+              color: #ffffff;
+            }
 
-              .invoice-title {
-                font-size: 30px;
-                font-weight: bold;
-                text-align: center;
-                padding-bottom: 10px;
-                margin-bottom: 25px;
-                color: #000;
-              }
+            .rkti_words {
+              border: 1px solid #d0d0d0;
+              background-color: #f7f7f7;
+              padding: 9px 12px;
+              font-size: 11.5px;
+              margin-bottom: 16px;
+            }
+            ol.rkti_terms { margin: 8px 10px 8px 24px; padding: 0; font-size: 10.5px; color: #333; }
+            ol.rkti_terms li { margin-bottom: 3px; }
+            .rkti_penalty {
+              margin: 6px 10px 10px 10px;
+              font-size: 10.5px;
+              font-weight: bold;
+              color: #b02a2a;
+            }
+            table.rkti_sign { width: 100%; border-collapse: collapse; margin-top: 26px; }
+            table.rkti_sign td { width: 50%; vertical-align: bottom; font-size: 11px; padding: 4px 8px; }
+            table.rkti_sign td.rkti_r { text-align: right; }
+            .rkti_sigline { border-top: 1px solid #999; margin-top: 34px; padding-top: 3px; color: #777; font-size: 10px; }
+            .rkti_foot {
+              margin-top: 22px;
+              padding-top: 8px;
+              border-top: 1px solid #d0d0d0;
+              text-align: center;
+              font-size: 9px;
+              color: #999;
+            }
+          </style>
 
-              .table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 15px;
-                font-size: 16px;
-              }
+          <div class="rkti_wrap">
 
-              .table th {
-                background-color: <t t-esc="o.company_id.invoice_color or '#000'" />;
-                color: #fff;
-                padding: 10px;
-                border: 1px solid #ccc;
-                text-align: left;
-              }
+            <!-- Letterhead: logo in the top-right corner -->
+            <t t-set="logo_uri" t-value="o._rk_logo_data_uri()"/>
+            <div class="rkti_letterhead" t-if="logo_uri">
+              <img class="rkti_logo" t-att-src="logo_uri" alt="Logo"/>
+            </div>
 
-              .table td {
-                padding: 10px;
-                border: 1px solid #ccc;
-              }
+            <!-- Heading -->
+            <div class="rkti_title"><span t-esc="o._rk_report_title()"/></div>
+            <div class="rkti_subtitle">
+              Issued in accordance with UAE Federal Decree-Law No. 8 of 2017 on VAT and Cabinet Decision No. 52 of 2017
+            </div>
 
-              .table td:last-child,
-              .table th:last-child {
-                text-align: right;
-              }
-
-              .info-table {
-                width: 100%;
-                margin-bottom: 20px;
-                padding-bottom: 10px;
-                border-bottom: 1px solid <t t-esc="o.company_id.invoice_color or '#000'" />;
-              }
-
-              .info-table td {
-                vertical-align: top;
-                padding: 5px;
-                font-size: 16px;
-              }
-
-              .bottom-section {
-                display: flex;
-                justify-content: space-between;
-                margin-top: 30px;
-                gap: 20px;
-              }
-
-              .amount-remarks {
-                flex: 1;
-                max-width: 60%;
-              }
-
-              .amount-words {
-                text-transform: uppercase;
-                color: #444;
-                font-size: 16px;
-                margin-bottom: 10px;
-              }
-
-              .bank-details {
-                background-color: #f9f9f9;
-                padding: 12px;
-                font-size: 15px;
-                border: 1px solid #ccc;
-                flex: 1;
-                max-width: 40%;
-              }
-
-              .signature {
-                text-align: right;
-                margin-top: 70px; /* Increased space for actual signature */
-                font-style: italic;
-                color: #222;
-                font-size: 16px;
-              }
-
-              .footer-note {
-                text-align: center;
-                margin-top: 40px;
-                font-size: 13px;
-                color: #999;
-              }
-
-              .penalty-note {
-                margin-top: 20px;
-                padding-top: 10px;
-                border-top: 1px solid #ccc;
-                font-size: 13px;
-                font-weight: 600;
-                color: #444;
-              }
-
-              .logo {
-                max-height: 90px;
-                max-width: 200px;
-              }
-
-              .align-right {
-                text-align: right;
-              }
-
-            </style>
-
-            <!-- Header -->
-            <table class="info-table">
+            <!-- Supplier details | Invoice details -->
+            <table class="rkti_meta">
               <tr>
                 <td>
-                  <div class="company-name" t-field="o.company_id.name"/>
-                  <div t-field="o.company_id.street"/>
-                  <div>
-                    <span t-field="o.company_id.city"/> - 
-                    <span t-field="o.company_id.zip"/>
-                  </div>
-                  <div t-field="o.company_id.country_id.name"/>
+                  <div class="rkti_band">SUPPLIER DETAILS (Company Issuing the Invoice)</div>
+                  <table class="rkti_kv">
+                    <tr><td class="rkti_k">Company Name</td><td><span t-field="o.company_id.name"/></td></tr>
+                    <tr><td class="rkti_k">Address</td><td><span t-esc="company_addr"/></td></tr>
+                    <tr><td class="rkti_k">Tax Registration No. (TRN)</td><td><span t-esc="o.company_id.vat or 'Not available'"/></td></tr>
+                    <tr>
+                      <td class="rkti_k">Tel / Email</td>
+                      <td>
+                        <span t-esc="o.company_id.phone or ''"/>
+                        <t t-if="o.company_id.phone and o.company_id.email"> / </t>
+                        <span t-esc="o.company_id.email or ''"/>
+                      </td>
+                    </tr>
+                  </table>
                 </td>
-                <td class="align-right">
-                  <img class="logo" t-if="o.company_id.logo"
-                      t-att-src="'data:image/png;base64,%s' % o.company_id.logo.decode('utf-8')"
-                      alt="Company Logo"/>
+                <td>
+                  <div class="rkti_band">INVOICE DETAILS</div>
+                  <table class="rkti_kv">
+                    <tr><td class="rkti_k">Invoice No.</td><td><span t-field="o.name"/></td></tr>
+                    <tr><td class="rkti_k">Invoice Date</td><td><span t-esc="o._rk_date(o.invoice_date)"/></td></tr>
+                    <tr><td class="rkti_k">Date of Supply</td><td><span t-esc="o._rk_date_of_supply()"/></td></tr>
+                    <tr><td class="rkti_k">Payment Due Date</td><td><span t-esc="o._rk_date(o.invoice_date_due)"/></td></tr>
+                  </table>
                 </td>
               </tr>
             </table>
 
-            <!-- Title -->
-            <div class="invoice-title">TAX INVOICE</div>
+            <!-- Customer details -->
+            <div class="rkti_block">
+              <div class="rkti_band">CUSTOMER DETAILS (Bill To)</div>
+              <table class="rkti_kv">
+                <tr><td class="rkti_k">Customer Name</td><td><span t-field="customer.name"/></td></tr>
+                <tr><td class="rkti_k">Address</td><td><span t-esc="contact_addr"/></td></tr>
+                <tr><td class="rkti_k">Customer TRN (if registered)</td><td><span t-esc="(customer.vat or contact.vat) or 'Not registered'"/></td></tr>
+                <tr>
+                  <td class="rkti_k">Contact Person / Email</td>
+                  <td>
+                    <span t-if="contact != customer and contact.name" t-esc="contact.name"/>
+                    <t t-if="contact != customer and contact.name and (contact.email or customer.email)"> / </t>
+                    <span t-esc="contact.email or customer.email or ''"/>
+                  </td>
+                </tr>
+              </table>
+            </div>
 
-            <!-- Party and Invoice Info -->
-            <table class="info-table">
-              <tr>
-                <td>
-                  <div class="section-title">BILL TO:</div>
-                  <div><strong>Customer: </strong> <span t-field="o.partner_id.name"/></div>
-                  <div><strong>Address: </strong> <span t-field="o.partner_id.street"/></div>
-                  <div>
-                    <strong>Emirates: </strong>
-                    <span t-field="o.partner_id.city"/>, 
-                    <span t-field="o.partner_id.state_id.name"/>
-                  </div>
-                  <div><strong>Address: </strong> <span t-field="o.partner_id.country_id.name"/></div>
-                  <div><strong>VAT: </strong> <span t-field="o.partner_id.vat"/></div>
-                </td>
-                <td class="align-right">
-                  <div class="section-title">INVOICE DETAILS:</div>
-                  <div><strong>Invoice #:</strong> <span t-field="o.name"/></div>
-                  <div><strong>Date:</strong> <span t-field="o.invoice_date"/></div>
-                  <div><strong>Due Date:</strong> <span t-field="o.invoice_date_due"/></div>
-                </td>
-              </tr>
-            </table>
-
-            <!-- Invoice Line Items -->
-            <table class="table">
+            <!-- Line items -->
+            <table class="rkti_items">
               <thead>
                 <tr>
-                  <th>Description</th>
-                  <th>Qty</th>
-                  <th>Unit Price</th>
-                  <th>Subtotal</th>
-                  <th>VAT</th>
-                  <th>Total</th>
+                  <th style="width:5%;">S.No</th>
+                  <th style="width:33%;">Description of Goods / Services</th>
+                  <th style="width:7%;">Qty</th>
+                  <th style="width:12%;">Unit Price (AED)</th>
+                  <th style="width:12%;">Amount (AED)</th>
+                  <th style="width:8%;">VAT Rate</th>
+                  <th style="width:11%;">VAT Amount (AED)</th>
+                  <th style="width:12%;">Total incl. VAT (AED)</th>
                 </tr>
               </thead>
               <tbody>
-                <tr t-foreach="o.invoice_line_ids" t-as="l">
-                  <td><span t-field="l.name"/></td>
-                  <td><span t-field="l.quantity"/></td>
-                  <td><span t-field="l.price_unit"/></td>
-                  <td><span t-field="l.price_subtotal"/></td>
-                  <td><span t-esc="l.price_total - l.price_subtotal"/></td>
-                  <td><span t-field="l.price_total"/></td>
-                </tr>
+                <t t-foreach="o._rk_report_lines()" t-as="row">
+                  <t t-set="line" t-value="row[1]"/>
+                  <tr t-if="line.display_type == 'line_section'">
+                    <td colspan="8" class="rkti_section"><span t-field="line.name"/></td>
+                  </tr>
+                  <tr t-elif="line.display_type == 'line_note'">
+                    <td colspan="8" class="rkti_note"><span t-field="line.name"/></td>
+                  </tr>
+                  <tr t-else="">
+                    <td class="rkti_c"><span t-esc="row[0]"/></td>
+                    <td><span t-field="line.name"/></td>
+                    <td class="rkti_c"><span t-esc="'%g' % line.quantity"/></td>
+                    <td class="rkti_r"><span t-esc="o._rk_fmt(line.price_unit)"/></td>
+                    <td class="rkti_r"><span t-esc="o._rk_fmt(line.price_subtotal)"/></td>
+                    <td class="rkti_c"><span t-esc="line._rk_vat_rate_label()"/></td>
+                    <td class="rkti_r"><span t-esc="o._rk_fmt(line._rk_vat_amount())"/></td>
+                    <td class="rkti_r"><span t-esc="o._rk_fmt(line.price_total)"/></td>
+                  </tr>
+                </t>
               </tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="5"><strong>Total</strong></td>
-                  <td><span t-field="o.amount_total"/></td>
-                </tr>
-              </tfoot>
             </table>
 
-            <!-- Bottom Section: Amount in Words + Remarks (Left) | Bank Details (Right) -->
-            <div class="bottom-section">
-              <div class="amount-remarks">
-                <div class="amount-words">
-                  <strong>Amount in Words:</strong>
-                  <span t-esc="o.amount_to_words(o.amount_total).upper()"/>
-                </div>
-                <div>
-                  <strong>Remarks:</strong> <span t-field="o.ref"/>
-                </div>
-              </div>
-              <div class="bank-details">
-                <strong>Company Bank Details:</strong><br/>
-                <t t-foreach="o.company_id.invoice_bank_ids" t-as="bank">
-                  Bank: <span t-esc="bank.bank_id.name or ''"/><br/>
-                  Account No: <span t-esc="bank.acc_number or ''"/><br/>
-                  IBAN: <span t-esc="bank.iban or ''"/><br/>
-                  Swift Code: <span t-esc="bank.swift_code or ''"/><br/><br/>
-                </t>
-              </div>
+            <!-- Totals -->
+            <table class="rkti_totals">
+              <tr>
+                <td>Subtotal (excl. VAT)</td>
+                <td class="rkti_r"><span t-esc="o._rk_fmt(o.amount_untaxed)"/></td>
+              </tr>
+              <tr>
+                <td>Total VAT</td>
+                <td class="rkti_r"><span t-esc="o._rk_fmt(o.amount_tax)"/></td>
+              </tr>
+              <tr class="rkti_grand">
+                <td>TOTAL AMOUNT PAYABLE (AED)</td>
+                <td class="rkti_r"><span t-esc="o._rk_fmt(o.amount_total)"/></td>
+              </tr>
+            </table>
+
+            <!-- Amount in words -->
+            <div class="rkti_words">
+              <strong>Amount in words:</strong>
+              <span t-esc="o._rk_amount_in_words()"/>
             </div>
 
-            <!-- Late Payment Penalty / Terms and Conditions -->
-            <div class="penalty-note" t-if="o.narration" t-field="o.narration"/>
+            <!-- Bank details | Terms &amp; conditions -->
+            <table class="rkti_meta">
+              <tr>
+                <td>
+                  <div class="rkti_band">BANK DETAILS FOR PAYMENT</div>
+                  <t t-set="banks" t-value="o._rk_invoice_bank_accounts()"/>
+                  <t t-if="banks">
+                    <t t-foreach="banks" t-as="bank">
+                      <table class="rkti_kv">
+                        <tr><td class="rkti_k">Bank Name</td><td><span t-esc="bank.bank_id.name or 'Not available'"/></td></tr>
+                        <tr><td class="rkti_k">Account Name</td><td><span t-esc="bank.acc_holder_name or o.company_id.name"/></td></tr>
+                        <tr><td class="rkti_k">Account No.</td><td><span t-esc="bank.acc_number or ''"/></td></tr>
+                        <tr><td class="rkti_k">IBAN</td><td><span t-esc="bank.iban or ''"/></td></tr>
+                        <tr><td class="rkti_k">SWIFT Code</td><td><span t-esc="bank.swift_code or ''"/></td></tr>
+                      </table>
+                      <div t-if="not bank_last" style="border-top:1px dashed #ccc;"/>
+                    </t>
+                  </t>
+                  <table class="rkti_kv" t-if="not banks">
+                    <tr><td>Please contact us for payment details.</td></tr>
+                  </table>
+                </td>
+                <td>
+                  <div class="rkti_band">TERMS &amp; CONDITIONS</div>
+                  <ol class="rkti_terms">
+                    <li><span t-esc="o._rk_payment_terms_text()"/></li>
+                    <li>Please quote the invoice number on all payments.</li>
+                    <li>All amounts are in UAE Dirhams (AED).</li>
+                    <li>This invoice is subject to UAE VAT at the applicable rate.</li>
+                  </ol>
+                  <div class="rkti_penalty" t-if="o.narration"><span t-field="o.narration"/></div>
+                </td>
+              </tr>
+            </table>
 
-            <!-- Signature -->
-            <div class="signature">Authorized Signature</div>
+            <!-- Signatures -->
+            <table class="rkti_sign">
+              <tr>
+                <td>
+                  Received By (Name &amp; Signature):
+                  <div class="rkti_sigline">Customer acknowledgement</div>
+                </td>
+                <td class="rkti_r">
+                  For <span t-field="o.company_id.name"/>
+                  <div class="rkti_sigline">Authorised Signatory &amp; Stamp</div>
+                </td>
+              </tr>
+            </table>
 
-            <!-- Footer -->
-            <div class="footer-note">
-              This is a system-generated invoice. No signature is required.
+            <div class="rkti_foot">
+              This is a system-generated
+              <t t-if="o.move_type == 'out_refund'">tax credit note</t>
+              <t t-else="">tax invoice</t>
+              issued by <span t-field="o.company_id.name"/>.
             </div>
 
           </div>
-        </t>
+        </div>
+       </div>
       </t>
     </t>
   </template>

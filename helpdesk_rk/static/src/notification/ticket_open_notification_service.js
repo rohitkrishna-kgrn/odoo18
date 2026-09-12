@@ -12,9 +12,48 @@ import { _t } from "@web/core/l10n/translation";
  * nowhere except the bell icon on the kanban/list boards.
  */
 export const helpdeskTicketOpenNotificationService = {
-    dependencies: ["orm", "notification", "action"],
+    dependencies: ["orm", "notification", "action", "menu"],
 
-    start(env, { orm, notification, action }) {
+    start(env, { orm, notification, action, menu }) {
+        // A raw ad-hoc act_window dict opens the ticket form fine, but only
+        // menuService's own selectMenu() ever switches the left app menu -
+        // a dict action has no matching ir.ui.menu for it to find. Routing
+        // through the ticket's real menu action, then calling setCurrentMenu
+        // ourselves (exactly as selectMenu does), makes this button behave
+        // like an actual click on the Helpdesk menu.
+        //
+        // NB: menusData's "actionModel" is the polymorphic type of the
+        // *action* record itself (always "ir.actions.act_window" for these),
+        // never the res_model it opens - matching on it can never find
+        // anything. The menu's xmlid is what's actually unique per entry, so
+        // match on the two known Helpdesk-ticket menu xmlids instead; only
+        // one of them is visible to any given user (support/admin get "All
+        // Tickets", everyone else in the Helpdesk User group gets "Tickets").
+        const HELPDESK_TICKET_MENU_XMLIDS = [
+            "helpdesk_rk.menu_helpdesk_tickets_all",
+            "helpdesk_rk.menu_helpdesk_tickets_own",
+        ];
+        function openTicket(ticketId) {
+            const ticketMenu = menu
+                .getAll()
+                .find((m) => HELPDESK_TICKET_MENU_XMLIDS.includes(m.xmlid));
+            if (ticketMenu) {
+                action.doAction(ticketMenu.actionID, {
+                    props: { resId: ticketId },
+                    clearBreadcrumbs: true,
+                    onActionReady: () => menu.setCurrentMenu(ticketMenu),
+                });
+            } else {
+                action.doAction({
+                    type: "ir.actions.act_window",
+                    res_model: "helpdesk_rk.ticket",
+                    res_id: ticketId,
+                    views: [[false, "form"]],
+                    target: "current",
+                });
+            }
+        }
+
         orm
             .call("helpdesk_rk.ticket", "get_unread_chat_notifications", [])
             .then((tickets) => {
@@ -22,25 +61,24 @@ export const helpdeskTicketOpenNotificationService = {
                     const reference = ticket.ticket_number
                         ? `${ticket.ticket_number} - ${ticket.ticket_name}`
                         : ticket.ticket_name;
-                    notification.add(
+                    // notification.add() returns a closer for this exact
+                    // toast - the button's own onClick has to call it, since
+                    // clicking a button does not dismiss the toast on its own.
+                    const closeToast = notification.add(
                         _t("%(count)s unread message(s).", { count: ticket.unread_count }),
                         {
                             title: reference,
                             type: "info",
-                            autocloseDelay: 8000,
+                            autocloseDelay: 5000,
                             buttons: [
                                 {
                                     name: _t("Open Ticket"),
                                     primary: true,
                                     icon: "fa-external-link",
-                                    onClick: () =>
-                                        action.doAction({
-                                            type: "ir.actions.act_window",
-                                            res_model: "helpdesk_rk.ticket",
-                                            res_id: ticket.ticket_id,
-                                            views: [[false, "form"]],
-                                            target: "current",
-                                        }),
+                                    onClick: () => {
+                                        closeToast();
+                                        openTicket(ticket.ticket_id);
+                                    },
                                 },
                             ],
                         }
