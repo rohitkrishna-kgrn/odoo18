@@ -13,6 +13,20 @@
                 <field name="aml_gate_completed" readonly="1"/>
                 <field name="aml_gate_status" invisible="1"/>
                 <field name="aml_gate_override_allowed" invisible="1"/>
+                <field name="aml_action_allowed" invisible="1"/>
+            </xpath>
+
+            <!-- Manual AML form dispatch, replacing the old automatic send-on-approve.
+                 Shown right after Approve, only before any AML request exists for this
+                 order (aml_request_count == 0) and only to the AML team / the
+                 designated Quotation Approver (aml_action_allowed). -->
+            <xpath expr="//button[@name='action_approve_order']" position="after">
+                <button name="action_send_aml_form" string="Send AML Form" type="object"
+                    class="btn-primary"
+                    invisible="approval_state != 'approved' or aml_request_count &gt; 0 or not aml_action_allowed"/>
+                <button name="action_open_aml_bypass_wizard" string="AML Bypass" type="object"
+                    class="btn-warning"
+                    invisible="approval_state != 'approved' or aml_request_count &gt; 0 or not aml_action_allowed"/>
             </xpath>
 
             <!-- AML smart button -->

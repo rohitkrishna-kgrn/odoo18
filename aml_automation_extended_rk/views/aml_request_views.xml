@@ -40,7 +40,7 @@
                         groups="aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_no_hit" type="object" string="No HIT"
                         class="btn-success"
-                        invisible="state != 'in_progress' or display_status == 'overridden'"
+                        invisible="state not in ('in_progress', 'hit_detected') or display_status == 'overridden'"
                         confirm="Confirm no HIT detected? This will mark the record as completed."
                         groups="aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_hit_detected" type="object" string="HIT Detected"
@@ -49,7 +49,7 @@
                         groups="aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_additional_documents" type="object" string="Additional Documents"
                         class="btn-secondary"
-                        invisible="state != 'in_progress' or display_status == 'overridden'"
+                        invisible="state not in ('in_progress', 'hit_detected') or display_status == 'overridden'"
                         groups="aml_automation_extended_rk.group_aml_user"/>
 
                     <!-- No HIT follow-up actions -->

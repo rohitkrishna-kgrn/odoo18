@@ -12,3 +12,4 @@ access_aml_hit_document_user,aml.hit.document.user,model_aml_hit_document,aml_au
 access_aml_hit_wizard_user,aml.hit.wizard.user,model_aml_hit_wizard,aml_automation_extended_rk.group_aml_user,1,1,1,1
 access_aml_hit_wizard_line_user,aml.hit.wizard.line.user,model_aml_hit_wizard_line,aml_automation_extended_rk.group_aml_user,1,1,1,1
 access_aml_user_manual_wizard_user,aml.user.manual.wizard.user,model_aml_user_manual_wizard,aml_automation_extended_rk.group_aml_user,1,1,1,1
+access_aml_bypass_wizard_user,aml.bypass.wizard.user,model_aml_bypass_wizard,base.group_user,1,1,1,1

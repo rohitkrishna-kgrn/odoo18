@@ -744,8 +744,8 @@ class AmlRequest(models.Model):
 
     def action_no_hit(self):
         self.ensure_one()
-        if self.state != 'in_progress':
-            raise UserError(_("Request must be In Progress to mark No HIT."))
+        if self.state not in ('in_progress', 'hit_detected'):
+            raise UserError(_("Request must be In Progress or HIT Detected to mark No HIT."))
         self.write({'state': 'no_hit'})
         self.message_post(body=_("No HIT Detected. Request marked as completed."))
         self._notify_aml_managers_and_management(
@@ -774,8 +774,8 @@ class AmlRequest(models.Model):
 
     def action_additional_documents(self):
         self.ensure_one()
-        if self.state not in ('in_progress', 'no_hit'):
-            raise UserError(_("Request must be In Progress or No HIT to request additional documents."))
+        if self.state not in ('in_progress', 'no_hit', 'hit_detected'):
+            raise UserError(_("Request must be In Progress, No HIT, or HIT Detected to request additional documents."))
         return {
             'type': 'ir.actions.act_window',
             'name': _('Request Additional Documents'),

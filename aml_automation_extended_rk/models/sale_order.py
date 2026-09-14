@@ -93,6 +93,94 @@ class SaleOrder(models.Model):
         for order in self:
             order.aml_gate_override_allowed = order.company_id.approver_user_id == user
 
+    # Drives visibility of the "Send AML Form" / "AML Bypass" buttons shown
+    # once the order is Approved. Deliberately not a res.groups check alone -
+    # the Quotation Approver is a single per-company user, not a group.
+    aml_action_allowed = fields.Boolean(
+        string='Can Send/Bypass AML Form',
+        compute='_compute_aml_action_allowed',
+    )
+
+    @api.depends('company_id')
+    @api.depends_context('uid')
+    def _compute_aml_action_allowed(self):
+        user = self.env.user
+        is_aml_team = user.has_group('aml_automation_extended_rk.group_aml_user')
+        for order in self:
+            order.aml_action_allowed = is_aml_team or order.company_id.approver_user_id == user
+
+    def _check_aml_action_rights(self):
+        """Guard for action_send_aml_form / action_open_aml_bypass_wizard: limited
+        to the AML team (group_aml_user, implied by group_aml_manager) or the
+        order's designated Quotation Approver."""
+        self.ensure_one()
+        if self.env.su:
+            return
+        user = self.env.user
+        is_aml_team = user.has_group('aml_automation_extended_rk.group_aml_user')
+        if not is_aml_team and self.company_id.approver_user_id != user:
+            raise UserError(_(
+                "Only the AML Manager, AML User, or the designated Quotation Approver "
+                "can send the AML form or bypass the AML/KYC check."
+            ))
+
+    def action_approve_order(self):
+        """Override: after approval, alert the AML team the order is waiting on
+        them to either send the AML/KYC form or record a bypass - sending the
+        form to the client itself is now a deliberate button click, not
+        automatic."""
+        result = super().action_approve_order()
+        for order in self:
+            order._notify_aml_team_order_approved()
+        return result
+
+    def _notify_aml_team_order_approved(self):
+        """Email the AML team (Manager + User - manager already carries User
+        via implied_ids, so one group search reaches both) that this order is
+        Approved and awaiting the Send AML Form / AML Bypass choice, with a
+        direct link back to the order's backend form."""
+        self.ensure_one()
+        user_group = self.env.ref('aml_automation_extended_rk.group_aml_user')
+        aml_team = self.env['res.users'].sudo().search([
+            ('groups_id', 'in', user_group.ids), ('active', '=', True),
+        ])
+        emails = {u.email for u in aml_team if u.email}
+        if not emails:
+            return
+
+        order_url = '%s/web#id=%s&model=sale.order&view_type=form' % (self.get_base_url(), self.id)
+        # aml.request owns the branded email look (shell/CTA button/mail-from);
+        # .new() reuses those instance methods without persisting a row.
+        helper = self.env['aml.request'].new({'company_id': self.company_id.id})
+        cta_button = helper._email_cta_button(_('Open %s') % self.name, order_url)
+        body_html = """
+        <p style="color:%(navy)s;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;margin:0 0 16px;">
+          Quotation <strong>%(order)s</strong> has been approved. Please check the AML/KYC step -
+          either send the AML/KYC form to the client, or record a bypass with a reason,
+          from the sale order.
+        </p>
+        %(cta_button)s""" % {
+            'navy': helper._EMAIL_NAVY,
+            'order': self.name,
+            'cta_button': cta_button,
+        }
+        full_body = helper._email_shell(
+            title=_('Quotation Approved - AML/KYC Action Needed'),
+            subtitle=self.name,
+            body_html=body_html,
+        )
+        email_from = helper._get_mail_from()
+        for email in emails:
+            self.env['mail.mail'].sudo().create({
+                'subject': _("Quotation %s Approved - AML/KYC Action Needed") % self.name,
+                'body_html': full_body,
+                'email_from': email_from,
+                'email_to': email,
+                'author_id': self.env.user.partner_id.id,
+                'model': 'sale.order',
+                'res_id': self.id,
+            }).send()
+
     def _check_aml_gate_override_rights(self):
         """Guard for write() on the override fields. The override is limited
         to each order's designated Quotation Approver - anyone else is
@@ -108,26 +196,64 @@ class SaleOrder(models.Model):
                 "AML/KYC completion gate."
             ))
 
-    def _check_aml_gate(self):
-        """Block project creation for this order's engagement until AML/KYC
-        is Completed (Approved or Bypassed), unless the Quotation Approver
-        has recorded an override with a reason."""
+    def _check_aml_gate(self, action_label=None):
+        """Block a downstream action for this order's engagement until AML/KYC
+        is Completed (Approved or Bypassed), unless the Quotation Approver has
+        recorded an override with a reason. ``action_label`` names the blocked
+        action in the error message (defaults to the original project-creation
+        caller's wording)."""
+        action_label = action_label or _("create a project")
         for order in self:
             if order.aml_gate_completed:
                 continue
             raise UserError(_(
-                "Cannot create a project for '%s': AML/KYC has not been marked Completed "
+                "Cannot %s for '%s': AML/KYC has not been marked Completed "
                 "for this client yet. The Quotation Approver can record an exception "
                 "under 'AML Gate Override' on the sale order if one is needed."
-            ) % order.name)
+            ) % (action_label, order.name))
 
-    def action_approve_order(self):
-        """Override: after approval send KYC form to client."""
-        result = super().action_approve_order()
-        for order in self:
-            if order.partner_id and order.partner_id.email:
-                order._create_aml_request_and_send_form()
-        return result
+    def action_send_aml_form(self):
+        """Manual counterpart of the old auto-send: create the AML request and
+        email the KYC form to the client. Restricted to the AML team / the
+        Quotation Approver, and only while no AML request exists yet for
+        this order (the button hides itself once one does)."""
+        self.ensure_one()
+        self._check_aml_action_rights()
+        if self.sudo().aml_request_ids:
+            raise UserError(_("An AML request already exists for this order."))
+        if not self.partner_id.email:
+            raise UserError(_(
+                "%s does not have an email address on file. Add one before "
+                "sending the AML form."
+            ) % self.partner_id.name)
+        self._create_aml_request_and_send_form()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _("AML Form Sent"),
+                'message': _("The KYC/AML form has been emailed to %s.") % self.partner_id.email,
+                'type': 'success',
+                'sticky': False,
+            },
+        }
+
+    def action_open_aml_bypass_wizard(self):
+        """Open the reason-required popup for bypassing the AML/KYC check
+        outright, instead of sending the client a form. Same restriction and
+        one-request-per-order guard as action_send_aml_form."""
+        self.ensure_one()
+        self._check_aml_action_rights()
+        if self.sudo().aml_request_ids:
+            raise UserError(_("An AML request already exists for this order."))
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Bypass AML/KYC Check'),
+            'res_model': 'aml.bypass.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_sale_order_id': self.id},
+        }
 
     def _create_aml_request_and_send_form(self):
         self.ensure_one()
@@ -173,6 +299,19 @@ class SaleOrder(models.Model):
         return aml
 
     def write(self, vals):
+        # Block confirming into a Sales Order until the AML/KYC gate is
+        # cleared - either the process itself completed (form sent and
+        # Approved/Bypassed) or the Quotation Approver recorded an override.
+        # Hooked here rather than into action_confirm(): several other
+        # installed modules also override action_confirm() and some (the
+        # advance-payment wizard in project_extended_rk) return early without
+        # calling super() on the first click, so an action_confirm() override
+        # here could be skipped depending on module load order. Every path to
+        # state='sale' still funnels through this write() - see core
+        # sale.order.action_confirm()'s self.write(self._prepare_confirmation_values()).
+        if vals.get('state') == 'sale':
+            self._check_aml_gate(_("confirm this order"))
+
         trigger_override_bypass = bool(vals.get('aml_gate_override'))
 
         if self._AML_GATE_OVERRIDE_FIELDS.intersection(vals) and not self.env.su:

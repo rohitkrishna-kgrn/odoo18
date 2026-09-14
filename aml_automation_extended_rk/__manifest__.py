@@ -1,11 +1,11 @@
 {
     'name': 'AML Automation Extended',
-    'version': '18.0.1.6.0',
+    'version': '18.0.1.7.0',
     'category': 'Accounting/AML',
     'summary': 'AML KYC workflow with portal web form, user pipeline and manager approval.',
     'description': """
         AML Automation Extended module for UAE AML/CFT compliance.
-        - Sends KYC web form to client on sale order approval
+        - Send AML Form / AML Bypass buttons on the approved sale order (AML team / Quotation Approver)
         - Multi-page portal form (Entity / Individual / UBO / Directors / Shareholders / Documents)
         - AML Manager review: Accept, Bypass, Cancel
         - AML User pipeline: In Progress, HIT detection, Additional info flow
