@@ -35,15 +35,6 @@ class AmlRequest(models.Model):
     ], default='draft', tracking=True, string='Status', index=True,
        group_expand='_group_expand_states')
 
-    # Display-only counterpart of state: the pipeline stage doesn't change when
-    # the linked sale order's AML gate is overridden (the request itself may
-    # still be sitting in Draft/New), but the "Status" column should show
-    # Overridden rather than the stale pipeline stage.
-    display_status = fields.Selection(
-        selection='_selection_display_status', string='Status',
-        compute='_compute_display_status', store=True,
-    )
-
     sale_order_id = fields.Many2one('sale.order', string='Sale Order', readonly=True, tracking=True)
     partner_id = fields.Many2one('res.partner', string='Client', readonly=True, tracking=True)
     kyc_type = fields.Selection([
@@ -235,7 +226,19 @@ class AmlRequest(models.Model):
     )
 
     document_line_ids = fields.One2many('aml.request.document', 'request_id', string='PI Documents')
-    hit_document_ids = fields.One2many('aml.hit.document', 'request_id', string='HIT Document Requests')
+    # Both tabs read from the same aml.hit.document model (a document request
+    # created by either staff workflow); the domain keeps each tab showing
+    # only the documents that came from its own request flow. Portal code
+    # that needs every client-visible document regardless of source searches
+    # aml.hit.document directly instead of going through either field.
+    hit_document_ids = fields.One2many(
+        'aml.hit.document', 'request_id', string='HIT Document Requests',
+        domain=[('source', '=', 'hit')],
+    )
+    additional_document_ids = fields.One2many(
+        'aml.hit.document', 'request_id', string='Additional Information Documents',
+        domain=[('source', '=', 'additional_info')],
+    )
 
     # =========================================================================
     # Group expand – show all pipeline stages even when empty
@@ -271,15 +274,6 @@ class AmlRequest(models.Model):
         for rec in self:
             rec.is_aml_manager = is_mgr
             rec.is_aml_user = is_usr
-
-    @api.model
-    def _selection_display_status(self):
-        return self._fields['state'].selection + [('overridden', 'Overridden')]
-
-    @api.depends('state', 'sale_order_id.aml_gate_override')
-    def _compute_display_status(self):
-        for rec in self:
-            rec.display_status = 'overridden' if rec.sale_order_id.aml_gate_override else rec.state
 
     # =========================================================================
     # AML Officer eligibility (AML User / AML Manager only)
@@ -774,8 +768,8 @@ class AmlRequest(models.Model):
 
     def action_additional_documents(self):
         self.ensure_one()
-        if self.state not in ('in_progress', 'no_hit', 'hit_detected'):
-            raise UserError(_("Request must be In Progress, No HIT, or HIT Detected to request additional documents."))
+        if self.state not in ('in_progress', 'hit_detected'):
+            raise UserError(_("Request must be In Progress or HIT Detected to request additional documents."))
         return {
             'type': 'ir.actions.act_window',
             'name': _('Request Additional Documents'),
@@ -974,6 +968,44 @@ class AmlRequest(models.Model):
                     'email_from': email_from,
                     'email_to': manager.email,
                     'author_id': self.env.user.partner_id.id,
+                }).send()
+
+    def _notify_aml_managers_bypass_by_approver(self, reason):
+        """AML Manager only (no AML User, no company management) - used when
+        the Quotation Approver, not the AML team itself, bypasses the
+        AML/KYC gate. The AML team bypassing its own pipeline needs no
+        extra alert; here someone outside the team overrode the gate, so
+        the manager specifically needs to see why."""
+        self.ensure_one()
+        manager_group = self.env.ref('aml_automation_extended_rk.group_aml_manager')
+        aml_managers = self.env['res.users'].search([
+            ('groups_id', 'in', [manager_group.id]), ('active', '=', True)
+        ])
+        subject = _("AML/KYC Bypassed by Quotation Approver: %s") % self.name
+        full_body = self._email_shell(
+            title=subject,
+            body_html=self._build_notification_body(
+                intro=_("The Quotation Approver <strong>%s</strong> has bypassed the AML/KYC "
+                        "check for <strong>%s</strong>.") % (self.env.user.name, self.sale_order_id.name or self.name),
+                kv_rows=[
+                    (_('Client'), self.partner_id.name),
+                    (_('Sale Order'), self.sale_order_id.name),
+                    (_('Bypassed By'), self.env.user.name),
+                    (_('Reason'), reason),
+                ],
+            ),
+        )
+        email_from = self._get_mail_from()
+        for manager in aml_managers:
+            if manager.email:
+                self.env['mail.mail'].sudo().create({
+                    'subject': subject,
+                    'body_html': full_body,
+                    'email_from': email_from,
+                    'email_to': manager.email,
+                    'author_id': self.env.user.partner_id.id,
+                    'model': 'aml.request',
+                    'res_id': self.id,
                 }).send()
 
     # =========================================================================

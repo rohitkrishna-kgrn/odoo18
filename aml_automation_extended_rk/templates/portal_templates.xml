@@ -30,8 +30,7 @@
                 <div class="aml-result-card">
                     <div class="aml-result-icon aml-icon-warn">!</div>
                     <h1>Link Expired or Invalid</h1>
-                    <p>This KYC form link is no longer valid. It may have already been submitted,
-                       or the link is incorrect.</p>
+                    <p>This KYC form link is no longer valid.</p>
                     <p class="aml-muted">Please contact the KGRN AML team if you need assistance.</p>
                 </div>
             </div>

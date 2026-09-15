@@ -11,56 +11,43 @@
                 <field name="kyc_type" widget="radio" options="{'horizontal': true}"
                        required="not id"/>
                 <field name="aml_gate_completed" readonly="1"/>
-                <field name="aml_gate_status" invisible="1"/>
-                <field name="aml_gate_override_allowed" invisible="1"/>
+                <field name="aml_form_status" readonly="1" invisible="aml_form_status == 'none'"/>
                 <field name="aml_action_allowed" invisible="1"/>
+                <field name="aml_bypass_allowed" invisible="1"/>
             </xpath>
 
             <!-- Manual AML form dispatch, replacing the old automatic send-on-approve.
-                 Shown right after Approve, only before any AML request exists for this
-                 order (aml_request_count == 0) and only to the AML team / the
-                 designated Quotation Approver (aml_action_allowed). -->
+                 Shown right after Approve, only to the AML team / the designated
+                 Quotation Approver (aml_action_allowed). "Send AML Form" is one-shot -
+                 hidden as soon as any request exists for this order (use "Resend KYC
+                 Form Email" on the request after that). "AML Bypass" stays available
+                 even after the form was sent, for as long as the pipeline hasn't
+                 reached a final outcome (aml_bypass_allowed) - bypassing at that point
+                 expires the KYC link already emailed to the client. -->
             <xpath expr="//button[@name='action_approve_order']" position="after">
                 <button name="action_send_aml_form" string="Send AML Form" type="object"
                     class="btn-primary"
                     invisible="approval_state != 'approved' or aml_request_count &gt; 0 or not aml_action_allowed"/>
                 <button name="action_open_aml_bypass_wizard" string="AML Bypass" type="object"
                     class="btn-warning"
-                    invisible="approval_state != 'approved' or aml_request_count &gt; 0 or not aml_action_allowed"/>
+                    invisible="approval_state != 'approved' or not aml_action_allowed or not aml_bypass_allowed"/>
             </xpath>
 
-            <!-- AML smart button -->
+            <!-- AML smart button - shown to every user once the AML/KYC form
+                 has been sent or bypassed (aml_request_count is always >= 1
+                 at that point, see aml.bypass.wizard which creates a request
+                 even for an outright bypass). Clicking it opens the actual
+                 case file only for the AML team, who hold model access to
+                 aml.request; everyone else gets a status summary instead
+                 (see action_view_aml_requests). -->
             <xpath expr="//div[@name='button_box']" position="inside">
-                <!-- Only AML staff can open the requests themselves, so the
-                     button is theirs; everyone else still sees the AML/KYC
-                     Completed flag above. -->
                 <button name="action_view_aml_requests" type="object"
                     class="oe_stat_button" icon="fa-shield"
-                    groups="aml_automation_extended_rk.group_aml_user,aml_automation_extended_rk.group_aml_manager"
                     invisible="aml_request_count == 0">
                     <field name="aml_request_count" widget="statinfo" string="AML"/>
                 </button>
             </xpath>
 
-            <!-- Exception path: allow project creation before AML/KYC is Completed.
-                 Limited to the company's designated Quotation Approver via the
-                 aml_gate_override_allowed computed flag (the same check is
-                 re-applied server-side in write()). Hidden once aml_gate_status
-                 is 'completed' (a real AML approval/bypass) but NOT once it is
-                 'overridden' - the approver must still be able to see/revert
-                 their own override. -->
-            <xpath expr="//page[@name='other_information']" position="after">
-                <page string="AML Gate Override" name="aml_gate_override_page"
-                      invisible="aml_gate_status == 'completed' or not aml_gate_override_allowed">
-                    <group>
-                        <field name="aml_gate_override"/>
-                        <field name="aml_gate_override_reason" invisible="not aml_gate_override"
-                               required="aml_gate_override"/>
-                        <field name="aml_gate_override_by" readonly="1" invisible="not aml_gate_override"/>
-                        <field name="aml_gate_override_date" readonly="1" invisible="not aml_gate_override"/>
-                    </group>
-                </page>
-            </xpath>
         </field>
     </record>
 

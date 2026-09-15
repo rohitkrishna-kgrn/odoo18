@@ -522,6 +522,12 @@ class AmlPortalController(http.Controller):
         if not aml:
             return request.render('aml_automation_extended_rk.portal_form_expired', {})
 
+        # The portal upload form is one shared page for whichever documents
+        # are currently pending, regardless of which staff tab (HIT Document
+        # Requests or Additional Information) requested them - so this reads
+        # aml.hit.document directly rather than through either of the
+        # source-filtered aml.request fields.
+        all_docs = request.env['aml.hit.document'].sudo().search([('request_id', '=', aml.id)])
         hit_docs = [{
             'id': d.id,
             'document_name': d.document_name,
@@ -537,7 +543,7 @@ class AmlPortalController(http.Controller):
                 'name': d.staff_sample_attachment_id.name,
                 'token': self._attachment_token(d.staff_sample_attachment_id),
             } if d.staff_sample_attachment_id else None,
-        } for d in aml.hit_document_ids]
+        } for d in all_docs if d.client_visible]
 
         base_url = request.env['ir.config_parameter'].sudo().get_param('web.base.url')
         logo_url = '%s/web/image/res.company/%s/logo' % (base_url, aml.company_id.id)
@@ -567,7 +573,7 @@ class AmlPortalController(http.Controller):
             return json.dumps({'error': 'Invalid hit_doc_id'})
 
         hit_doc = request.env['aml.hit.document'].sudo().browse(hit_doc_id)
-        if not hit_doc.exists() or hit_doc.request_id.id != aml.id:
+        if not hit_doc.exists() or hit_doc.request_id.id != aml.id or not hit_doc.client_visible:
             return json.dumps({'error': 'Document not found'})
 
         attachment = request.env['ir.attachment'].sudo().create({
@@ -604,7 +610,7 @@ class AmlPortalController(http.Controller):
             return {'error': 'Attachment not found'}
 
         hit_doc = request.env['aml.hit.document'].sudo().browse(attachment.res_id)
-        if not hit_doc.exists() or hit_doc.request_id.id != aml.id:
+        if not hit_doc.exists() or hit_doc.request_id.id != aml.id or not hit_doc.client_visible:
             return {'error': 'Attachment not found'}
 
         hit_doc.write({'attachment_ids': [(3, attachment.id)]})
@@ -628,7 +634,7 @@ class AmlPortalController(http.Controller):
             return {'error': 'Invalid hit_doc_id'}
 
         hit_doc = request.env['aml.hit.document'].sudo().browse(hit_doc_id)
-        if not hit_doc.exists() or hit_doc.request_id.id != aml.id:
+        if not hit_doc.exists() or hit_doc.request_id.id != aml.id or not hit_doc.client_visible:
             return {'error': 'Document not found'}
 
         hit_doc.write({'client_note': note or ''})

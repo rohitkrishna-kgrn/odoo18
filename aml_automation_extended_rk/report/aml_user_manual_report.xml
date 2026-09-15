@@ -406,9 +406,9 @@
                         <div class="amlman-note">
                             <strong>The AML gate.</strong> A project cannot be created for an engagement until the
                             latest AML request on that sale order is <strong>Approved</strong> or
-                            <strong>Bypassed</strong>. Only an AML User, an AML Manager or the company's
-                            Quotation Approver can override this, and only with a written reason that is
-                            stored on the order (see Section 6).
+                            <strong>Bypassed</strong>. There is no separate exception path - an AML User, an AML
+                            Manager or the company's Quotation Approver clears the gate the same way as any other
+                            client, by bypassing the check with a written reason (see Section 6).
                         </div>
                     </div>
 
@@ -522,7 +522,7 @@
                                 <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
                             <tr><td>Open AML smart button on sale order</td><td>Any</td>
                                 <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
-                            <tr><td>AML Gate Override on sale order <span class="amlman-muted">(also the Quotation Approver)</span></td><td>While AML not completed</td>
+                            <tr><td>AML Bypass on sale order <span class="amlman-muted">(also the Quotation Approver)</span></td><td>Approved, until the request reaches a final outcome</td>
                                 <td class="amlman-no">–</td><td class="amlman-yes">Yes</td><td class="amlman-yes">Yes</td><td class="amlman-no">–</td></tr>
                         </table>
 
@@ -598,10 +598,10 @@
                         </ol>
 
                         <div class="amlman-note">
-                            <strong>Do not ask for an override as a shortcut.</strong> The AML gate exists to keep
-                            the firm compliant. An override is an audited exception recorded against your order
-                            with the name of the person who set it, the reason and the timestamp; it is not a way
-                            to save time on a slow client.
+                            <strong>Do not ask for a bypass as a shortcut.</strong> The AML gate exists to keep
+                            the firm compliant. A bypass is an audited exception recorded against your order
+                            with the name of the person who recorded it, the reason and the timestamp; it is not a
+                            way to save time on a slow client.
                         </div>
                     </div>
 
@@ -859,22 +859,35 @@
                             case, the correct fix is for an AML Manager to assign it to them.
                         </div>
 
-                        <h3>6.2 The AML gate override</h3>
+                        <h3>6.2 Bypassing the AML/KYC check</h3>
                         <p>
-                            When AML/KYC is not yet completed, an <strong>AML Gate Override</strong> tab appears
-                            on the sale order for <strong>AML Users</strong>, <strong>AML Managers</strong> and the
-                            company's <strong>Quotation Approver</strong>. Everyone else - administrators included -
-                            neither sees the tab nor can set the flag another way.
+                            There is no separate override flag - skipping AML/KYC always goes through the same
+                            <strong>Bypassed</strong> request state used everywhere else in this manual, so it stays
+                            visible in the same reports and filters as every other outcome.
                         </p>
                         <ol>
-                            <li>Tick <strong>Override AML Gate</strong>.</li>
-                            <li>Enter the <strong>reason</strong> – mandatory. Saving without one is refused.</li>
-                            <li>The system stamps <strong>Overridden By</strong> and <strong>Overridden On</strong>
-                                and tracks the change in the order's chatter.</li>
+                            <li>Once the quotation is <strong>Approved</strong>, an <strong>AML User</strong>,
+                                <strong>AML Manager</strong> or the company's <strong>Quotation Approver</strong> can
+                                click <strong>AML Bypass</strong> on the sale order (next to
+                                <strong>Send AML Form</strong>). Unlike Send AML Form, this button does not disappear
+                                once the form has been sent - it stays available for as long as the request hasn't
+                                reached a final outcome (Approved, Rejected, Bypassed or Cancelled), so the AML team
+                                can change course mid-flight.</li>
+                            <li>Enter the <strong>reason</strong> – mandatory.</li>
+                            <li>If no request existed yet, the system creates one already in the
+                                <strong>Bypassed</strong> state. If a request was already in progress, that same
+                                request is closed as Bypassed instead of creating a second one - and its KYC form
+                                link (and, if a HIT had been flagged, its additional-documents link) sent to the
+                                client is <strong>immediately expired</strong>: opening either link afterwards shows
+                                "Form Expired", the same page a stale or reused link always shows.</li>
+                            <li>Either way, the reason is logged on both the order's and the request's chatter.</li>
                         </ol>
                         <p>
-                            The tab disappears once AML/KYC is completed normally. Treat every override as an
-                            audited compliance exception and confirm it with the Compliance Officer first.
+                            The pipeline's own <strong>Bypass (No AML Required)</strong> button (§5) still exists as
+                            a shortcut from inside the request itself, but is limited to the AML team and only from
+                            <em>New Request</em>. The sale order's <strong>AML Bypass</strong> button covers every
+                            open stage and is also open to the Quotation Approver. Treat every bypass as an audited
+                            compliance exception and confirm it with the Compliance Officer first.
                         </p>
 
                         <h3>6.3 Scheduled jobs</h3>
@@ -1226,13 +1239,15 @@
                                     Request additional documents from <em>In Progress</em> instead
                                     (Section 4.4).</td></tr>
                             <tr><td>"Cannot create a project … AML/KYC has not been marked Completed"</td>
-                                <td>Working as designed. Complete AML (Approved or Bypassed), or have an AML
-                                    User, AML Manager or the Quotation Approver record an override with a reason.</td></tr>
-                            <tr><td>"Only AML Users, AML Managers or the designated Quotation Approver can override the AML/KYC completion gate"</td>
-                                <td>The override is restricted to those three roles. Ask one of them, and involve
-                                    the Compliance Officer.</td></tr>
-                            <tr><td>"Enter a reason before overriding the AML/KYC gate"</td>
-                                <td>The reason field is mandatory. Fill it in and save again.</td></tr>
+                                <td>Working as designed. Complete AML (Approved), or have an AML User, AML
+                                    Manager or the Quotation Approver bypass the check with a reason.</td></tr>
+                            <tr><td>"Only the AML Manager, AML User, or the designated Quotation Approver can
+                                    send the AML form or bypass the AML/KYC check"</td>
+                                <td>Sending the form or bypassing is restricted to those roles. Ask one of them,
+                                    and involve the Compliance Officer for a bypass.</td></tr>
+                            <tr><td>"Enter a reason before saving the bypass"</td>
+                                <td>The reason field on the AML Bypass popup is mandatory. Fill it in and save
+                                    again.</td></tr>
                             <tr><td>An officer cannot delete a request or a line</td>
                                 <td>By design – the audit trail must stay intact. Ask an AML Manager.</td></tr>
                             <tr><td>Deadline looks wrong</td>

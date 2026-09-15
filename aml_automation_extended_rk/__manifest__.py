@@ -1,6 +1,6 @@
 {
     'name': 'AML Automation Extended',
-    'version': '18.0.1.7.0',
+    'version': '18.0.1.17.0',
     'category': 'Accounting/AML',
     'summary': 'AML KYC workflow with portal web form, user pipeline and manager approval.',
     'description': """

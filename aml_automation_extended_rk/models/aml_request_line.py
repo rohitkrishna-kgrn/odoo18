@@ -164,6 +164,16 @@ class AmlHitDocument(models.Model):
     request_id = fields.Many2one('aml.request', string='AML Request', ondelete='cascade', required=True)
     sequence = fields.Integer(default=10)
     document_name = fields.Char(string='Document Requested', required=True)
+    # Which staff workflow requested this document - keeps the HIT Document
+    # Requests tab and the Additional Information tab showing disjoint sets
+    # even though both are rows of this same model (see aml.hit.wizard and
+    # aml.additional.docs.wizard, the only two places that create records
+    # here). Required, no default relied upon: both wizards always pass it
+    # explicitly on create().
+    source = fields.Selection([
+        ('hit', 'HIT Document Request'),
+        ('additional_info', 'Additional Information'),
+    ], string='Request Source', required=True, default='additional_info', index=True)
     attachment_ids = fields.Many2many(
         'ir.attachment',
         'aml_hit_doc_attachment_rel', 'hit_doc_id', 'attachment_id',
@@ -176,3 +186,11 @@ class AmlHitDocument(models.Model):
         help='Note added by the client when uploading this document.')
     staff_sample_attachment_id = fields.Many2one('ir.attachment', string='Reference File',
         help='Optional reference/sample file provided by AML staff, downloadable by the client on the upload form.')
+    # Cleared on every already-submitted document once a new additional-docs
+    # round is requested for the same aml.request (see aml.hit.wizard /
+    # aml.additional.docs.wizard action_send_*), so the client's upload form
+    # for the new round only ever lists what is currently being asked for -
+    # the old, already-fulfilled document stays on the record for staff
+    # (HIT Document Requests / Additional Information tabs keep full history)
+    # but drops off the client-facing portal form.
+    client_visible = fields.Boolean(string='Visible to Client', default=True)

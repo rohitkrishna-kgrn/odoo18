@@ -14,56 +14,55 @@
                     <button name="action_resend_kyc_email" type="object"
                         string="Resend KYC Form Email"
                         class="btn-secondary"
-                        invisible="state not in ('draft', 'new') or display_status == 'overridden'"
+                        invisible="state not in ('draft', 'new')"
                         groups="aml_automation_extended_rk.group_aml_manager,aml_automation_extended_rk.group_aml_user"/>
 
                     <!-- Manager Actions (also available to AML Users) -->
                     <button name="action_accept" type="object" string="Accept"
                         class="btn-primary"
-                        invisible="state != 'new' or display_status == 'overridden'"
+                        invisible="state != 'new'"
                         groups="aml_automation_extended_rk.group_aml_manager,aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_bypass" type="object" string="Bypass (No AML Required)"
                         class="btn-warning"
-                        invisible="state != 'new' or display_status == 'overridden'"
+                        invisible="state != 'new'"
                         confirm="Mark this request as Bypassed? Salesperson and management will be notified."
                         groups="aml_automation_extended_rk.group_aml_manager,aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_cancel" type="object" string="Cancel"
                         class="btn-danger"
-                        invisible="state != 'new' or display_status == 'overridden'"
+                        invisible="state != 'new'"
                         confirm="Cancel this AML request? Salesperson and management will be notified."
                         groups="aml_automation_extended_rk.group_aml_manager,aml_automation_extended_rk.group_aml_user"/>
 
                     <!-- AML User Actions -->
                     <button name="action_start_progress" type="object" string="Start Investigation"
                         class="btn-primary"
-                        invisible="state != 'accepted' or display_status == 'overridden'"
+                        invisible="state != 'accepted'"
                         groups="aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_no_hit" type="object" string="No HIT"
                         class="btn-success"
-                        invisible="state not in ('in_progress', 'hit_detected') or display_status == 'overridden'"
+                        invisible="state not in ('in_progress', 'hit_detected')"
                         confirm="Confirm no HIT detected? This will mark the record as completed."
                         groups="aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_hit_detected" type="object" string="HIT Detected"
                         class="btn-danger"
-                        invisible="state != 'in_progress' or display_status == 'overridden'"
+                        invisible="state != 'in_progress'"
                         groups="aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_additional_documents" type="object" string="Additional Documents"
                         class="btn-secondary"
-                        invisible="state not in ('in_progress', 'hit_detected') or display_status == 'overridden'"
+                        invisible="state not in ('in_progress', 'hit_detected')"
                         groups="aml_automation_extended_rk.group_aml_user"/>
 
-                    <!-- No HIT follow-up actions -->
-                    <button name="action_additional_documents" type="object" string="Additional Document"
-                        class="btn-secondary"
-                        invisible="state != 'no_hit' or display_status == 'overridden'"
-                        groups="aml_automation_extended_rk.group_aml_user"/>
+                    <!-- Additional info / No HIT follow-up: Approve is the only
+                         action offered once No HIT is marked - Additional
+                         Documents is not, so this closes the pipeline cleanly
+                         instead of looping back into another document ask. -->
                     <button name="action_approve" type="object" string="Approve"
                         class="btn-success"
-                        invisible="state not in ('additional_info', 'no_hit') or display_status == 'overridden'"
+                        invisible="state not in ('additional_info', 'no_hit')"
                         groups="aml_automation_extended_rk.group_aml_user"/>
                     <button name="action_reject" type="object" string="Reject"
                         class="btn-danger"
-                        invisible="state != 'additional_info' or display_status == 'overridden'"
+                        invisible="state != 'additional_info'"
                         confirm="Reject this AML request? The pipeline record will be closed."
                         groups="aml_automation_extended_rk.group_aml_user"/>
 
@@ -72,7 +71,7 @@
                         type="action"
                         string="Download PDF"
                         class="btn-secondary"
-                        invisible="state == 'draft' or display_status == 'overridden'"
+                        invisible="state == 'draft'"
                         groups="aml_automation_extended_rk.group_aml_user"/>
 
                     <field name="state" widget="statusbar"
@@ -81,20 +80,18 @@
 
                 <sheet>
                     <!-- Ribbons (top-right corner) -->
-                    <widget name="web_ribbon" title="Overridden" bg_color="bg-warning"
-                        invisible="display_status != 'overridden'"/>
                     <widget name="web_ribbon" title="No HIT Detected" bg_color="bg-success"
-                        invisible="state != 'no_hit' or display_status == 'overridden'"/>
+                        invisible="state != 'no_hit'"/>
                     <widget name="web_ribbon" title="HIT Detected" bg_color="bg-danger"
-                        invisible="state not in ('hit_detected', 'additional_info') or display_status == 'overridden'"/>
+                        invisible="state not in ('hit_detected', 'additional_info')"/>
                     <widget name="web_ribbon" title="Approved" bg_color="bg-success"
-                        invisible="state != 'approved' or display_status == 'overridden'"/>
+                        invisible="state != 'approved'"/>
                     <widget name="web_ribbon" title="Rejected" bg_color="bg-danger"
-                        invisible="state != 'rejected' or display_status == 'overridden'"/>
+                        invisible="state != 'rejected'"/>
                     <widget name="web_ribbon" title="Bypassed" bg_color="bg-warning"
-                        invisible="state != 'bypassed' or display_status == 'overridden'"/>
+                        invisible="state != 'bypassed'"/>
                     <widget name="web_ribbon" title="Cancelled" bg_color="bg-secondary"
-                        invisible="state != 'cancelled' or display_status == 'overridden'"/>
+                        invisible="state != 'cancelled'"/>
 
                     <!-- Smart Buttons -->
                     <div class="oe_button_box" name="button_box">
@@ -403,7 +400,7 @@
                                 <field name="additional_info_text" readonly="1" string="Client Notes"/>
                             </group>
                             <separator string="Documents Submitted by Client"/>
-                            <field name="hit_document_ids" readonly="1">
+                            <field name="additional_document_ids" readonly="1">
                                 <list>
                                     <field name="document_name" string="Document"/>
                                     <field name="submitted" string="Submitted"/>
@@ -449,7 +446,7 @@
         <field name="arch" type="xml">
             <list string="AML Requests" decoration-danger="state in ('hit_detected','rejected','cancelled')"
                   decoration-success="state in ('no_hit','approved','bypassed')"
-                  decoration-warning="state == 'additional_info' or display_status == 'overridden'">
+                  decoration-warning="state == 'additional_info'">
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="kyc_type"/>
@@ -457,12 +454,11 @@
                 <field name="aml_user_id"/>
                 <field name="deadline"/>
                 <field name="start_datetime" optional="hide"/>
-                <field name="state" column_invisible="1"/>
-                <field name="display_status" widget="badge" string="Status"
-                    decoration-success="display_status in ('no_hit','approved','bypassed')"
-                    decoration-danger="display_status in ('hit_detected','rejected','cancelled')"
-                    decoration-warning="display_status in ('new','additional_info','overridden')"
-                    decoration-info="display_status in ('accepted','in_progress')"/>
+                <field name="state" widget="badge" string="Status"
+                    decoration-success="state in ('no_hit','approved','bypassed')"
+                    decoration-danger="state in ('hit_detected','rejected','cancelled')"
+                    decoration-warning="state in ('new','additional_info')"
+                    decoration-info="state in ('accepted','in_progress')"/>
             </list>
         </field>
     </record>

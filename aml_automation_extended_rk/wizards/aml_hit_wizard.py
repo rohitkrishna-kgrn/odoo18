@@ -25,10 +25,22 @@ class AmlHitWizard(models.TransientModel):
         additional_token = uuid.uuid4().hex
         aml.sudo().write({'additional_access_token': additional_token})
 
-        # Create aml.hit.document records from wizard lines
-        self.env['aml.hit.document'].sudo().search([
-            ('request_id', '=', aml.id), ('submitted', '=', False)
-        ]).unlink()
+        # Create aml.hit.document records from wizard lines. Any prior
+        # un-submitted request (either flow) is dropped outright; anything
+        # the client already submitted in an earlier round is kept for the
+        # record's history but hidden from the client's (new) upload form -
+        # deliberately request-wide, not scoped to source='hit', since the
+        # client-facing portal page (one shared upload link/token for the
+        # whole request) must only ever show the current round, regardless
+        # of which staff flow most recently asked for something. The 'source'
+        # tag on each row is only used to split the two staff-facing tabs;
+        # it does not affect this per-round cleanup. Split before unlinking -
+        # filtering the recordset again afterwards would try to read fields
+        # off rows that no longer exist.
+        old_hit_docs = self.env['aml.hit.document'].sudo().search([('request_id', '=', aml.id)])
+        unsubmitted, previously_submitted = old_hit_docs.filtered(lambda d: not d.submitted), old_hit_docs.filtered('submitted')
+        unsubmitted.unlink()
+        previously_submitted.write({'client_visible': False})
 
         for idx, line in enumerate(self.doc_line_ids):
             hit_doc = self.env['aml.hit.document'].sudo().create({
@@ -36,6 +48,7 @@ class AmlHitWizard(models.TransientModel):
                 'sequence': (idx + 1) * 10,
                 'document_name': line.document_name,
                 'staff_note': line.description or False,
+                'source': 'hit',
             })
             if line.reference_file:
                 ref_attachment = self.env['ir.attachment'].sudo().create({

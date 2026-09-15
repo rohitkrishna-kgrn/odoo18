@@ -301,11 +301,18 @@
                 <sheet>
                     <group>
                         <field name="sale_order_id" readonly="1"/>
+                        <field name="form_already_sent" invisible="1"/>
                     </group>
-                    <div class="alert alert-warning" role="alert">
+                    <div class="alert alert-warning" role="alert" invisible="form_already_sent">
                         Bypassing skips sending the KYC form to the client entirely.
                         Enter a reason below - it will be recorded, highlighted, in this
                         order's chatter.
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="not form_already_sent">
+                        The KYC form has already been sent to the client. Bypassing now
+                        will immediately expire that link - the client will no longer be
+                        able to open or submit it. Enter a reason below - it will be
+                        recorded, highlighted, in this order's chatter.
                     </div>
                     <field name="reason" placeholder="Reason for bypassing the AML/KYC check..."/>
                 </sheet>

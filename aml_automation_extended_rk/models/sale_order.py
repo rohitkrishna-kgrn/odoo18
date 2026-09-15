@@ -10,6 +10,14 @@ class SaleOrder(models.Model):
     # bypass (AML determined not required for this client).
     _AML_GATE_COMPLETED_STATES = ('approved', 'bypassed')
 
+    # Pipeline stages that haven't reached a final outcome yet. Shared by
+    # the cancel-cascade in write() and by aml_bypass_allowed below - both
+    # need the same notion of "still open".
+    _AML_OPEN_STATES = (
+        'draft', 'new', 'accepted', 'in_progress',
+        'hit_detected', 'additional_info', 'no_hit',
+    )
+
     # Asked for only while a quotation is being created (the form view makes
     # it required on unsaved records). Existing quotations - including the
     # thousands that pre-date this module - stay editable without it.
@@ -21,48 +29,18 @@ class SaleOrder(models.Model):
     aml_request_ids = fields.One2many('aml.request', 'sale_order_id', string='AML Requests')
     aml_request_count = fields.Integer(compute='_compute_aml_request_count', string='AML Requests')
 
+    # Logs the "form emailed to the client" milestone on the order's own
+    # chatter via tracking.
+    aml_form_status = fields.Selection([
+        ('none', 'Not Sent'),
+        ('sent', 'Sent to Customer'),
+    ], string='AML Form Status', default='none', tracking=True, copy=False)
+
     # Stored (not just computed) so the "Pending AML" search filter can run
-    # a plain domain against it; a non-stored field can't be searched. An
-    # override counts as Completed - project creation reads only this flag.
+    # a plain domain against it; a non-stored field can't be searched.
     aml_gate_completed = fields.Boolean(
         string='AML/KYC Completed', compute='_compute_aml_gate_completed',
         store=True,
-    )
-
-    # Display counterpart of aml_gate_completed: distinguishes a real AML
-    # approval from an override, which aml_gate_completed alone can't.
-    aml_gate_status = fields.Selection([
-        ('pending', 'Pending'),
-        ('completed', 'Completed'),
-        ('overridden', 'Overridden'),
-    ], string='AML/KYC Status', compute='_compute_aml_gate_completed', store=True)
-
-    # Technical flag driving the visibility of the override tab. The override
-    # is limited to the company's designated Quotation Approver. Everyone
-    # else never sees the tab and is refused in write() even if they reach
-    # the field another way.
-    aml_gate_override_allowed = fields.Boolean(
-        string='Can Override AML Gate',
-        compute='_compute_aml_gate_override_allowed',
-    )
-
-    aml_gate_override = fields.Boolean(
-        string='Override AML Gate', copy=False, tracking=True,
-        help="Allows project creation before AML/KYC is marked Completed. "
-             "Restricted to the designated Quotation Approver; requires a "
-             "reason.",
-    )
-    aml_gate_override_reason = fields.Text(string='AML Gate Override Reason', copy=False, tracking=True)
-    aml_gate_override_by = fields.Many2one('res.users', string='AML Gate Overridden By', readonly=True, copy=False)
-    aml_gate_override_date = fields.Datetime(string='AML Gate Overridden On', readonly=True, copy=False)
-
-    _AML_GATE_OVERRIDE_FIELDS = {'aml_gate_override', 'aml_gate_override_reason'}
-
-    # Same set action_cancel's cascade below uses - any request still sitting
-    # in an open pipeline stage when the gate is overridden.
-    _AML_GATE_OVERRIDE_BYPASSABLE_STATES = (
-        'draft', 'new', 'accepted', 'in_progress',
-        'hit_detected', 'additional_info', 'no_hit',
     )
 
     # Both computes run for anyone opening a sale order, including salespeople
@@ -73,25 +51,11 @@ class SaleOrder(models.Model):
         for order in self:
             order.aml_request_count = len(order.sudo().aml_request_ids)
 
-    @api.depends('aml_request_ids.state', 'aml_gate_override')
+    @api.depends('aml_request_ids.state')
     def _compute_aml_gate_completed(self):
         for order in self:
             latest = order.sudo().aml_request_ids.sorted('create_date', reverse=True)[:1]
-            request_completed = bool(latest) and latest.state in self._AML_GATE_COMPLETED_STATES
-            order.aml_gate_completed = request_completed or order.aml_gate_override
-            if order.aml_gate_override:
-                order.aml_gate_status = 'overridden'
-            elif request_completed:
-                order.aml_gate_status = 'completed'
-            else:
-                order.aml_gate_status = 'pending'
-
-    @api.depends('company_id')
-    @api.depends_context('uid')
-    def _compute_aml_gate_override_allowed(self):
-        user = self.env.user
-        for order in self:
-            order.aml_gate_override_allowed = order.company_id.approver_user_id == user
+            order.aml_gate_completed = bool(latest) and latest.state in self._AML_GATE_COMPLETED_STATES
 
     # Drives visibility of the "Send AML Form" / "AML Bypass" buttons shown
     # once the order is Approved. Deliberately not a res.groups check alone -
@@ -108,6 +72,25 @@ class SaleOrder(models.Model):
         is_aml_team = user.has_group('aml_automation_extended_rk.group_aml_user')
         for order in self:
             order.aml_action_allowed = is_aml_team or order.company_id.approver_user_id == user
+
+    # Drives visibility of "AML Bypass" specifically. Unlike "Send AML Form"
+    # (one-shot, hidden as soon as any request exists), Bypass stays
+    # available for as long as the pipeline hasn't reached a final outcome -
+    # including after the form has already been sent to the client, so the
+    # AML team can change course mid-flight. Bypassing at that point expires
+    # the KYC link already emailed to the client (see aml.bypass.wizard and
+    # AmlPortalController, whose portal routes only serve a request that is
+    # still in one of these open states).
+    aml_bypass_allowed = fields.Boolean(
+        string='Can Bypass AML/KYC Now',
+        compute='_compute_aml_bypass_allowed',
+    )
+
+    @api.depends('aml_request_ids.state')
+    def _compute_aml_bypass_allowed(self):
+        for order in self:
+            latest = order.sudo().aml_request_ids.sorted('create_date', reverse=True)[:1]
+            order.aml_bypass_allowed = not latest or latest.state in self._AML_OPEN_STATES
 
     def _check_aml_action_rights(self):
         """Guard for action_send_aml_form / action_open_aml_bypass_wizard: limited
@@ -181,35 +164,20 @@ class SaleOrder(models.Model):
                 'res_id': self.id,
             }).send()
 
-    def _check_aml_gate_override_rights(self):
-        """Guard for write() on the override fields. The override is limited
-        to each order's designated Quotation Approver - anyone else is
-        refused even if they can otherwise edit the order."""
-        if self.env.su:
-            return
-        outsiders = self.filtered(
-            lambda o: o.company_id.approver_user_id != self.env.user
-        )
-        if outsiders:
-            raise UserError(_(
-                "Only the designated Quotation Approver can override the "
-                "AML/KYC completion gate."
-            ))
-
     def _check_aml_gate(self, action_label=None):
         """Block a downstream action for this order's engagement until AML/KYC
-        is Completed (Approved or Bypassed), unless the Quotation Approver has
-        recorded an override with a reason. ``action_label`` names the blocked
-        action in the error message (defaults to the original project-creation
-        caller's wording)."""
+        is Completed (Approved or Bypassed). ``action_label`` names the
+        blocked action in the error message (defaults to the original
+        project-creation caller's wording)."""
         action_label = action_label or _("create a project")
         for order in self:
             if order.aml_gate_completed:
                 continue
             raise UserError(_(
                 "Cannot %s for '%s': AML/KYC has not been marked Completed "
-                "for this client yet. The Quotation Approver can record an exception "
-                "under 'AML Gate Override' on the sale order if one is needed."
+                "for this client yet. The AML team or the designated "
+                "Quotation Approver can bypass the AML/KYC check from the "
+                "sale order if an exception is needed."
             ) % (action_label, order.name))
 
     def action_send_aml_form(self):
@@ -239,13 +207,18 @@ class SaleOrder(models.Model):
         }
 
     def action_open_aml_bypass_wizard(self):
-        """Open the reason-required popup for bypassing the AML/KYC check
-        outright, instead of sending the client a form. Same restriction and
-        one-request-per-order guard as action_send_aml_form."""
+        """Open the reason-required popup for bypassing the AML/KYC check -
+        either outright (no request sent yet) or to close out a request
+        that's already in progress, which also expires the KYC form link
+        already emailed to the client. Refused once the pipeline has already
+        reached a final outcome (see aml_bypass_allowed)."""
         self.ensure_one()
         self._check_aml_action_rights()
-        if self.sudo().aml_request_ids:
-            raise UserError(_("An AML request already exists for this order."))
+        if not self.aml_bypass_allowed:
+            raise UserError(_(
+                "This order's AML/KYC check has already reached a final "
+                "outcome and can no longer be bypassed."
+            ))
         return {
             'type': 'ir.actions.act_window',
             'name': _('Bypass AML/KYC Check'),
@@ -296,12 +269,15 @@ class SaleOrder(models.Model):
 
         # Send branded KYC email directly (avoids Jinja2 template rendering issues in Odoo 18)
         aml._send_kyc_form_email()
+        # sudo(): the AML team clicking this button may not hold base write
+        # access on sale.order (only Sales users normally do); this write
+        # exists purely to log the tracked status change in the chatter.
+        self.sudo().write({'aml_form_status': 'sent'})
         return aml
 
     def write(self, vals):
         # Block confirming into a Sales Order until the AML/KYC gate is
-        # cleared - either the process itself completed (form sent and
-        # Approved/Bypassed) or the Quotation Approver recorded an override.
+        # cleared - the form sent and Approved, or the check Bypassed.
         # Hooked here rather than into action_confirm(): several other
         # installed modules also override action_confirm() and some (the
         # advance-payment wizard in project_extended_rk) return early without
@@ -312,37 +288,11 @@ class SaleOrder(models.Model):
         if vals.get('state') == 'sale':
             self._check_aml_gate(_("confirm this order"))
 
-        trigger_override_bypass = bool(vals.get('aml_gate_override'))
-
-        if self._AML_GATE_OVERRIDE_FIELDS.intersection(vals) and not self.env.su:
-            self._check_aml_gate_override_rights()
-            if vals.get('aml_gate_override'):
-                has_reason = vals.get('aml_gate_override_reason') or any(
-                    order.aml_gate_override_reason for order in self
-                )
-                if not has_reason:
-                    raise UserError(_("Enter a reason before overriding the AML/KYC gate."))
-                vals = dict(vals)
-                vals['aml_gate_override_by'] = self.env.user.id
-                vals['aml_gate_override_date'] = fields.Datetime.now()
-            # The Quotation Approver may not have write access to a quotation
-            # they do not own. A write limited to the override fields is
-            # re-applied with elevated rights - the role check above is the
-            # real gate; other fields are untouched.
-            if set(vals) <= (self._AML_GATE_OVERRIDE_FIELDS
-                             | {'aml_gate_override_by', 'aml_gate_override_date'}):
-                res = self.sudo().write(vals)
-                if trigger_override_bypass:
-                    self._bypass_aml_requests_on_override()
-                return res
-
         if vals.get('state') == 'cancel':
-            cancellable_states = ('draft', 'new', 'accepted', 'in_progress',
-                                  'hit_detected', 'additional_info', 'no_hit')
             for order in self:
                 # Cancelling a quotation must not require AML rights.
                 aml_to_cancel = order.sudo().aml_request_ids.filtered(
-                    lambda r: r.state in cancellable_states
+                    lambda r: r.state in self._AML_OPEN_STATES
                 )
                 if aml_to_cancel:
                     aml_to_cancel.sudo().write({'state': 'cancelled'})
@@ -352,31 +302,29 @@ class SaleOrder(models.Model):
                                  % order.name
                         )
 
-        res = super().write(vals)
-        if trigger_override_bypass:
-            self._bypass_aml_requests_on_override()
-        return res
-
-    def _bypass_aml_requests_on_override(self):
-        """Auto-bypass any AML request still sitting in an open pipeline stage
-        once the linked order's AML/KYC gate is overridden. Without this the
-        request stays wherever it was (e.g. still "New"), so its form keeps
-        showing Accept/Bypass/Cancel etc. even though the gate is already
-        Overridden and nothing about those buttons is still relevant."""
-        for order in self:
-            to_bypass = order.sudo().aml_request_ids.filtered(
-                lambda r: r.state in self._AML_GATE_OVERRIDE_BYPASSABLE_STATES
-            )
-            if to_bypass:
-                to_bypass.sudo().write({'state': 'bypassed'})
-                for aml in to_bypass:
-                    aml.sudo().message_post(
-                        body=_("Request automatically bypassed because Sale Order %s's "
-                               "AML/KYC gate was overridden.") % order.name
-                    )
+        return super().write(vals)
 
     def action_view_aml_requests(self):
+        """Backs the header AML smart button, visible to every user once the
+        form has been sent or bypassed. Only the AML team holds model access
+        to aml.request (see ir.model.access.csv), so everyone else gets a
+        plain status summary instead of the case file, rather than hitting
+        an AccessError."""
         self.ensure_one()
+        if not self.env.user.has_group('aml_automation_extended_rk.group_aml_user'):
+            latest = self.sudo().aml_request_ids.sorted('create_date', reverse=True)[:1]
+            state_labels = dict(self.env['aml.request']._fields['state'].selection)
+            status = state_labels.get(latest.state) if latest else _('Not Sent')
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('AML / KYC Status'),
+                    'message': _('Current AML/KYC status for this order: %s.') % status,
+                    'type': 'info',
+                    'sticky': False,
+                },
+            }
         return {
             'type': 'ir.actions.act_window',
             'name': _('AML Requests'),
