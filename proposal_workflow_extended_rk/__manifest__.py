@@ -1,6 +1,6 @@
 {
     'name': 'Proposal Workflow Extended RK',
-    'version': '18.0.1.20',
+    'version': '18.0.1.21',
     'license': 'LGPL-3',
     'author': 'Rohit',
     'category': 'Sales',
@@ -43,6 +43,7 @@ Proposal workflow
         'views/einvoicing_dashboard_views.xml',
         'views/salesperson_performance_views.xml',
         'views/salesperson_performance_wizard_views.xml',
+        'views/res_config_settings_views.xml',
     ],
     'assets': {
         'web.assets_backend': [

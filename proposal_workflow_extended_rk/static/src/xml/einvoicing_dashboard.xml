@@ -84,11 +84,26 @@
                 </div>
             </div>
 
+            <!-- ── Status API notice ──────────────────────────────── -->
+            <div t-if="state.status_api and (!state.status_api.configured || state.status_api.error)"
+                 class="kgrn-status-banner">
+                <i class="fa fa-info-circle"/>
+                <t t-if="!state.status_api.configured">
+                    Project Status Tracker isn't configured — add the URL and token under
+                    Settings › CRM › eInvoicing Status API. Project Status, UAT AR/AP and
+                    Live AR/AP read NA until then.
+                </t>
+                <t t-else="">
+                    Project Status Tracker: <t t-esc="state.status_api.error"/>
+                </t>
+            </div>
+
             <!-- ── Table ──────────────────────────────────────────── -->
             <div class="kgrn-card">
                 <div class="kgrn-card-head">
                     <h2>By Pipeline Record</h2>
                 </div>
+                <div class="kgrn-table-wrap">
                 <table class="kgrn-table">
                     <thead>
                         <tr>
@@ -101,12 +116,17 @@
                             <th class="num">Expected Value</th>
                             <th>Agreements (SE)</th>
                             <th class="num">Order Value</th>
+                            <t t-if="state.status_api">
+                                <th class="mid" title="From the project status tracker — the position of the SE's least advanced entity.">Project Status</th>
+                                <th class="mid" title="UAT invoices issued / received, summed across the SE's entities.">UAT AR/AP</th>
+                                <th class="mid" title="Live invoices issued / received, summed across the SE's entities.">Live AR/AP</th>
+                            </t>
                             <th class="mid">Last Activity</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr t-if="!state.rows.length">
-                            <td colspan="10" class="kgrn-empty">
+                            <td t-att-colspan="state.status_api ? 13 : 10" class="kgrn-empty">
                                 No pipeline records in this period.
                             </td>
                         </tr>
@@ -138,6 +158,24 @@
                                       title="Service Engagement Agreement PDF generated">SE</span>
                             </td>
                             <td class="num"><t t-esc="formatMoney(row.agreement_value)"/></td>
+                            <t t-if="state.status_api">
+                                <td class="mid">
+                                    <span t-att-class="'kgrn-status-pill cat-' + statusCategory(row.status_api.project_status_code)"
+                                          t-att-title="row.status_api.project_status_code || ''">
+                                        <t t-esc="row.status_api.project_status"/>
+                                    </span>
+                                </td>
+                                <td class="mid">
+                                    <span t-att-class="'kgrn-quota is-' + row.status_api.uat.status">
+                                        <t t-esc="row.status_api.uat.label"/>
+                                    </span>
+                                </td>
+                                <td class="mid">
+                                    <span t-att-class="'kgrn-quota is-' + row.status_api.live.status">
+                                        <t t-esc="row.status_api.live.label"/>
+                                    </span>
+                                </td>
+                            </t>
                             <td class="mid">
                                 <span t-att-class="row.is_stale ? 'kgrn-pill is-stale' : 'kgrn-muted'"
                                       t-att-title="row.last_activity">
@@ -147,6 +185,7 @@
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </t>
     </div>

@@ -7,3 +7,4 @@ from . import report_se
 from . import einvoicing_dashboard
 from . import salesperson_performance
 from . import salesperson_performance_wizard
+from . import res_config_settings

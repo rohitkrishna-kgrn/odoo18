@@ -43,6 +43,7 @@ export class EinvoicingDashboard extends Component {
             salespersons: [],
             currency: "",
             staleDays: 7,
+            status_api: false,
         });
 
         onWillStart(() => this.load());
@@ -106,6 +107,24 @@ export class EinvoicingDashboard extends Component {
             return "Today";
         }
         return `${row.days_since_activity}d ago`;
+    }
+
+    /** CSS modifier for the Project Status pill: groups the tracker's
+     *  statusCode into the same four buckets used in the API.md ordering. */
+    statusCategory(code) {
+        if (!code) {
+            return "na";
+        }
+        if (code === "LIVE") {
+            return "live";
+        }
+        if (code.startsWith("IMPL")) {
+            return "impl";
+        }
+        if (code.startsWith("GAP")) {
+            return "gap";
+        }
+        return "not-started";
     }
 
     openLead(row) {

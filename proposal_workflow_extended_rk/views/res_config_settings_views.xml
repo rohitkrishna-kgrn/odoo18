@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_status_api" model="ir.ui.view">
+        <field name="name">res.config.settings.form.einvoicing.status.api</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="crm.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='crm']//block[@name='generate_lead_setting_container']" position="after">
+                <block title="eInvoicing Status API" name="einvoicing_status_api_setting">
+                    <setting id="einvoicing_status_api_setting_id"
+                             string="Project Status Tracker"
+                             help="Feeds the Project Status, UAT AR/AP and Live AR/AP columns on the eInvoicing Dashboard by matching each Service Engagement's SE number. Read-only — nothing here writes back to the tracker.">
+                        <div class="content-group">
+                            <div class="mt16 row">
+                                <label for="einvoicing_status_api_url" class="col-lg-6 o_light_label"/>
+                                <field name="einvoicing_status_api_url" placeholder="https://tracker.example.com"/>
+                            </div>
+                            <div class="mt8 row">
+                                <label for="einvoicing_status_api_token" class="col-lg-6 o_light_label"/>
+                                <field name="einvoicing_status_api_token" password="True"/>
+                            </div>
+                            <div class="mt16 text-muted">
+                                Leave either field blank and the dashboard's tracker columns
+                                read NA instead of calling out.
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

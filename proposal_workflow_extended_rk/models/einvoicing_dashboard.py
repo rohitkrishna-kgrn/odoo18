@@ -1,12 +1,32 @@
 # -*- coding: utf-8 -*-
 """Data behind the eInvoicing dashboard (OWL client action)."""
+import logging
 import re
 from datetime import timedelta
+
+import requests
 
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 
+_logger = logging.getLogger(__name__)
+
 STALE_DAYS = 7
+
+# Same order the Status API documents them in (API.md), which is also the
+# order the tracker itself uses to pick a project's headline status: the
+# position of its least advanced entity. Used here to do the same thing when
+# one dashboard row carries more than one SE number.
+STATUS_CODE_ORDER = [
+    'NOT_STARTED', 'GAP_NEW', 'GAP_IN_PROGRESS', 'GAP_ON_HOLD', 'GAP_CORRECTION',
+    'GAP_AWAITING_APPROVAL', 'IMPL_NEW', 'IMPL_UAT_ONBOARDING', 'IMPL_UAT_TEST',
+    'IMPL_LIVE_ONBOARDING', 'IMPL_LIVE_TEST', 'IMPL_CORRECTION',
+    'IMPL_AWAITING_APPROVAL', 'LIVE',
+]
+
+# quota.<env>.status ranking, worst first — used to pick the one status shown
+# when a row's AR or AP figure is rolled up from more than one entity/project.
+QUOTA_STATUS_RANK = {'none': 0, 'ok': 1, 'near': 2, 'over': 3}
 
 # Approving a quotation renames it in place, keeping the number and swapping the
 # prefix: S07877 becomes SE07877 (sale_order_approval.SaleOrder.action_approve_
@@ -147,6 +167,123 @@ class EinvoicingDashboard(models.AbstractModel):
             domain.append(('user_id', '=', int(salesperson_id)))
         return self.env['sale.order'].search(domain)
 
+    # ── Status API (external delivery tracker) ─────────────────────────────
+    @api.model
+    def _status_api_config(self):
+        icp = self.env['ir.config_parameter'].sudo()
+        url = (icp.get_param('proposal_workflow_extended_rk.status_api_url') or '').strip()
+        token = (icp.get_param('proposal_workflow_extended_rk.status_api_token') or '').strip()
+        return url.rstrip('/'), token
+
+    @api.model
+    def _fetch_project_statuses(self, url, token):
+        """Every project the tracker holds, keyed by upper-cased SE number.
+
+        Returns ``(status_map, error)``. ``error`` is only set for a
+        transport/HTTP failure with the tracker itself — a row whose SE
+        number simply is not in the map is not an error, it is NA.
+        """
+        if not url or not token:
+            return {}, False
+        try:
+            response = requests.get(
+                '%s/api/v1/project-status' % url,
+                headers={'Authorization': 'Bearer %s' % token, 'Accept': 'application/json'},
+                timeout=15,
+            )
+        except requests.exceptions.RequestException as exc:
+            _logger.warning('eInvoicing status tracker: could not reach %s: %s', url, exc)
+            return {}, _('Could not reach the project status tracker.')
+        if response.status_code != 200:
+            _logger.warning(
+                'eInvoicing status tracker: HTTP %s from %s', response.status_code, url)
+            return {}, _(
+                'The project status tracker returned an error (HTTP %s).',
+                response.status_code)
+        try:
+            body = response.json()
+        except ValueError:
+            return {}, _('The project status tracker sent back something unreadable.')
+        return {
+            (project.get('seNumber') or '').strip().upper(): project
+            for project in body.get('projects') or [] if project.get('seNumber')
+        }, False
+
+    @api.model
+    def _status_rank(self, status_code):
+        try:
+            return STATUS_CODE_ORDER.index(status_code)
+        except ValueError:
+            return len(STATUS_CODE_ORDER)
+
+    @api.model
+    def _quota_cell(self, projects, env_key):
+        """Roll up one quota environment (``uat``/``live``) across every
+        project matched to a row.
+
+        ``read: false`` on the tracker's side means "never queried", which is
+        not the same fact as zero invoices (see API.md) — an entity that has
+        not been read is left out of the sum rather than counted as 0, and
+        the cell says "Not read" only when *nothing* behind the row has ever
+        been read on that platform.
+        """
+        used_ar = used_ap = 0
+        seen_ar = seen_ap = False
+        worst = 'none'
+        for project in projects:
+            for entity in project.get('entities') or []:
+                quota = (entity.get('quota') or {}).get(env_key) or {}
+                if not quota.get('read'):
+                    continue
+                ar, ap = quota.get('ar'), quota.get('ap')
+                if ar and ar.get('used') is not None:
+                    used_ar += ar['used']
+                    seen_ar = True
+                    if QUOTA_STATUS_RANK.get(ar.get('status'), 0) > QUOTA_STATUS_RANK[worst]:
+                        worst = ar['status']
+                if ap and ap.get('used') is not None:
+                    used_ap += ap['used']
+                    seen_ap = True
+                    if QUOTA_STATUS_RANK.get(ap.get('status'), 0) > QUOTA_STATUS_RANK[worst]:
+                        worst = ap['status']
+        if not seen_ar and not seen_ap:
+            return {'label': _('Not read'), 'status': 'unread'}
+        return {
+            'label': '%s / %s' % (used_ar if seen_ar else '—', used_ap if seen_ap else '—'),
+            'status': worst,
+        }
+
+    @api.model
+    def _row_status_columns(self, se_names, status_map):
+        """Project Status / UAT AR-AP / Live AR-AP for one dashboard row.
+
+        SE numbers are unique between the dashboard and the tracker, so each
+        name matches at most one project; a row only carries more than one
+        when it has more than one agreement order. NA covers both "no SE
+        number yet" and "the tracker does not have this SE number".
+        """
+        matched = [
+            status_map[name.strip().upper()] for name in se_names or []
+            if name and name.strip().upper() in status_map
+        ]
+        na = {'label': _('NA'), 'status': 'na'}
+        if not matched:
+            return {
+                'matched': False,
+                'project_status': _('NA'),
+                'project_status_code': False,
+                'uat': na,
+                'live': na,
+            }
+        headline = min(matched, key=lambda project: self._status_rank(project.get('statusCode')))
+        return {
+            'matched': True,
+            'project_status': headline.get('status') or _('NA'),
+            'project_status_code': headline.get('statusCode') or False,
+            'uat': self._quota_cell(matched, 'uat'),
+            'live': self._quota_cell(matched, 'live'),
+        }
+
     # ── payload ───────────────────────────────────────────────────────────
     @api.model
     def get_dashboard_data(self, date_from=None, date_to=None, salesperson_id=None,
@@ -158,6 +295,16 @@ class EinvoicingDashboard(models.AbstractModel):
 
         einvoicing_ids = self._einvoicing_order_ids()
 
+        # The tracker only knows about eInvoicing SE onboarding, so the columns
+        # it feeds only make sense — and are only fetched — on that dashboard.
+        status_configured = status_error = False
+        status_map = {}
+        if scope != 'other':
+            status_api_url, status_api_token = self._status_api_config()
+            status_configured = bool(status_api_url and status_api_token)
+            status_map, status_error = self._fetch_project_statuses(
+                status_api_url, status_api_token)
+
         now = fields.Datetime.now()
         currency = self.env.company.currency_id
         rows = []
@@ -166,7 +313,7 @@ class EinvoicingDashboard(models.AbstractModel):
             proposals, agreements = self._split_orders(scoped)
             last = self._last_activity(lead)
             days = (now - last).days if last else False
-            rows.append({
+            row = {
                 'id': lead.id,
                 'crm_ref': lead.crm_ref or '',
                 'name': lead.name,
@@ -187,7 +334,10 @@ class EinvoicingDashboard(models.AbstractModel):
                 'last_activity': fields.Datetime.to_string(last) if last else '',
                 'days_since_activity': days,
                 'is_stale': bool(days is not False and days > STALE_DAYS),
-            })
+            }
+            if scope != 'other':
+                row['status_api'] = self._row_status_columns(row['agreement_names'], status_map)
+            rows.append(row)
 
         # eInvoicing orders with no pipeline record would otherwise be invisible.
         # Other Services deliberately skips this: most sale orders in the database
@@ -198,7 +348,7 @@ class EinvoicingDashboard(models.AbstractModel):
                 einvoicing_ids, date_from, date_to, salesperson_id)
             if orphans:
                 proposals, agreements = self._split_orders(orphans)
-                rows.append({
+                orphan_row = {
                     'id': False,
                     'crm_ref': '',
                     'name': _('(No pipeline record)'),
@@ -221,7 +371,10 @@ class EinvoicingDashboard(models.AbstractModel):
                     'last_activity': '',
                     'days_since_activity': False,
                     'is_stale': False,
-                })
+                }
+                orphan_row['status_api'] = self._row_status_columns(
+                    orphan_row['agreement_names'], status_map)
+                rows.append(orphan_row)
 
         stale = [r for r in rows if r['is_stale']]
         return {
@@ -245,6 +398,12 @@ class EinvoicingDashboard(models.AbstractModel):
             ],
             'currency': currency.symbol or currency.name,
             'stale_days': STALE_DAYS,
+            # Falsy on the Other Services dashboard, so the client never draws
+            # the tracker columns or banner there.
+            'status_api': scope != 'other' and {
+                'configured': status_configured,
+                'error': status_error,
+            },
         }
 
     # ── analytics payload (charts dashboard) ──────────────────────────────
