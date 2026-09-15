@@ -1,11 +1,12 @@
 import base64
 import io
+import logging
 from datetime import timedelta
-
-import xlsxwriter
 
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 
 def _days_overdue(move, as_of):
@@ -53,161 +54,118 @@ class CreditHoldReportWizardMixin(models.AbstractModel):
 
     show_invoice_details = fields.Boolean(
         string='Invoice Details', default=True,
-        help="Show the invoice table for each customer in the report. In an "
-             "Excel download, this is the sheet of per-customer invoice rows.")
+        help="Show the invoice table for each customer in the report.")
     show_project_details = fields.Boolean(
         string='Linked Projects', default=True,
-        help="Show the linked-projects table for each customer in the report. "
-             "In an Excel download, this is the sheet of per-customer projects.")
+        help="Show the linked-projects table for each customer in the report.")
 
-    download_pdf = fields.Boolean(string='PDF', default=True)
-    download_excel = fields.Boolean(string='Excel', default=False)
-
-    # Two binary slots, not one -- when both formats are picked, PDF and
-    # Excel are downloaded as two separate files (not a zip), so each needs
-    # its own /web/content column to be fetched from independently.
     file_data = fields.Binary(string='File', readonly=True, attachment=False)
     file_name = fields.Char(string='File Name', readonly=True)
-    file_data_2 = fields.Binary(string='File 2', readonly=True, attachment=False)
-    file_name_2 = fields.Char(string='File Name 2', readonly=True)
+
+    # wkhtmltopdf is a native, WebKit-based renderer that holds the whole
+    # document in memory while it works. Confirmed live on this box
+    # (2026-09-15): a single-pass render of an unfiltered Overall Current run
+    # -- 704 on-hold customers -- grew it to ~1.5GB RSS and the kernel
+    # OOM-killer killed it, which took the whole odoo18 service down for
+    # every user for about 10 seconds while systemd restarted it. Rather than
+    # refuse large runs, `_render_pdf_bytes` renders them in bounded chunks
+    # of this many customers each and merges the results -- wkhtmltopdf exits
+    # and frees its memory between chunks instead of accumulating across the
+    # whole run.
+    _PDF_BATCH_SIZE = 50
 
     def action_cancel(self):
         return {'type': 'ir.actions.act_window_close'}
 
     def action_download(self):
-        """Single Download button behind both format checkboxes.
-
-        PDF-only keeps the original UX (opens through the report controller
-        rather than a forced download). Excel-only writes the xlsx onto this
-        transient row and hands back a direct download URL. Both together
-        writes both onto this row and returns a small client action
-        (credit_hold_multi_download.js) that fires the two downloads one
-        after another -- the user wants two individual files, not a zip.
-        """
+        """Render, compress and download the PDF."""
         self.ensure_one()
-        if not self.download_pdf and not self.download_excel:
-            raise UserError(_(
-                "Select at least one format -- PDF, Excel, or both -- before "
-                "downloading."))
-
-        if self.download_pdf and not self.download_excel:
-            return self.env.ref(self._report_xmlid).report_action(self)
-
         today = fields.Date.context_today(self)
-
-        if self.download_pdf and self.download_excel:
-            pdf_name = '%s_%s.pdf' % (self._export_basename, today)
-            xlsx_name = '%s_%s.xlsx' % (self._export_basename, today)
-            self.write({
-                'file_data': base64.b64encode(self._render_pdf_bytes()),
-                'file_name': pdf_name,
-                'file_data_2': base64.b64encode(self._render_xlsx_bytes()),
-                'file_name_2': xlsx_name,
-            })
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'account_extended_rk.credit_hold_multi_download',
-                'params': {
-                    'urls': [
-                        '/web/content/%s/%s/file_data/%s?download=true' % (
-                            self._name, self.id, pdf_name),
-                        '/web/content/%s/%s/file_data_2/%s?download=true' % (
-                            self._name, self.id, xlsx_name),
-                    ],
-                },
-            }
-
-        name = '%s_%s.xlsx' % (self._export_basename, today)
+        name = '%s_%s.pdf' % (self._export_basename, today)
         self.write({
-            'file_data': base64.b64encode(self._render_xlsx_bytes()),
+            'file_data': base64.b64encode(self._render_pdf_bytes()),
             'file_name': name,
         })
         return {
             'type': 'ir.actions.act_url',
             'url': '/web/content/%s/%s/file_data/%s?download=true' % (
-                self._name, self.id, self.file_name),
+                self._name, self.id, name),
             'target': 'self',
         }
 
     def _render_pdf_bytes(self):
         self.ensure_one()
-        content, _report_type = self.env['ir.actions.report']._render_qweb_pdf(
-            self._report_xmlid, res_ids=self.ids)
-        return content
+        partner_ids = self._matching_partner_ids()
+        if len(partner_ids) <= self._PDF_BATCH_SIZE:
+            content, _report_type = self.env['ir.actions.report']._render_qweb_pdf(
+                self._report_xmlid, res_ids=self.ids)
+        else:
+            content = self._render_pdf_batched(partner_ids)
+        return self._compress_pdf(content)
 
-    def _render_xlsx_bytes(self):
-        """Customers-only sheet always; Invoice Details / Linked Projects
-        sheets only when their matching checkbox is on -- the same two
-        checkboxes that gate those sections in the PDF.
+    def _render_pdf_batched(self, partner_ids):
+        """Render in chunks of `_PDF_BATCH_SIZE` customers and merge with
+        pikepdf. Each chunk is its own `_render_qweb_pdf` call -- its own
+        wkhtmltopdf subprocess that starts, renders only that chunk's
+        customers, and exits, so peak memory is bounded by one chunk, not
+        the whole run. `only_partner_ids` scopes `_get_report_data` down to
+        the chunk (so the DB-side work is also done once per customer, not
+        once per customer per chunk); `start_index` keeps the "1. Customer"
+        numbering continuous across chunks instead of restarting at 1 each
+        time; `suppress_footer` keeps the "Generated: ..." line off every
+        chunk but the last, since it would otherwise land after every
+        chunk's final customer, not just the document's.
         """
-        self.ensure_one()
-        report_data = self._get_report_data()
-        customers = report_data['customers']
+        import pikepdf
+        batches = [partner_ids[i:i + self._PDF_BATCH_SIZE]
+                   for i in range(0, len(partner_ids), self._PDF_BATCH_SIZE)]
+        merged = pikepdf.Pdf.new()
+        opened = []
+        try:
+            for index, batch in enumerate(batches):
+                content, _report_type = self.env['ir.actions.report']._render_qweb_pdf(
+                    self._report_xmlid, res_ids=self.ids,
+                    data={
+                        'only_partner_ids': batch,
+                        'start_index': index * self._PDF_BATCH_SIZE,
+                        'suppress_footer': index < len(batches) - 1,
+                    })
+                src = pikepdf.open(io.BytesIO(content))
+                opened.append(src)
+                merged.pages.extend(src.pages)
+            out = io.BytesIO()
+            merged.save(out)
+            return out.getvalue()
+        finally:
+            for src in opened:
+                src.close()
+            merged.close()
 
-        output = io.BytesIO()
-        book = xlsxwriter.Workbook(output, {'in_memory': True})
-        head_fmt = book.add_format({
-            'bold': True, 'bg_color': '#f25d23', 'font_color': 'white', 'border': 1})
-        cell_fmt = book.add_format({'border': 1})
-        date_fmt = book.add_format({'border': 1, 'num_format': 'dd-mm-yyyy'})
-        money_fmt = book.add_format({'border': 1, 'num_format': '#,##0.00'})
-
-        sheet = book.add_worksheet('Customers')
-        sheet.write(0, 0, 'Customer', head_fmt)
-        sheet.set_column(0, 0, 40)
-        for row, cust in enumerate(customers, start=1):
-            sheet.write(row, 0, cust['partner'].display_name or '', cell_fmt)
-
-        if self.show_invoice_details:
-            sheet = book.add_worksheet('Invoice Details')
-            headers = ['Customer', 'Invoice', 'Invoice Date', 'Due Date',
-                        'Days Overdue', 'State', 'Payment State', 'Amount Due']
-            for col, label in enumerate(headers):
-                sheet.write(0, col, label, head_fmt)
-            sheet.set_column(0, 1, 26)
-            sheet.set_column(2, 3, 14)
-            sheet.set_column(4, 7, 16)
-            row = 1
-            for cust in customers:
-                name = cust['partner'].display_name or ''
-                for line in self._export_invoice_rows(cust):
-                    move = line['move']
-                    sheet.write(row, 0, name, cell_fmt)
-                    sheet.write(row, 1, move.name or '', cell_fmt)
-                    if move.invoice_date:
-                        sheet.write_datetime(row, 2, move.invoice_date, date_fmt)
-                    else:
-                        sheet.write(row, 2, '', cell_fmt)
-                    if move.invoice_date_due:
-                        sheet.write_datetime(row, 3, move.invoice_date_due, date_fmt)
-                    else:
-                        sheet.write(row, 3, '', cell_fmt)
-                    sheet.write_number(row, 4, line['days_overdue'], cell_fmt)
-                    sheet.write(row, 5, line['state_label'], cell_fmt)
-                    sheet.write(row, 6, line['payment_state_label'], cell_fmt)
-                    sheet.write_number(row, 7, move.amount_residual, money_fmt)
-                    row += 1
-
-        if self.show_project_details:
-            sheet = book.add_worksheet('Linked Projects')
-            headers = ['Customer', 'Project', 'Reference', 'Status']
-            for col, label in enumerate(headers):
-                sheet.write(0, col, label, head_fmt)
-            sheet.set_column(0, 2, 30)
-            sheet.set_column(3, 3, 18)
-            row = 1
-            for cust in customers:
-                name = cust['partner'].display_name or ''
-                for prow in cust['projects']:
-                    sheet.write(row, 0, name, cell_fmt)
-                    sheet.write(row, 1, prow['project'].name or '', cell_fmt)
-                    sheet.write(row, 2, prow['reference'] or '', cell_fmt)
-                    sheet.write(row, 3, prow['status'] or '', cell_fmt)
-                    row += 1
-
-        book.close()
-        output.seek(0)
-        return output.read()
+    def _compress_pdf(self, raw):
+        """Recompress wkhtmltopdf's (or the merged) output with pikepdf --
+        rewrites content streams with Flate compression and collapses the
+        object table into object streams. This is lossless (nothing
+        rendered changes) and works purely on what wkhtmltopdf already
+        produced, so it does nothing for the peak memory wkhtmltopdf itself
+        needs while rendering -- `_render_pdf_batched` above is what bounds
+        that. Falls back to the uncompressed bytes if pikepdf can't process
+        this particular PDF, rather than fail the whole download over a
+        compression step.
+        """
+        try:
+            import pikepdf
+            with pikepdf.open(io.BytesIO(raw)) as pdf:
+                out = io.BytesIO()
+                pdf.save(
+                    out, compress_streams=True,
+                    object_stream_mode=pikepdf.ObjectStreamMode.generate)
+                compressed = out.getvalue()
+        except Exception:
+            _logger.warning(
+                "Credit Hold Report: PDF compression failed, sending "
+                "uncompressed", exc_info=True)
+            return raw
+        return compressed if len(compressed) < len(raw) else raw
 
     def _customer_domain(self, field='partner_id'):
         """OR'd `child_of` domain across every selected customer, so a debt
@@ -262,19 +220,29 @@ class CreditHoldRemovedReportWizard(models.TransientModel):
             if wizard.date_from and wizard.date_to and wizard.date_from > wizard.date_to:
                 raise UserError(_("From Date must be on or before To Date."))
 
-    def _export_invoice_rows(self, cust):
-        return [row for release in cust['releases'] for row in release['rows']]
-
-    def _get_report_data(self):
-        self.ensure_one()
-        today = fields.Date.context_today(self)
-
+    def _events_domain(self):
         domain = [
             ('event_type', '=', 'release'),
             ('event_date', '>=', fields.Datetime.to_datetime(self.date_from)),
             ('event_date', '<', fields.Datetime.to_datetime(self.date_to) + timedelta(days=1)),
         ]
-        domain += self._customer_domain()
+        return domain + self._customer_domain()
+
+    def _matching_partner_ids(self):
+        """Cheap: which customers will appear, with none of the per-customer
+        project-lookup work `_get_report_data` does for each one.
+        """
+        self.ensure_one()
+        events = self.env['res.partner.credit.hold.event'].sudo().search(self._events_domain())
+        return events.mapped('partner_id').ids
+
+    def _get_report_data(self, only_partner_ids=None):
+        self.ensure_one()
+        today = fields.Date.context_today(self)
+
+        domain = self._events_domain()
+        if only_partner_ids is not None:
+            domain += [('partner_id', 'in', only_partner_ids)]
 
         events = self.env['res.partner.credit.hold.event'].sudo().search(
             domain, order='partner_id, event_date')
@@ -317,10 +285,7 @@ class CreditHoldCurrentReportWizard(models.TransientModel):
     as_of_date = fields.Date(
         string='As of Date', required=True, default=fields.Date.context_today)
 
-    def _export_invoice_rows(self, cust):
-        return cust['rows']
-
-    def _current_hold_state(self):
+    def _current_hold_state(self, only_partner_ids=None):
         """{partner: {invoices, hold_date, amount, max_age, reason}} for every
         customer on credit hold as of `as_of_date`.
 
@@ -332,6 +297,10 @@ class CreditHoldCurrentReportWizard(models.TransientModel):
         but the event log does -- the latest hold/release event for a
         customer at or before that date says what was true then. A customer
         is on hold as of that date if that latest event is a 'hold'.
+
+        `only_partner_ids`, when given, scopes both branches' queries down
+        to that set -- used to render one batch at a time without redoing
+        the query for every customer on every batch.
         """
         self.ensure_one()
         today = fields.Date.context_today(self)
@@ -339,6 +308,8 @@ class CreditHoldCurrentReportWizard(models.TransientModel):
         if self.as_of_date >= today:
             domain = [('credit_hold', '=', True)]
             domain += self._customer_domain('id')
+            if only_partner_ids is not None:
+                domain += [('id', 'in', only_partner_ids)]
             partners = self.env['res.partner'].sudo().search(domain)
             return {
                 partner: {
@@ -354,6 +325,8 @@ class CreditHoldCurrentReportWizard(models.TransientModel):
         cutoff = fields.Datetime.to_datetime(self.as_of_date) + timedelta(days=1)
         domain = [('event_date', '<', cutoff)]
         domain += self._customer_domain()
+        if only_partner_ids is not None:
+            domain += [('partner_id', 'in', only_partner_ids)]
         events = self.env['res.partner.credit.hold.event'].sudo().search(
             domain, order='partner_id, event_date desc')
 
@@ -378,9 +351,16 @@ class CreditHoldCurrentReportWizard(models.TransientModel):
             }
         return result
 
-    def _get_report_data(self):
+    def _matching_partner_ids(self):
+        """Cheap: which customers will appear, with none of the per-customer
+        project-lookup work `_get_report_data` does for each one.
+        """
         self.ensure_one()
-        state = self._current_hold_state()
+        return [partner.id for partner in self._current_hold_state()]
+
+    def _get_report_data(self, only_partner_ids=None):
+        self.ensure_one()
+        state = self._current_hold_state(only_partner_ids=only_partner_ids)
 
         customers = []
         for partner, info in state.items():
@@ -413,17 +393,21 @@ class ReportCreditHoldRemoved(models.AbstractModel):
 
     @api.model
     def _get_report_values(self, docids, data=None):
+        data = data or {}
         wizard = self.env['credit.hold.removed.report.wizard'].browse(docids)
         return {
             'doc_ids': docids,
             'doc_model': 'credit.hold.removed.report.wizard',
             'docs': wizard,
             'wizard': wizard,
-            'report_data': wizard._get_report_data(),
+            'report_data': wizard._get_report_data(
+                only_partner_ids=data.get('only_partner_ids')),
             'company': self.env.company,
             'report_title': _("Credit Hold Removed Details"),
             'generated_on_display': _generated_on_display(self.env),
             'generated_by': self.env.user,
+            'start_index': data.get('start_index', 0),
+            'suppress_footer': data.get('suppress_footer', False),
         }
 
 
@@ -433,15 +417,19 @@ class ReportCreditHoldCurrent(models.AbstractModel):
 
     @api.model
     def _get_report_values(self, docids, data=None):
+        data = data or {}
         wizard = self.env['credit.hold.current.report.wizard'].browse(docids)
         return {
             'doc_ids': docids,
             'doc_model': 'credit.hold.current.report.wizard',
             'docs': wizard,
             'wizard': wizard,
-            'report_data': wizard._get_report_data(),
+            'report_data': wizard._get_report_data(
+                only_partner_ids=data.get('only_partner_ids')),
             'company': self.env.company,
             'report_title': _("Overall Current Credit Hold"),
             'generated_on_display': _generated_on_display(self.env),
             'generated_by': self.env.user,
+            'start_index': data.get('start_index', 0),
+            'suppress_footer': data.get('suppress_footer', False),
         }

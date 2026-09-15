@@ -20,15 +20,9 @@
                                domain="[('credit_hold_override_ids', '!=', False)]"/>
                     </group>
                 </group>
-                <group>
-                    <group string="Include in Report">
-                        <field name="show_invoice_details"/>
-                        <field name="show_project_details"/>
-                    </group>
-                    <group string="Download Format">
-                        <field name="download_pdf"/>
-                        <field name="download_excel"/>
-                    </group>
+                <group string="Include in Report">
+                    <field name="show_invoice_details"/>
+                    <field name="show_project_details"/>
                 </group>
                 <footer>
                     <button name="action_download" type="object"
@@ -66,15 +60,9 @@
                                domain="[('credit_hold', '=', True)]"/>
                     </group>
                 </group>
-                <group>
-                    <group string="Include in Report">
-                        <field name="show_invoice_details"/>
-                        <field name="show_project_details"/>
-                    </group>
-                    <group string="Download Format">
-                        <field name="download_pdf"/>
-                        <field name="download_excel"/>
-                    </group>
+                <group string="Include in Report">
+                    <field name="show_invoice_details"/>
+                    <field name="show_project_details"/>
                 </group>
                 <footer>
                     <button name="action_download" type="object"

@@ -8,12 +8,24 @@
         <field name="default">False</field>
         <field name="format">A4</field>
         <field name="orientation">Landscape</field>
-        <field name="margin_top">38</field>
+        <!-- This wkhtmltopdf build positions the running header's TOP edge at
+             (margin_top - header_spacing) and lets it run downwards from
+             there, while body content starts at margin_top. With the old
+             header_spacing of 3mm the 23.5mm-tall header therefore spilled
+             ~20mm PAST the margin, painting over the top of the body on every
+             page. That is why raising margin_top alone never helped: it
+             moved the header and the content down together. Keeping
+             header_spacing just under margin_top puts the header back at the
+             top of the sheet, ending above where the body starts:
+               header top    = 34 - 31 =  3mm
+               header bottom =  3 + 23.5 = 26.5mm
+               body starts   = 34mm      -> ~7.5mm clear on every page. -->
+        <field name="margin_top">34</field>
         <field name="margin_bottom">10</field>
         <field name="margin_left">6</field>
         <field name="margin_right">6</field>
         <field name="header_line">False</field>
-        <field name="header_spacing">3</field>
+        <field name="header_spacing">31</field>
         <field name="dpi">90</field>
     </record>
 
