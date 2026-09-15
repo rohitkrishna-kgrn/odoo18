@@ -301,6 +301,43 @@
             <field name="user_id" position="after">
                 <field name="salesperson_manager_id" string="Salesperson's Manager"/>
             </field>
+            <!-- "team_id" on the order itself is unreliable (it's often a
+                 stale default set at order creation and never updated), so
+                 team scoping below is done off the salesperson's CURRENT team
+                 membership instead: res.users.sale_team_id is the team of the
+                 salesperson's single active crm.team.member row (Configuration
+                 > Sales Teams > that team > Members), kept correct
+                 automatically whenever membership changes.
+
+                 These must stay plain domain filters (no "group_by" in
+                 context): Odoo's search view parser reclassifies any filter
+                 whose context resolves a group_by field as a pure "groupBy"
+                 item and then never reads its domain at all (see
+                 visitFilter() in web/static/src/search/search_arch_parser.js)
+                 - so combining a domain with group_by on one filter silently
+                 drops the domain and shows every record. Group by Salesperson
+                 separately (already offered below) to fold/unfold within the
+                 filtered team. -->
+            <filter name="my_sale_orders_filter" position="after">
+                <filter string="My Sales Team" name="my_sales_team_filter"
+                        domain="['|', ('user_id', '=', uid), ('user_id.sale_team_id.user_id', '=', uid)]"/>
+                <!-- One quick filter per active Sales Team, so a team's name is
+                     directly clickable under Filters and instantly narrows the
+                     list to only that team's current Members (Configuration >
+                     Sales Teams > that team > Members), not everyone whose
+                     order happens to be tagged with that team_id. These teams
+                     have no XML id (created from the UI), so they are matched
+                     by name; a newly created team needs a new line here to
+                     appear in this list. -->
+                <filter string="Sales" name="groupby_team_sales"
+                        domain="[('user_id.sale_team_id.name', '=', 'Sales')]"/>
+                <filter string="Gokul" name="groupby_team_gokul"
+                        domain="[('user_id.sale_team_id.name', '=', 'Gokul')]"/>
+                <filter string="TEST" name="groupby_team_test"
+                        domain="[('user_id.sale_team_id.name', '=', 'TEST')]"/>
+                <filter string="TEST TEAM" name="groupby_team_test_team"
+                        domain="[('user_id.sale_team_id.name', '=', 'TEST TEAM')]"/>
+            </filter>
             <filter name="salesperson" position="after">
                 <filter string="Sales Team" name="groupby_team"
                         context="{'group_by': 'team_id'}"/>

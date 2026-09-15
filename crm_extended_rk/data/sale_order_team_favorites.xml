@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="0">
+    <!-- Shared Favorites (Odoo ir.filters), not plain search-view Filters, so
+         a single click both restricts to a Sales Team's data (its current
+         Members per Configuration > Sales Teams > <team> > Members, plus its
+         Team Leader) AND groups the result by Salesperson (folded/unfolded).
+         A plain <filter> in sale_order_views.xml can't do both at once: Odoo's
+         search view parser drops a filter's domain entirely whenever its
+         context resolves a group_by field, so it silently shows everyone
+         instead of filtering. Saved ir.filters records don't go through that
+         reclassification - domain and context are both applied as stored.
+
+         Team Leader user ids are the concrete res.users id looked up at the
+         time this file was written (2026-09-14): GOKUL KRISHNA = 29, leader of
+         Gokul/TEST/TEST TEAM. "Sales" has no leader set. If a team's leader
+         changes, update the id here. -->
+
+    <record id="sale_order_favorite_my_sales_team" model="ir.filters">
+        <field name="name">My Sales Team</field>
+        <field name="model_id">sale.order</field>
+        <field name="domain">['|', ('user_id', '=', uid), ('user_id.sale_team_id.user_id', '=', uid)]</field>
+        <field name="context">{'group_by': ['user_id']}</field>
+        <field name="user_id" eval="False"/>
+    </record>
+
+    <record id="sale_order_favorite_team_sales" model="ir.filters">
+        <field name="name">Sales</field>
+        <field name="model_id">sale.order</field>
+        <field name="domain">[('user_id.sale_team_id.name', '=', 'Sales')]</field>
+        <field name="context">{'group_by': ['user_id']}</field>
+        <field name="user_id" eval="False"/>
+    </record>
+
+    <record id="sale_order_favorite_team_gokul" model="ir.filters">
+        <field name="name">Gokul</field>
+        <field name="model_id">sale.order</field>
+        <field name="domain">['|', ('user_id.sale_team_id.name', '=', 'Gokul'), ('user_id', '=', 29)]</field>
+        <field name="context">{'group_by': ['user_id']}</field>
+        <field name="user_id" eval="False"/>
+    </record>
+
+    <record id="sale_order_favorite_team_test" model="ir.filters">
+        <field name="name">TEST</field>
+        <field name="model_id">sale.order</field>
+        <field name="domain">['|', ('user_id.sale_team_id.name', '=', 'TEST'), ('user_id', '=', 29)]</field>
+        <field name="context">{'group_by': ['user_id']}</field>
+        <field name="user_id" eval="False"/>
+    </record>
+
+    <record id="sale_order_favorite_team_test_team" model="ir.filters">
+        <field name="name">TEST TEAM</field>
+        <field name="model_id">sale.order</field>
+        <field name="domain">['|', ('user_id.sale_team_id.name', '=', 'TEST TEAM'), ('user_id', '=', 29)]</field>
+        <field name="context">{'group_by': ['user_id']}</field>
+        <field name="user_id" eval="False"/>
+    </record>
+</odoo>

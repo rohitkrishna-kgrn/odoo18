@@ -25,6 +25,7 @@
         'views/res_users_views.xml',
         'views/res_partner_views.xml',
         'views/sale_order_views.xml',
+        'data/sale_order_team_favorites.xml',
         'views/crm_lead_discovery_form_views.xml',
         'views/crm_lead_views.xml',
         'views/crm_lead_event_views.xml',
