@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         Credit Hold Removed Details
+         ============================================================ -->
+    <record id="view_credit_hold_removed_report_wizard_form" model="ir.ui.view">
+        <field name="name">credit.hold.removed.report.wizard.form</field>
+        <field name="model">credit.hold.removed.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Credit Hold Removed Details">
+                <group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group>
+                        <field name="partner_ids" widget="many2many_tags"
+                               placeholder="All Overridden Customers"
+                               domain="[('credit_hold_override_ids', '!=', False)]"/>
+                    </group>
+                </group>
+                <group>
+                    <group string="Include in Report">
+                        <field name="show_invoice_details"/>
+                        <field name="show_project_details"/>
+                    </group>
+                    <group string="Download Format">
+                        <field name="download_pdf"/>
+                        <field name="download_excel"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_download" type="object"
+                            string="Download" class="btn-primary"/>
+                    <button name="action_cancel" type="object"
+                            string="Cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_credit_hold_removed_report_wizard" model="ir.actions.act_window">
+        <field name="name">Credit Hold Removed Details</field>
+        <field name="res_model">credit.hold.removed.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="groups_id" eval="[(6, 0, [ref('account_extended_rk.group_quotation_approver')])]"/>
+    </record>
+
+    <!-- ============================================================
+         Overall Current Credit Hold
+         ============================================================ -->
+    <record id="view_credit_hold_current_report_wizard_form" model="ir.ui.view">
+        <field name="name">credit.hold.current.report.wizard.form</field>
+        <field name="model">credit.hold.current.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Overall Current Credit Hold">
+                <group>
+                    <group>
+                        <field name="as_of_date"/>
+                    </group>
+                    <group>
+                        <field name="partner_ids" widget="many2many_tags"
+                               placeholder="All Credit Hold Customers"
+                               domain="[('credit_hold', '=', True)]"/>
+                    </group>
+                </group>
+                <group>
+                    <group string="Include in Report">
+                        <field name="show_invoice_details"/>
+                        <field name="show_project_details"/>
+                    </group>
+                    <group string="Download Format">
+                        <field name="download_pdf"/>
+                        <field name="download_excel"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_download" type="object"
+                            string="Download" class="btn-primary"/>
+                    <button name="action_cancel" type="object"
+                            string="Cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_credit_hold_current_report_wizard" model="ir.actions.act_window">
+        <field name="name">Overall Current Credit Hold</field>
+        <field name="res_model">credit.hold.current.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="groups_id" eval="[(6, 0, [ref('account_extended_rk.group_quotation_approver')])]"/>
+    </record>
+
+    <!-- ============================================================
+         Menu: Contacts > Credit Hold Report > {Removed Details, Current}
+         Placed before Configuration (sequence 35 on core's
+         res_partner_menu_config) by giving the root a lower sequence.
+
+         On this database Contacts (sequence 2) and Configuration
+         (sequence 2, tied and broken by id so Contacts still renders
+         first) sit right next to each other, leaving no integer between
+         them, so Configuration is nudged out to 35 (contacts' own
+         upstream default) to make room. noupdate is already False on
+         that record, so this write is not silently skipped.
+         ============================================================ -->
+    <record id="contacts.res_partner_menu_config" model="ir.ui.menu">
+        <field name="sequence">35</field>
+    </record>
+
+    <menuitem id="menu_credit_hold_report_root" name="Credit Hold Report"
+              parent="contacts.menu_contacts"
+              groups="account_extended_rk.group_quotation_approver"
+              sequence="30"/>
+
+    <menuitem id="menu_credit_hold_removed_report" name="Credit Hold Removed Details"
+              parent="menu_credit_hold_report_root"
+              action="action_credit_hold_removed_report_wizard"
+              groups="account_extended_rk.group_quotation_approver"
+              sequence="10"/>
+
+    <menuitem id="menu_credit_hold_current_report" name="Overall Current Credit Hold"
+              parent="menu_credit_hold_report_root"
+              action="action_credit_hold_current_report_wizard"
+              groups="account_extended_rk.group_quotation_approver"
+              sequence="20"/>
+
+</odoo>

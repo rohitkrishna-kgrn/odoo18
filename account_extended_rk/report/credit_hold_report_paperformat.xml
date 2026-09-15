@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- A4 Landscape: both reports carry wide multi-column invoice/project
+         tables that would be cramped in portrait. -->
+    <record id="paperformat_credit_hold_report" model="report.paperformat">
+        <field name="name">Credit Hold Report A4 Landscape</field>
+        <field name="default">False</field>
+        <field name="format">A4</field>
+        <field name="orientation">Landscape</field>
+        <field name="margin_top">38</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">6</field>
+        <field name="margin_right">6</field>
+        <field name="header_line">False</field>
+        <field name="header_spacing">3</field>
+        <field name="dpi">90</field>
+    </record>
+
+</odoo>

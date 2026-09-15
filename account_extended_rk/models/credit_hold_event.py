@@ -48,6 +48,14 @@ class CreditHoldEvent(models.Model):
              "on the customers already in arrears when this policy started. "
              "Those holds were applied silently, with no notification sent.",
     )
+    override_id = fields.Many2one(
+        'res.partner.credit.hold.override',
+        string='Released Via Override',
+        readonly=True,
+        help="Set when this release was a Managing Partner override rather "
+             "than the invoices simply being settled. Carries who authorised "
+             "it and why -- read by the Credit Hold Removed Details report.",
+    )
 
     @api.depends('partner_id', 'event_type', 'event_date')
     def _compute_display_name(self):

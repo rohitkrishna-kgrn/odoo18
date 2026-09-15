@@ -229,12 +229,15 @@ class ResPartner(models.Model):
     # History and notification
     # ------------------------------------------------------------------
 
-    def _credit_hold_log_event(self, event_type, invoices, amount, max_age, silent=False):
+    def _credit_hold_log_event(self, event_type, invoices, amount, max_age, silent=False, override=None):
         """Freeze what the hold/release looked like at this moment.
 
         The invoice numbers, amounts and due dates are copied into the event as
         text as well as linked, so the history still reads correctly years later
-        when those invoices have been paid down to nothing.
+        when those invoices have been paid down to nothing. `override` links a
+        release back to the Managing Partner record that authorised it, when
+        that is why the hold came off -- the Credit Hold Removed Details report
+        reads that link for "Removed By" / "Removal Reason".
         """
         self.ensure_one()
         self.env['res.partner.credit.hold.event'].sudo().create({
@@ -246,6 +249,7 @@ class ResPartner(models.Model):
             'max_age_days': max_age,
             'is_backfill': silent,
             'detail': self._credit_hold_invoice_detail(invoices),
+            'override_id': override.id if override else False,
         })
 
     def _credit_hold_invoice_detail(self, invoices):

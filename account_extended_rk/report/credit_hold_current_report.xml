@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_report_credit_hold_current" model="ir.actions.report">
+        <field name="name">Overall Current Credit Hold</field>
+        <field name="model">credit.hold.current.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">account_extended_rk.report_credit_hold_current_document</field>
+        <field name="report_file">account_extended_rk.report_credit_hold_current_document</field>
+        <field name="print_report_name">'Overall_Current_Credit_Hold_%s' % (object.as_of_date.strftime('%d-%m-%Y') if object.as_of_date else '')</field>
+        <field name="paperformat_id" ref="account_extended_rk.paperformat_credit_hold_report"/>
+        <field name="groups_id" eval="[(6, 0, [ref('account_extended_rk.group_quotation_approver')])]"/>
+    </record>
+
+    <template id="report_credit_hold_current_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.basic_layout">
+                    <t t-set="company" t-value="company"/>
+
+                    <div class="header" style="width:100%;">
+                        <table style="width:100%; border-collapse:collapse;">
+                            <tr>
+                                <td style="background:#f25d23; color:#ffffff; vertical-align:middle; padding:10px 14px;">
+                                    <div style="font-size:21px; font-weight:bold; letter-spacing:0.3px;">CREDIT HOLD REPORT</div>
+                                    <div style="font-size:12px; margin-top:3px;">
+                                        Report Type: <b>Overall Current Credit Hold</b>
+                                    </div>
+                                </td>
+                                <td style="background:#ffffff; text-align:center; vertical-align:middle; width:180px; padding:4px 8px;">
+                                    <img t-if="company.logo" t-att-src="image_data_uri(company.logo)"
+                                         style="width:160px; height:96px; display:inline-block;"/>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="footer" style="width:100%; background:#f25d23; color:#ffffff; padding:6px 14px;">
+                        <div style="overflow:hidden;">
+                            <div style="float:left; width:33%; font-size:10px; text-align:left; box-sizing:border-box;"><t t-esc="company.name"/></div>
+                            <div style="float:left; width:34%; font-size:10px; text-align:center; box-sizing:border-box;">Credit Hold Report — Confidential</div>
+                            <div style="float:right; width:33%; font-size:10px; text-align:right; box-sizing:border-box;">Page <span class="page"/> of <span class="topage"/></div>
+                        </div>
+                    </div>
+
+                    <div class="page" style="font-size:12.5px; color:#000; padding-top:120px;">
+                        <h2 style="text-align:center; color:#000; margin:2px 0 2px 0; font-size:19px;">OVERALL CURRENT CREDIT HOLD</h2>
+                        <p style="text-align:center; font-size:11.5px; color:#000; margin:0 0 10px 0;">
+                            As of: <span t-field="o.as_of_date"/>
+                            <t t-if="o.partner_ids"> · Customers: <t t-esc="', '.join(o.partner_ids.mapped('display_name'))"/></t>
+                        </p>
+
+                        <t t-if="not report_data['customers']">
+                            <p style="text-align:center; color:#000; margin-top:30px;">
+                                No customers are currently on Credit Hold for the selected criteria.
+                            </p>
+                        </t>
+
+                        <!-- ── CUSTOMER GROUPS ─────────────────────────── -->
+                        <t t-foreach="report_data['customers']" t-as="cust">
+                            <t t-set="partner" t-value="cust['partner']"/>
+                            <div style="width:100%; background:#ffffff; color:#f25d23; font-weight:bold; padding:6px 8px; font-size:14px; border:1px solid #000; border-bottom:2px solid #000; box-sizing:border-box;">
+                                <t t-esc="cust_index + 1"/>. <t t-esc="partner.display_name"/>
+                                <t t-if="partner.ref"> (Ref: <t t-esc="partner.ref"/>)</t>
+                            </div>
+                            <table style="width:100%; border-collapse:collapse; margin-bottom:3px; font-size:12px;">
+                                <tr>
+                                    <td style="background:#fdeee7; color:#000; padding:4px 8px; border:1px solid #000; border-top:0;">
+                                        <b>Company:</b> <t t-esc="(partner.company_id.display_name or company.display_name)"/>
+                                        &#160;&#160;|&#160;&#160;
+                                        <b>Email:</b> <t t-esc="partner.email or '-'"/>
+                                        &#160;&#160;|&#160;&#160;
+                                        <b>Phone:</b> <t t-esc="partner.phone or '-'"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="background:#fdeee7; color:#000; padding:4px 8px; border:1px solid #000; border-top:0;">
+                                        <b>Credit Hold Status:</b> On Hold &#160;&#160;
+                                        <b>Since:</b> <t t-if="cust['hold_date']" t-esc="cust['hold_date']" t-options="{'widget': 'date'}"/><t t-else="">-</t>
+                                        (<t t-esc="cust['hold_days']"/> days) &#160;&#160;
+                                        <b>Amount:</b>
+                                        <t t-esc="'%s %s' % (partner.currency_id.symbol or '', '{:,.2f}'.format(cust['amount']))"/>
+                                        &#160;&#160;
+                                        <b>Oldest Overdue:</b> <t t-esc="cust['max_age']"/> days
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="background:#fdeee7; color:#000; padding:4px 8px; border:1px solid #000; border-top:0; font-size:11px;">
+                                        <b>Reason:</b> <t t-esc="cust['reason']"/>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table t-if="o.show_invoice_details" style="width:100%; border-collapse:collapse; margin-bottom:8px; font-size:11.5px;">
+                                <tr>
+                                    <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:left;">Invoice</th>
+                                    <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:left;">Invoice Date</th>
+                                    <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:left;">Due Date</th>
+                                    <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:right;">Invoice Amount</th>
+                                    <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:right;">Amount Due</th>
+                                    <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:right;">Days Overdue</th>
+                                    <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:left;">Payment Status</th>
+                                </tr>
+                                <t t-if="not cust['rows']">
+                                    <tr>
+                                        <td colspan="7" style="padding:5px 6px; border:1px solid #000; color:#000;">
+                                            No invoice detail available for this customer.
+                                        </td>
+                                    </tr>
+                                </t>
+                                <t t-foreach="cust['rows']" t-as="row">
+                                    <t t-set="move" t-value="row['move']"/>
+                                    <tr>
+                                        <td style="padding:4px 6px; border:1px solid #000; color:#000;"><t t-esc="move.name"/></td>
+                                        <td style="padding:4px 6px; border:1px solid #000; color:#000;"><span t-field="move.invoice_date"/></td>
+                                        <td style="padding:4px 6px; border:1px solid #000; color:#000;"><span t-field="move.invoice_date_due"/></td>
+                                        <td style="padding:4px 6px; border:1px solid #000; color:#000; text-align:right;">
+                                            <span t-field="move.amount_total" t-options="{'widget': 'monetary', 'display_currency': move.currency_id}"/>
+                                        </td>
+                                        <td style="padding:4px 6px; border:1px solid #000; color:#000; text-align:right;">
+                                            <span t-field="move.amount_residual" t-options="{'widget': 'monetary', 'display_currency': move.currency_id}"/>
+                                        </td>
+                                        <td style="padding:4px 6px; border:1px solid #000; color:#000; text-align:right;"><t t-esc="row['days_overdue']"/></td>
+                                        <td style="padding:4px 6px; border:1px solid #000; color:#000;"><t t-esc="row['payment_state_label']"/></td>
+                                    </tr>
+                                </t>
+                            </table>
+
+                            <t t-if="o.show_project_details">
+                                <table t-if="cust['projects']" style="width:100%; border-collapse:collapse; margin-bottom:14px; font-size:11.5px;">
+                                    <tr>
+                                        <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:left;" colspan="4">Linked Projects</th>
+                                    </tr>
+                                    <tr>
+                                        <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:left;">Project Name</th>
+                                        <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:left;">Project Manager</th>
+                                        <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:left;">Status</th>
+                                        <th style="background:#fdeee7; color:#000; padding:4px 6px; border:1px solid #000; text-align:left;">Reference</th>
+                                    </tr>
+                                    <t t-foreach="cust['projects']" t-as="prow">
+                                        <tr>
+                                            <td style="padding:4px 6px; border:1px solid #000; color:#000;"><t t-esc="prow['project'].name"/></td>
+                                            <td style="padding:4px 6px; border:1px solid #000; color:#000;"><t t-esc="prow['project'].user_id.name or '-'"/></td>
+                                            <td style="padding:4px 6px; border:1px solid #000; color:#000;"><t t-esc="prow['status']"/></td>
+                                            <td style="padding:4px 6px; border:1px solid #000; color:#000;"><t t-esc="prow['reference']"/></td>
+                                        </tr>
+                                    </t>
+                                </table>
+                                <p t-else="" style="font-size:11px; color:#000; margin:0 0 14px 0;">No projects linked to this customer.</p>
+                            </t>
+                        </t>
+
+                        <div style="margin-top:16px; padding-top:6px; border-top:1px solid #000; font-size:11px; color:#000; text-align:right;">
+                            Generated: <t t-esc="generated_on_display"/> by <t t-esc="generated_by.name"/>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

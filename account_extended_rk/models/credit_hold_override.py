@@ -100,7 +100,7 @@ class CreditHoldOverride(models.Model):
             'credit_hold_date': False,
             'credit_hold_release_date': fields.Datetime.now(),
         })
-        partner._credit_hold_log_event('release', cleared, 0.0, 0, silent=False)
+        partner._credit_hold_log_event('release', cleared, 0.0, 0, silent=False, override=self)
         partner.message_post(body=_(
             "<p><b>Credit hold overridden and released by %(user)s.</b></p>"
             "<p>Reason: %(reason)s</p>"

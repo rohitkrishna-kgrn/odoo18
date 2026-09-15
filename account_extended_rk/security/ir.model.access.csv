@@ -13,3 +13,5 @@ access_sale_order_billing_milestone_sale,sale.order.billing.milestone.sale,model
 access_sale_order_billing_milestone_invoice,sale.order.billing.milestone.invoice,model_sale_order_billing_milestone,account.group_account_invoice,1,1,1,1
 access_sale_order_billing_milestone_readonly,sale.order.billing.milestone.readonly,model_sale_order_billing_milestone,account.group_account_readonly,1,0,0,0
 access_sale_order_billing_milestone_user,sale.order.billing.milestone.user,model_sale_order_billing_milestone,base.group_user,1,0,0,0
+access_credit_hold_removed_report_wizard,credit.hold.removed.report.wizard,model_credit_hold_removed_report_wizard,group_quotation_approver,1,1,1,1
+access_credit_hold_current_report_wizard,credit.hold.current.report.wizard,model_credit_hold_current_report_wizard,group_quotation_approver,1,1,1,1

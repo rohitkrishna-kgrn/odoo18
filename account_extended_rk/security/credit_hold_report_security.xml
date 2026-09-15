@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Gates the Credit Hold Report menu and both PDF reports.
+             Membership is not ticked by hand: res.company (see
+             models/quotation_approver_group.py) keeps it in lockstep with
+             whichever user(s) are set as Quotation Approver on a company
+             record (res.company.approver_user_id, set from Sales >
+             Configuration or the company form). -->
+        <record id="group_quotation_approver" model="res.groups">
+            <field name="name">Quotation Approver</field>
+            <field name="comment">Automatically synced with each company's
+Quotation Approver (Sales &gt; Configuration &gt; Settings, "Quotation
+Approval"). Do not tick or untick members here by hand -- the next change to
+that field, on any company, overwrites this list.</field>
+        </record>
+
+    </data>
+</odoo>

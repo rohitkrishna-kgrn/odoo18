@@ -14,3 +14,5 @@ from . import credit_hold_event
 from . import credit_hold_override
 from . import res_partner_credit_hold
 from . import credit_hold_gate
+from . import quotation_approver_group
+from . import credit_hold_report
