@@ -21,7 +21,7 @@
                header bottom =  3 + 23.5 = 26.5mm
                body starts   = 34mm      -> ~7.5mm clear on every page. -->
         <field name="margin_top">34</field>
-        <field name="margin_bottom">10</field>
+        <field name="margin_bottom">18</field>
         <field name="margin_left">6</field>
         <field name="margin_right">6</field>
         <field name="header_line">False</field>

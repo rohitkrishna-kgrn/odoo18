@@ -1,6 +1,6 @@
 {
     'name': 'Account Extended RK',
-    'version': '2.29',
+    'version': '2.30',
     'category': 'Accounting',
     'summary': 'Mandatory AR Responsible and Sale Order Line on invoices (the service engagement is derived from that line), locked late-payment penalty footer, a settle/close lock on invoices over 180 days outstanding, a collection follow-up log fed from the invoice chatter (each Log note and each completed activity is recorded with its date, method and the client response, and feeds the AR reports), an auto-flag for invoices over 30 days overdue with no follow-up logged, a payment gate requiring at least one follow-up logged before a customer invoice can be paid, and retainership contracts that raise draft invoices on a recurring schedule for finance to review and post, auto-archiving of customer invoices left unapproved in draft for 7 days (creator warned 2 days before), and an automated customer Credit Hold at 180 days overdue that blocks new projects and proposals until the arrears clear, with a single-use Managing Partner override, and an engagement billing plan (advance / progress / completion milestones) that every Completion invoice is checked against before it can be posted, and a Contacts > Credit Hold Report menu (Removed Details / Overall Current, each a filterable wizard generating an orange-and-white A4 PDF) restricted to whichever user(s) the Quotation Approver group tracks',
     'depends': [
