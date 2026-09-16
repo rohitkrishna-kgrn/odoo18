@@ -47,6 +47,21 @@ class ProjectProject(models.Model):
         if not old_so:
             raise UserError("Original Sale Order not found.")
 
+        # Renew under the project's *current* Project Manager rather than
+        # whoever was on the original quotation line (that user may since
+        # have left / been archived, or never been a Dedicated Project
+        # Manager to begin with).
+        if not self.user_id:
+            raise UserError(
+                "This project has no Project Manager set. Assign one before renewing."
+            )
+        if not self.user_id.is_dedicated_manager:
+            raise UserError(
+                "%s is not designated as a Dedicated Project Manager. Enable "
+                "that permission on their user record (Settings > Users > "
+                "Access Rights) before renewing this project." % self.user_id.name
+            )
+
         order_lines = []
 
         for line in old_so.order_line:
@@ -57,7 +72,7 @@ class ProjectProject(models.Model):
                 'product_uom_qty': len(done_tasks),
                 'price_unit': line.price_unit,
                 'tax_id': [(6, 0, line.tax_id.ids)],
-                'manager_id': getattr(line, 'manager_id', False) and line.manager_id.id,
+                'manager_id': self.user_id.id,
                 'engagement_start': getattr(line, 'engagement_start', False),
                 'engagement_end': getattr(line, 'engagement_end', False),
                 'estimated_hours': getattr(line, 'estimated_hours', False),
