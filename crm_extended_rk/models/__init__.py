@@ -1,3 +1,4 @@
+from . import crm_team
 from . import sale_order
 from . import sale_order_invoice_wizard
 from . import crm_lead

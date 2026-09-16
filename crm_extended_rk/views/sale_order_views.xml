@@ -301,42 +301,43 @@
             <field name="user_id" position="after">
                 <field name="salesperson_manager_id" string="Salesperson's Manager"/>
             </field>
-            <!-- "team_id" on the order itself is unreliable (it's often a
-                 stale default set at order creation and never updated), so
-                 team scoping below is done off the salesperson's CURRENT team
-                 membership instead: res.users.sale_team_id is the team of the
-                 salesperson's single active crm.team.member row (Configuration
-                 > Sales Teams > that team > Members), kept correct
-                 automatically whenever membership changes.
+            <!-- Sales Team scoping. Two deliberate choices here:
 
-                 These must stay plain domain filters (no "group_by" in
-                 context): Odoo's search view parser reclassifies any filter
+                 * It keys off the SALESPERSON's current team
+                   (res.users.sale_team_id), not sale.order.team_id. team_id is
+                   a default stamped on the order at creation and never updated
+                   afterwards, so it goes stale as soon as someone moves team.
+                   sale_team_id is maintained automatically from the active
+                   crm.team.member rows (Configuration > Sales Teams > a team >
+                   Members) and ignores archived memberships.
+                 * The team entries themselves are NOT listed here. They are
+                   injected per active crm.team by
+                   SaleOrder._get_view() in models/sale_order.py, so a team
+                   created in Configuration > Sales Teams shows up on its own,
+                   and a renamed one relabels itself.
+
+                 The two <separator/> below are what puts this block in its own
+                 group in the Filters dropdown. Without them the team entries
+                 land in the same group as "Create Date"/"Pending AML", where
+                 the search view ORs everything in a group together - so
+                 ticking a team and another filter widened the result instead
+                 of narrowing it.
+
+                 Keep these as plain domain filters (no "group_by" in their
+                 context): Odoo's search arch parser reclassifies any filter
                  whose context resolves a group_by field as a pure "groupBy"
-                 item and then never reads its domain at all (see
-                 visitFilter() in web/static/src/search/search_arch_parser.js)
-                 - so combining a domain with group_by on one filter silently
-                 drops the domain and shows every record. Group by Salesperson
-                 separately (already offered below) to fold/unfold within the
-                 filtered team. -->
+                 item and then never reads its domain at all (visitFilter() in
+                 web/static/src/search/search_arch_parser.js), which silently
+                 drops the team scoping. The Salesperson grouping these filters
+                 are meant to come with is applied client-side instead, by
+                 static/src/js/sale_team_filter_groupby.js. -->
             <filter name="my_sale_orders_filter" position="after">
-                <filter string="My Sales Team" name="my_sales_team_filter"
+                <separator/>
+                <filter string="My Sales Team" name="sales_team_scope_my"
                         domain="['|', ('user_id', '=', uid), ('user_id.sale_team_id.user_id', '=', uid)]"/>
-                <!-- One quick filter per active Sales Team, so a team's name is
-                     directly clickable under Filters and instantly narrows the
-                     list to only that team's current Members (Configuration >
-                     Sales Teams > that team > Members), not everyone whose
-                     order happens to be tagged with that team_id. These teams
-                     have no XML id (created from the UI), so they are matched
-                     by name; a newly created team needs a new line here to
-                     appear in this list. -->
-                <filter string="Sales" name="groupby_team_sales"
-                        domain="[('user_id.sale_team_id.name', '=', 'Sales')]"/>
-                <filter string="Gokul" name="groupby_team_gokul"
-                        domain="[('user_id.sale_team_id.name', '=', 'Gokul')]"/>
-                <filter string="TEST" name="groupby_team_test"
-                        domain="[('user_id.sale_team_id.name', '=', 'TEST')]"/>
-                <filter string="TEST TEAM" name="groupby_team_test_team"
-                        domain="[('user_id.sale_team_id.name', '=', 'TEST TEAM')]"/>
+                <!-- crm.team filters are injected right here, after
+                     sales_team_scope_my and before this closing separator. -->
+                <separator/>
             </filter>
             <filter name="salesperson" position="after">
                 <filter string="Sales Team" name="groupby_team"

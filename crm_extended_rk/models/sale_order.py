@@ -1,6 +1,7 @@
 from collections import Counter
 
 from odoo import api, models, fields, _
+from lxml.builder import E
 
 from .crm_lead_discovery_entity import entity_name_key
 from .crm_tag import APPROVED_TAG_DOMAIN, TAG_SYNC_CTX, log_tag_change
@@ -661,6 +662,51 @@ class SaleOrder(models.Model):
             # A recordset, not a command list: commands on an x2many in an
             # onchange drop rows silently.
             order.tag_ids |= order.partner_id._crm_tags()
+
+    # Name given to the per-team quick filters injected into the sale.order
+    # search view below. The client-side patch in
+    # static/src/js/sale_team_filter_groupby.js recognises a team scope by this
+    # prefix, so keep the two in step. "sales_team_scope_my" (the static "My
+    # Sales Team" entry in views/sale_order_views.xml) matches it too and is
+    # treated the same way.
+    _SALES_TEAM_FILTER_PREFIX = 'sales_team_scope_'
+
+    @api.model
+    def _get_view(self, view_id=None, view_type='form', **options):
+        """Add one Filters entry per Sales Team to the sale.order search view.
+
+        The teams live in Configuration > Sales Teams and are created from the
+        UI, so they have no XML id to write a static <filter> against. Building
+        the entries here instead means a newly created team appears on its own
+        and a renamed one relabels itself, with nothing to edit in the module.
+
+        The result is cached by _get_view_cache (the 'templates' ormcache);
+        models/crm_team.py invalidates that cache whenever a team is created,
+        renamed, archived or deleted.
+        """
+        arch, view = super()._get_view(view_id, view_type, **options)
+        if view_type != 'search':
+            return arch, view
+        # Inserted after the static "My Sales Team" entry, which sits between
+        # the two <separator/> that give this block its own group in the
+        # Filters dropdown. Absent on any search view that does not inherit
+        # ours - nothing to do then.
+        anchor = arch.find(".//filter[@name='sales_team_scope_my']")
+        if anchor is None:
+            return arch, view
+        teams = self.env['crm.team'].sudo().search([], order='sequence, name')
+        # addnext() puts each node directly after the anchor, so walk the
+        # teams backwards to end up in the order they were searched in.
+        for team in reversed(teams):
+            node = E.filter({
+                'name': '%s%s' % (self._SALES_TEAM_FILTER_PREFIX, team.id),
+                'string': team.name or _("Sales Team %s") % team.id,
+                # By id, not by name: renaming a team in Configuration would
+                # otherwise leave a filter matching a name nobody uses.
+                'domain': str([('user_id.sale_team_id', '=', team.id)]),
+            })
+            anchor.addnext(node)
+        return arch, view
 
     @api.model_create_multi
     def create(self, vals_list):
