@@ -51,11 +51,15 @@
         </field>
     </record>
 
-    <!-- Services search filter: orders where the AML/KYC form was actually
-         sent (has at least one aml.request) but the gate isn't cleared yet.
-         Excludes orders that never had a form sent at all. Anchored on the
-         base sale.order search view (not the Services-specific "quotation"
-         primary view) so it shows on every Services menu, same pattern as
+    <!-- Services search filters: orders where the AML/KYC form was actually
+         sent (has at least one aml.request) but the gate isn't cleared yet;
+         orders where the form was sent to the client (aml_form_status is
+         only ever set by action_send_aml_form's "Send AML Form" button, so
+         this excludes orders whose AML gate was cleared purely by an
+         outright bypass); and orders whose AML/KYC check was bypassed.
+         Anchored on the base sale.order search view (not the
+         Services-specific "quotation" primary view) so they show on every
+         Services menu, same pattern as
          view_sales_order_filter_inherit_salesperson_manager in
          crm_extended_rk. -->
     <record id="view_sales_order_filter_inherit_pending_aml" model="ir.ui.view">
@@ -66,7 +70,39 @@
             <filter name="my_sale_orders_filter" position="after">
                 <filter string="Pending AML" name="pending_aml"
                         domain="[('aml_request_ids', '!=', False), ('aml_gate_completed', '=', False)]"/>
+                <filter string="AML Forms Sent" name="aml_forms_sent"
+                        domain="[('aml_form_status', '=', 'sent')]"/>
+                <filter string="AML Bypassed" name="aml_bypassed"
+                        domain="[('aml_request_ids.state', '=', 'bypassed')]"/>
             </filter>
+        </field>
+    </record>
+
+    <!-- Reason column for the "AML Bypassed" filter above, on both Services
+         list views - Quotations (view_quotation_tree_with_onboarding) and
+         Sales Orders (view_order_tree) are separate base tree views, same
+         split account_extended_rk already bridges for partner_credit_hold /
+         billing_plan_code. Hidden by default (optional="hide") like those,
+         toggleable from the list's column picker. -->
+    <record id="view_quotation_list_aml_bypass_reason" model="ir.ui.view">
+        <field name="name">sale.order.list.aml.bypass.reason.quotation</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_quotation_tree_with_onboarding"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="aml_bypass_reason" string="AML Bypass Reason" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_order_list_aml_bypass_reason" model="ir.ui.view">
+        <field name="name">sale.order.list.aml.bypass.reason.order</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <field name="amount_total" position="before">
+                <field name="aml_bypass_reason" string="AML Bypass Reason" optional="hide"/>
+            </field>
         </field>
     </record>
 

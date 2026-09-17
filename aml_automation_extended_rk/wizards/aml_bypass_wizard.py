@@ -43,7 +43,7 @@ class AmlBypassWizard(models.TransientModel):
             # additional-info) portal links immediately, since those routes
             # only serve a request still in an open state.
             aml = existing
-            aml.sudo().write({'state': 'bypassed'})
+            aml.sudo().write({'state': 'bypassed', 'bypass_reason': self.reason})
         else:
             aml = self.env['aml.request'].sudo().create({
                 'state': 'bypassed',
@@ -51,6 +51,7 @@ class AmlBypassWizard(models.TransientModel):
                 'partner_id': order.partner_id.id,
                 'kyc_type': order.kyc_type or 'entity',
                 'company_id': order.company_id.id,
+                'bypass_reason': self.reason,
             })
 
         acting_partner = self.env.user.partner_id

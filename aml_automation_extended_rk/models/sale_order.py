@@ -92,6 +92,23 @@ class SaleOrder(models.Model):
             latest = order.sudo().aml_request_ids.sorted('create_date', reverse=True)[:1]
             order.aml_bypass_allowed = not latest or latest.state in self._AML_OPEN_STATES
 
+    # Surfaces the bypass wizard's reason on the order itself, for the "AML
+    # Bypassed" list column - aml.request stays access-restricted to the AML
+    # team, so this reads through sudo the same way aml_gate_completed /
+    # aml_request_count already do. Blank whenever the latest request isn't
+    # bypassed, or was bypassed via the AML team's own pipeline action
+    # (aml.request.action_bypass) rather than this wizard, which doesn't ask
+    # for a reason.
+    aml_bypass_reason = fields.Text(
+        string='AML Bypass Reason', compute='_compute_aml_bypass_reason',
+    )
+
+    @api.depends('aml_request_ids.state', 'aml_request_ids.bypass_reason')
+    def _compute_aml_bypass_reason(self):
+        for order in self:
+            latest = order.sudo().aml_request_ids.sorted('create_date', reverse=True)[:1]
+            order.aml_bypass_reason = latest.bypass_reason if latest.state == 'bypassed' else False
+
     def _check_aml_action_rights(self):
         """Guard for action_send_aml_form / action_open_aml_bypass_wizard: limited
         to the AML team (group_aml_user, implied by group_aml_manager) or the

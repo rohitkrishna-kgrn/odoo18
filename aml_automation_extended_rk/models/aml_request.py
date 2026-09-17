@@ -35,6 +35,12 @@ class AmlRequest(models.Model):
     ], default='draft', tracking=True, string='Status', index=True,
        group_expand='_group_expand_states')
 
+    # Set only when this request is closed via the sale order's "AML Bypass"
+    # wizard (aml.bypass.wizard) - the reason typed there, kept as a real
+    # field (the wizard also posts it into the chatter note, but that isn't
+    # searchable/listable) so it can be shown as a sale-order list column.
+    bypass_reason = fields.Text(string='Bypass Reason', copy=False)
+
     sale_order_id = fields.Many2one('sale.order', string='Sale Order', readonly=True, tracking=True)
     partner_id = fields.Many2one('res.partner', string='Client', readonly=True, tracking=True)
     kyc_type = fields.Selection([
