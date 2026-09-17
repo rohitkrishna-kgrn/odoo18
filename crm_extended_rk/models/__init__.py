@@ -13,6 +13,5 @@ from . import crm_lead_stage_reason
 from . import crm_lead_discovery_form
 from . import crm_lead_reason_wizard
 from . import discovery_report
-from . import res_config_settings
 from . import sale_order_entity
 from . import crm_lead_discovery_entity

@@ -5,7 +5,4 @@
          The method skips any lead that already has events, so this running
          again on every future upgrade is a no-op. -->
     <function model="crm.lead" name="_backfill_journey_events"/>
-
-    <!-- A 48-hour promise needs a sweep more often than once a day. -->
-    <function model="crm.lead" name="_apply_journey_cron_schedule"/>
 </odoo>

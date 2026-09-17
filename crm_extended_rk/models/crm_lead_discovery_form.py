@@ -115,7 +115,6 @@ class CrmLeadDiscoveryForm(models.Model):
                     'form': sub.form_label, 'verb': verb},
                 note=note,
                 discovery_form_id=sub.id)
-            lead._journey_on_discovery_sent()
             lead.message_post(
                 body=body,
                 subject=_("Discovery Form %s") % verb.capitalize(),
@@ -288,7 +287,6 @@ class CrmLeadDiscoveryForm(models.Model):
 
         self.lead_id._log_journey_event(
             'discovery_received', event_name, discovery_form_id=self.id)
-        self.lead_id._journey_on_discovery_received()
         self.lead_id.message_post(
             body=chatter,
             subject=_("Discovery Form Submitted"),

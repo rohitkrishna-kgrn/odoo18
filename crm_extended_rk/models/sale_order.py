@@ -770,7 +770,6 @@ class SaleOrder(models.Model):
                 'proposal_sent',
                 _("Proposal %s shared with client") % order.name,
                 order_id=order.id)
-            order.opportunity_id._journey_on_proposal_sent()
         if 'tag_ids' in vals or 'partner_id' in vals:
             self.env['res.partner']._apply_crm_tags_from(self)
         return res
