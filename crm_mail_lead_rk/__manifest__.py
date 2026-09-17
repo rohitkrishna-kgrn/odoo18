@@ -1,6 +1,6 @@
 {
     'name': 'CRM Mail Leads RK',
-    'version': '18.0.1.9',
+    'version': '18.0.1.10',
     'author': 'Rohit',
     'category': 'Sales/CRM',
     'summary': 'Pull mail from dedicated Gmail inboxes into CRM Mail Leads '
