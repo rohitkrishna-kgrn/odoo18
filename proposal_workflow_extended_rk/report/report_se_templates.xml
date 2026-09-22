@@ -133,6 +133,25 @@
   .totals tr.grand td { background: #1A2F4E; color: #fff; font-weight: 800; font-size: 14px;
                         border-bottom: none; }
 
+  /* Entity-wise fee breakdown (Number of Entities on the quotation) - same
+     data as the proposal's Section 10, styled to match Schedule B's fee-wrap
+     box rather than the proposal's own .tbl/.ent-* classes. */
+  .ent-wrap { border: 1px solid #EDE8DF; border-radius: 6px; overflow: hidden;
+              margin: 14px 0 12px; page-break-inside: avoid; }
+  .ent-h { background: #FAFAF7; padding: 8px 14px; font-size: 11px; font-weight: 800;
+           text-transform: uppercase; letter-spacing: .06em; color: #F15C22;
+           border-bottom: 1px solid #EDE8DF; }
+  .ent-wrap table { margin: 0; width: 100%; border-collapse: collapse; }
+  .ent-wrap th { padding: 8px 10px; text-align: left; font-size: 10px; color: #6B7280;
+                 text-transform: uppercase; letter-spacing: .03em; font-weight: 700;
+                 border-bottom: 1px solid #EDE8DF; }
+  .ent-wrap th.r, .ent-wrap td.r { text-align: right; }
+  .ent-wrap td { padding: 8px 10px; border-bottom: 1px solid #EDE8DF; font-size: 12px;
+                 color: #4A4A4A; }
+  .ent-wrap td.name { font-weight: 600; color: #1A2F4E; }
+  .ent-wrap tr.ent-total td { border-top: 2px solid #1A2F4E; border-bottom: none;
+                              font-weight: 800; color: #1A2F4E; }
+
   /* Schedules D / E */
   .kv td { padding: 8px 12px; border-bottom: 1px solid #EDE8DF; font-size: 12.5px; color: #4A4A4A;
            vertical-align: top; }
@@ -342,6 +361,47 @@
         <td class="v" style="color:#fff;"><t t-out="d['currency']"/> <t t-out="d['total']"/></td>
       </tr>
     </table>
+
+    <!-- Entity-wise fees - the same filled-in Entities-tab rows the proposal
+         prints under Section 10. Either half stands on its own: a quotation
+         with no entity rows still prints the totals typed into its Total
+         line, and rows nobody filled in never reach here. -->
+    <div t-if="d['entity_rows'] or d['entity_totals']" class="ent-wrap">
+      <div class="ent-h">
+        <t t-if="d['entity_rows']">Entity-wise Fee Breakdown — <t t-out="d['entity_row_count']"/> entities</t>
+        <t t-else="">Annual Invoice Volumes</t>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:70px;"><t t-if="d['entity_rows']">Entity</t></th>
+            <th t-if="d['entity_rows']">Name</th>
+            <th t-if="d['has_entity_counts']" class="r" style="width:90px;">Annual Inbound</th>
+            <th t-if="d['has_entity_counts']" class="r" style="width:90px;">Annual Outbound</th>
+            <th t-if="d['has_entity_services']">Services</th>
+            <th t-if="d['entity_rows']" class="r" style="width:110px;">Price (<t t-out="d['currency']"/>)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr t-foreach="d['entity_rows']" t-as="entity"
+              t-att-class="'alt' if entity_index % 2 == 1 else ''">
+            <td><t t-out="entity['label']"/></td>
+            <td class="name"><t t-out="entity['name']"/></td>
+            <td t-if="d['has_entity_counts']" class="r"><t t-out="entity['inbound']"/></td>
+            <td t-if="d['has_entity_counts']" class="r"><t t-out="entity['outbound']"/></td>
+            <td t-if="d['has_entity_services']"><t t-out="entity['services']"/></td>
+            <td class="r"><t t-out="d['currency']"/> <t t-out="entity['price']"/></td>
+          </tr>
+          <tr t-if="d['entity_totals']" class="ent-total">
+            <td t-att-colspan="2 if d['entity_rows'] else 1">Total</td>
+            <td class="r"><t t-out="d['entity_totals']['inbound']"/></td>
+            <td class="r"><t t-out="d['entity_totals']['outbound']"/></td>
+            <td t-if="d['has_entity_services']"/>
+            <td t-if="d['entity_rows']"/>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- ── Schedule C — Assumptions and Dependencies ── -->

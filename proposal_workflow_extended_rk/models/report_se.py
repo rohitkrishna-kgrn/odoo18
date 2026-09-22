@@ -45,6 +45,8 @@ class ReportServiceEngagementMixin(models.AbstractModel):
             company.country_id.name) if part)
 
         proposal_name = (order.proposal_name or '').strip() or 'eInvoicing Services'
+        entity_rows = self._entity_rows(order)
+        entity_totals = self._entity_totals(order)
         return {
             'proposal_name': proposal_name,
             'agreement_type': order.se_agreement_type or 'Service Engagement Agreement',
@@ -59,6 +61,16 @@ class ReportServiceEngagementMixin(models.AbstractModel):
             'clauses': self._agreement_clauses(order, client_legal, effective),
             'services': services,
             'commercial_rows': self._commercial_rows(order),
+            # Same Entities-tab data the proposal prints under Section 10 - see
+            # report_proposal.py:_entity_rows/_entity_totals. Blank rows the
+            # quotation generated but nobody filled in are already dropped
+            # there, so this list is exactly what a filled-in Entities tab has.
+            'entity_rows': entity_rows,
+            'entity_row_count': len(entity_rows),
+            'entity_totals': entity_totals,
+            'has_entity_counts': bool(entity_totals) or any(
+                row['inbound'] or row['outbound'] for row in entity_rows),
+            'has_entity_services': any(row['services'] for row in entity_rows),
             'assumptions': content.SE_ASSUMPTIONS,
             # Schedules D and E are gated on their own service codes, exactly as
             # in pdf.js — the S1-S8 catalogue does not trigger them.
