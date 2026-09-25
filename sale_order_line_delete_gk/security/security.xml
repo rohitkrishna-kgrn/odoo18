@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <record id="group_delete_so_line" model="res.groups">
+            <field name="name">Delete SO Line</field>
+            <field name="comment">Allows deleting a line directly from a confirmed sale order, as long as the order still has more than one line and the line has not already been invoiced or delivered. Without it, lines on a confirmed order cannot be removed at all.</field>
+        </record>
+    </data>
+</odoo>
