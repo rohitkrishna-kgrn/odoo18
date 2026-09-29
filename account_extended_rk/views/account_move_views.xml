@@ -201,7 +201,11 @@
     <!-- The Sale Order Line replaces the engagement picker on customer
          invoices: it is what the engagement is derived from, so it is the
          field that has to be filled in. Priority 20 so this applies after
-         project_extended_rk's view, which is what adds the field. -->
+         project_extended_rk's view, which is what adds the field.
+
+         Mandatory only for KGRN Chartered Accountants LLC (company id 1),
+         matching _check_sale_order_line_required on account.move; other
+         companies (e.g. the ADGM entity) leave it optional. -->
     <record id="view_move_form_sale_order_line_required" model="ir.ui.view">
         <field name="name">account.move.form.sale.order.line.required</field>
         <field name="model">account.move</field>
@@ -210,7 +214,7 @@
         <field name="arch" type="xml">
             <field name="sale_order_line_id" position="attributes">
                 <attribute name="domain">[('order_partner_id', '=', partner_id)]</attribute>
-                <attribute name="required">move_type in ('out_invoice', 'out_refund')</attribute>
+                <attribute name="required">move_type in ('out_invoice', 'out_refund') and company_id == 1</attribute>
                 <attribute name="options">{'no_create': True}</attribute>
             </field>
         </field>

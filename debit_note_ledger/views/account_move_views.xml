@@ -46,9 +46,12 @@
                  //sheet, which renders for every move type, so the field is already on
                  the vendor debit note form; only its attributes need flipping.
                  The partner domain account_extended_rk applies is dropped here: on a
-                 vendor document partner_id is the vendor, so it would match nothing. -->
+                 vendor document partner_id is the vendor, so it would match nothing.
+                 This position="attributes" replaces (not merges) the required expression
+                 account_extended_rk sets, so its company-1-only condition has to be
+                 repeated here too; the debit-note leg of the OR is untouched. -->
             <field name="sale_order_line_id" position="attributes">
-                <attribute name="required">move_type in ('out_invoice', 'out_refund') or is_debit_note</attribute>
+                <attribute name="required">(move_type in ('out_invoice', 'out_refund') and company_id == 1) or is_debit_note</attribute>
                 <attribute name="domain">[] if is_debit_note else [('order_partner_id', '=', partner_id)]</attribute>
             </field>
 

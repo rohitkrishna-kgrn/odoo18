@@ -355,14 +355,19 @@ class AccountMove(models.Model):
                     "Please set at least one AR Responsible before saving."
                 )
 
-    @api.constrains('sale_order_line_id', 'service_engagement_id', 'move_type')
+    @api.constrains('sale_order_line_id', 'service_engagement_id', 'move_type', 'company_id')
     def _check_sale_order_line_required(self):
         """The Sale Order Line is what ties a customer invoice to an engagement.
         An engagement set directly still satisfies the rule, so retainership
         invoices — raised from a contract, never from a sale order — keep
-        generating."""
+        generating.
+
+        Mandatory only for KGRN Chartered Accountants LLC (company id 1);
+        other companies (e.g. the ADGM entity) don't run this workflow."""
         for move in self:
             if move.move_type not in ('out_invoice', 'out_refund'):
+                continue
+            if move.company_id.id != 1:
                 continue
             if not move.sale_order_line_id and not move.service_engagement_id:
                 raise ValidationError(
