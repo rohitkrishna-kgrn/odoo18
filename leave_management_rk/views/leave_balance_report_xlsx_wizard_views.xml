@@ -1,0 +1,50 @@
+<odoo>
+    <record id="view_leave_balance_report_xlsx_wizard_form" model="ir.ui.view">
+        <field name="name">leave.balance.report.xlsx.wizard.form</field>
+        <field name="model">leave.balance.report.xlsx.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Download Leave Balance Report">
+                <group>
+                    <group>
+                        <field name="country" widget="radio"/>
+                        <field name="period_mode" widget="radio"/>
+                        <field name="date_from" invisible="period_mode != 'custom'"
+                               required="period_mode == 'custom'"/>
+                        <field name="date_to" invisible="period_mode != 'custom'"
+                               required="period_mode == 'custom'"/>
+                    </group>
+                    <group>
+                        <field name="employee_ids" widget="many2many_tags"
+                               options="{'no_create': True, 'no_create_edit': True}"
+                               placeholder="Every employee"/>
+                        <field name="department_ids" widget="many2many_tags"
+                               options="{'no_create': True, 'no_create_edit': True}"
+                               placeholder="Every department"/>
+                        <field name="leave_type_ids" widget="many2many_tags"
+                               options="{'no_create': True, 'no_create_edit': True}"
+                               placeholder="Every leave type"/>
+                    </group>
+                </group>
+                <div class="text-muted mt8">
+                    One row per employee per leave type (per leave month, unless
+                    "Current Leave Month" is chosen). Rejected leave requests are
+                    never counted in Leave Availed or Leave Pending for Approval.
+                </div>
+                <footer>
+                    <button name="action_download" type="object" string="Download XLSX"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_leave_balance_report_xlsx" model="ir.actions.act_window">
+        <field name="name">Download Leave Balance (Excel)</field>
+        <field name="res_model">leave.balance.report.xlsx.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_leave_balance_report_xlsx_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+</odoo>

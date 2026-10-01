@@ -20,7 +20,7 @@ class HrEmployee(models.Model):
     pan_no = fields.Char(string='PAN No', groups='hr.group_hr_user')
     uan_pf_no = fields.Char(string='UAN No (PF)', groups='hr.group_hr_user')
     esi_no = fields.Char(string='ESI No', groups='hr.group_hr_user')
-    esi_no_editable = fields.Boolean(string='Allow ESI No Edit', default=False, groups='hr.group_hr_user')
+    esi_no_editable = fields.Boolean(string='Allow ESI', default=False, groups='hr.group_hr_user')
     bank_account_no = fields.Char(string='Bank A/c No', groups='hr.group_hr_user')
 
     def _compute_payslip_count(self):

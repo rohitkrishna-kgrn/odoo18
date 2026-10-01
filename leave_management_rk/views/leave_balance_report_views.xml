@@ -1,0 +1,64 @@
+<odoo>
+    <record id="view_leave_balance_report_list" model="ir.ui.view">
+        <field name="name">leave.balance.report.list</field>
+        <field name="model">leave.balance.report</field>
+        <field name="arch" type="xml">
+            <list string="Leave Balance Report" create="false" edit="false" delete="false">
+                <field name="employee_name" string="Employee Name"/>
+                <field name="employee_code" string="Employee ID" optional="show"/>
+                <field name="department_id"/>
+                <field name="country"/>
+                <field name="leave_type_id"/>
+                <field name="period_label" string="Leave Month"/>
+                <field name="annual_entitlement" string="Total Entitlement"/>
+                <field name="accrued" string="Accrued / Allocated"/>
+                <field name="availed" string="Availed"/>
+                <field name="pending" string="Pending Approval"/>
+                <field name="current_balance" string="Current Balance"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_leave_balance_report_search" model="ir.ui.view">
+        <field name="name">leave.balance.report.search</field>
+        <field name="model">leave.balance.report</field>
+        <field name="arch" type="xml">
+            <search string="Leave Balance Report">
+                <field name="employee_name" string="Employee"/>
+                <field name="employee_code" string="Employee ID"/>
+                <field name="department_id"/>
+                <field name="leave_type_id"/>
+                <field name="country"/>
+                <field name="period_label" string="Leave Month"/>
+                <filter name="filter_current_period" string="Current Leave Month"
+                        domain="[('is_current_period', '=', True)]"/>
+                <filter name="filter_india" string="India" domain="[('country', '=', 'india')]"/>
+                <filter name="filter_dubai" string="Dubai (UAE)" domain="[('country', '=', 'dubai')]"/>
+                <filter name="filter_pending" string="Has Pending Approval" domain="[('pending', '>', 0)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_country" string="Country" context="{'group_by': 'country'}"/>
+                    <filter name="group_employee" string="Employee" context="{'group_by': 'employee_name'}"/>
+                    <filter name="group_department" string="Department" context="{'group_by': 'department_id'}"/>
+                    <filter name="group_leave_type" string="Leave Type" context="{'group_by': 'leave_type_id'}"/>
+                    <filter name="group_leave_month" string="Leave Month" context="{'group_by': 'period_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_leave_balance_report" model="ir.actions.act_window">
+        <field name="name">Leave Balance Report</field>
+        <field name="res_model">leave.balance.report</field>
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="view_leave_balance_report_search"/>
+        <field name="context">{'search_default_filter_current_period': 1,
+                               'search_default_group_country': 1,
+                               'search_default_group_employee': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No leave balance data for this period yet.</p>
+            <p>This report reflects leave.balance rows — it will be empty for a leave
+               month until the monthly accrual has run or balances have been seeded
+               via Employee Leave Balance for that period.</p>
+        </field>
+    </record>
+</odoo>

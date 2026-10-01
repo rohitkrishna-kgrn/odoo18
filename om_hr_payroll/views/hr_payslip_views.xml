@@ -149,7 +149,7 @@
                         <button string="Cancel Payslip" name="action_payslip_cancel" type="object"
                                 invisible="state not in ('draft', 'verify','done')"/>
                         <button string="Send E-Mail" name="action_send_email" type="object"
-                                class="oe_highlight" invisible="state not in ('verify','done')"/>/>
+                                class="oe_highlight" invisible="state not in ('verify','done')"/>
                         <field name="state" widget="statusbar" statusbar_visible="draft,confirm"/>
                     </header>
                     <sheet>
@@ -208,11 +208,17 @@
                                     </form>
                                 </field>
                                 <separator string="Other Inputs"/>
+                                <p class="text-muted" colspan="4">
+                                    To add a one-off deduction (e.g. Loan Deduction, Professional Tax), add a row below,
+                                    enter the amount as a positive value, and tick "Is Deduction" - it will be
+                                    subtracted from Net Salary automatically.
+                                </p>
                                 <field name="input_line_ids" colspan="4" nolabel="1" readonly="state != 'draft'">
                                     <list string="Input Data" editable="bottom">
                                         <field name="name"/>
                                         <field name="code"/>
                                         <field name="amount"/>
+                                        <field name="is_deduction"/>
                                         <field name="contract_id"/>
                                         <field name="sequence" invisible="True"/>
                                     </list>
@@ -222,6 +228,7 @@
                                             <field name="code"/>
                                             <field name="sequence"/>
                                             <field name="amount"/>
+                                            <field name="is_deduction"/>
                                             <field name="contract_id"/>
                                         </group>
                                     </form>
@@ -466,6 +473,16 @@
                             type="object"
                             string="Abstract"
                             class="btn-primary"
+                            icon="fa-download"/>
+                    <button name="export_uae_payroll_xlsx"
+                            type="object"
+                            string="UAE Payroll Excel"
+                            class="btn-secondary"
+                            icon="fa-download"/>
+                    <button name="export_india_payroll_xlsx"
+                            type="object"
+                            string="India Payroll Excel"
+                            class="btn-secondary"
                             icon="fa-download"/>
                 </xpath>
             </field>

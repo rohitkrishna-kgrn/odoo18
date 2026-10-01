@@ -13,6 +13,8 @@ access_leave_type_dept_manager,leave.type dept_manager,model_leave_type,leave_ma
 access_leave_balance_user,leave.balance user,model_leave_balance,leave_management_rk.group_leave_user,1,0,0,0
 access_leave_balance_hr,leave.balance hr,model_leave_balance,leave_management_rk.group_hr_manager,1,1,1,1
 access_leave_balance_dept_manager,leave.balance dept_manager,model_leave_balance,leave_management_rk.group_dept_manager,1,0,0,0
+access_leave_balance_report_hr,leave.balance.report hr,model_leave_balance_report,leave_management_rk.group_hr_manager,1,0,0,0
+access_leave_balance_report_dept_manager,leave.balance.report dept_manager,model_leave_balance_report,leave_management_rk.group_dept_manager,1,0,0,0
 access_add_comp_leave_wizard,access_add_comp_leave_wizard,model_add_comp_leave_wizard,leave_management_rk.group_hr_manager,1,1,1,0
 access_leave_comp_request_user,leave.comp.request user,model_leave_comp_request,leave_management_rk.group_leave_user,1,1,1,0
 access_leave_comp_request_dept_manager,leave.comp.request dept_manager,model_leave_comp_request,leave_management_rk.group_dept_manager,1,1,0,0
@@ -25,3 +27,6 @@ access_leave_manager_reject_wizard_hr,leave.manager.reject.wizard hr,model_leave
 access_hr_attendance_user,hr.attendance user,model_hr_attendance,leave_management_rk.group_leave_user,1,0,0,0
 access_hr_attendance_dept_manager,hr.attendance dept_manager,model_hr_attendance,leave_management_rk.group_dept_manager,1,0,0,0
 access_hr_attendance_hr,hr.attendance hr,model_hr_attendance,leave_management_rk.group_hr_manager,1,0,0,0
+access_leave_cancel_wizard_hr,leave.cancel.wizard hr,model_leave_cancel_wizard,leave_management_rk.group_hr_manager,1,1,1,0
+access_leave_balance_report_xlsx_wizard_hr,leave.balance.report.xlsx.wizard hr,model_leave_balance_report_xlsx_wizard,leave_management_rk.group_hr_manager,1,1,1,0
+access_leave_balance_report_xlsx_wizard_dept_manager,leave.balance.report.xlsx.wizard dept_manager,model_leave_balance_report_xlsx_wizard,leave_management_rk.group_dept_manager,1,1,1,0

@@ -26,7 +26,8 @@
 
         <record id="hr_rule_other_allowance" model="hr.salary.rule">
             <field name="name">Other Allowance</field>
-            <field name="sequence" eval="100"/>
+            <!-- Must run before GROSS (100): Gross = Basic + every allowance. -->
+            <field name="sequence" eval="12"/>
             <field name="code">ALLOWANCE</field>
             <field name="category_id" ref="om_hr_payroll.ALW"/>
             <field name="condition_select">python</field>
@@ -46,6 +47,27 @@
             <field name="amount_python_compute">result = -contract.other_deduction</field>
         </record>
 
+        <!-- Ad-hoc, per-payslip deductions (e.g. Loan Deduction, Professional Tax, WFH
+             Deduction): HR adds one row per deduction on the payslip's "Other Inputs" tab,
+             enters the amount as POSITIVE, and ticks "Is Deduction". This rule sums all such
+             flagged input lines and negates the total, so no payslip line ever needs to be
+             hand-edited with a negative amount. Supports any number of named deductions on
+             the same payslip. -->
+        <record id="hr_rule_adhoc_deduction" model="hr.salary.rule">
+            <field name="name">Additional Deductions</field>
+            <field name="sequence" eval="106"/>
+            <field name="code">ADHOC_DED</field>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">result = -inputs.deduction_total()</field>
+        </record>
+
+        <!-- Loss of Pay days = absent days (never negative) + Late Login half-days
+             (worked_days.LATE_DEDUCT, 0.5 day per late check-in past the grace period,
+             so 17 late logins = 8.5 LOP days) + 0.5 day for every Dubai Sick Leave Half Pay
+             day (days 16-45 of the year, worked_days.SICK_HALF_PAY_DAYS). Those sick days
+             stay inside Paid Leave; only the unpaid half is charged here. -->
         <record id="hr_rule_lossofpay" model="hr.salary.rule">
             <field name="name">Loss of Pay</field>
             <field name="sequence" eval="100"/>
@@ -53,9 +75,39 @@
             <field name="category_id" ref="om_hr_payroll.DED"/>
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">total_days = worked_days.WORK100.number_of_days if worked_days.WORK100 else 0.0; worked_days_count = worked_days.PRESENT.number_of_days if worked_days.PRESENT else 0.0; paid_leaves = worked_days.LEAVE.number_of_days if worked_days.LEAVE else 0.0; sundays = worked_days.SUNDAY.number_of_days if worked_days.SUNDAY else 0.0; public_holidays = worked_days.PH.number_of_days if worked_days.PH else 0.0; lop_days = total_days - (worked_days_count + paid_leaves + sundays + public_holidays); result = -(contract.wage / total_days) * lop_days if total_days else 0.0</field>
+            <field name="amount_python_compute">total_days = worked_days.WORK100.number_of_days if worked_days.WORK100 else 0.0; worked_days_count = worked_days.PRESENT.number_of_days if worked_days.PRESENT else 0.0; paid_leaves = worked_days.LEAVE.number_of_days if worked_days.LEAVE else 0.0; sundays = worked_days.SUNDAY.number_of_days if worked_days.SUNDAY else 0.0; public_holidays = worked_days.PH.number_of_days if worked_days.PH else 0.0; late_login_days = worked_days.LATE_DEDUCT.number_of_days if worked_days.LATE_DEDUCT else 0.0; sick_half_pay_lop = (worked_days.SICK_HALF_PAY_DAYS.number_of_days * 0.5) if (worked_days.SICK_HALF_PAY_DAYS and employee.country_for_leave == 'dubai') else 0.0; lop_days = max(total_days - (worked_days_count + paid_leaves + sundays + public_holidays), 0.0) + late_login_days + sick_half_pay_lop; result = -(contract.wage / total_days) * lop_days if total_days else 0.0</field>
         </record>
 
+        <!-- NOTE: no longer in the salary structure - the half-pay charge is now part of the
+             Loss of Pay rule above (kept here for reference only).
+             Dubai Sick Leave Half Pay Deduction (client requirement 2026-09-26):
+             worked_days.SICK_HALF_PAY_DAYS (see hr_payslip.get_worked_day_lines,
+             fed from leave_management_rk's get_dubai_sick_pay_split) holds the
+             number of this payslip period's Sick Leave days that fall in the
+             16th-45th day of the employee's cumulative approved Sick Leave for
+             the calendar year — the first 15 days/year are Full Pay and need no
+             deduction here, since approved paid leave is already fully paid via
+             the Paid Leave worked-days line. Only ever non-zero for Dubai
+             employees (the worked-days line itself is Dubai-only); the country
+             check here is defence in depth, not the only gate. -->
+        <record id="hr_rule_sick_half_pay" model="hr.salary.rule">
+            <field name="name">Sick Leave Half Pay Deduction</field>
+            <field name="sequence" eval="107"/>
+            <field name="code">SICK_HALF_PAY</field>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">python</field>
+            <field name="condition_python">result = bool(worked_days.SICK_HALF_PAY_DAYS and worked_days.SICK_HALF_PAY_DAYS.number_of_days and employee.country_for_leave == 'dubai')</field>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">half_pay_days = worked_days.SICK_HALF_PAY_DAYS.number_of_days if worked_days.SICK_HALF_PAY_DAYS else 0.0; total_days = worked_days.WORK100.number_of_days if worked_days.WORK100 else 0.0; result = -(contract.wage / total_days) * half_pay_days * 0.5 if (total_days and half_pay_days and employee.country_for_leave == 'dubai') else 0.0</field>
+        </record>
+
+        <!-- Late-login half-day deductions (5th late check-in of a 26th->25th period
+             onwards, see leave_management_rk's GRACE_DAYS_PER_PERIOD) are folded
+             straight into the Loss of Pay rule above via worked_days.LATE_DEDUCT, so
+             they show as one Loss of Pay figure on the payslip rather than a second
+             deduction line. This rule is kept (inactive in the structure, see
+             structure_base below) only so "Late Login Deduction" still exists as a
+             browsable Salary Rule / Salary Rule Category for reference. -->
         <record id="hr_rule_late_login_deduction" model="hr.salary.rule">
             <field name="name">Late Login Deduction</field>
             <field name="sequence" eval="101"/>
@@ -178,7 +230,7 @@
             <field name="category_id" ref="om_hr_payroll.NET"/>
             <field name="condition_select">none</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">result = categories.BASIC + categories.ALW + categories.DED</field>
+            <field name="amount_python_compute">result = categories.BASIC + categories.ALW - abs(categories.DED)</field>
             <field name="register_id" ref="contrib_register_employees"/>
         </record>
 
@@ -196,8 +248,8 @@
                 ref('hr_rule_other_allowance'),
                 ref('hr_rule_taxable'),
                 ref('hr_rule_deduction'),
+                ref('hr_rule_adhoc_deduction'),
                 ref('hr_rule_lossofpay'),
-                ref('hr_rule_late_login_deduction'),
                 ref('hr_rule_epf'),
                 ref('hr_rule_esi'),
                 ref('hr_rule_pt'),

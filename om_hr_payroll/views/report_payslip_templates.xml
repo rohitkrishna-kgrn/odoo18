@@ -7,303 +7,319 @@
                  with the page-number fraction with no separators between them and was
                  inconsistently visible across payslips. This report builds its own header and
                  footer below, so the default chrome is unnecessary and was the source of that
-                 garbled text. -->
+                 garbled text.
+
+                 Banded orange design matching the company's other document look: a coloured
+                 title band, banded section headers (EMPLOYER / EMPLOYEE DETAILS / PAYSLIP
+                 DETAILS / EARNINGS &amp; DEDUCTIONS), grid-bordered tables, logo top-right.
+
+                 Every grid below is a CSS table built from <div>s (display:table/table-row/
+                 table-cell), never a literal HTML <table>. wkhtmltopdf's PDF backend (unlike its
+                 image backend) draws its own default border on real <table> elements regardless
+                 of CSS. Confirmed earlier when a <table> set to border:none !important still
+                 came out with a visible box in the PDF while the identical markup rendered clean
+                 through wkhtmltoimage. On the grids here, which DO want visible borders, that
+                 same stray default line was showing up as an extra, darker "phantom" edge next
+                 to our intended light-grey one. A div-based CSS table gives the exact same
+                 row/column layout without going through wkhtmltopdf's <table> handling at all. -->
             <t t-foreach="docs" t-as="o">
+                    <t t-set="company" t-value="o.employee_id.contract_id.company_id"/>
+                    <t t-set="addr" t-value="company.partner_id"/>
+                    <!-- .strip(' ,') defends against address fields that already carry a stray
+                         trailing comma in the data (seen on one company's street2), which would
+                         otherwise print a visible ",," in the middle of the address. -->
+                    <t t-set="addr_full" t-value="', '.join([p.strip(' ,') for p in [addr.street, addr.street2, addr.city, addr.state_id.name, addr.zip, addr.country_id.name] if p and p.strip(' ,')])"/>
+                    <t t-set="is_india" t-value="o.employee_id.country_for_leave == 'india'"/>
 
-                    <!-- Header: Company Name + Address top-left, Logo centered -->
-                    <div class="page">
-                        <div class="header-row">
-                            <div class="company-info-left">
-                                <h2 t-field="o.employee_id.contract_id.company_id.name"/>
-                                <p>
-                                    <t t-esc="o.employee_id.contract_id.company_id.partner_id.street"/>
-                                    <t t-if="o.employee_id.contract_id.company_id.partner_id.street2">
-                                        <t t-esc="o.employee_id.contract_id.company_id.partner_id.street2"/><br/>
-                                    </t>
-                                    <t t-if="o.employee_id.contract_id.company_id.partner_id.city">
-                                        <t t-esc="o.employee_id.contract_id.company_id.partner_id.city"/>,
-                                    </t>
-                                    <t t-if="o.employee_id.contract_id.company_id.partner_id.state_id">
-                                        <t t-esc="o.employee_id.contract_id.company_id.partner_id.state_id.name"/><br/>
-                                    </t>
-                                    <t t-if="o.employee_id.contract_id.company_id.partner_id.country_id">
-                                        <t t-esc="o.employee_id.contract_id.company_id.partner_id.country_id.name"/>
-                                    </t>
-                                    <br/>
-                                    <t t-if="o.employee_id.contract_id.company_id.phone">Phone: <t t-esc="o.company_id.phone"/></t>
-                                </p>
-                            </div>
-                            <div class="logo-center">
-                                <img class="company-logo" t-if="o.employee_id.contract_id.company_id.logo"
-                                    t-att-src="'data:image/png;base64,%s' % o.employee_id.contract_id.company_id.logo.decode('utf-8')"
-                                    alt="Company Logo"/>
-                            </div>
-                            <div class="header-spacer"/>
-                        </div>
+                    <div class="page rkps_page">
+                        <div class="rkps_wrap">
 
-                        <!-- Main Payslip Body -->
-                        <div class="payslip-container">
-
-                            <!-- Payslip Title -->
-                            <div class="payslip-title">
-                                <h3>Pay Slip for the month of
-                                    <span t-field="o.date_from" t-options='{"widget": "date", "format": "MMMM yyyy"}'/>
-                                </h3>
+                            <!-- Title box: logo docked in its top-right corner, title/subtitle
+                                 centered in the same box (not a separate element above it). -->
+                            <t t-set="logo_uri" t-value="o._rk_payslip_logo_data_uri()"/>
+                            <div class="rkps_titlebox">
+                                <img class="rkps_logo" t-if="logo_uri" t-att-src="logo_uri" alt="Company Logo"/>
+                                <div class="rkps_title">PAYSLIP</div>
+                                <div class="rkps_subtitle">
+                                    Pay Slip for the month of
+                                    <span t-esc="o.date_from" t-options='{"widget": "date", "format": "MMMM yyyy"}'/>
+                                </div>
                             </div>
 
-                            <!-- Employee Info Table -->
-                            <table class="info-table">
-                                <tr>
-                                    <td><strong>Employee No.</strong></td>
-                                    <td><span t-field="o.employee_id.employee_no"/></td>
-                                    <td><strong>Employee Name</strong></td>
-                                    <td><span t-field="o.employee_id.name"/></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Designation</strong></td>
-                                    <td><span t-field="o.employee_id.job_title"/></td>
-                                    <td><strong>Date of Birth</strong></td>
-                                    <td><span t-field="o.employee_id.birthday"/></td>
-                                </tr>
-                                <t t-if="o.employee_id.country_for_leave == 'india'">
-                                    <tr>
-                                        <td><strong>Date of Joining</strong></td>
-                                        <td><span t-field="o.employee_id.doj"/></td>
-                                        <td><strong>Work Days</strong></td>
-                                        <td><span t-field="o.work_days"/></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Loss of Pay Days</strong></td>
-                                        <td><span t-field="o.lop_days"/></td>
-                                        <td><strong>Paid Days</strong></td>
-                                        <td><span t-field="o.paid_days"/></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>PAN Number</strong></td>
-                                        <td><span t-field="o.employee_id.pan_no"/></td>
-                                        <td><strong>Bank Account Number</strong></td>
-                                        <td><span t-esc="o.employee_id.bank_account_no or o.employee_id.bank_iban_number"/></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>UAN Number (PF)</strong></td>
-                                        <td><span t-field="o.employee_id.uan_pf_no"/></td>
-                                        <td><strong>ESI Number</strong></td>
-                                        <td><span t-field="o.employee_id.esi_no"/></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Reference</strong></td>
-                                        <td colspan="3"><span t-field="o.number"/></td>
-                                    </tr>
-                                </t>
-                                <t t-else="">
-                                    <tr>
-                                        <td><strong>Date of Joining</strong></td>
-                                        <td><span t-field="o.employee_id.doj"/></td>
-                                        <td><strong>Work Days</strong></td>
-                                        <td><span t-field="o.work_days"/></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Loss of Pay Days</strong></td>
-                                        <td><span t-field="o.lop_days"/></td>
-                                        <td><strong>Paid Days</strong></td>
-                                        <td><span t-field="o.paid_days"/></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>IBAN Number</strong></td>
-                                        <td colspan="3"><span t-esc="o.employee_id.bank_iban_number or o.employee_id.bank_account_no"/></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Reference</strong></td>
-                                        <td colspan="3"><span t-field="o.number"/></td>
-                                    </tr>
-                                </t>
-                                <tr>
-                                    <td><strong>Date From</strong></td>
-                                    <td><span t-field="o.date_from"/></td>
-                                    <td><strong>Date To</strong></td>
-                                    <td><span t-field="o.date_to"/></td>
-                                </tr>
-                            </table>
+                            <!-- Employer -->
+                            <div class="rkps_block">
+                                <div class="rkps_band">EMPLOYER</div>
+                                <div class="rkps_kv">
+                                    <div class="rkps_row"><div class="rkps_k">Company Name</div><div class="rkps_v" t-esc="company.name"/></div>
+                                    <div class="rkps_row"><div class="rkps_k">Address</div><div class="rkps_v" t-esc="addr_full"/></div>
+                                </div>
+                            </div>
 
-                            <!-- Earnings / Deductions Table -->
+                            <!-- Employee details | Payslip details -->
+                            <div class="rkps_meta">
+                                <div class="rkps_meta_col">
+                                    <div class="rkps_band">EMPLOYEE DETAILS</div>
+                                    <div class="rkps_kv">
+                                        <div class="rkps_row"><div class="rkps_k">Employee No.</div><div class="rkps_v"><span t-field="o.employee_id.employee_no"/></div></div>
+                                        <div class="rkps_row"><div class="rkps_k">Employee Name</div><div class="rkps_v"><span t-field="o.employee_id.name"/></div></div>
+                                        <div class="rkps_row"><div class="rkps_k">Designation</div><div class="rkps_v"><span t-field="o.employee_id.job_title"/></div></div>
+                                        <div class="rkps_row"><div class="rkps_k">Date of Joining</div><div class="rkps_v"><span t-field="o.employee_id.doj"/></div></div>
+                                        <t t-if="is_india">
+                                            <div class="rkps_row"><div class="rkps_k">PAN Number</div><div class="rkps_v"><span t-field="o.employee_id.pan_no"/></div></div>
+                                            <div class="rkps_row"><div class="rkps_k">UAN Number (PF)</div><div class="rkps_v"><span t-field="o.employee_id.uan_pf_no"/></div></div>
+                                            <!-- Only shown once HR has explicitly flagged the employee as ESI-enrolled
+                                                 ("Allow ESI" on the employee form), not unconditionally for every
+                                                 India employee. -->
+                                            <div class="rkps_row" t-if="o.employee_id.esi_no_editable"><div class="rkps_k">ESI Number</div><div class="rkps_v"><span t-field="o.employee_id.esi_no"/></div></div>
+                                            <div class="rkps_row"><div class="rkps_k">Bank Account No.</div><div class="rkps_v"><span t-esc="o.employee_id.bank_account_no or o.employee_id.bank_iban_number"/></div></div>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="rkps_row"><div class="rkps_k">IBAN Number</div><div class="rkps_v"><span t-esc="o.employee_id.bank_iban_number or o.employee_id.bank_account_no"/></div></div>
+                                        </t>
+                                    </div>
+                                </div>
+                                <div class="rkps_meta_col">
+                                    <div class="rkps_band">PAYSLIP DETAILS</div>
+                                    <div class="rkps_kv">
+                                        <div class="rkps_row"><div class="rkps_k">Reference</div><div class="rkps_v"><span t-field="o.number"/></div></div>
+                                        <div class="rkps_row"><div class="rkps_k">Date From</div><div class="rkps_v"><span t-field="o.date_from"/></div></div>
+                                        <div class="rkps_row"><div class="rkps_k">Date To</div><div class="rkps_v"><span t-field="o.date_to"/></div></div>
+                                        <div class="rkps_row"><div class="rkps_k">Work Days</div><div class="rkps_v"><span t-field="o.work_days"/></div></div>
+                                        <div class="rkps_row"><div class="rkps_k">Paid Days</div><div class="rkps_v"><span t-field="o.paid_days"/></div></div>
+                                        <div class="rkps_row"><div class="rkps_k">Loss of Pay Days</div><div class="rkps_v"><span t-field="o.lop_days"/></div></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Earnings / Deductions -->
                             <t t-set="earning_lines" t-value="o.line_ids.filtered(lambda l: l.appears_on_payslip and l.category_id.code in ('BASIC', 'ALW'))"/>
+                            <!-- Loss of Pay (incl. late-login half-days, already folded into the LOP rule)
+                                 is a deduction. -->
                             <t t-set="deduction_lines" t-value="o.line_ids.filtered(lambda l: l.appears_on_payslip and l.category_id.code == 'DED')"/>
                             <t t-set="row_count" t-value="max(len(earning_lines), len(deduction_lines))"/>
-                            <t t-set="total_earnings" t-value="sum(earning_lines.mapped('total'))"/>
-                            <t t-set="total_deductions" t-value="sum(deduction_lines.mapped('total'))"/>
-                            <t t-set="net_pay" t-value="total_earnings + total_deductions"/>
-                            <table class="salary-table">
-                                <thead>
-                                    <tr>
-                                        <th>Earnings</th>
-                                        <th>Amount</th>
-                                        <th>Deductions</th>
-                                        <th>Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr t-foreach="range(row_count)" t-as="row_index">
-                                        <td t-attf-class="#{'empty-cell' if row_index &gt;= len(earning_lines) else ''}"><span t-if="row_index &lt; len(earning_lines)" t-esc="earning_lines[row_index].name"/></td>
-                                        <td t-attf-class="#{'empty-cell' if row_index &gt;= len(earning_lines) else ''}">
-                                            <span t-if="row_index &lt; len(earning_lines)" t-esc="earning_lines[row_index].total"
-                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/>
-                                        </td>
-                                        <td t-attf-class="#{'empty-cell' if row_index &gt;= len(deduction_lines) else ''}"><span t-if="row_index &lt; len(deduction_lines)" t-esc="deduction_lines[row_index].name"/></td>
-                                        <td t-attf-class="#{'empty-cell' if row_index &gt;= len(deduction_lines) else ''}">
-                                            <span t-if="row_index &lt; len(deduction_lines)" t-esc="deduction_lines[row_index].total"
-                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td><strong>Total Earnings</strong></td>
-                                        <td>
-                                            <strong><span t-esc="total_earnings"
-                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/></strong>
-                                        </td>
-                                        <td><strong>Total Deductions</strong></td>
-                                        <td>
-                                            <strong><span t-esc="total_deductions"
-                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/></strong>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="3" class="text-right">
-                                            <strong>
-                                                Net Pay
-                                                <t t-if="o.employee_id.country_for_leave == 'india'">(&#8377;)</t>
-                                                <t t-else="">(AED)</t>
-                                            </strong>
-                                        </td>
-                                        <td>
-                                            <strong><span t-esc="net_pay"
-                                                t-options='{"widget": "monetary", "display_currency": o.employee_id.contract_id.company_id.currency_id}'/></strong>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="4">
-                                            <strong>Pay in Words: </strong>
-                                            <span t-esc="o.employee_id.contract_id.company_id.currency_id.amount_to_text(net_pay)"/>
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                            <!-- Total Earnings on the payslip is the Gross line of the Salary Computation. -->
+                            <t t-set="gross_line" t-value="o.line_ids.filtered(lambda l: l.code == 'GROSS')"/>
+                            <t t-set="total_earnings" t-value="gross_line[0].total if gross_line else sum(earning_lines.mapped('total'))"/>
+                            <!-- Deductions are stored as negative amounts; shown as positive magnitudes.
+                                 Net Pay = Total Earnings - Total Deductions (same as the NET salary rule). -->
+                            <t t-set="total_deductions" t-value="abs(sum(deduction_lines.mapped('total')))"/>
+                            <t t-set="net_pay" t-value="total_earnings - total_deductions"/>
 
-                            <!-- Footer Note -->
-                            <div class="footer-note">
-                                <p>*** This is electronically generated pay slip hence does not require a signature ***</p>
+                            <div class="rkps_band" style="border: 1px solid #d0d0d0; border-top: none; border-bottom: none;">EARNINGS &amp; DEDUCTIONS</div>
+                            <div class="rkps_items">
+                                <div class="rkps_irow rkps_ihead">
+                                    <div class="rkps_icell" style="width:30%;">Earnings</div>
+                                    <div class="rkps_icell rkps_r" style="width:20%;">Amount</div>
+                                    <div class="rkps_icell" style="width:30%;">Deductions</div>
+                                    <div class="rkps_icell rkps_r" style="width:20%;">Amount</div>
+                                </div>
+                                <div class="rkps_irow" t-foreach="range(row_count)" t-as="row_index">
+                                    <div class="rkps_icell"><span t-if="row_index &lt; len(earning_lines)" t-esc="earning_lines[row_index].name"/></div>
+                                    <div class="rkps_icell rkps_r">
+                                        <span t-if="row_index &lt; len(earning_lines)" t-esc="earning_lines[row_index].total"
+                                            t-options='{"widget": "monetary", "display_currency": company.currency_id}'/>
+                                    </div>
+                                    <div class="rkps_icell"><span t-if="row_index &lt; len(deduction_lines)" t-esc="deduction_lines[row_index].name"/></div>
+                                    <div class="rkps_icell rkps_r">
+                                        <span t-if="row_index &lt; len(deduction_lines)" t-esc="abs(deduction_lines[row_index].total)"
+                                            t-options='{"widget": "monetary", "display_currency": company.currency_id}'/>
+                                    </div>
+                                </div>
                             </div>
 
-                            <!-- Company Contact Footer -->
-                            <t t-set="footer_company" t-value="o.employee_id.contract_id.company_id"/>
-                            <div class="company-contact-footer">
-                                <span t-if="footer_company.email" t-field="footer_company.email"/>
-                                <t t-if="footer_company.email and footer_company.website"> | </t>
-                                <span t-if="footer_company.website" t-field="footer_company.website"/>
-                                <t t-if="footer_company.website and footer_company.vat"> | </t>
-                                <span t-if="footer_company.vat" t-field="footer_company.vat"/>
+                            <!-- Totals: Total Earnings (left) and Total Deductions (right) sit on one row, in
+                                 the same columns as the grid above; Net Pay is on its own row below. -->
+                            <div class="rkps_items rkps_tot_items">
+                                <div class="rkps_irow rkps_tot_row">
+                                    <div class="rkps_icell" style="width:30%;">Total Earnings</div>
+                                    <div class="rkps_icell rkps_r" style="width:20%;"><span t-esc="total_earnings" t-options='{"widget": "monetary", "display_currency": company.currency_id}'/></div>
+                                    <div class="rkps_icell" style="width:30%;">Total Deductions</div>
+                                    <div class="rkps_icell rkps_r" style="width:20%;"><span t-esc="total_deductions" t-options='{"widget": "monetary", "display_currency": company.currency_id}'/></div>
+                                </div>
                             </div>
+                            <div class="rkps_totals">
+                                <div class="rkps_trow rkps_grand">
+                                    <div class="rkps_tcell rkps_r" style="text-align:right;">
+                                        NET PAY
+                                        <t t-if="is_india">(INR)</t>
+                                        <t t-else="">(AED)</t>
+                                    </div>
+                                    <div class="rkps_tcell rkps_r"><span t-esc="net_pay" t-options='{"widget": "monetary", "display_currency": company.currency_id}'/></div>
+                                </div>
+                            </div>
+
+                            <!-- Amount in words -->
+                            <div class="rkps_words">
+                                <strong>NET PAY IN WORDS:</strong>
+                                <span t-esc="company.currency_id.amount_to_text(net_pay).upper().replace(',', '')"/>
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="rkps_note">*** This is electronically generated pay slip hence does not require a signature ***</div>
 
                         </div>
                     </div>
 
                     <!-- Styles -->
                     <style>
-                        body, .payslip-container {
-                            font-family: "Helvetica", "Arial", sans-serif;
+                        .rkps_page { page-break-before: always; margin: 0; padding: 0; }
+                        .rkps_wrap {
+                            font-family: 'Helvetica', 'Arial', sans-serif;
+                            color: #1a1a1a;
                             font-size: 14px;
-                            color: #333;
-                            margin: 0;
-                            padding: 0;
+                            line-height: 1.6;
                         }
-
-                        .page {
-                            margin: 0;
-                            padding: 0;
-                            text-align: left;
-                            page-break-before: always;
+                        /* Title box: logo docked top-right (absolute positioning, not flex --
+                           wkhtmltopdf's flex support is unreliable here, see rkps_meta below),
+                           title/subtitle centered underneath in the same bordered box. Padding
+                           made generous (taller box) so the logo has real room instead of
+                           crowding the text. No more brand-orange fill anywhere in the report --
+                           this box is now the same neutral style as every other section header. */
+                        .rkps_titlebox {
+                            position: relative;
+                            background-color: #f0f0f0;
+                            border: 1px solid #d0d0d0;
+                            padding: 22px 20px 20px 20px;
+                            margin-bottom: 0;
                         }
-
-                        h3 {
-                            font-size: 22px;
-                            margin-bottom: 10px;
-                            color: #007bff;
+                        .rkps_logo {
+                            position: absolute;
+                            top: 14px;
+                            right: 18px;
+                            max-height: 84px;
+                            max-width: 220px;
                         }
-
-                        .header-row {
-                            display: grid;
-                            grid-template-columns: 1fr auto 1fr;
-                            align-items: center;
-                            margin-bottom: 20px;
-                        }
-
-                        .company-info-left {
-                            text-align: left;
-                            font-size: 14px;
-                            line-height: 1.4;
-                        }
-
-                        .company-info-left h2 {
-                            margin: 0 0 4px 0;
-                        }
-
-                        .logo-center {
+                        .rkps_title {
+                            color: #1a1a1a;
                             text-align: center;
+                            font-size: 26px;
+                            font-weight: bold;
+                            letter-spacing: 2px;
                         }
-
-                        .company-logo {
-                            max-width: 100px;
-                            max-height: 60px;
-                            width: auto;
-                            height: auto;
-                        }
-
-                        .payslip-title {
+                        .rkps_subtitle {
+                            color: #555;
                             text-align: center;
-                            margin: 15px 0;
+                            font-size: 16px;
+                            font-weight: bold;
+                            margin-top: 4px;
                         }
-
-                        .info-table,
-                        .salary-table {
-                            width: 100%;
-                            border-collapse: collapse;
-                            margin-bottom: 20px;
-                            font-size: 14px;
+                        /* Section headers (EMPLOYER / EMPLOYEE DETAILS / PAYSLIP DETAILS /
+                           EARNINGS and DEDUCTIONS) use the same neutral style. */
+                        .rkps_band {
+                            background-color: #f0f0f0;
+                            color: #1a1a1a;
+                            font-weight: bold;
+                            font-size: 12.5px;
+                            letter-spacing: 0.5px;
+                            padding: 7px 12px;
+                            border-bottom: 1px solid #d0d0d0;
                         }
+                        /* Sections sit flush against each other (no gaps); the shared edge is drawn once. */
+                        .rkps_block { margin-bottom: 0; border: 1px solid #d0d0d0; border-top: none; }
 
-                        .info-table td,
-                        .salary-table td,
-                        .salary-table th {
-                            border: 1px solid #ddd;
-                            padding: 8px;
+                        /* rkps_kv: one column of label/value rows (EMPLOYER, EMPLOYEE DETAILS,
+                           PAYSLIP DETAILS) -- a full grid like the earnings/deductions table,
+                           horizontal separators between rows plus a vertical line between the
+                           label and value columns. The value's own left padding then starts it
+                           right after that line, the same as every other grid cell in this
+                           report, instead of floating at an unrelated offset. */
+                        .rkps_kv { display: table; width: 100%; }
+                        .rkps_kv .rkps_row { display: table-row; }
+                        .rkps_kv .rkps_row + .rkps_row .rkps_k,
+                        .rkps_kv .rkps_row + .rkps_row .rkps_v {
+                            border-top: 1px solid #eee;
                         }
-
-                        .info-table td.empty-cell,
-                        .salary-table td.empty-cell {
-                            border: none;
+                        /* Closing line under the last row (e.g. "Loss of Pay Days"). Without
+                           it, whichever of EMPLOYEE DETAILS / PAYSLIP DETAILS has fewer rows
+                           (they share one height) trails off into blank space with nothing
+                           marking where its own content actually ends. */
+                        .rkps_kv .rkps_row:last-child .rkps_k,
+                        .rkps_kv .rkps_row:last-child .rkps_v {
+                            border-bottom: 1px solid #eee;
                         }
+                        .rkps_kv .rkps_k,
+                        .rkps_kv .rkps_v {
+                            display: table-cell;
+                            padding: 6px 12px;
+                            vertical-align: top;
+                            font-size: 13px;
+                        }
+                        .rkps_kv .rkps_k { width: 40%; color: #555; border-right: 1px solid #d0d0d0; }
 
-                        .salary-table thead {
+                        /* rkps_meta: EMPLOYEE DETAILS / PAYSLIP DETAILS side by side. A CSS
+                           table (not flex): wkhtmltopdf's flexbox support is unreliable here
+                           (confirmed -- with two table-display children inside, flex items
+                           stacked vertically instead of sitting side by side), so this uses the
+                           same display:table pattern as everything else in this report. */
+                        .rkps_meta { display: table; width: 100%; table-layout: fixed; margin-bottom: 0; }
+                        .rkps_meta_col { display: table-cell; width: 50%; vertical-align: top; border: 1px solid #d0d0d0; border-top: none; }
+                        .rkps_meta_col + .rkps_meta_col { border-left: none; }
+                        /* The column divider above is invisible where it runs behind the band's
+                           own solid fill (wkhtmltopdf paints that opaque background right over
+                           the cell's own border there), even though it shows fine lower down
+                           against the white row background. Redrawn explicitly on the band
+                           itself so the line is part of the same paint layer as the fill, not
+                           underneath it. */
+                        .rkps_meta_col + .rkps_meta_col > .rkps_band { border-left: 1px solid #d0d0d0; }
+
+                        /* rkps_items: the Earnings/Amount/Deductions/Amount grid, full borders */
+                        .rkps_items { display: table; width: 100%; table-layout: fixed; margin-bottom: 0; }
+                        .rkps_irow { display: table-row; }
+                        .rkps_icell {
+                            display: table-cell;
+                            font-size: 13px;
+                            padding: 7px 12px;
+                            border-right: 1px solid #d0d0d0;
+                            border-bottom: 1px solid #d0d0d0;
+                        }
+                        .rkps_irow .rkps_icell:first-child { border-left: 1px solid #d0d0d0; }
+                        .rkps_irow:first-child .rkps_icell { border-top: 1px solid #d0d0d0; }
+                        .rkps_ihead .rkps_icell {
                             background-color: #f8f9fa;
+                            color: #333;
+                            font-size: 12.5px;
+                            font-weight: bold;
                         }
+                        .rkps_r { text-align: right; white-space: nowrap; }
 
-                        .text-right {
-                            text-align: right;
+                        /* rkps_totals: Total Earnings / Total Deductions / NET PAY, now full
+                           page-width -- same left/right edges as the EARNINGS &amp; DEDUCTIONS
+                           grid above it (column split 80/20 lines its value column up with that
+                           grid's rightmost "Amount" column), instead of a narrow indented box. */
+                        .rkps_totals { display: table; width: 100%; table-layout: fixed; margin-bottom: 0; }
+                        .rkps_trow { display: table-row; }
+                        .rkps_tcell {
+                            display: table-cell;
+                            width: 80%;
+                            padding: 7px 12px;
+                            font-size: 13px;
+                            border-right: 1px solid #d0d0d0;
+                            border-bottom: 1px solid #d0d0d0;
                         }
+                        .rkps_tcell.rkps_r { width: 20%; }
+                        .rkps_trow .rkps_tcell:first-child { border-left: 1px solid #d0d0d0; }
+                        .rkps_totals .rkps_trow:first-child .rkps_tcell { border-top: none; }
+                        .rkps_tot_items { margin-bottom: 0; }
+                        .rkps_tot_items .rkps_tot_row .rkps_icell { font-weight: bold; border-top: none; background-color: #f8f9fa; }
+                        .rkps_trow.rkps_grand .rkps_tcell { font-weight: bold; font-size: 14.5px; }
+                        .rkps_trow.rkps_grand .rkps_tcell.rkps_r { background-color: #f0f0f0; color: #1a1a1a; }
 
-                        .footer-note {
+                        /* rkps_words sits directly under rkps_totals with no gap, sharing its top
+                           edge with the totals grid's bottom border (border-top removed here so
+                           the two don't double up into a thicker line). */
+                        .rkps_words {
+                            border: 1px solid #d0d0d0;
+                            border-top: none;
+                            background-color: #f7f7f7;
+                            padding: 8px 12px;
+                            font-size: 13px;
+                            margin-bottom: 10px;
+                        }
+                        .rkps_note {
                             text-align: center;
-                            margin-top: 30px;
+                            margin-top: 8px;
                             font-size: 12px;
                             font-style: italic;
-                            color: #555;
-                        }
-
-                        .company-contact-footer {
-                            text-align: center;
-                            margin-top: 6px;
-                            font-size: 12px;
                             color: #555;
                         }
                     </style>

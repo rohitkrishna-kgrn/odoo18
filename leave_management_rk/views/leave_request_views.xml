@@ -19,19 +19,25 @@
                             invisible="state != 'manager_approved'"
                             groups="leave_management_rk.group_hr_manager"
                             class="btn-primary"/>
-                    <button name="action_reject" type="object" string="Reject (HR)"
+                    <button name="action_hr_reject_wizard" type="object" string="Reject (HR)"
                             invisible="state != 'manager_approved'"
                             groups="leave_management_rk.group_hr_manager"
                             class="btn-danger"/>
+                    <button name="action_open_cancel_wizard" type="object" string="Cancel Leave"
+                            invisible="state != 'approved'"
+                            groups="leave_management_rk.group_hr_manager"
+                            class="btn-danger"/>
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,waiting_manager,manager_approved,approved,rejected"/>
+                           statusbar_visible="draft,waiting_manager,manager_approved,approved,rejected,cancelled"/>
                 </header>
                 <sheet>
                     <field name="is_permission_type" invisible="1"/>
                     <field name="is_dubai_sick_leave" invisible="1"/>
+                    <field name="employee_country" invisible="1"/>
                     <group>
                         <field name="user_id" readonly="1"/>
-                        <field name="leave_type_id" readonly="state != 'draft'"/>
+                        <field name="leave_type_id" readonly="state != 'draft'"
+                               domain="[('country_scope', 'in', [False, employee_country])]"/>
                         <field name="available_balance" readonly="1"
                                string="Available Balance (Days / Hrs)"/>
                         <field name="leave_month_label" readonly="1"
@@ -77,6 +83,7 @@
                            class="btn btn-secondary btn-sm">Download Reference Template</a>
                     </div>
                 </sheet>
+                <chatter/>
             </form>
         </field>
     </record>

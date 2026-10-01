@@ -41,6 +41,30 @@
         <field name="domain_force">[('user_id', '=', user.id)]</field>
     </record>
 
+    <!-- Global record rule: Draft leave requests are only visible to their own creator,
+         even for Dept Managers / HR Managers who otherwise see the wider team / all requests. -->
+    <record id="leave_request_rule_draft_owner_only" model="ir.rule">
+        <field name="name">Draft leave requests are visible only to their creator</field>
+        <field name="model_id" ref="model_leave_request"/>
+        <field name="domain_force">['|', ('state', '!=', 'draft'), ('user_id', '=', user.id)]</field>
+    </record>
+
+    <!-- Record rule: HR Manager sees all leave balance report rows -->
+    <record id="leave_balance_report_rule_hr" model="ir.rule">
+        <field name="name">HR Manager sees all leave balance report rows</field>
+        <field name="model_id" ref="model_leave_balance_report"/>
+        <field name="groups" eval="[(4, ref('leave_management_rk.group_hr_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- Record rule: Dept Manager sees their team's leave balance report rows -->
+    <record id="leave_balance_report_rule_dept_manager" model="ir.rule">
+        <field name="name">Dept Manager sees team leave balance report rows</field>
+        <field name="model_id" ref="model_leave_balance_report"/>
+        <field name="groups" eval="[(4, ref('leave_management_rk.group_dept_manager'))]"/>
+        <field name="domain_force">[('employee_id.parent_id.user_id', '=', user.id)]</field>
+    </record>
+
     <!-- Record rule: HR Manager sees all comp leave requests -->
     <record id="comp_leave_request_rule_hr" model="ir.rule">
         <field name="name">HR Manager can see all compensation leave requests</field>

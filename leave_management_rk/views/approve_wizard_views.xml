@@ -22,7 +22,7 @@
 
                     <group string="Approval Decision" invisible="is_permission">
                         <field name="paid" string="Mark as Paid Leave"
-                               help="If checked, days will be deducted from the employee's leave balance"/>
+                               help="Payroll setting only - the leave balance above is always deducted on approval either way. Uncheck only if this leave should show as unpaid (Loss of Pay) in Payroll."/>
                     </group>
                     <div invisible="not is_permission" class="alert alert-info" role="alert">
                         <strong>Permission Leave:</strong> Hours will be deducted automatically. Not counted in payroll.

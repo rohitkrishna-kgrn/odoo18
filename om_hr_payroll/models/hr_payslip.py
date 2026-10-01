@@ -74,8 +74,12 @@ class HrPayslip(models.Model):
             total = by_code.get('WORK100', 0.0)
             accounted = by_code.get('PRESENT', 0.0) + by_code.get('LEAVE', 0.0) \
                 + by_code.get('SUNDAY', 0.0) + by_code.get('PH', 0.0)
+            # Late-login half-days are added on top of the absence days as Loss of Pay.
+            late_login_days = by_code.get('LATE_DEDUCT', 0.0)
+            # Dubai Sick Leave Half Pay days stay in Paid Leave, but half of each is Loss of Pay.
+            late_login_days += by_code.get('SICK_HALF_PAY_DAYS', 0.0) * 0.5
             slip.work_days = total
-            slip.lop_days = max(total - accounted, 0.0)
+            slip.lop_days = max(total - accounted, 0.0) + late_login_days
             slip.paid_days = total - slip.lop_days
 
     def _compute_details_by_salary_rule_category(self):
@@ -280,6 +284,20 @@ class HrPayslip(models.Model):
             ])
             total_leave_days = 0.0
             half_day_leave_dates = set()
+            # Dubai Sick Leave is always Paid Leave for payroll, whatever the approver ticked:
+            # the first 15 days of the year are Full Pay and days 16-45 Half Pay (that unpaid half
+            # is charged inside Loss of Pay, see the LOP rule). Days past 45 are not paid. So for
+            # Dubai the sick days come from that split instead of the requests' own Paid flag.
+            sick_type = self.env.ref('leave_management_rk.leave_type_sick', raise_if_not_found=False)
+            if sick_type and employee.country_for_leave == 'dubai':
+                paid_leaves = paid_leaves.filtered(lambda l: l.leave_type_id != sick_type)
+                sick_split = LeaveRequest.get_dubai_sick_pay_split(user, date_from_dt, date_to_dt)
+                total_leave_days += sick_split.get('full_pay_days', 0.0) + sick_split.get('half_pay_days', 0.0)
+                for sick in LeaveRequest.search([
+                        ('user_id', '=', user.id), ('state', '=', 'approved'),
+                        ('leave_type_id', '=', sick_type.id), ('is_half_day', '=', True),
+                        ('start_date', '>=', date_from), ('start_date', '<=', date_to)]):
+                    half_day_leave_dates.add(sick.start_date)
             for leave in paid_leaves:
                 total_leave_days += leave.days_requested
                 if leave.is_half_day and leave.start_date:
@@ -339,26 +357,20 @@ class HrPayslip(models.Model):
                 'contract_id': contract.id,
             })
 
-            # 3b. Late Login Deduction (0.5 day per late check-in, Asia/Dubai time)
+            # 3b. Late Login Deduction (0.5 day per late check-in beyond the
+            # grace period, Asia/Dubai time). Shares hr.attendance's
+            # grace-day logic with the Attendance module so the first 4 late
+            # check-ins of each 26th->25th period are excused there too.
             _DUBAI_TZ = timezone('Asia/Dubai')
             late_login_count = 0
             for att in attendance_records:
                 if not att.check_in:
                     continue
                 check_in_dubai = att.check_in.replace(tzinfo=UTC).astimezone(_DUBAI_TZ)
-                deadline = check_in_dubai.replace(hour=8, minute=50, second=0, microsecond=0)
-                if check_in_dubai <= deadline:
+                if not Attendance._is_late_checkin(employee, check_in_dubai):
                     continue
-                date_worked = check_in_dubai.date()
-                permissions = LeaveRequest.search([
-                    ('user_id', '=', user.id),
-                    ('state', '=', 'approved'),
-                    ('leave_type_id.is_permission', '=', True),
-                    ('start_date', '=', date_worked),
-                ])
-                permission_hours = sum(permissions.mapped('hours_requested'))
-                extended_deadline = deadline + timedelta(hours=permission_hours)
-                if check_in_dubai > extended_deadline:
+                _ordinal, is_deducted = Attendance.get_late_login_grace_status(employee, check_in_dubai)
+                if is_deducted:
                     late_login_count += 1
 
             if late_login_count:
@@ -371,6 +383,26 @@ class HrPayslip(models.Model):
                     'number_of_hours': late_deduct_days * 8,
                     'contract_id': contract.id,
                 })
+
+            # 3c. Dubai Sick Leave Half Pay days (client requirement 2026-09-26):
+            # of an employee's cumulative APPROVED Sick Leave for the calendar
+            # year, the first 15 days/year are Full Pay (no extra deduction —
+            # already fully paid via the Paid Leave worked-days above) and the
+            # next 30 are Half Pay. Only the day count is computed here; the
+            # "Sick Leave Half Pay Deduction" salary rule applies the wage rate.
+            # India employees are untouched — this block only runs for Dubai.
+            if employee.country_for_leave == 'dubai':
+                sick_split = LeaveRequest.get_dubai_sick_pay_split(user, date_from_dt, date_to_dt)
+                half_pay_days = sick_split.get('half_pay_days', 0.0)
+                if half_pay_days:
+                    worked_days.append({
+                        'name': 'Sick Leave Half Pay Days',
+                        'sequence': 36,
+                        'code': 'SICK_HALF_PAY_DAYS',
+                        'number_of_days': half_pay_days,
+                        'number_of_hours': half_pay_days * 8,
+                        'contract_id': contract.id,
+                    })
 
             # 4. Sundays in Period
             worked_days.append({
@@ -442,6 +474,13 @@ class HrPayslip(models.Model):
                     AND hp.date_from >= %s AND hp.date_to <= %s AND hp.id = pi.payslip_id AND pi.code = %s""",
                     (self.employee_id, from_date, to_date, code))
                 return self.env.cr.fetchone()[0] or 0.0
+
+            def deduction_total(self):
+                """Sum of all payslip input lines marked as ad-hoc deductions (e.g. Loan
+                Deduction, Professional Tax). Uses abs() so HR entering the amount as a
+                positive value (as instructed) always reduces Net Salary, regardless of
+                the sign actually typed."""
+                return sum(abs(line.amount) for line in self.dict.values() if line.is_deduction)
 
         class WorkedDays(BrowsableObject):
             """a class that will be used into the python code, mainly for usability purposes"""
@@ -558,7 +597,14 @@ class HrPayslip(models.Model):
                     #blacklist this rule and its children
                     blacklist += [id for id, seq in rule._recursive_search_of_rules()]
 
-        return list(result_dict.values())
+        # Every rule above is still computed (so totals and Net Pay are unaffected), but
+        # lines whose total is 0 are not stored - Salary Computation only lists lines with
+        # a value. Net Salary is always kept.
+        return [
+            line for line in result_dict.values()
+            if line['code'] == 'NET'
+            or round(line['amount'] * line['quantity'] * line['rate'] / 100.0, 2)
+        ]
 
     # YTI TODO To rename. This method is not really an onchange, as it is not in any view
     # employee_id and contract_id could be browse records
@@ -579,7 +625,9 @@ class HrPayslip(models.Model):
         }
         if (not employee_id) or (not date_from) or (not date_to):
             return res
-        ttyme = datetime.combine(fields.Date.from_string(date_from), time.min)
+        # Payroll months run 26th -> 25th, so the period belongs to the month it ENDS in
+        # (26/02 -> 25/03 is March).
+        ttyme = datetime.combine(fields.Date.from_string(date_to), time.min)
         employee = self.env['hr.employee'].browse(employee_id)
         locale = self.env.context.get('lang') or 'en_US'
         res['value'].update({
@@ -631,7 +679,8 @@ class HrPayslip(models.Model):
         date_to = self.date_to
 
         # Set payslip name
-        ttyme = datetime.combine(fields.Date.from_string(date_from), time.min)
+        # Month the 26th -> 25th period ends in (26/02 -> 25/03 is March).
+        ttyme = datetime.combine(fields.Date.from_string(date_to), time.min)
         locale = self.env.context.get('lang') or 'en_US'
         self.name = _('Salary Slip of %s for %s') % (
             employee.name,
@@ -684,6 +733,39 @@ class HrPayslip(models.Model):
         else:
             return 0.0
 
+    # ------------------------------------------------------------------
+    # Payslip report logo helper. The report template used to inline
+    # 'data:image/png;base64,%s' % company logo directly, which assumes the
+    # stored logo is always a PNG -- wkhtmltopdf's bundled QtWebKit has no
+    # WebP decoder, so a WebP company logo silently renders as a broken-image
+    # icon (see template_rk/models/account_move.py for the same trap on the
+    # invoice PDF). This sniffs the magic bytes and returns '' for anything
+    # it can't safely hand to wkhtmltopdf.
+    # ------------------------------------------------------------------
+    _RK_LOGO_SAFE_MAGIC = (
+        (b'\x89PNG\r\n\x1a\n', 'image/png'),
+        (b'\xff\xd8\xff', 'image/jpeg'),
+        (b'GIF87a', 'image/gif'),
+        (b'GIF89a', 'image/gif'),
+        (b'BM', 'image/bmp'),
+    )
+
+    def _rk_payslip_logo_data_uri(self):
+        """data: URI for the payslip's company logo, or '' if there is none
+        or the stored format can't be displayed by wkhtmltopdf (e.g. WebP)."""
+        self.ensure_one()
+        logo = self.employee_id.contract_id.company_id.logo
+        if not logo:
+            return ''
+        try:
+            raw = base64.b64decode(logo)
+        except Exception:
+            return ''
+        for magic, mime in self._RK_LOGO_SAFE_MAGIC:
+            if raw.startswith(magic):
+                return 'data:%s;base64,%s' % (mime, logo.decode('utf-8'))
+        return ''
+
 
 class HrPayslipLine(models.Model):
     _name = 'hr.payslip.line'
@@ -709,7 +791,7 @@ class HrPayslipLine(models.Model):
     def _onchange_recompute_net_salary(self):
         """Manually editing any line's Amount/Quantity/Rate in the Salary Computation
         list should keep the Net Salary line in sync, mirroring the NET rule's own
-        formula (categories.BASIC + categories.ALW + categories.DED) instead of only
+        formula (categories.BASIC + categories.ALW - abs(categories.DED)) instead of only
         reflecting whatever was computed the last time Compute Sheet ran."""
         if self.code == 'NET':
             return
@@ -720,7 +802,7 @@ class HrPayslipLine(models.Model):
         basic = sum(lines.filtered(lambda l: l.category_id.code == 'BASIC').mapped('total'))
         alw = sum(lines.filtered(lambda l: l.category_id.code == 'ALW').mapped('total'))
         ded = sum(lines.filtered(lambda l: l.category_id.code == 'DED').mapped('total'))
-        net_line[0].amount = basic + alw + ded
+        net_line[0].amount = basic + alw - abs(ded)
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -763,6 +845,11 @@ class HrPayslipInput(models.Model):
                                "like result = inputs.SALEURO.amount * contract.wage*0.01.")
     contract_id = fields.Many2one('hr.contract', string='Contract', required=True,
         help="The contract for which applied this input")
+    is_deduction = fields.Boolean(string='Is Deduction',
+        help="Enter the amount as a positive value. When checked, this input is treated as an "
+             "ad-hoc payslip deduction (e.g. Loan Deduction, Professional Tax) and is automatically "
+             "subtracted from the Net Salary by the 'Additional Deductions' salary rule - no need to "
+             "enter it as a negative number.")
 
 
 class HrPayslipRun(models.Model):
@@ -991,6 +1078,20 @@ class HrPayslipRun(models.Model):
         ])
         total_leave_days = 0.0
         half_day_leave_dates = set()
+        # Dubai Sick Leave is always Paid Leave for payroll, whatever the approver ticked:
+        # the first 15 days of the year are Full Pay and days 16-45 Half Pay (that unpaid half
+        # is charged inside Loss of Pay, see the LOP rule). Days past 45 are not paid. So for
+        # Dubai the sick days come from that split instead of the requests' own Paid flag.
+        sick_type = self.env.ref('leave_management_rk.leave_type_sick', raise_if_not_found=False)
+        if sick_type and employee.country_for_leave == 'dubai':
+            paid_leaves = paid_leaves.filtered(lambda l: l.leave_type_id != sick_type)
+            sick_split = LeaveRequest.get_dubai_sick_pay_split(user, date_from_dt, date_to_dt)
+            total_leave_days += sick_split.get('full_pay_days', 0.0) + sick_split.get('half_pay_days', 0.0)
+            for sick in LeaveRequest.search([
+                    ('user_id', '=', user.id), ('state', '=', 'approved'),
+                    ('leave_type_id', '=', sick_type.id), ('is_half_day', '=', True),
+                    ('start_date', '>=', date_from), ('start_date', '<=', date_to)]):
+                half_day_leave_dates.add(sick.start_date)
         for leave in paid_leaves:
             total_leave_days += leave.days_requested
             if leave.is_half_day and leave.start_date:
@@ -1050,26 +1151,20 @@ class HrPayslipRun(models.Model):
             'contract_id': contract.id,
         })
 
-        # 3b. Late Login Deduction (0.5 day per late check-in, Asia/Dubai time)
+        # 3b. Late Login Deduction (0.5 day per late check-in beyond the
+        # grace period, Asia/Dubai time). Shares hr.attendance's grace-day
+        # logic with the Attendance module so the first 4 late check-ins of
+        # each 26th->25th period are excused there too.
         _DUBAI_TZ = timezone('Asia/Dubai')
         late_login_count = 0
         for att in attendance_records:
             if not att.check_in:
                 continue
             check_in_dubai = att.check_in.replace(tzinfo=UTC).astimezone(_DUBAI_TZ)
-            deadline = check_in_dubai.replace(hour=8, minute=50, second=0, microsecond=0)
-            if check_in_dubai <= deadline:
+            if not Attendance._is_late_checkin(employee, check_in_dubai):
                 continue
-            date_worked = check_in_dubai.date()
-            permissions = LeaveRequest.search([
-                ('user_id', '=', user.id),
-                ('state', '=', 'approved'),
-                ('leave_type_id.is_permission', '=', True),
-                ('start_date', '=', date_worked),
-            ])
-            permission_hours = sum(permissions.mapped('hours_requested'))
-            extended_deadline = deadline + timedelta(hours=permission_hours)
-            if check_in_dubai > extended_deadline:
+            _ordinal, is_deducted = Attendance.get_late_login_grace_status(employee, check_in_dubai)
+            if is_deducted:
                 late_login_count += 1
 
         if late_login_count:
@@ -1082,6 +1177,22 @@ class HrPayslipRun(models.Model):
                 'number_of_hours': late_deduct_days * 8,
                 'contract_id': contract.id,
             })
+
+        # 3c. Dubai Sick Leave Half Pay days — see get_worked_day_lines for
+        # the real payslip computation path; mirrored here so this batch
+        # export shows the same figures.
+        if employee.country_for_leave == 'dubai':
+            sick_split = LeaveRequest.get_dubai_sick_pay_split(user, date_from_dt, date_to_dt)
+            half_pay_days = sick_split.get('half_pay_days', 0.0)
+            if half_pay_days:
+                worked_days.append({
+                    'name': 'Sick Leave Half Pay Days',
+                    'sequence': 36,
+                    'code': 'SICK_HALF_PAY_DAYS',
+                    'number_of_days': half_pay_days,
+                    'number_of_hours': half_pay_days * 8,
+                    'contract_id': contract.id,
+                })
 
         # 4. Sundays in Period
         worked_days.append({
@@ -1488,10 +1599,116 @@ class HrPayslipRun(models.Model):
             'datas': encoded_file_content,
             'mimetype': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         })
-        
+
         # Return the URL for downloading the file
         return {
             'type': 'ir.actions.act_url',
             'url': f'/web/content/{attachment.id}?download=true',
             'target': 'new',
         }
+
+    def _build_country_payroll_xlsx(self, country_for_leave, label, statutory_columns=False):
+        """Consolidated Gross/Deductions/Net payroll summary for one country ('dubai' or
+        'india'), built entirely from already-processed hr.payslip.line values (the same
+        values shown on the payslip and used in payroll calculation) - nothing here is
+        recalculated. `employee.country_for_leave` is the existing field also used by the
+        EPF/ESI/PT salary rules, so no duplicate employee field is introduced.
+        """
+        self.ensure_one()
+        payslips = self.slip_ids.filtered(lambda s: s.employee_id.country_for_leave == country_for_leave)
+
+        output = BytesIO()
+        workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+        sheet = workbook.add_worksheet(f"{label} Payroll"[:31])
+
+        header_format = workbook.add_format({'bold': True, 'bg_color': '#DCE6F1', 'border': 1})
+        bold_format = workbook.add_format({'bold': True})
+        number_format = workbook.add_format({'num_format': '#,##0.00'})
+        bold_number_format = workbook.add_format({'bold': True, 'num_format': '#,##0.00'})
+
+        headers = [
+            'Employee Name', 'Employee ID', 'Department', 'Designation',
+            'Basic Salary', 'Allowances', 'Gross Salary',
+            'LOP / Absence Deduction', 'Other Deductions', 'Total Deductions', 'Net Salary',
+        ]
+        if statutory_columns:
+            headers += ['EPF', 'ESI', 'PT']
+        for col, title in enumerate(headers):
+            sheet.write(0, col, title, header_format)
+
+        totals = {col: 0.0 for col in range(4, len(headers))}
+        row = 1
+        for payslip in payslips:
+            employee = payslip.employee_id
+            # Loss of Pay is a deduction (already inside the DED total). LATE_LOGIN_DED no
+            # longer runs on new payslips (folded into LOP itself), but older payslips
+            # still carry it as a separate line, so keep summing both here.
+            ded_lines = payslip.line_ids.filtered(lambda l: l.category_id.code == 'DED')
+            total_deductions = abs(sum(ded_lines.mapped('total')))
+            lop = abs(payslip.get_salary_line_total('LOP')) + abs(payslip.get_salary_line_total('LATE_LOGIN_DED'))
+            allowances = sum(payslip.line_ids.filtered(lambda l: l.category_id.code == 'ALW').mapped('total'))
+
+            values = [
+                employee.name or '',
+                employee.employee_no or '',
+                employee.department_id.name or '',
+                employee.job_title or '',
+                payslip.get_salary_line_total('BASIC'),
+                allowances,
+                payslip.get_salary_line_total('GROSS'),
+                lop,
+                total_deductions - lop,
+                total_deductions,
+                payslip.get_salary_line_total('NET'),
+            ]
+            if statutory_columns:
+                values += [
+                    abs(payslip.get_salary_line_total('EPF')),
+                    abs(payslip.get_salary_line_total('ESI')),
+                    abs(payslip.get_salary_line_total('PT')),
+                ]
+
+            for col, value in enumerate(values):
+                if col < 4:
+                    sheet.write(row, col, value)
+                else:
+                    sheet.write(row, col, value, number_format)
+                    totals[col] += value
+            row += 1
+
+        sheet.write(row, 3, 'TOTAL', bold_format)
+        for col in range(4, len(headers)):
+            sheet.write(row, col, totals[col], bold_number_format)
+
+        sheet.set_column(0, 0, 24)
+        sheet.set_column(1, 3, 16)
+        sheet.set_column(4, len(headers) - 1, 16)
+
+        workbook.close()
+        output.seek(0)
+        file_data = output.read()
+        output.close()
+
+        period_label = self.date_start.strftime('%B_%Y') if self.date_start else fields.Date.today().strftime('%B_%Y')
+        filename = f"{label}_Payroll_{period_label}.xlsx"
+        attachment = self.env['ir.attachment'].create({
+            'name': filename,
+            'type': 'binary',
+            'datas': base64.b64encode(file_data),
+            'res_model': self._name,
+            'res_id': self.id,
+            'mimetype': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{attachment.id}?download=true&filename={filename}',
+            'target': 'new',
+        }
+
+    def export_uae_payroll_xlsx(self):
+        self.ensure_one()
+        return self._build_country_payroll_xlsx('dubai', 'UAE')
+
+    def export_india_payroll_xlsx(self):
+        self.ensure_one()
+        return self._build_country_payroll_xlsx('india', 'India', statutory_columns=True)

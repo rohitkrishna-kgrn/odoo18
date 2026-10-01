@@ -35,4 +35,29 @@
             </xpath>
         </field>
     </record>
+
+    <!-- "Month wise" grouping in the Attendances list uses the 26th->25th
+         attendance period, not the calendar month. -->
+    <record id="view_hr_attendance_filter_period" model="ir.ui.view">
+        <field name="name">hr.attendance.filter.period</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.hr_attendance_view_filter"/>
+        <field name="arch" type="xml">
+            <filter name="groupby_name" position="attributes">
+                <attribute name="context">{'group_by': 'attendance_period_anchor:month'}</attribute>
+            </filter>
+        </field>
+    </record>
+
+    <!-- Same 26th->25th period for the Attendances pivot report columns. -->
+    <record id="view_hr_attendance_pivot_period" model="ir.ui.view">
+        <field name="name">hr.attendance.pivot.period</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.hr_attendance_view_pivot"/>
+        <field name="arch" type="xml">
+            <field name="check_in" position="replace">
+                <field name="attendance_period_anchor" type="col" interval="month" string="Attendance Period"/>
+            </field>
+        </field>
+    </record>
 </odoo>
