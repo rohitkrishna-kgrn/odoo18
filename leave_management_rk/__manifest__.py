@@ -1,6 +1,6 @@
 {
     'name': 'Leave Management RK',
-    'version': '18.0.1.9',
+    'version': '18.0.1.18',
     'summary': 'Custom Leave Management Module',
     'author': 'Rohit',
     'depends': ['base', 'hr', 'hr_attendance', 'web', 'mail'],
@@ -24,6 +24,12 @@
         'views/menu.xml',
         'views/wizard.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'leave_management_rk/static/src/js/leave_balance_report_list.esm.js',
+            'leave_management_rk/static/src/js/leave_balance_report_list.xml',
+        ],
+    },
     'installable': True,
     'application': True,
 }

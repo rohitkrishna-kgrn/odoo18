@@ -13,17 +13,12 @@ from .leave_period import (
 ACTIVE_REQUEST_STATES = ('waiting_manager', 'manager_approved', 'approved')
 COUNTRY_LABELS = {'india': 'India', 'dubai': 'Dubai (UAE)'}
 
-# UAE sick-leave pay rule (client requirement 2026-09-26): of an employee's
-# cumulative APPROVED Sick Leave for a calendar year, the first
-# SICK_FULL_PAY_LIMIT days are Full Pay (no extra deduction — approved paid
-# leave is already fully paid via the normal payroll worked-days mechanism),
-# the next (SICK_MAX_PAY_CONSIDERED - SICK_FULL_PAY_LIMIT) are Half Pay (see
-# Payroll's "Sick Leave Half Pay Deduction" salary rule), and days beyond
-# SICK_MAX_PAY_CONSIDERED are outside this calculation entirely (no half-pay
-# deduction is applied to them — they stay fully paid like any other approved
-# leave unless HR separately marks that request unpaid).
-SICK_FULL_PAY_LIMIT = 15
-SICK_MAX_PAY_CONSIDERED = 45
+# UAE sick leave (client requirement 2026-10-06): Dubai employees pick the
+# pay tier themselves through two leave types, 'Sick Leave - Full Pay' (15
+# days a year) and 'Sick Leave - Half Pay' (30 days a year), told apart by
+# leave.type.sick_pay_tier. Payroll pays the first in full and charges half a
+# day of Loss of Pay (its "Sick Leave Half Pay Deduction" rule) for each day
+# of the second.
 
 
 class LeaveRequest(models.Model):
@@ -50,6 +45,15 @@ class LeaveRequest(models.Model):
     is_dubai_sick_leave = fields.Boolean(
         compute='_compute_is_dubai_sick_leave', store=False
     )
+    is_dubai_sick_pool = fields.Boolean(
+        compute='_compute_sick_pay_split', store=False,
+        help="Dubai employee on one of the Full Pay / Half Pay Sick Leave types.")
+    sick_full_pay_days = fields.Float(
+        string='Full Pay Days', compute='_compute_sick_pay_split', store=False,
+        help="Days of this request that are paid in full (Sick Leave - Full Pay).")
+    sick_half_pay_days = fields.Float(
+        string='Half Pay Days', compute='_compute_sick_pay_split', store=False,
+        help="Days of this request that are paid at half (Sick Leave - Half Pay).")
     manager_remarks = fields.Text(string='Manager Remarks')
     state = fields.Selection([
         ('draft', 'Draft'),
@@ -136,7 +140,11 @@ class LeaveRequest(models.Model):
         balance = current_balance
         while anchor < target:
             anchor = shift_leave_month(anchor, 1)
-            if anchor.month == 1 and lt.reset_at_year_end:
+            Balance = self.env['leave.balance']
+            if Balance._uses_doj_cycle(self.user_id, lt):
+                if anchor == Balance._doj_cycle_start(self.user_id, anchor):
+                    balance = lt.initial_balance  # DOJ anniversary reset
+            elif anchor.month == 1 and lt.reset_at_year_end:
                 balance = lt.initial_balance
             balance += lt.monthly_accrual_days
             if lt.cap_at_entitlement and lt.annual_entitlement:
@@ -285,6 +293,28 @@ class LeaveRequest(models.Model):
                     f"Leave Date: {date_display}\n"
                     f"Existing Leave Type: {same_date_duplicate.leave_type_id.name}"
                 )
+
+            # Block any date range that overlaps leave already approved for
+            # this employee (permission requests are hour-based, so skipped).
+            if not rec.leave_type_id.is_permission and rec.start_date:
+                new_end = rec.end_date or rec.start_date
+                approved = self.search([
+                    ('id', '!=', rec.id),
+                    ('user_id', '=', rec.user_id.id),
+                    ('state', '=', 'approved'),
+                    ('leave_type_id.is_permission', '=', False),
+                    ('start_date', '<=', new_end),
+                    '|',
+                    ('end_date', '>=', rec.start_date),
+                    '&', ('end_date', '=', False), ('start_date', '>=', rec.start_date),
+                ], limit=1)
+                if approved:
+                    old_end = approved.end_date or approved.start_date
+                    raise UserError(
+                        "You already have approved leave covering some of these dates.\n\n"
+                        f"Approved Leave: {approved.start_date} to {old_end} "
+                        f"({approved.leave_type_id.name})"
+                    )
 
             LeaveBalance = self.env['leave.balance']
 
@@ -538,61 +568,44 @@ class LeaveRequest(models.Model):
             day += timedelta(days=1)
         return units
 
+    @api.depends('user_id', 'employee_country', 'leave_type_id', 'start_date', 'end_date',
+                 'is_half_day', 'state')
+    def _compute_sick_pay_split(self):
+        """This request's Full / Half Pay days: all of them, in the tier the
+        employee chose through the leave type."""
+        for rec in self:
+            tier = rec.leave_type_id.sick_pay_tier
+            rec.is_dubai_sick_pool = bool(rec.employee_country == 'dubai' and tier)
+            days = sum(w for _d, w in rec._sick_leave_units()) if rec.is_dubai_sick_pool else 0.0
+            rec.sick_full_pay_days = days if tier == 'full' else 0.0
+            rec.sick_half_pay_days = days if tier == 'half' else 0.0
+
     @api.model
     def get_dubai_sick_pay_split(self, user, period_start, period_end):
         """Full Pay / Half Pay day counts, within [period_start, period_end],
-        for `user`'s approved Sick Leave — used by Payroll to compute the
-        Sick Leave Half Pay deduction on a Dubai employee's payslip.
+        for `user`'s approved Sick Leave - used by Payroll for the Dubai
+        payslip's Sick Leave Full Pay / Half Pay lines.
 
-        Walks every approved Sick Leave day for the calendar year
-        `period_start` falls in, oldest first, tracking a running total: the
-        first SICK_FULL_PAY_LIMIT days of the year are Full Pay, the next
-        (SICK_MAX_PAY_CONSIDERED - SICK_FULL_PAY_LIMIT) are Half Pay, and
-        anything past SICK_MAX_PAY_CONSIDERED is outside this calculation.
-        Only days that also fall inside [period_start, period_end] (this
-        payslip's own period) are counted into the returned totals, so a
-        single request that crosses a payslip boundary or a pay-tier
-        boundary is split correctly either way.
-
-        Only meaningful for Dubai employees — callers should confirm the
-        employee's country first (Sick Leave's monthly reset-to-1 balance
-        still applies unchanged for India, see leave.type's dubai_annual_pool).
+        The tier is the one on the leave type the employee picked
+        (leave.type.sick_pay_tier). Requests filed before the two types
+        existed sit on the plain Sick Leave type and are not split.
+        Only meaningful for Dubai employees - callers confirm the country.
         """
         result = {'full_pay_days': 0.0, 'half_pay_days': 0.0}
-        sick_type = self.env.ref('leave_management_rk.leave_type_sick', raise_if_not_found=False)
-        if not sick_type or not user or not period_start or not period_end:
+        if not user or not period_start or not period_end:
             return result
-
-        year_start = period_start.replace(month=1, day=1)
-        year_end = period_start.replace(month=12, day=31)
         requests = self.search([
             ('user_id', '=', user.id),
-            ('leave_type_id', '=', sick_type.id),
+            ('leave_type_id.sick_pay_tier', '!=', False),
             ('state', '=', 'approved'),
-            ('start_date', '>=', year_start),
-            ('start_date', '<=', year_end),
-        ], order='start_date asc, id asc')
-
-        cumulative = 0.0
+            ('start_date', '<=', period_end),
+            ('end_date', '>=', period_start),
+        ])
         for request in requests:
+            key = 'full_pay_days' if request.leave_type_id.sick_pay_tier == 'full' else 'half_pay_days'
             for day, weight in request._sick_leave_units():
-                if day < year_start or day > year_end:
-                    continue
-                tier_before = cumulative
-                cumulative += weight
-                if not (period_start <= day <= period_end):
-                    continue
-                if tier_before >= SICK_MAX_PAY_CONSIDERED:
-                    continue
-                if tier_before + weight <= SICK_FULL_PAY_LIMIT:
-                    result['full_pay_days'] += weight
-                elif tier_before >= SICK_FULL_PAY_LIMIT:
-                    result['half_pay_days'] += min(weight, SICK_MAX_PAY_CONSIDERED - tier_before)
-                else:
-                    # Straddles the Full-Pay/Half-Pay boundary within this unit.
-                    full_part = SICK_FULL_PAY_LIMIT - tier_before
-                    result['full_pay_days'] += full_part
-                    result['half_pay_days'] += min(weight - full_part, SICK_MAX_PAY_CONSIDERED - SICK_FULL_PAY_LIMIT)
+                if period_start <= day <= period_end:
+                    result[key] += weight
         return result
 
     def write(self, vals):

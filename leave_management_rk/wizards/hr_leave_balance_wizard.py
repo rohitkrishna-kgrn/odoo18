@@ -14,6 +14,9 @@ class HrLeaveBalanceWizard(models.TransientModel):
     _description = 'HR Leave Balance Management'
 
     user_id = fields.Many2one('res.users', string='Employee', required=True)
+    employee_doj = fields.Date(
+        string='DOJ', compute='_compute_employee_doj',
+        help="Date of joining, taken from Employees > Settings > DOJ.")
     employee_country = fields.Selection(
         related='user_id.country', string='Country', readonly=True)
     balance_year = fields.Selection(
@@ -78,6 +81,16 @@ class HrLeaveBalanceWizard(models.TransientModel):
         entitlement = leave_type.annual_entitlement
         return entitlement, taken, entitlement - taken
 
+    @api.depends('user_id')
+    def _compute_employee_doj(self):
+        # `doj` is defined in om_hr_payroll (which depends on this module), so
+        # guard for it not being installed; sudo as the wizard is open to non-HR.
+        Employee = self.env['hr.employee'].sudo()
+        has_doj = 'doj' in Employee._fields
+        for wiz in self:
+            employee = wiz.user_id.employee_ids[:1].sudo() if wiz.user_id else Employee
+            wiz.employee_doj = employee.doj if (has_doj and employee) else False
+
     @api.onchange('user_id', 'balance_year')
     def _onchange_user_id(self):
         # Always clear first: the block below rebuilds line_ids from
@@ -125,12 +138,19 @@ class HrLeaveBalanceWizard(models.TransientModel):
                 # HR fills this in by hand until their first cycle begins.
                 balance_value = LeaveBalance._restart_accrual_projected_balance(self.user_id, lt)
             elif lt.accrual_mode == 'accrue' and lt.annual_entitlement:
-                # Dubai Annual Leave: 2.5 x leave months elapsed since January
+                # Dubai Annual Leave: monthly days x leave months elapsed since DOJ (January if none)
                 # (capped at the entitlement) less approved leave this leave
                 # year - the figure the cron/backfill itself lands on.
                 start, end = self._leave_year_bounds()
+                months = current_anchor.month
+                if LeaveBalance._uses_doj_cycle(self.user_id, lt):
+                    # Dubai Annual Leave accrues from the employee's DOJ and
+                    # is reset to zero on every DOJ anniversary.
+                    window = LeaveBalance._doj_cycle_window(self.user_id, current_anchor)
+                    start, end = window or (start, end)
+                    months = LeaveBalance._doj_cycle_months_elapsed(self.user_id, current_anchor)
                 _entitlement, taken, _remaining = self._leave_period_balance(lt, start, end)
-                accrued = lt.monthly_accrual_days * current_anchor.month
+                accrued = lt.monthly_accrual_days * months
                 if lt.cap_at_entitlement:
                     accrued = min(accrued, lt.annual_entitlement)
                 balance_value = accrued - taken
@@ -165,19 +185,20 @@ class HrLeaveBalanceWizard(models.TransientModel):
         for line in self.line_ids:
             if not line.leave_type_id:
                 continue
+            line_balance = line.balance
             balance_rec = LeaveBalance.search([
                 ('user_id', '=', self.user_id.id),
                 ('leave_type_id', '=', line.leave_type_id.id),
                 ('date', '=', write_anchor),
             ], limit=1)
             if balance_rec:
-                balance_rec.balance = line.balance
+                balance_rec.balance = line_balance
             else:
                 LeaveBalance.create({
                     'user_id': self.user_id.id,
                     'leave_type_id': line.leave_type_id.id,
                     'date': write_anchor,
-                    'balance': line.balance,
+                    'balance': line_balance,
                 })
         return {
             'type': 'ir.actions.client',
@@ -227,6 +248,7 @@ class HrLeaveBalanceWizardLine(models.TransientModel):
     wizard_id = fields.Many2one('hr.leave.balance.wizard', string='Wizard')
     leave_type_id = fields.Many2one('leave.type', string='Leave Type')
     is_permission = fields.Boolean(related='leave_type_id.is_permission', readonly=True)
+    leave_type_label = fields.Char(string='Leave Type', compute='_compute_leave_type_label')
     balance = fields.Float(string='Remaining Balance')
     taken_this_year = fields.Float(
         string='Taken This Year', compute='_compute_taken_this_year', readonly=True,
@@ -240,6 +262,11 @@ class HrLeaveBalanceWizardLine(models.TransientModel):
              "one to trust for 'can this request be approved', not a year-end math.")
     balance_label = fields.Char(string='Unit', compute='_compute_balance_label')
 
+    @api.depends('leave_type_id')
+    def _compute_leave_type_label(self):
+        for rec in self:
+            rec.leave_type_label = rec.leave_type_id.name or ''
+
     @api.depends('leave_type_id', 'wizard_id.user_id', 'wizard_id.balance_year')
     def _compute_taken_this_year(self):
         for rec in self:
@@ -247,6 +274,10 @@ class HrLeaveBalanceWizardLine(models.TransientModel):
                 rec.taken_this_year = 0.0
                 continue
             start, end = rec.wizard_id._leave_year_bounds()
+            LeaveBalance = self.env['leave.balance']
+            if LeaveBalance._uses_doj_cycle(rec.wizard_id.user_id, rec.leave_type_id):
+                start, end = LeaveBalance._doj_cycle_window(
+                    rec.wizard_id.user_id, leave_month_anchor(fields.Date.today())) or (start, end)
             if rec.leave_type_id.is_permission:
                 # Resets monthly, so show only this leave month's hours.
                 start, end = leave_month_bounds(leave_month_anchor(fields.Date.today()))

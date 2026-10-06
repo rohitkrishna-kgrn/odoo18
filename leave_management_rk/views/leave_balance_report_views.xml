@@ -3,12 +3,12 @@
         <field name="name">leave.balance.report.list</field>
         <field name="model">leave.balance.report</field>
         <field name="arch" type="xml">
-            <list string="Leave Balance Report" create="false" edit="false" delete="false">
+            <list string="Leave Balance Report" js_class="leave_balance_report_list" create="false" edit="false" delete="false">
                 <field name="employee_name" string="Employee Name"/>
                 <field name="employee_code" string="Employee ID" optional="show"/>
                 <field name="department_id"/>
                 <field name="country"/>
-                <field name="leave_type_id"/>
+                <field name="leave_type_label" string="Leave Type"/>
                 <field name="period_label" string="Leave Month"/>
                 <field name="annual_entitlement" string="Total Entitlement"/>
                 <field name="accrued" string="Accrued / Allocated"/>

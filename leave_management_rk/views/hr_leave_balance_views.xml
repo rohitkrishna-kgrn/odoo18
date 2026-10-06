@@ -9,6 +9,7 @@
                         <field name="user_id" string="Select Employee"
                                context="{'active_test': False}"
                                domain="[('employee_ids.active', '=', True)]"/>
+                        <field name="employee_doj" string="DOJ" readonly="1"/>
                     </group>
                     <!-- Same for India and Dubai (UAE): the whole leave year (26 Dec -> 25
                          Dec), with balances always shown for the leave month currently in
@@ -19,7 +20,8 @@
                     </group>
                     <field name="line_ids">
                         <list editable="bottom" create="false" delete="false">
-                            <field name="leave_type_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="leave_type_id" column_invisible="1"/>
+                            <field name="leave_type_label" string="Leave Type" readonly="1"/>
                             <field name="taken_this_year" string="Taken This Year" readonly="1"/>
                             <field name="balance" string="Remaining Balance"/>
                             <field name="balance_label" string="Unit" readonly="1"/>

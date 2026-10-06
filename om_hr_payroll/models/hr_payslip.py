@@ -73,10 +73,11 @@ class HrPayslip(models.Model):
             by_code = {line.code: line.number_of_days for line in slip.worked_days_line_ids}
             total = by_code.get('WORK100', 0.0)
             accounted = by_code.get('PRESENT', 0.0) + by_code.get('LEAVE', 0.0) \
+                + by_code.get('SICK_FULL_PAY_DAYS', 0.0) + by_code.get('SICK_HALF_PAY_DAYS', 0.0) \
                 + by_code.get('SUNDAY', 0.0) + by_code.get('PH', 0.0)
             # Late-login half-days are added on top of the absence days as Loss of Pay.
             late_login_days = by_code.get('LATE_DEDUCT', 0.0)
-            # Dubai Sick Leave Half Pay days stay in Paid Leave, but half of each is Loss of Pay.
+            # Dubai Sick Leave Half Pay days count as paid days, but half of each is Loss of Pay.
             late_login_days += by_code.get('SICK_HALF_PAY_DAYS', 0.0) * 0.5
             slip.work_days = total
             slip.lop_days = max(total - accounted, 0.0) + late_login_days
@@ -284,18 +285,18 @@ class HrPayslip(models.Model):
             ])
             total_leave_days = 0.0
             half_day_leave_dates = set()
-            # Dubai Sick Leave is always Paid Leave for payroll, whatever the approver ticked:
-            # the first 15 days of the year are Full Pay and days 16-45 Half Pay (that unpaid half
-            # is charged inside Loss of Pay, see the LOP rule). Days past 45 are not paid. So for
-            # Dubai the sick days come from that split instead of the requests' own Paid flag.
-            sick_type = self.env.ref('leave_management_rk.leave_type_sick', raise_if_not_found=False)
-            if sick_type and employee.country_for_leave == 'dubai':
-                paid_leaves = paid_leaves.filtered(lambda l: l.leave_type_id != sick_type)
+            # Dubai 'Sick Leave - Full Pay' / 'Sick Leave - Half Pay' (picked by the employee,
+            # see leave.type.sick_pay_tier) are always Paid Leave for payroll, whatever the approver
+            # ticked; the unpaid half of a Half Pay day is charged inside Loss of Pay (see the LOP
+            # rule). So for Dubai those days come from the tier split instead of the Paid flag.
+            sick_types = self.env['leave.type'].search([('sick_pay_tier', '!=', False)])
+            if sick_types and employee.country_for_leave == 'dubai':
+                paid_leaves = paid_leaves.filtered(lambda l: l.leave_type_id not in sick_types)
                 sick_split = LeaveRequest.get_dubai_sick_pay_split(user, date_from_dt, date_to_dt)
-                total_leave_days += sick_split.get('full_pay_days', 0.0) + sick_split.get('half_pay_days', 0.0)
+                # Sick days appear as their own Full Pay / Half Pay lines, not in Paid Leave.
                 for sick in LeaveRequest.search([
                         ('user_id', '=', user.id), ('state', '=', 'approved'),
-                        ('leave_type_id', '=', sick_type.id), ('is_half_day', '=', True),
+                        ('leave_type_id', 'in', sick_types.ids), ('is_half_day', '=', True),
                         ('start_date', '>=', date_from), ('start_date', '<=', date_to)]):
                     half_day_leave_dates.add(sick.start_date)
             for leave in paid_leaves:
@@ -393,11 +394,23 @@ class HrPayslip(models.Model):
             # India employees are untouched — this block only runs for Dubai.
             if employee.country_for_leave == 'dubai':
                 sick_split = LeaveRequest.get_dubai_sick_pay_split(user, date_from_dt, date_to_dt)
+                full_pay_days = sick_split.get('full_pay_days', 0.0)
                 half_pay_days = sick_split.get('half_pay_days', 0.0)
+                # Shown individually: Full Pay needs no deduction (already inside Paid
+                # Leave), so this line is informational; Half Pay feeds the LOP rule.
+                if full_pay_days:
+                    worked_days.append({
+                        'name': 'Sick Leave Full Pay',
+                        'sequence': 36,
+                        'code': 'SICK_FULL_PAY_DAYS',
+                        'number_of_days': full_pay_days,
+                        'number_of_hours': full_pay_days * 8,
+                        'contract_id': contract.id,
+                    })
                 if half_pay_days:
                     worked_days.append({
-                        'name': 'Sick Leave Half Pay Days',
-                        'sequence': 36,
+                        'name': 'Sick Leave Half Pay',
+                        'sequence': 37,
                         'code': 'SICK_HALF_PAY_DAYS',
                         'number_of_days': half_pay_days,
                         'number_of_hours': half_pay_days * 8,
@@ -1078,18 +1091,18 @@ class HrPayslipRun(models.Model):
         ])
         total_leave_days = 0.0
         half_day_leave_dates = set()
-        # Dubai Sick Leave is always Paid Leave for payroll, whatever the approver ticked:
-        # the first 15 days of the year are Full Pay and days 16-45 Half Pay (that unpaid half
-        # is charged inside Loss of Pay, see the LOP rule). Days past 45 are not paid. So for
-        # Dubai the sick days come from that split instead of the requests' own Paid flag.
-        sick_type = self.env.ref('leave_management_rk.leave_type_sick', raise_if_not_found=False)
-        if sick_type and employee.country_for_leave == 'dubai':
-            paid_leaves = paid_leaves.filtered(lambda l: l.leave_type_id != sick_type)
+        # Dubai 'Sick Leave - Full Pay' / 'Sick Leave - Half Pay' (picked by the employee,
+        # see leave.type.sick_pay_tier) are always Paid Leave for payroll, whatever the approver
+        # ticked; the unpaid half of a Half Pay day is charged inside Loss of Pay (see the LOP
+        # rule). So for Dubai those days come from the tier split instead of the Paid flag.
+        sick_types = self.env['leave.type'].search([('sick_pay_tier', '!=', False)])
+        if sick_types and employee.country_for_leave == 'dubai':
+            paid_leaves = paid_leaves.filtered(lambda l: l.leave_type_id not in sick_types)
             sick_split = LeaveRequest.get_dubai_sick_pay_split(user, date_from_dt, date_to_dt)
-            total_leave_days += sick_split.get('full_pay_days', 0.0) + sick_split.get('half_pay_days', 0.0)
+            # Sick days appear as their own Full Pay / Half Pay lines, not in Paid Leave.
             for sick in LeaveRequest.search([
                     ('user_id', '=', user.id), ('state', '=', 'approved'),
-                    ('leave_type_id', '=', sick_type.id), ('is_half_day', '=', True),
+                    ('leave_type_id', 'in', sick_types.ids), ('is_half_day', '=', True),
                     ('start_date', '>=', date_from), ('start_date', '<=', date_to)]):
                 half_day_leave_dates.add(sick.start_date)
         for leave in paid_leaves:
@@ -1183,11 +1196,23 @@ class HrPayslipRun(models.Model):
         # export shows the same figures.
         if employee.country_for_leave == 'dubai':
             sick_split = LeaveRequest.get_dubai_sick_pay_split(user, date_from_dt, date_to_dt)
+            full_pay_days = sick_split.get('full_pay_days', 0.0)
             half_pay_days = sick_split.get('half_pay_days', 0.0)
+            # Shown individually: Full Pay needs no deduction (already inside Paid
+            # Leave), so this line is informational; Half Pay feeds the LOP rule.
+            if full_pay_days:
+                worked_days.append({
+                    'name': 'Sick Leave Full Pay',
+                    'sequence': 36,
+                    'code': 'SICK_FULL_PAY_DAYS',
+                    'number_of_days': full_pay_days,
+                    'number_of_hours': full_pay_days * 8,
+                    'contract_id': contract.id,
+                })
             if half_pay_days:
                 worked_days.append({
-                    'name': 'Sick Leave Half Pay Days',
-                    'sequence': 36,
+                    'name': 'Sick Leave Half Pay',
+                    'sequence': 37,
                     'code': 'SICK_HALF_PAY_DAYS',
                     'number_of_days': half_pay_days,
                     'number_of_hours': half_pay_days * 8,

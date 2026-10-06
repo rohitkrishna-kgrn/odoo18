@@ -25,6 +25,14 @@ class LeaveType(models.Model):
         ('dubai', 'Dubai (UAE) Only'),
     ], string='Applies To', help="Leave blank for a leave type shared by both India and Dubai employees.")
 
+    sick_pay_tier = fields.Selection([
+        ('full', 'Full Pay'),
+        ('half', 'Half Pay'),
+    ], string='Sick Pay Tier',
+        help="Set on Dubai's 'Sick Leave - Full Pay' / 'Sick Leave - Half Pay' types. "
+             "Payroll pays approved days of a Full Pay type in full and charges half "
+             "a day of Loss of Pay for every approved day of a Half Pay type.")
+
     accrual_mode = fields.Selection([
         ('accrue', 'Cumulative Monthly Accrual'),
         ('reset', 'Fixed Monthly Reset (no carry-forward)'),
@@ -297,6 +305,81 @@ class LeaveBalance(models.Model):
         ])
         return accrued - sum(taken.mapped(field))
 
+    @api.model
+    def _user_doj(self, user):
+        """Date of joining from the user's employee record (Employees >
+        Settings > DOJ). That field lives in om_hr_payroll, which depends on
+        this module, so it is read defensively; None when unavailable/unset."""
+        Employee = self.env['hr.employee'].sudo()
+        if 'doj' not in Employee._fields:
+            # Registry still mid-load (e.g. -u of this module alone loads it
+            # before om_hr_payroll): the column exists in the DB regardless.
+            self.env.cr.execute(
+                "SELECT 1 FROM information_schema.columns "
+                "WHERE table_name = 'hr_employee' AND column_name = 'doj'")
+            if not self.env.cr.fetchone():
+                return None
+            self.env.cr.execute(
+                "SELECT doj FROM hr_employee WHERE user_id = %s "
+                "ORDER BY active DESC, id ASC LIMIT 1", (user.id,))
+            row = self.env.cr.fetchone()
+            return row[0] if row and row[0] else None
+        employee = Employee.with_context(active_test=False).search(
+            [('user_id', '=', user.id)], order='active desc, id asc', limit=1)
+        return employee.doj or None
+
+    @api.model
+    def _uses_doj_cycle(self, user, leave_type):
+        """Dubai Annual Leave accrues from the employee's DOJ and is reset to
+        zero on every DOJ anniversary - only for a Dubai user who has a DOJ;
+        without one the generic engine applies."""
+        return bool(
+            user.country == 'dubai'
+            and leave_type.country_scope == 'dubai'
+            and leave_type.accrual_mode == 'accrue'
+            and self._user_doj(user)
+        )
+
+    @api.model
+    def _doj_cycle_start(self, user, anchor):
+        """Anchor of the leave month the employee's current DOJ-year cycle
+        opened in, as of leave month ``anchor`` (the DOJ's own leave month in
+        year one, then the leave month of each anniversary); None while
+        ``anchor`` is still before the DOJ's leave month."""
+        doj = self._user_doj(user)
+        if not doj:
+            return None
+        anchor = fields.Date.to_date(anchor).replace(day=1)
+        for year in (anchor.year, anchor.year - 1):
+            if year < doj.year:
+                return None
+            try:
+                anniversary = doj.replace(year=year)
+            except ValueError:  # 29 Feb in a non-leap year
+                anniversary = doj.replace(year=year, day=28)
+            start = leave_month_anchor(anniversary)
+            if start <= anchor:
+                return start
+        return None
+
+    @api.model
+    def _doj_cycle_months_elapsed(self, user, anchor):
+        """Leave months accrued from the DOJ up to and including ``anchor``."""
+        start = self._doj_cycle_start(user, anchor)
+        if not start:
+            return 0
+        anchor = fields.Date.to_date(anchor).replace(day=1)
+        return (anchor.year - start.year) * 12 + anchor.month - start.month + 1
+
+    @api.model
+    def _doj_cycle_window(self, user, anchor):
+        """(current DOJ-year cycle's first day, end of leave month ``anchor``)
+        - None before DOJ."""
+        start = self._doj_cycle_start(user, anchor)
+        if not start:
+            return None
+        return leave_month_bounds(start)[0], leave_month_bounds(anchor)[1]
+
     def _get_last_balance(self, user, leave_type, before_date):
         """Balance carried into the period starting ``before_date``.
 
@@ -327,7 +410,12 @@ class LeaveBalance(models.Model):
         auto-accrued in the first place.
         """
         dubai_pool = leave_type.dubai_annual_pool and user.country == 'dubai'
-        if (leave_type.reset_at_year_end or dubai_pool) and before_date.month == 1:
+        if self._uses_doj_cycle(user, leave_type):
+            # Back to the starting balance in the DOJ month and in the leave
+            # month of every DOJ anniversary - unused days are forfeited.
+            if before_date == self._doj_cycle_start(user, before_date):
+                return leave_type.initial_balance
+        elif (leave_type.reset_at_year_end or dubai_pool) and before_date.month == 1:
             return leave_type.annual_entitlement if dubai_pool else leave_type.initial_balance
         if leave_type.restart_accrual_after_leave:
             cycle_start = self._restart_cycle_anchor(user, leave_type)
@@ -384,7 +472,13 @@ class LeaveBalance(models.Model):
         res = super().write(vals)
         for r in self:
             delta = deltas[r.id]
-            if not delta or not r.date or not self._is_manual_carry_type(r.user_id, r.leave_type_id):
+            if not delta or not r.date:
+                continue
+            # Dubai Sick Leave's Full/Half Pay pool is yearly: a change must
+            # reach every later month of the year, never reset month-wise.
+            dubai_pool = (r.leave_type_id.dubai_annual_pool
+                          and r.user_id.country == 'dubai')
+            if not (dubai_pool or self._is_manual_carry_type(r.user_id, r.leave_type_id)):
                 continue
             later = self.with_context(no_balance_cascade=True).search([
                 ('user_id', '=', r.user_id.id),
@@ -416,11 +510,15 @@ class LeaveBalance(models.Model):
 
         for user in users:
             for leave_type in self._applicable_leave_types(user.country):
+                if self._uses_doj_cycle(user, leave_type) and not self._doj_cycle_start(user, period_anchor):
+                    continue  # period is before the employee's DOJ
                 if leave_type.restart_accrual_after_leave:
                     cycle_start = self._restart_cycle_anchor(user, leave_type)
                     if not cycle_start or period_anchor < cycle_start:
                         continue
-                if self._is_manual_carry_type(user, leave_type) and self.search_count([
+                if (self._is_manual_carry_type(user, leave_type)
+                        or self._uses_doj_cycle(user, leave_type)
+                        or (leave_type.dubai_annual_pool and user.country == 'dubai')) and self.search_count([
                     ('user_id', '=', user.id),
                     ('leave_type_id', '=', leave_type.id),
                     ('date', '=', period_anchor),
@@ -429,6 +527,10 @@ class LeaveBalance(models.Model):
                     # Employee Leave Balance): never overwrite it. Manual
                     # edits and deductions are propagated to the later rows
                     # by leave.balance.write, so it is already correct.
+                    # Dubai Annual Leave (DOJ cycle) and the Sick Full/Half Pay
+                    # pools are included: re-running the cron for a period that
+                    # is already open must not rebuild the row from an older
+                    # (or missing) row and wipe approvals already deducted.
                     continue
                 last_balance = self._get_last_balance(user, leave_type, period_anchor)
                 new_balance = self._next_period_balance(leave_type, last_balance, user)
@@ -519,7 +621,8 @@ class LeaveBalance(models.Model):
         - Yearly 'reset' type (Loss of Pay): its yearly value minus approved
           days in the leave year. Monthly 'reset' types (India Sick,
           Permission): monthly value minus approved in this leave month.
-        - Dubai Sick pool: Annual Entitlement minus approved in the year.
+        - Dubai Sick pool (Full / Half Pay): Annual Entitlement minus approved
+          in the year, reset in January only - untouched in other months.
         - 'carry' types (Compensation Leave): back to Starting Balance (0).
         - Dubai Annual Leave (restart-after-leave) is left untouched.
         """
@@ -544,6 +647,10 @@ class LeaveBalance(models.Model):
                     # is no fixed "default" to force it to.
                     continue
                 dubai_pool = leave_type.dubai_annual_pool and user.country == 'dubai'
+                if dubai_pool and first_of_month.month != 1:
+                    # Full / Half Pay Sick pool is a yearly figure that is
+                    # reset only when the new year opens in January.
+                    continue
                 per_year = dubai_pool or (
                     leave_type.balance_unit_period == 'year'
                     and not leave_type.is_permission
@@ -558,7 +665,23 @@ class LeaveBalance(models.Model):
                     ('start_date', '<=', month_end),
                 ]).mapped(field))
 
-                if dubai_pool:
+                if self._uses_doj_cycle(user, leave_type):
+                    window = self._doj_cycle_window(user, first_of_month)
+                    if not window:
+                        continue  # before DOJ: nothing accrues yet
+                    taken = sum(Request.search([
+                        ('user_id', '=', user.id),
+                        ('leave_type_id', '=', leave_type.id),
+                        ('state', '=', 'approved'),
+                        ('start_date', '>=', window[0]),
+                        ('start_date', '<=', month_end),
+                    ]).mapped(field))
+                    accrued = (leave_type.monthly_accrual_days
+                               * self._doj_cycle_months_elapsed(user, first_of_month))
+                    if leave_type.cap_at_entitlement and leave_type.annual_entitlement:
+                        accrued = min(accrued, leave_type.annual_entitlement)
+                    seed = accrued - taken
+                elif dubai_pool:
                     seed = leave_type.annual_entitlement - taken
                 elif leave_type.accrual_mode == 'accrue':
                     # +N per leave month since January, less approved leave

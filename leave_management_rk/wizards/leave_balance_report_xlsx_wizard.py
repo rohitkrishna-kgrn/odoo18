@@ -148,7 +148,7 @@ class LeaveBalanceReportXlsxWizard(models.TransientModel):
                 'employee_code': row.employee_code or '',
                 'department_name': row.department_id.name or '',
                 'country_label': COUNTRY_LABELS.get(row.country, row.country),
-                'leave_type_name': row.leave_type_id.name or '',
+                'leave_type_name': row.leave_type_label or row.leave_type_id.name or '',
                 'period_label': row.period_label or '',
             }
             for col, (field_name, _label) in enumerate(REPORT_COLUMNS):

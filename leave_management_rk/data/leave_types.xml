@@ -28,24 +28,20 @@
 
     <!-- Dubai (UAE)-only leave types. -->
     <data noupdate="1">
-        <!-- 30 days/year = 2.5/month x 12 leave months (client requirement
-             2026-10-01). The cycle is the calendar leave year: January's period
-             (26 Dec - 25 Jan) is the first to accrue, starting from zero
-             (reset_at_year_end forfeits whatever was left in December, and
-             initial_balance stays 0), and December ends at the 30-day cap.
-             Replaces the 2026-09-29 "restart after each completed Annual
-             Leave" rule. 18.0.1.9's migration is what lands these values on
-             live: this xmlid's ir_model_data.noupdate is cleared, but the
-             migration also backfills the balances, which a data file can't. -->
+        <!-- 2 days per leave month, accruing from the employee's DOJ (Employees >
+             Settings > DOJ) and reset to zero on every DOJ anniversary; no cap
+             (client requirement 2026-10-06). Without a DOJ the generic accrue
+             engine applies. 18.0.1.14's migration lands the rule on live and
+             backfills the balances, which a data file can't. -->
         <record id="leave_type_annual_dubai" model="leave.type">
             <field name="name">Annual Leave</field>
             <field name="country_scope">dubai</field>
             <field name="accrual_mode">accrue</field>
-            <field name="monthly_accrual_days">2.5</field>
-            <field name="cap_at_entitlement">True</field>
+            <field name="monthly_accrual_days">2</field>
+            <field name="cap_at_entitlement">False</field>
             <field name="annual_entitlement">30</field>
             <field name="allows_half_day">True</field>
-            <field name="reset_at_year_end">True</field>
+            <field name="reset_at_year_end">False</field>
             <field name="restart_accrual_after_leave">False</field>
         </record>
     </data>
@@ -56,31 +52,45 @@
             <field name="name">Work from Home</field>
             <field name="active" eval="False"/>
         </record>
-        <!-- Sick Leave: ONE type for both countries (client requirement 2026-09-26 —
-             no separate Full Pay / Half Pay leave types). Deliberately in this
-             noupdate="0" block, not the shared block above, so the merge below
-             actually lands on this pre-existing (India-only, country_scope='india')
-             record instead of being silently skipped — see 18.0.1.2/1.3's own
-             noupdate history for why "noupdate=0 on a fresh <data> block" is the
-             reliable way to force an update through to an existing xmlid here.
-             India keeps its existing monthly reset-to-1 behaviour via
-             accrual_mode/monthly_reset_value. Dubai instead uses
-             `dubai_annual_pool`: a carry-forward pool seeded at `annual_entitlement`
-             (45, the UAE full+half pay ceiling) every leave year — see
-             LeaveBalance._get_last_balance/_next_period_balance. The actual Full
-             Pay (first 15 days/year) vs Half Pay (next 30 days/year) salary split
-             is computed in Payroll from approved Sick Leave history, not from this
-             balance pool (see leave_request.get_dubai_sick_pay_split). -->
+        <!-- Sick Leave is now India-only (monthly reset to 1). Dubai (UAE) employees
+             instead pick one of the two types below by hand (client requirement
+             2026-10-06, superseding the 2026-09-26 single-type merge). Each is its
+             own yearly pool - 15 Full Pay days and 30 Half Pay days - carried month to
+             month by `dubai_annual_pool` and reset in January only. Payroll reads the
+             tier from `sick_pay_tier`. Requests already filed by Dubai staff on the
+             plain Sick Leave type stay on it. -->
         <record id="leave_type_sick" model="leave.type">
             <field name="name">Sick Leave</field>
-            <field name="country_scope" eval="False"/>
+            <field name="country_scope">india</field>
             <field name="accrual_mode">reset</field>
             <field name="monthly_reset_value">1</field>
             <field name="allows_half_day">True</field>
             <field name="requires_dha_certificate">True</field>
-            <field name="dubai_annual_pool">True</field>
-            <field name="annual_entitlement">45</field>
+            <field name="dubai_annual_pool" eval="False"/>
+            <field name="annual_entitlement">0</field>
             <field name="balance_unit_period">month</field>
+        </record>
+        <record id="leave_type_sick_full_pay_dubai" model="leave.type">
+            <field name="name">Sick Leave - Full Pay</field>
+            <field name="country_scope">dubai</field>
+            <field name="sick_pay_tier">full</field>
+            <field name="accrual_mode">carry</field>
+            <field name="dubai_annual_pool">True</field>
+            <field name="annual_entitlement">15</field>
+            <field name="allows_half_day">True</field>
+            <field name="requires_dha_certificate">True</field>
+            <field name="balance_unit_period">year</field>
+        </record>
+        <record id="leave_type_sick_half_pay_dubai" model="leave.type">
+            <field name="name">Sick Leave - Half Pay</field>
+            <field name="country_scope">dubai</field>
+            <field name="sick_pay_tier">half</field>
+            <field name="accrual_mode">carry</field>
+            <field name="dubai_annual_pool">True</field>
+            <field name="annual_entitlement">30</field>
+            <field name="allows_half_day">True</field>
+            <field name="requires_dha_certificate">True</field>
+            <field name="balance_unit_period">year</field>
         </record>
         <record id="leave_type_permission" model="leave.type">
             <field name="name">Permission</field>

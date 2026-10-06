@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="leave_management_rk.ListRenderer.GroupRow" t-inherit="web.ListRenderer.GroupRow" t-inherit-mode="primary">
+        <xpath expr="//th[contains(@t-attf-class,'o_group_name')]/div" position="replace">
+            <div class="d-flex align-items-center">
+                <span t-attf-class="o_group_caret fa fa-fw {{group.isFolded ? 'fa-caret-right' : 'fa-caret-down' }} me-1"
+                      t-attf-style="--o-list-group-level: {{getGroupLevel(group)}}"/>
+                <t t-esc="getGroupDisplayName(group)"/>
+            </div>
+        </xpath>
+    </t>
+</templates>

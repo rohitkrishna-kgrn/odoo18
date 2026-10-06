@@ -33,6 +33,7 @@
                 <sheet>
                     <field name="is_permission_type" invisible="1"/>
                     <field name="is_dubai_sick_leave" invisible="1"/>
+                    <field name="is_dubai_sick_pool" invisible="1"/>
                     <field name="employee_country" invisible="1"/>
                     <group>
                         <field name="user_id" readonly="1"/>
