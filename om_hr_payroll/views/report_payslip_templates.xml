@@ -42,7 +42,7 @@
                                 <div class="rkps_title">PAYSLIP</div>
                                 <div class="rkps_subtitle">
                                     Pay Slip for the month of
-                                    <span t-esc="o.date_from" t-options='{"widget": "date", "format": "MMMM yyyy"}'/>
+                                    <span t-esc="o.date_to" t-options='{"widget": "date", "format": "MMMM yyyy"}'/>
                                 </div>
                             </div>
 
