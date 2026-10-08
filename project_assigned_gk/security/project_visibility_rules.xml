@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Project / Task visibility for Project: User.
+
+             Project  : visible to its Project Manager, or to anyone who is an
+                        assignee / team member of at least one of its tasks.
+             Task     : visible to the Project Manager of its project, its
+                        assignees, and its team members - never merely because
+                        the parent project is visible.
+
+             Rules of different groups are OR-ed, so the core rules that
+             granted every non-follower-only project to all Internal Users /
+             Project Users are switched off and replaced.  Administrators are
+             untouched (project.project_project_manager_rule sees all). -->
+
+        <function model="ir.rule" name="write">
+            <value eval="[ref('project.project_public_members_rule'),
+                          ref('project.task_visibility_rule'),
+                          ref('project.task_visibility_rule_project_user'),
+                          ref('project.ir_rule_private_task'),
+                          ref('project.report_project_task_user_rule'),
+                          ref('project.burndown_chart_project_user_rule')]"/>
+            <value eval="{'active': False}"/>
+        </function>
+
+        <!-- Updates and milestones follow the visibility of their project (the
+             condition is spelled out: 'any' does not apply the project rule). -->
+        <function model="ir.rule" name="write">
+            <value eval="[ref('project.update_visibility_rule'),
+                          ref('project.milestone_visibility_rule')]"/>
+            <value eval="{'domain_force': &quot;['|', ('project_id.user_id', '=', user.id), ('project_id.task_ids', 'any', ['|', ('user_ids', 'in', user.id), ('team_member_ids', 'in', user.id)])]&quot;}"/>
+        </function>
+
+        <record id="rule_project_user_project" model="ir.rule">
+            <field name="name">Project: users see projects they manage or work on</field>
+            <field name="model_id" ref="project.model_project_project"/>
+            <field name="groups" eval="[(4, ref('project.group_project_user'))]"/>
+            <field name="domain_force">['|', ('user_id', '=', user.id), ('task_ids', 'any', ['|', ('user_ids', 'in', user.id), ('team_member_ids', 'in', user.id)])]</field>
+        </record>
+
+        <record id="rule_project_user_task" model="ir.rule">
+            <field name="name">Task: users see tasks they manage, are assigned to or are a team member of</field>
+            <field name="model_id" ref="project.model_project_task"/>
+            <field name="groups" eval="[(4, ref('project.group_project_user'))]"/>
+            <field name="perm_create" eval="False"/>
+            <field name="domain_force">['|', '|', ('project_id.user_id', '=', user.id), ('user_ids', 'in', user.id), ('team_member_ids', 'in', user.id)]</field>
+        </record>
+
+        <!-- Creating a task is allowed on any project the user can see; the
+             rule above would otherwise reject a task that only names others. -->
+        <record id="rule_project_user_task_create" model="ir.rule">
+            <field name="name">Task: users may create tasks in projects they can see</field>
+            <field name="model_id" ref="project.model_project_task"/>
+            <field name="groups" eval="[(4, ref('project.group_project_user'))]"/>
+            <field name="perm_read" eval="False"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">['|', ('project_id', '=', False), '|', ('project_id.user_id', '=', user.id), ('project_id.task_ids', 'any', ['|', ('user_ids', 'in', user.id), ('team_member_ids', 'in', user.id)])]</field>
+        </record>
+
+        <!-- Timesheet / time-off records point at each company's Internal project
+             and Time Off task.  Everyone needs to read those (read only), or
+             leave and timesheet screens raise an access error. -->
+        <record id="rule_project_user_internal_project" model="ir.rule">
+            <field name="name">Project: everyone can read the company Internal project</field>
+            <field name="model_id" ref="project.model_project_project"/>
+            <field name="groups" eval="[(4, ref('project.group_project_user'))]"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">[('id', 'in', user.company_ids.internal_project_id.ids)]</field>
+        </record>
+
+        <record id="rule_project_user_timeoff_task" model="ir.rule">
+            <field name="name">Task: everyone can read the company Time Off task</field>
+            <field name="model_id" ref="project.model_project_task"/>
+            <field name="groups" eval="[(4, ref('project.group_project_user'))]"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">[('id', 'in', user.company_ids.leave_timesheet_task_id.ids)]</field>
+        </record>
+
+        <record id="rule_project_user_task_analysis" model="ir.rule">
+            <field name="name">Tasks Analysis: users see their own tasks and projects</field>
+            <field name="model_id" ref="project.model_report_project_task_user"/>
+            <field name="groups" eval="[(4, ref('project.group_project_user'))]"/>
+            <field name="domain_force">['|', '|', ('project_id.user_id', '=', user.id), ('user_ids', 'in', user.id), ('task_id.team_member_ids', 'in', user.id)]</field>
+        </record>
+
+        <record id="rule_project_user_burndown" model="ir.rule">
+            <field name="name">Burndown chart: users see their own tasks and projects</field>
+            <field name="model_id" ref="project.model_project_task_burndown_chart_report"/>
+            <field name="groups" eval="[(4, ref('project.group_project_user'))]"/>
+            <field name="domain_force">['|', ('project_id.user_id', '=', user.id), ('user_ids', 'in', user.id)]</field>
+        </record>
+
+        <!-- Project: Manager (team manager).  Selectable in Users > Services >
+             Project, between User and Administrator.  Read-only visibility of
+             the projects/tasks of the employees whose Employee > Manager is
+             this user (res.users.gk_manager_user_id).  No blanket access. -->
+        <record id="group_project_team_manager" model="res.groups">
+            <field name="name">Manager</field>
+            <field name="category_id" ref="base.module_category_services_project"/>
+            <field name="implied_ids" eval="[(4, ref('project.group_project_user'))]"/>
+        </record>
+
+        <record id="project.group_project_manager" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('group_project_team_manager'))]"/>
+        </record>
+
+        <record id="rule_team_manager_project" model="ir.rule">
+            <field name="name">Project: managers see projects of their direct reports</field>
+            <field name="model_id" ref="project.model_project_project"/>
+            <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">['|', ('user_id.gk_manager_user_id', '=', user.id), ('task_ids', 'any', ['|', ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)])]</field>
+        </record>
+
+        <record id="rule_team_manager_task" model="ir.rule">
+            <field name="name">Task: managers see tasks of their direct reports</field>
+            <field name="model_id" ref="project.model_project_task"/>
+            <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">['|', '|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)]</field>
+        </record>
+
+        <record id="rule_team_manager_update" model="ir.rule">
+            <field name="name">Project updates: managers see those of their direct reports' projects</field>
+            <field name="model_id" ref="project.model_project_update"/>
+            <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">['|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('project_id.task_ids', 'any', ['|', ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)])]</field>
+        </record>
+
+        <record id="rule_team_manager_milestone" model="ir.rule">
+            <field name="name">Milestones: managers see those of their direct reports' projects</field>
+            <field name="model_id" ref="project.model_project_milestone"/>
+            <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">['|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('project_id.task_ids', 'any', ['|', ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)])]</field>
+        </record>
+
+        <record id="rule_team_manager_task_analysis" model="ir.rule">
+            <field name="name">Tasks Analysis: managers see their direct reports' tasks</field>
+            <field name="model_id" ref="project.model_report_project_task_user"/>
+            <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
+            <field name="domain_force">['|', '|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('user_ids.gk_manager_user_id', '=', user.id), ('task_id.team_member_ids.gk_manager_user_id', '=', user.id)]</field>
+        </record>
+
+        <record id="rule_team_manager_burndown" model="ir.rule">
+            <field name="name">Burndown chart: managers see their direct reports' tasks</field>
+            <field name="model_id" ref="project.model_project_task_burndown_chart_report"/>
+            <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
+            <field name="domain_force">['|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('user_ids.gk_manager_user_id', '=', user.id)]</field>
+        </record>
+
+    </data>
+</odoo>

@@ -44,6 +44,7 @@ export class EinvoicingDashboard extends Component {
             currency: "",
             staleDays: 7,
             status_api: false,
+            focus: "",
         });
 
         onWillStart(() => this.load());
@@ -76,11 +77,29 @@ export class EinvoicingDashboard extends Component {
     /** Refresh re-reads the data, and on an unfiltered dashboard clears the
      *  dates on the way — the quick ranges are there when a window is wanted. */
     refresh() {
+        this.state.focus = "";
         if (this.clearDates) {
             this.state.dateFrom = "";
             this.state.dateTo = "";
         }
         this.load();
+    }
+
+    /** Clicking the Proposals (S) / Agreements (SE) header floats the rows that
+     *  have one to the top; a second click, or Refresh, restores the order. */
+    toggleFocus(kind) {
+        this.state.focus = this.state.focus === kind ? "" : kind;
+    }
+
+    get sortedRows() {
+        const kind = this.state.focus;
+        if (!kind) {
+            return this.state.rows;
+        }
+        const key = kind === "proposals" ? "proposal_count" : "agreement_count";
+        const has = this.state.rows.filter((r) => r[key] > 0);
+        const rest = this.state.rows.filter((r) => !(r[key] > 0));
+        return [...has, ...rest];
     }
 
     /** Quick ranges keep the common cases one click away. */
@@ -100,6 +119,9 @@ export class EinvoicingDashboard extends Component {
     }
 
     activityLabel(row) {
+        if (row.is_converted) {
+            return "Converted";
+        }
         if (row.days_since_activity === false) {
             return "—";
         }

@@ -112,9 +112,9 @@
                             <th>Customer</th>
                             <th>Stage</th>
                             <th>Salesperson</th>
-                            <th>Proposals (S)</th>
+                            <th class="kgrn-sortable" t-att-class="{'is-active': state.focus === 'proposals'}" title="Click to show rows with proposals first; click again or Refresh to restore" t-on-click="() => this.toggleFocus('proposals')">Proposals (S) <i class="fa fa-sort-amount-desc"/></th>
                             <th class="num">Expected Value</th>
-                            <th>Agreements (SE)</th>
+                            <th class="kgrn-sortable" t-att-class="{'is-active': state.focus === 'agreements'}" title="Click to show rows with agreements first; click again or Refresh to restore" t-on-click="() => this.toggleFocus('agreements')">Agreements (SE) <i class="fa fa-sort-amount-desc"/></th>
                             <th class="num">Order Value</th>
                             <t t-if="state.status_api">
                                 <th class="mid" title="From the project status tracker — the position of the SE's least advanced entity.">Project Status</th>
@@ -130,7 +130,7 @@
                                 No pipeline records in this period.
                             </td>
                         </tr>
-                        <tr t-foreach="state.rows" t-as="row" t-key="row.id"
+                        <tr t-foreach="sortedRows" t-as="row" t-key="row.id"
                             t-att-class="{ 'is-stale': row.is_stale }"
                             t-on-click="() => this.openLead(row)">
                             <td class="kgrn-ref"><t t-esc="row.crm_ref"/></td>
@@ -177,7 +177,7 @@
                                 </td>
                             </t>
                             <td class="mid">
-                                <span t-att-class="row.is_stale ? 'kgrn-pill is-stale' : 'kgrn-muted'"
+                                <span t-att-class="row.is_converted ? 'kgrn-converted' : (row.is_stale ? 'kgrn-pill is-stale' : 'kgrn-muted')"
                                       t-att-title="row.last_activity">
                                     <t t-esc="activityLabel(row)"/>
                                 </span>

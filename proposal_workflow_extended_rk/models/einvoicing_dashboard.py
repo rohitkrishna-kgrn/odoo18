@@ -333,6 +333,7 @@ class EinvoicingDashboard(models.AbstractModel):
                 'agreement_doc': bool(agreements.filtered('se_generated_on')),
                 'last_activity': fields.Datetime.to_string(last) if last else '',
                 'days_since_activity': days,
+                'is_converted': bool(agreements) or lead.stage_id.name == 'Service Engagement',
                 'is_stale': bool(days is not False and days > STALE_DAYS),
             }
             if scope != 'other':
@@ -370,6 +371,7 @@ class EinvoicingDashboard(models.AbstractModel):
                     'agreement_doc': bool(agreements.filtered('se_generated_on')),
                     'last_activity': '',
                     'days_since_activity': False,
+                    'is_converted': bool(agreements),
                     'is_stale': False,
                 }
                 orphan_row['status_api'] = self._row_status_columns(

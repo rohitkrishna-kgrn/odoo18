@@ -257,6 +257,23 @@ $kgrn-red: #D92D20;
             text-transform: uppercase;
             letter-spacing: .06em;
             white-space: nowrap;
+
+            &.kgrn-sortable {
+                cursor: pointer;
+
+                &:hover, &.is-active {
+                    background: lighten($kgrn-navy, 12%);
+                }
+
+                .fa {
+                    opacity: .6;
+                    margin-left: 4px;
+                }
+
+                &.is-active .fa {
+                    opacity: 1;
+                }
+            }
         }
 
         tbody tr {
@@ -420,6 +437,11 @@ $kgrn-red: #D92D20;
 
     .kgrn-muted {
         color: $kgrn-muted;
+    }
+
+    .kgrn-converted {
+        color: #000;
+        font-weight: 700;
     }
 
     .kgrn-empty {
