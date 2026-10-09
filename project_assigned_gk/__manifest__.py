@@ -1,6 +1,6 @@
 {
     'name': 'Project Assigned GK',
-    'version': '18.0.1.1.0',
+    'version': '18.0.1.4.1',
     'summary': 'Project Users only see projects and tasks they manage, are assigned to, or are a team member of; Project Managers also see their direct reports\' work',
     'category': 'Project',
     'author': 'KGRN',

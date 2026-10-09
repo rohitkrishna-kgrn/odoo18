@@ -589,10 +589,10 @@ class AccountAnalyticLine(models.Model):
             # otherwise fall back to the parent task's team members.
             if subtask_id:
                 subtask = self.env['project.task'].browse(subtask_id)
-                if self.env.user not in subtask.team_member_ids:
+                if self.env.user not in (subtask.team_member_ids | subtask.user_ids):
                     raise ValidationError(("You are not authorized to log time on this sub-task."))
             else:
-                if self.env.user not in task.team_member_ids:
+                if self.env.user not in (task.team_member_ids | task.user_ids):
                     raise ValidationError(("You are not authorized to log time on this task."))
 
         return super(AccountAnalyticLine, self).create(vals)
@@ -632,10 +632,10 @@ class AccountAnalyticLine(models.Model):
                 )
                 if subtask_id:
                     subtask = self.env['project.task'].browse(subtask_id)
-                    if self.env.user not in subtask.team_member_ids:
+                    if self.env.user not in (subtask.team_member_ids | subtask.user_ids):
                         raise ValidationError(("You are not authorized to log time on this sub-task."))
                 else:
-                    if self.env.user not in task.team_member_ids:
+                    if self.env.user not in (task.team_member_ids | task.user_ids):
                         raise ValidationError(("You are not authorized to log time on this task."))
 
         return super(AccountAnalyticLine, self).write(vals)

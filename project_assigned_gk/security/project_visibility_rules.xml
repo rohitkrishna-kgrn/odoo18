@@ -37,7 +37,21 @@
             <field name="name">Project: users see projects they manage or work on</field>
             <field name="model_id" ref="project.model_project_project"/>
             <field name="groups" eval="[(4, ref('project.group_project_user'))]"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
             <field name="domain_force">['|', ('user_id', '=', user.id), ('task_ids', 'any', ['|', ('user_ids', 'in', user.id), ('team_member_ids', 'in', user.id)])]</field>
+        </record>
+
+        <!-- The project's own Project Manager (project.user_id) runs the whole
+             project: full control of it, including when that person is in the
+             team-manager group (which implies Project: User).  Assignees and
+             team members only read the project and edit their tasks. -->
+        <record id="rule_project_pm_full" model="ir.rule">
+            <field name="name">Project: the Project Manager has full control of their project</field>
+            <field name="model_id" ref="project.model_project_project"/>
+            <field name="groups" eval="[(4, ref('project.group_project_user'))]"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
         </record>
 
         <record id="rule_project_user_task" model="ir.rule">
@@ -98,8 +112,7 @@
         </record>
 
         <!-- Project: Manager (team manager).  Selectable in Users > Services >
-             Project, between User and Administrator.  Read-only visibility of
-             the projects/tasks of the employees whose Employee > Manager is
+             Project, between User and Administrator.  Visibility of the projects/tasks of the employees whose Employee > Manager is
              this user (res.users.gk_manager_user_id).  No blanket access. -->
         <record id="group_project_team_manager" model="res.groups">
             <field name="name">Manager</field>
@@ -115,9 +128,9 @@
             <field name="name">Project: managers see projects of their direct reports</field>
             <field name="model_id" ref="project.model_project_project"/>
             <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
-            <field name="perm_create" eval="False"/>
-            <field name="perm_write" eval="False"/>
-            <field name="perm_unlink" eval="False"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
             <field name="domain_force">['|', ('user_id.gk_manager_user_id', '=', user.id), ('task_ids', 'any', ['|', ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)])]</field>
         </record>
 
@@ -125,9 +138,9 @@
             <field name="name">Task: managers see tasks of their direct reports</field>
             <field name="model_id" ref="project.model_project_task"/>
             <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
-            <field name="perm_create" eval="False"/>
-            <field name="perm_write" eval="False"/>
-            <field name="perm_unlink" eval="False"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
             <field name="domain_force">['|', '|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)]</field>
         </record>
 
@@ -135,9 +148,9 @@
             <field name="name">Project updates: managers see those of their direct reports' projects</field>
             <field name="model_id" ref="project.model_project_update"/>
             <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
-            <field name="perm_create" eval="False"/>
-            <field name="perm_write" eval="False"/>
-            <field name="perm_unlink" eval="False"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
             <field name="domain_force">['|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('project_id.task_ids', 'any', ['|', ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)])]</field>
         </record>
 
@@ -145,9 +158,9 @@
             <field name="name">Milestones: managers see those of their direct reports' projects</field>
             <field name="model_id" ref="project.model_project_milestone"/>
             <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
-            <field name="perm_create" eval="False"/>
-            <field name="perm_write" eval="False"/>
-            <field name="perm_unlink" eval="False"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
             <field name="domain_force">['|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('project_id.task_ids', 'any', ['|', ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)])]</field>
         </record>
 

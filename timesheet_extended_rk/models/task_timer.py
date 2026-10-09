@@ -45,8 +45,8 @@ class ProjectTask(models.Model):
         if not attendance:
             raise UserError("You need to be checked in (attendance) before starting a task.")
         
-        # 3. Check if user is assigned in team_member_ids on this task
-        if self.env.user not in self.team_member_ids:
+        # 3. Check if user is a team member or assignee on this task
+        if self.env.user not in (self.team_member_ids | self.user_ids):
             raise UserError("You are not assigned to this task's team members.")
         
         # Existing: Check if user already has active timer for this task
