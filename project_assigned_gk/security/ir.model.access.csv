@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_project_project_user_full,project.project user full,project.model_project_project,project.group_project_user,1,1,1,1
+access_project_collaborator_user_full,project.collaborator user full,project.model_project_collaborator,project.group_project_user,1,1,1,1
+access_project_sale_line_employee_map_user_full,project.sale.line.employee.map user full,sale_timesheet.model_project_sale_line_employee_map,project.group_project_user,1,1,1,1
