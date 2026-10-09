@@ -61,7 +61,11 @@
          Services-specific "quotation" primary view) so they show on every
          Services menu, same pattern as
          view_sales_order_filter_inherit_salesperson_manager in
-         crm_extended_rk. -->
+         crm_extended_rk. "AML Bypassed" domains on aml_is_bypassed (a stored
+         field on sale.order, computed through sudo) rather than
+         aml_request_ids.state directly - the latter forces a real search()
+         on aml.request, which is access-restricted to the AML team, so the
+         filter raised an AccessError for every other Services user. -->
     <record id="view_sales_order_filter_inherit_pending_aml" model="ir.ui.view">
         <field name="name">sale.order.search.inherit.pending.aml</field>
         <field name="model">sale.order</field>
@@ -73,7 +77,7 @@
                 <filter string="AML Forms Sent" name="aml_forms_sent"
                         domain="[('aml_form_status', '=', 'sent')]"/>
                 <filter string="AML Bypassed" name="aml_bypassed"
-                        domain="[('aml_request_ids.state', '=', 'bypassed')]"/>
+                        domain="[('aml_is_bypassed', '=', True)]"/>
             </filter>
         </field>
     </record>

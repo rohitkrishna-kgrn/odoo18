@@ -84,62 +84,128 @@ class MisProjectWise(models.Model):
                 inv_agg AS (
                     SELECT
                         solr.order_line_id,
+                        /* Invoiced = posted customer invoices (incl. debit
+                           notes, which are plain out_invoice + is_debit_note)
+                           net of posted credit notes/refunds against the same
+                           line. Refunds carry their own sale_line_ids row via
+                           the credit-note wizard, so they join here directly. */
                         SUM(
-                            CASE WHEN am.state = 'posted'
-                                 THEN aml.price_subtotal ELSE 0 END
+                            CASE WHEN am.state = 'posted' AND am.move_type = 'out_invoice'
+                                 THEN aml.price_subtotal
+                                 WHEN am.state = 'posted' AND am.move_type = 'out_refund'
+                                 THEN -aml.price_subtotal
+                                 ELSE 0 END
                         )                                                   AS invoiced_ex_vat,
-                        /* Paid = what Odoo Accounting itself shows as settled
-                           on the invoice (Total - Amount Due), apportioned to
-                           this SO line by its share of the invoice. A
-                           part-paid invoice therefore contributes the money
-                           actually received; the old rule tested
-                           payment_state IN ('paid','in_payment') and scored
-                           every partly-paid invoice as zero collected while
-                           leaving its full value in Outstanding. Ratio of two
-                           amounts in the same currency, so no conversion is
-                           needed. */
+                        /* Inc-VAT invoiced uses the invoice line's own
+                           price_total (real tax), not an SO-wide ratio. */
+                        SUM(
+                            CASE WHEN am.state = 'posted' AND am.move_type = 'out_invoice'
+                                 THEN aml.price_total
+                                 WHEN am.state = 'posted' AND am.move_type = 'out_refund'
+                                 THEN -aml.price_total
+                                 ELSE 0 END
+                        )                                                   AS invoiced_inc_vat,
+                        /* Outstanding = the Amount Due Odoo Accounting shows
+                           on each posted invoice, apportioned to this SO line
+                           by its share of the invoice; a refund's own open
+                           balance is subtracted. A credit note reconciled
+                           against an invoice already lowers that invoice's
+                           Amount Due, so it must NOT also be counted as
+                           money Paid (the old Paid = Total - Due did, and
+                           with Invoiced already net of the refund the
+                           credit was taken off twice). Ratio of two amounts
+                           in the same currency, so no conversion needed. */
                         SUM(
                             CASE WHEN am.state = 'posted'
                                       AND COALESCE(am.amount_total, 0) <> 0
-                                 THEN aml.price_subtotal
-                                      * (am.amount_total
-                                         - COALESCE(am.amount_residual, 0))
+                                 THEN (CASE WHEN am.move_type = 'out_invoice'
+                                            THEN aml.price_subtotal
+                                            ELSE -aml.price_subtotal END)
+                                      * COALESCE(am.amount_residual, 0)
                                       / am.amount_total
                                  ELSE 0 END
-                        )                                                   AS paid_ex_vat,
-                        MAX(
+                        )                                                   AS outstanding_ex_vat,
+                        SUM(
                             CASE WHEN am.state = 'posted'
+                                      AND COALESCE(am.amount_total, 0) <> 0
+                                 THEN (CASE WHEN am.move_type = 'out_invoice'
+                                            THEN aml.price_total
+                                            ELSE -aml.price_total END)
+                                      * COALESCE(am.amount_residual, 0)
+                                      / am.amount_total
+                                 ELSE 0 END
+                        )                                                   AS outstanding_inc_vat,
+                        MAX(
+                            CASE WHEN am.state = 'posted' AND am.move_type = 'out_invoice'
                                  THEN am.invoice_date ELSE NULL END
                         )                                                   AS last_invoice_date
                     FROM   sale_order_line_invoice_rel solr
                     JOIN   account_move_line aml ON aml.id = solr.invoice_line_id
                     JOIN   account_move      am  ON am.id  = aml.move_id
-                    WHERE  am.move_type = 'out_invoice'
+                    WHERE  am.move_type IN ('out_invoice', 'out_refund')
                     GROUP  BY solr.order_line_id
                 ),
-                /* "Work Completed" = task marked DONE (kanban stage named
-                   "Done" - the state_additional dropdown is never actually
-                   used in practice, so it is not a usable signal here) +
-                   invoice raised on its SO line + that invoice fully paid.
-                   Same rule as the "Completed & Paid" bucket in
-                   mis.outstanding.line, just expressed at SO-line grain to
-                   match this view's other agg columns
-                   (so_total/invoiced/paid/outstanding). */
-                task_completed AS (
-                    SELECT pt.sale_line_id, COUNT(*) AS completed_task_count
+                /* Work Completed / Completed now use the project's whole
+                   task list (not gated on a task carrying its own
+                   sale_line_id — about a fifth of active tasks don't) so the ratio
+                   matches "SO Total / Total Tasks x Completed Tasks" at
+                   project grain, one row per project since project<->SO-line
+                   is 1:1 in this DB. */
+                task_agg AS (
+                    SELECT pt.project_id,
+                           COUNT(*)                                        AS tasks_total,
+                           SUM(CASE WHEN (ptt.name->>'en_US') = 'Done'
+                               THEN 1 ELSE 0 END)                          AS tasks_completed
                     FROM   project_task pt
-                    JOIN   project_task_type ptt ON ptt.id = pt.stage_id
-                    WHERE  pt.active = TRUE AND (ptt.name->>'en_US') = 'Done'
-                    GROUP  BY pt.sale_line_id
+                    LEFT JOIN project_task_type ptt ON ptt.id = pt.stage_id
+                    WHERE  pt.active = TRUE
+                    GROUP  BY pt.project_id
                 ),
-                sol_paid AS (
-                    SELECT DISTINCT solr.order_line_id AS sale_line_id
-                    FROM   sale_order_line_invoice_rel solr
-                    JOIN   account_move_line aml ON aml.id = solr.invoice_line_id
-                    JOIN   account_move      am  ON am.id  = aml.move_id
-                    WHERE  am.state         = 'posted'
-                    AND    am.payment_state IN ('paid', 'in_payment')
-                    AND    am.move_type     = 'out_invoice'
+                /* Project-Manager reassignment: project.project.user_id and
+                   stage_id are both tracked (mail_tracking_value), so we can
+                   tell whether a PM change happened before or after the
+                   project reached its 'Done' stage. Not-yet-completed
+                   projects, and completed projects whose last PM change
+                   predates completion, keep showing pp.user_id (today's
+                   behaviour, already correct). Only a PM change that landed
+                   *after* completion is suppressed, falling back to the PM
+                   in effect at the moment of completion. */
+                pm_changes AS (
+                    SELECT mm.res_id                AS project_id,
+                           mm.date,
+                           mtv.old_value_integer     AS old_pm,
+                           mtv.new_value_integer     AS new_pm
+                    FROM   mail_tracking_value mtv
+                    JOIN   mail_message      mm ON mm.id = mtv.mail_message_id
+                    JOIN   ir_model_fields   f  ON f.id  = mtv.field_id
+                    WHERE  f.model = 'project.project' AND f.name = 'user_id'
+                ),
+                stage_done_at AS (
+                    SELECT mm.res_id AS project_id, MIN(mm.date) AS done_at
+                    FROM   mail_tracking_value mtv
+                    JOIN   mail_message        mm  ON mm.id  = mtv.mail_message_id
+                    JOIN   ir_model_fields     f   ON f.id   = mtv.field_id
+                    JOIN   project_project_stage pps ON pps.id = mtv.new_value_integer
+                    WHERE  f.model = 'project.project' AND f.name = 'stage_id'
+                    AND    (pps.name->>'en_US') = 'Done'
+                    GROUP  BY mm.res_id
+                ),
+                last_pm_change AS (
+                    SELECT DISTINCT ON (project_id) project_id, date AS last_change_date
+                    FROM   pm_changes
+                    ORDER  BY project_id, date DESC
+                ),
+                pm_before_or_at AS (
+                    SELECT DISTINCT ON (pc.project_id) pc.project_id, pc.new_pm AS pm_value
+                    FROM   pm_changes pc
+                    JOIN   stage_done_at sda ON sda.project_id = pc.project_id
+                    WHERE  pc.date <= sda.done_at
+                    ORDER  BY pc.project_id, pc.date DESC
+                ),
+                pm_first_change AS (
+                    SELECT DISTINCT ON (project_id) project_id, old_pm AS pm_value
+                    FROM   pm_changes
+                    ORDER  BY project_id, date ASC
                 )
                 SELECT
                     sol.id                                                   AS id,
@@ -148,7 +214,12 @@ class MisProjectWise(models.Model):
                         pp.name->>'en_US',
                         (SELECT value FROM jsonb_each_text(pp.name) LIMIT 1)
                     )                                                        AS project_name,
-                    pp.user_id                                               AS project_manager_id,
+                    CASE
+                        WHEN sda.done_at IS NULL THEN pp.user_id
+                        WHEN lpc.last_change_date IS NULL
+                             OR lpc.last_change_date <= sda.done_at THEN pp.user_id
+                        ELSE COALESCE(pba.pm_value, pfc.pm_value, pp.user_id)
+                    END                                                       AS project_manager_id,
                     pp.department_id                                         AS department_id,
                     pp.company_id                                            AS company_id,
                     so.id                                                    AS sale_order_id,
@@ -174,32 +245,36 @@ class MisProjectWise(models.Model):
                          THEN (sol.price_total / sol.product_uom_qty) * sol.qty_delivered
                          ELSE 0 END                                         AS delivered_value_inc_vat,
 
-                    CASE WHEN sp.sale_line_id IS NOT NULL AND sol.product_uom_qty > 0
-                         THEN (sol.price_subtotal / sol.product_uom_qty)
-                              * COALESCE(tc.completed_task_count, 0)
+                    /* SO Total / Total Tasks x Completed Tasks, at project
+                       grain (ta.tasks_total/tasks_completed cover every
+                       active task in the project, not just ones carrying
+                       their own sale_line_id). Uses this project's own SO
+                       LINE subtotal, not the whole so.amount_untaxed — about
+                       a third of sale orders here split across multiple projects
+                       (1,750 distinct SOs for 2,580 projects), and unlike
+                       so_total_ex_vat (which the UI dedupes via
+                       aggDistinct: "sale_order_id"), this column is summed
+                       as-is, so it must already be scoped to this project's
+                       own share or a shared SO's value would be counted once
+                       per sibling project. */
+                    CASE WHEN COALESCE(ta.tasks_total, 0) > 0
+                         THEN sol.price_subtotal / ta.tasks_total
+                              * COALESCE(ta.tasks_completed, 0)
                          ELSE 0 END                                         AS work_completed_value_ex_vat,
 
                     so.amount_untaxed                                        AS so_total_ex_vat,
                     so.amount_total                                          AS so_total_inc_vat,
 
                     COALESCE(ia.invoiced_ex_vat, 0)                         AS invoiced_ex_vat,
-                    CASE WHEN so.amount_untaxed > 0
-                         THEN COALESCE(ia.invoiced_ex_vat, 0)
-                              * (so.amount_total / so.amount_untaxed)
-                         ELSE COALESCE(ia.invoiced_ex_vat, 0) END           AS invoiced_inc_vat,
-                    COALESCE(ia.paid_ex_vat, 0)                             AS paid_ex_vat,
-                    CASE WHEN so.amount_untaxed > 0
-                         THEN COALESCE(ia.paid_ex_vat, 0)
-                              * (so.amount_total / so.amount_untaxed)
-                         ELSE COALESCE(ia.paid_ex_vat, 0) END               AS paid_inc_vat,
+                    COALESCE(ia.invoiced_inc_vat, 0)                        AS invoiced_inc_vat,
+                    /* Paid = Invoiced - Outstanding, so the three always
+                       reconcile to the invoices themselves. */
                     COALESCE(ia.invoiced_ex_vat, 0)
-                        - COALESCE(ia.paid_ex_vat, 0)                       AS outstanding_ex_vat,
-                    CASE WHEN so.amount_untaxed > 0
-                         THEN (COALESCE(ia.invoiced_ex_vat, 0)
-                               - COALESCE(ia.paid_ex_vat, 0))
-                              * (so.amount_total / so.amount_untaxed)
-                         ELSE COALESCE(ia.invoiced_ex_vat, 0)
-                              - COALESCE(ia.paid_ex_vat, 0) END             AS outstanding_inc_vat,
+                        - COALESCE(ia.outstanding_ex_vat, 0)                AS paid_ex_vat,
+                    COALESCE(ia.invoiced_inc_vat, 0)
+                        - COALESCE(ia.outstanding_inc_vat, 0)               AS paid_inc_vat,
+                    COALESCE(ia.outstanding_ex_vat, 0)                      AS outstanding_ex_vat,
+                    COALESCE(ia.outstanding_inc_vat, 0)                     AS outstanding_inc_vat,
 
                     so.advance_amount                                        AS advance_amount,
                     CASE WHEN COALESCE(slc.cnt, 0) > 0
@@ -219,9 +294,14 @@ class MisProjectWise(models.Model):
                          THEN (CURRENT_DATE - ia.last_invoice_date)::integer
                          ELSE NULL END                                      AS invoice_days_ago,
 
-                    /* completed = fully delivered */
-                    (sol.qty_delivered >= sol.product_uom_qty
-                     AND sol.product_uom_qty > 0)                           AS is_completed,
+                    /* completed = every task in the project is Done AND the
+                       project itself has reached its 'Done' stage */
+                    COALESCE(
+                        COALESCE(ta.tasks_total, 0) > 0
+                        AND ta.tasks_total = COALESCE(ta.tasks_completed, 0)
+                        AND (pps.name->>'en_US') = 'Done',
+                        FALSE
+                    )                                                       AS is_completed,
 
                     rc.currency_id                                           AS currency_id
 
@@ -231,9 +311,14 @@ class MisProjectWise(models.Model):
                 JOIN  res_company      rc  ON rc.id          = pp.company_id
                 LEFT JOIN inv_agg      ia  ON ia.order_line_id = sol.id
                 LEFT JOIN so_line_count slc ON slc.order_id   = so.id
-                LEFT JOIN task_completed tc ON tc.sale_line_id = sol.id
-                LEFT JOIN sol_paid      sp  ON sp.sale_line_id = sol.id
+                LEFT JOIN task_agg     ta  ON ta.project_id  = pp.id
+                LEFT JOIN project_project_stage pps ON pps.id = pp.stage_id
+                LEFT JOIN stage_done_at sda ON sda.project_id = pp.id
+                LEFT JOIN last_pm_change lpc ON lpc.project_id = pp.id
+                LEFT JOIN pm_before_or_at pba ON pba.project_id = pp.id
+                LEFT JOIN pm_first_change pfc ON pfc.project_id = pp.id
                 WHERE pp.active = TRUE
+                AND   so.state <> 'cancel'
             )
         """ % self._table)
 
@@ -277,11 +362,23 @@ class MisProjectWise(models.Model):
         is the period-aware counterpart, called by the report UI when an
         Invoice Date range is applied.
 
+        Either bound may be omitted (falsy) for an open-ended range — an
+        unset bound is treated as -infinity/+infinity rather than requiring
+        both to be filled in before anything is computed.
+
+        Also returns has_activity_in_range: whether the SO line has ANY
+        posted invoice/refund dated inside [date_from, date_to], which is
+        what the "Invoice Date" filter uses to decide whether to include a
+        project at all — a project can have several invoices, and one
+        falling inside the selected range must be enough to include it, even
+        if that project's *last* invoice (last_invoice_date) falls outside.
+
         Returns {sale_order_line_id: {invoiced_ex_vat, invoiced_inc_vat,
                                        paid_ex_vat, paid_inc_vat,
-                                       outstanding_ex_vat, outstanding_inc_vat}}
+                                       outstanding_ex_vat, outstanding_inc_vat,
+                                       has_activity_in_range}}
         """
-        if not ids or not date_from or not date_to:
+        if not ids or not (date_from or date_to):
             return {}
 
         # Re-apply row-level access control server-side (defense in depth —
@@ -316,46 +413,70 @@ class MisProjectWise(models.Model):
                 WHERE  aa.account_type = 'asset_receivable'
             ),
             recon AS (
+                /* Cash movements only. An invoice's receivable line
+                   reconciled against a payment counts as money in; a
+                   credit note's receivable line reconciled against a payment
+                   counts as money paid back out (negative, below). A credit
+                   note reconciled directly against an invoice is neither -
+                   it is already netted off Invoiced, so counting it here
+                   would take it off twice. */
                 SELECT
                     rl.move_id AS invoice_move_id,
                     pr.max_date,
-                    CASE WHEN pr.debit_move_id = rl.recv_line_id
-                         THEN pr.debit_amount_currency
-                         ELSE pr.credit_amount_currency END AS amount
+                    (CASE WHEN pr.debit_move_id = rl.recv_line_id
+                          THEN pr.debit_amount_currency
+                          ELSE pr.credit_amount_currency END)
+                    * (CASE WHEN rm.move_type = 'out_refund'
+                            THEN -1 ELSE 1 END)             AS amount
                 FROM   account_partial_reconcile pr
                 JOIN   recv_lines rl
                        ON rl.recv_line_id = pr.debit_move_id
                        OR rl.recv_line_id = pr.credit_move_id
+                JOIN   account_move rm ON rm.id = rl.move_id
+                                      AND rm.move_type IN ('out_invoice', 'out_refund')
+                JOIN   account_move_line cl
+                       ON cl.id = CASE WHEN rl.recv_line_id = pr.debit_move_id
+                                       THEN pr.credit_move_id
+                                       ELSE pr.debit_move_id END
+                JOIN   account_move cm ON cm.id = cl.move_id
+                                      AND cm.move_type NOT IN ('out_invoice', 'out_refund')
             ),
             paid_period_by_move AS (
                 SELECT invoice_move_id, SUM(amount) AS amount
                 FROM   recon
-                WHERE  max_date BETWEEN %(date_from)s AND %(date_to)s
+                WHERE  max_date BETWEEN COALESCE(%(date_from)s, '-infinity'::date)
+                                 AND    COALESCE(%(date_to)s,   'infinity'::date)
                 GROUP  BY invoice_move_id
             ),
             paid_to_date_by_move AS (
                 SELECT invoice_move_id, SUM(amount) AS amount
                 FROM   recon
-                WHERE  max_date <= %(date_to)s
+                WHERE  max_date <= COALESCE(%(date_to)s, 'infinity'::date)
                 GROUP  BY invoice_move_id
             )
             SELECT
                 im.sol_id,
 
-                SUM(CASE WHEN im.invoice_date BETWEEN %(date_from)s AND %(date_to)s
+                BOOL_OR(im.invoice_date BETWEEN COALESCE(%(date_from)s, '-infinity'::date)
+                                         AND    COALESCE(%(date_to)s,   'infinity'::date)
+                )                                                           AS has_activity_in_range,
+
+                SUM(CASE WHEN im.invoice_date BETWEEN COALESCE(%(date_from)s, '-infinity'::date)
+                                              AND    COALESCE(%(date_to)s,   'infinity'::date)
                          THEN (CASE WHEN im.move_type = 'out_invoice'
                                     THEN im.price_subtotal ELSE -im.price_subtotal END)
                          ELSE 0 END)                                        AS invoiced_ex_vat,
-                SUM(CASE WHEN im.invoice_date BETWEEN %(date_from)s AND %(date_to)s
+                SUM(CASE WHEN im.invoice_date BETWEEN COALESCE(%(date_from)s, '-infinity'::date)
+                                              AND    COALESCE(%(date_to)s,   'infinity'::date)
                          THEN (CASE WHEN im.move_type = 'out_invoice'
                                     THEN im.price_total ELSE -im.price_total END)
                          ELSE 0 END)                                        AS invoiced_inc_vat,
 
-                SUM(CASE WHEN im.invoice_date <= %(date_to)s
+                SUM(CASE WHEN im.invoice_date <= COALESCE(%(date_to)s, 'infinity'::date)
                          THEN (CASE WHEN im.move_type = 'out_invoice'
                                     THEN im.price_subtotal ELSE -im.price_subtotal END)
                          ELSE 0 END)                                        AS invoiced_ex_vat_to_date,
-                SUM(CASE WHEN im.invoice_date <= %(date_to)s
+                SUM(CASE WHEN im.invoice_date <= COALESCE(%(date_to)s, 'infinity'::date)
                          THEN (CASE WHEN im.move_type = 'out_invoice'
                                     THEN im.price_total ELSE -im.price_total END)
                          ELSE 0 END)                                        AS invoiced_inc_vat_to_date,
@@ -380,8 +501,8 @@ class MisProjectWise(models.Model):
             GROUP BY im.sol_id
         """, {
             'ids': allowed_ids,
-            'date_from': date_from,
-            'date_to': date_to,
+            'date_from': date_from or None,
+            'date_to': date_to or None,
         })
 
         result = {}
@@ -397,6 +518,7 @@ class MisProjectWise(models.Model):
                 'paid_inc_vat': row['paid_inc_vat'] or 0,
                 'outstanding_ex_vat': invoiced_ex_vat_to_date - paid_ex_vat_to_date,
                 'outstanding_inc_vat': invoiced_inc_vat_to_date - paid_inc_vat_to_date,
+                'has_activity_in_range': bool(row['has_activity_in_range']),
             }
         return result
 

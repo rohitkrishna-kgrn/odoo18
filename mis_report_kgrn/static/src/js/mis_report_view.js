@@ -567,6 +567,7 @@ export class MisReportView extends Component {
         const pr0 = this.config.periodRecompute;
         for (const [field, range] of Object.entries(this.state.dates)) {
             const isMonthBucket = pr0 && pr0.dateField === field && pr0.monthBucket;
+            const isActivityField = pr0 && pr0.dateField === field && !pr0.monthBucket;
             if (isMonthBucket) {
                 // Month-bucket fields (e.g. Performance's period_date) store
                 // the 1st of the month: compare at 'YYYY-MM' granularity so
@@ -581,6 +582,16 @@ export class MisReportView extends Component {
                     const toMonth = rowMonth(range.to);
                     recs = recs.filter((r) => r[field] && rowMonth(r[field]) <= toMonth);
                 }
+            } else if (isActivityField && this.state.periodOverlay && (range.from || range.to)) {
+                // Invoice Date must include a project if ANY of its invoices
+                // falls in range, not just its latest one (the field itself,
+                // e.g. last_invoice_date, only ever holds the latest date).
+                // has_activity_in_range comes from the server
+                // (periodRecompute.method), which checked every invoice.
+                // Until that resolves, fall through to the plain scalar
+                // compare below as an instant (slightly approximate) filter.
+                const overlay = this.state.periodOverlay;
+                recs = recs.filter((r) => overlay[r.id]?.has_activity_in_range);
             } else {
                 if (range.from) recs = recs.filter((r) => r[field] && r[field] >= range.from);
                 if (range.to) recs = recs.filter((r) => r[field] && r[field] <= range.to);
@@ -717,20 +728,23 @@ export class MisReportView extends Component {
         this.applyFilters();
     }
 
-    // Fetch period-scoped Invoiced/Paid/Outstanding from the server whenever
-    // both bounds of the configured period field are set; otherwise fall
-    // back to the lifetime totals already loaded on each record.
+    // Fetch period-scoped Invoiced/Paid/Outstanding (and, for a plain date
+    // field, has_activity_in_range — see applyFilters) from the server
+    // whenever at least one bound of the configured period field is set;
+    // otherwise fall back to the lifetime totals already loaded on each
+    // record. Either bound may be blank for an open-ended range — the
+    // server treats a missing bound as -infinity/+infinity.
     async maybeRecomputePeriod(changedField) {
         const pr = this.config.periodRecompute;
         if (!pr || changedField !== pr.dateField) return;
 
         const range = this.state.dates[pr.dateField];
-        if (range.from && range.to) {
+        if (range.from || range.to) {
             const ids = this.state.allRecords.map((r) => r.id);
             this.state.periodOverlay = await this.orm.call(
                 this.config.resModel,
                 pr.method,
-                [ids, range.from, range.to]
+                [ids, range.from || false, range.to || false]
             );
         } else {
             this.state.periodOverlay = null;

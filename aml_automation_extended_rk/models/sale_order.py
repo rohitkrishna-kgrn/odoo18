@@ -109,6 +109,24 @@ class SaleOrder(models.Model):
             latest = order.sudo().aml_request_ids.sorted('create_date', reverse=True)[:1]
             order.aml_bypass_reason = latest.bypass_reason if latest.state == 'bypassed' else False
 
+    # Stored (not just computed) so the "AML Bypassed" search filter can run
+    # a plain domain against it, same as aml_gate_completed above. The filter
+    # used to domain straight on 'aml_request_ids.state' - fine for the AML
+    # team, but that dot-path forces a real search() on aml.request, which
+    # calls check_access() and raises an AccessError for every other Services
+    # user (nobody outside group_aml_user/group_aml_manager has read access
+    # to aml.request), so the filter only worked for the AML team.
+    aml_is_bypassed = fields.Boolean(
+        string='AML/KYC Bypassed', compute='_compute_aml_is_bypassed',
+        store=True,
+    )
+
+    @api.depends('aml_request_ids.state')
+    def _compute_aml_is_bypassed(self):
+        for order in self:
+            latest = order.sudo().aml_request_ids.sorted('create_date', reverse=True)[:1]
+            order.aml_is_bypassed = bool(latest) and latest.state == 'bypassed'
+
     def _check_aml_action_rights(self):
         """Guard for action_send_aml_form / action_open_aml_bypass_wizard: limited
         to the AML team (group_aml_user, implied by group_aml_manager) or the

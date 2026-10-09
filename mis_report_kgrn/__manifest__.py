@@ -1,6 +1,6 @@
 {
     'name': 'MIS Dashboard',
-    'version': '18.0.4.2.0',
+    'version': '18.0.4.5.0',
     'summary': 'Project-wise MIS Dashboard & Outstanding Report',
     'category': 'Project',
     'author': 'KGRN',

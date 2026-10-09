@@ -14,25 +14,6 @@
             <field name="perm_unlink" eval="False"/>
         </record>
 
-        <!-- AML Users also see Draft/New requests regardless of assignment -
-             Accept/Bypass/Cancel/Resend KYC Email (now open to AML Users,
-             same as AML Managers) only ever apply before an officer has been
-             assigned, so the officer-assigned rule above would otherwise hide
-             every one of these records from a plain AML User. Combines with
-             the rule above via OR (same group, non-global rules OR together
-             in Odoo), so a User sees: their own assigned cases in any state,
-             plus every Draft/New case regardless of assignment. -->
-        <record id="rule_aml_request_user_new_draft" model="ir.rule">
-            <field name="name">AML Request: User also sees Draft/New records (pre-assignment)</field>
-            <field name="model_id" ref="model_aml_request"/>
-            <field name="domain_force">[('state', 'in', ('draft', 'new'))]</field>
-            <field name="groups" eval="[(4, ref('group_aml_user'))]"/>
-            <field name="perm_read" eval="True"/>
-            <field name="perm_write" eval="True"/>
-            <field name="perm_create" eval="False"/>
-            <field name="perm_unlink" eval="False"/>
-        </record>
-
         <!-- AML Managers see/access all requests regardless of assignment -->
         <record id="rule_aml_request_manager_all" model="ir.rule">
             <field name="name">AML Request: Manager sees all records</field>
@@ -46,4 +27,17 @@
         </record>
 
     </data>
+
+    <!-- rule_aml_request_user_new_draft used to also give AML Users every
+         Draft/New record regardless of assignment, so an unassigned request
+         showed up in a plain User's "New AML Requests" menu (only Managers
+         should see unassigned ones - they're the ones who assign the AML
+         Officer). Dropped in favour of rule_aml_request_officer_assigned
+         alone: a User now only ever sees a request once it is assigned to
+         them, in any state. Deliberately OUTSIDE noupdate="1" so this also
+         repairs a database that installed the old rule before this change -
+         ir.model.data._process_end skips noupdate rows, so removing the
+         <record> above never deletes it on its own. Idempotent: a no-op once
+         the old rule is gone. -->
+    <function model="aml.request" name="_migrate_drop_new_draft_visibility_rule"/>
 </odoo>

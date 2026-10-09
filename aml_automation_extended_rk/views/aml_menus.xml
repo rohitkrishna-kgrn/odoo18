@@ -9,7 +9,11 @@
         web_icon="aml_automation_extended_rk,static/description/icon.png"/>
 
     <!-- New AML Requests – Managers and AML Users (screening queue: Accept,
-         Bypass, Cancel, Resend KYC Email are all available to both roles) -->
+         Bypass, Cancel, Resend KYC Email are all available to both roles).
+         An AML User only ever sees a request here once it is assigned to
+         them (rule_aml_request_officer_assigned in aml_record_rules.xml) -
+         an unassigned one is Manager-only until a Manager sets the AML
+         Officer. -->
     <menuitem id="menu_aml_new_requests"
         name="New AML Requests"
         parent="menu_aml_root"

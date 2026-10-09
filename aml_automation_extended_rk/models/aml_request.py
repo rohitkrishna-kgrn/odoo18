@@ -312,6 +312,20 @@ class AmlRequest(models.Model):
         for record in self:
             record.access_url = '/aml/form/%s' % (record.access_token or '')
 
+    @api.model
+    def _migrate_drop_new_draft_visibility_rule(self):
+        """One-off: drop the old rule_aml_request_user_new_draft ir.rule that
+        let any AML User see every unassigned Draft/New request. Runs from
+        security/aml_record_rules.xml, outside noupdate, so it also repairs a
+        database that installed the rule before this change. Idempotent: a
+        no-op once the rule is gone."""
+        rule = self.env.ref(
+            'aml_automation_extended_rk.rule_aml_request_user_new_draft',
+            raise_if_not_found=False,
+        )
+        if rule:
+            rule.sudo().unlink()
+
     # =========================================================================
     # CRUD
     # =========================================================================
