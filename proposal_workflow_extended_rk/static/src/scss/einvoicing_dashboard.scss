@@ -230,6 +230,12 @@ $kgrn-red: #D92D20;
         padding: 14px 16px 12px;
         border-bottom: 1px solid $kgrn-border;
 
+        .kgrn-actions {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
+
         h2 {
             margin: 0;
             font-size: 14px;

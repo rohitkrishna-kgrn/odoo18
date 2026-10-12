@@ -39,6 +39,7 @@
             'crm_extended_rk/static/src/css/crm_lead_form.css',
             'crm_extended_rk/static/src/js/crm_lead_statusbar.js',
             'crm_extended_rk/static/src/js/sale_team_filter_groupby.js',
+            'crm_extended_rk/static/src/js/crm_list_export.js',
         ],
     },
     'installable': True,

@@ -102,11 +102,27 @@
             <div class="kgrn-card">
                 <div class="kgrn-card-head">
                     <h2>By Pipeline Record</h2>
+                    <div t-if="state.canExport" class="kgrn-actions">
+                        <span t-if="selectedCount" class="kgrn-muted me-2"><t t-esc="selectedCount"/> selected</span>
+                        <Dropdown>
+                            <button class="kgrn-refresh" title="Actions">
+                                <i class="fa fa-cog"/>
+                            </button>
+                            <t t-set-slot="content">
+                                <DropdownItem onSelected="() => this.exportExcel()">
+                                    <i class="fa fa-upload me-1"/> Export
+                                </DropdownItem>
+                            </t>
+                        </Dropdown>
+                    </div>
                 </div>
                 <div class="kgrn-table-wrap">
                 <table class="kgrn-table">
                     <thead>
                         <tr>
+                            <th t-if="state.canExport" class="mid">
+                                <input type="checkbox" t-att-checked="allSelected" t-on-change="() => this.toggleAll()"/>
+                            </th>
                             <th>CRM Ref</th>
                             <th>Opportunity</th>
                             <th>Customer</th>
@@ -126,13 +142,17 @@
                     </thead>
                     <tbody>
                         <tr t-if="!state.rows.length">
-                            <td t-att-colspan="state.status_api ? 13 : 10" class="kgrn-empty">
+                            <td t-att-colspan="(state.status_api ? 13 : 10) + (state.canExport ? 1 : 0)" class="kgrn-empty">
                                 No pipeline records in this period.
                             </td>
                         </tr>
                         <tr t-foreach="sortedRows" t-as="row" t-key="row.id"
                             t-att-class="{ 'is-stale': row.is_stale }"
                             t-on-click="() => this.openLead(row)">
+                            <td t-if="state.canExport" class="mid" t-on-click="(ev) => ev.stopPropagation()">
+                                <input type="checkbox" t-att-checked="state.selected[row._k]"
+                                       t-on-change="() => this.toggleRow(row._k)"/>
+                            </td>
                             <td class="kgrn-ref"><t t-esc="row.crm_ref"/></td>
                             <td class="kgrn-name"><t t-esc="row.name"/></td>
                             <td><t t-esc="row.partner"/></td>

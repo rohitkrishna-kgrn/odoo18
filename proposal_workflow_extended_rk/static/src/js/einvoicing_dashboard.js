@@ -3,6 +3,9 @@
 import { Component, onWillStart, useState } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { user } from "@web/core/user";
+import { Dropdown } from "@web/core/dropdown/dropdown";
+import { DropdownItem } from "@web/core/dropdown/dropdown_item";
 
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -13,6 +16,7 @@ function toISO(date) {
 export class EinvoicingDashboard extends Component {
     static template = "proposal_workflow_extended_rk.EinvoicingDashboard";
     static props = ["*"];
+    static components = { Dropdown, DropdownItem };
 
     setup() {
         this.orm = useService("orm");
@@ -45,9 +49,14 @@ export class EinvoicingDashboard extends Component {
             staleDays: 7,
             status_api: false,
             focus: "",
+            canExport: false,
+            selected: {},
         });
 
-        onWillStart(() => this.load());
+        onWillStart(async () => {
+            this.state.canExport = await user.hasGroup("sales_team.group_sale_manager");
+            await this.load();
+        });
     }
 
     async load() {
@@ -66,6 +75,8 @@ export class EinvoicingDashboard extends Component {
                 }
             );
             Object.assign(this.state, data);
+            this.state.rows.forEach((r, i) => (r._k = i));
+            this.state.selected = {};
             this.state.staleDays = data.stale_days;
         } catch (error) {
             this.state.error = error.data ? error.data.message : error.message;
@@ -100,6 +111,100 @@ export class EinvoicingDashboard extends Component {
         const has = this.state.rows.filter((r) => r[key] > 0);
         const rest = this.state.rows.filter((r) => !(r[key] > 0));
         return [...has, ...rest];
+    }
+
+    // ── Row selection + Excel export ─────────────────────────────────────
+    // Rows are keyed by `_k`, their position when loaded: the table can be
+    // re-sorted and the "(No pipeline record)" row has no id.
+    get selectedCount() {
+        return Object.values(this.state.selected).filter(Boolean).length;
+    }
+
+    /** What "select all" covers: with the Proposals (S) / Agreements (SE)
+     *  header active, only the rows that have one; otherwise every row. */
+    get selectableRows() {
+        const kind = this.state.focus;
+        if (!kind) {
+            return this.state.rows;
+        }
+        const key = kind === "proposals" ? "proposal_count" : "agreement_count";
+        return this.state.rows.filter((r) => r[key] > 0);
+    }
+
+    get allSelected() {
+        const rows = this.selectableRows;
+        return rows.length > 0 && rows.every((r) => this.state.selected[r._k]);
+    }
+
+    toggleRow(index) {
+        this.state.selected[index] = !this.state.selected[index];
+    }
+
+    toggleAll() {
+        const on = !this.allSelected;
+        this.state.selected = {};
+        if (on) {
+            this.selectableRows.forEach((r) => (this.state.selected[r._k] = true));
+        }
+    }
+
+    async exportExcel() {
+        const rows = this.state.rows.filter((r) => this.state.selected[r._k]);
+        if (!rows.length) {
+            this.env.services.notification.add("Select at least one record to export.", {
+                type: "warning",
+            });
+            return;
+        }
+        const columns = [
+            { name: "crm_ref", label: "CRM Ref" },
+            { name: "name", label: "Opportunity" },
+            { name: "partner", label: "Customer" },
+            { name: "stage", label: "Stage" },
+            { name: "salesperson", label: "Salesperson" },
+            { name: "proposals", label: "Proposals (S)" },
+            { name: "proposal_value", label: "Expected Value", type: "number" },
+            { name: "agreements", label: "Agreements (SE)" },
+            { name: "agreement_value", label: "Order Value", type: "number" },
+        ];
+        if (this.state.status_api) {
+            columns.push(
+                { name: "project_status", label: "Project Status" },
+                { name: "uat", label: "UAT AR/AP" },
+                { name: "live", label: "Live AR/AP" }
+            );
+        }
+        columns.push({ name: "activity", label: "Last Activity" });
+        const data = rows.map((row) => ({
+            ...row,
+            proposals: (row.proposal_names || []).join(", "),
+            agreements: (row.agreement_names || []).join(", "),
+            project_status: row.status_api && row.status_api.project_status,
+            uat: row.status_api && row.status_api.uat && row.status_api.uat.label,
+            live: row.status_api && row.status_api.live && row.status_api.live.label,
+            activity: this.activityLabel(row),
+        }));
+        let resp;
+        try {
+            resp = await fetch("/proposal_workflow_extended_rk/export/dashboard_xlsx", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: this.state.title, columns, rows: data }),
+            });
+        } catch (e) {
+            resp = null;
+        }
+        if (!resp || !resp.ok) {
+            this.env.services.notification.add("The Excel export failed.", { type: "danger" });
+            return;
+        }
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(await resp.blob());
+        link.download = `${this.state.title.replace(/\s+/g, "_")}_${toISO(new Date())}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(link.href);
     }
 
     /** Quick ranges keep the common cases one click away. */
