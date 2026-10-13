@@ -1,6 +1,6 @@
 {
     'name': 'Project Extended RK',
-    'version': '1.14',
+    'version': '1.15',
     'depends': ['project', 'sale', 'sale_timesheet', 'account', 'hr_timesheet', 'crm_extended_rk', 'aml_automation_extended_rk'],
     'author': 'Rohit',
     'category': 'Project',
@@ -24,6 +24,12 @@
         'data/deadline_alert_cron.xml',
         'data/project_hold_stage.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'project_extended_rk/static/src/js/task_date_range_filter.js',
+            'project_extended_rk/static/src/xml/task_date_range_filter.xml',
+        ],
+    },
     'installable': True,
     'auto_install': False,
     'application': False,

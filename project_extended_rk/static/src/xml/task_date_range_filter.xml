@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-inherit="web.SearchBarMenu" t-inherit-mode="extension">
+        <xpath expr="//DropdownItem[contains(@class, 'o_add_custom_filter')]" position="after">
+            <div t-if="isTaskDateRangeAvailable" class="o_task_date_range px-3 pt-2 border-top mt-2" t-on-click.stop="">
+                <div class="fw-bold mb-1">Date Range</div>
+                <label class="small text-muted mb-0">From</label>
+                <input type="date" class="form-control form-control-sm mb-1" t-model="dateRange.from" t-att-max="dateRange.to || undefined"/>
+                <label class="small text-muted mb-0">To</label>
+                <input type="date" class="form-control form-control-sm mb-2" t-model="dateRange.to" t-att-min="dateRange.from || undefined"/>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary btn-sm flex-grow-1" t-on-click="applyDateRange">Apply</button>
+                    <button type="button" class="btn btn-secondary btn-sm" t-on-click="clearDateRange" t-att-disabled="!dateRange.from and !dateRange.to and !isDateRangeActive">Clear</button>
+                </div>
+            </div>
+        </xpath>
+    </t>
+</templates>
