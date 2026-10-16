@@ -125,57 +125,81 @@
         </record>
 
         <record id="rule_team_manager_project" model="ir.rule">
-            <field name="name">Project: managers see projects of their direct reports</field>
+            <field name="name">Project: managers see projects of their team</field>
             <field name="model_id" ref="project.model_project_project"/>
             <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
             <field name="perm_write" eval="True"/>
             <field name="perm_create" eval="True"/>
             <field name="perm_unlink" eval="True"/>
-            <field name="domain_force">['|', ('user_id.gk_manager_user_id', '=', user.id), ('task_ids', 'any', ['|', ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)])]</field>
+            <field name="domain_force">['|', ('user_id.gk_manager_chain_ids', 'in', [user.id]), ('task_ids', 'any', ['|', ('user_ids.gk_manager_chain_ids', 'in', [user.id]), ('team_member_ids.gk_manager_chain_ids', 'in', [user.id])])]</field>
         </record>
 
         <record id="rule_team_manager_task" model="ir.rule">
-            <field name="name">Task: managers see tasks of their direct reports</field>
+            <field name="name">Task: managers see tasks of their team</field>
             <field name="model_id" ref="project.model_project_task"/>
             <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
             <field name="perm_write" eval="True"/>
             <field name="perm_create" eval="True"/>
             <field name="perm_unlink" eval="True"/>
-            <field name="domain_force">['|', '|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)]</field>
+            <field name="domain_force">['|', '|', ('project_id.user_id.gk_manager_chain_ids', 'in', [user.id]), ('user_ids.gk_manager_chain_ids', 'in', [user.id]), ('team_member_ids.gk_manager_chain_ids', 'in', [user.id])]</field>
         </record>
 
         <record id="rule_team_manager_update" model="ir.rule">
-            <field name="name">Project updates: managers see those of their direct reports' projects</field>
+            <field name="name">Project updates: managers see those of their team' projects</field>
             <field name="model_id" ref="project.model_project_update"/>
             <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
             <field name="perm_write" eval="True"/>
             <field name="perm_create" eval="True"/>
             <field name="perm_unlink" eval="True"/>
-            <field name="domain_force">['|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('project_id.task_ids', 'any', ['|', ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)])]</field>
+            <field name="domain_force">['|', ('project_id.user_id.gk_manager_chain_ids', 'in', [user.id]), ('project_id.task_ids', 'any', ['|', ('user_ids.gk_manager_chain_ids', 'in', [user.id]), ('team_member_ids.gk_manager_chain_ids', 'in', [user.id])])]</field>
         </record>
 
         <record id="rule_team_manager_milestone" model="ir.rule">
-            <field name="name">Milestones: managers see those of their direct reports' projects</field>
+            <field name="name">Milestones: managers see those of their team' projects</field>
             <field name="model_id" ref="project.model_project_milestone"/>
             <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
             <field name="perm_write" eval="True"/>
             <field name="perm_create" eval="True"/>
             <field name="perm_unlink" eval="True"/>
-            <field name="domain_force">['|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('project_id.task_ids', 'any', ['|', ('user_ids.gk_manager_user_id', '=', user.id), ('team_member_ids.gk_manager_user_id', '=', user.id)])]</field>
+            <field name="domain_force">['|', ('project_id.user_id.gk_manager_chain_ids', 'in', [user.id]), ('project_id.task_ids', 'any', ['|', ('user_ids.gk_manager_chain_ids', 'in', [user.id]), ('team_member_ids.gk_manager_chain_ids', 'in', [user.id])])]</field>
         </record>
 
         <record id="rule_team_manager_task_analysis" model="ir.rule">
-            <field name="name">Tasks Analysis: managers see their direct reports' tasks</field>
+            <field name="name">Tasks Analysis: managers see their team' tasks</field>
             <field name="model_id" ref="project.model_report_project_task_user"/>
             <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
-            <field name="domain_force">['|', '|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('user_ids.gk_manager_user_id', '=', user.id), ('task_id.team_member_ids.gk_manager_user_id', '=', user.id)]</field>
+            <field name="domain_force">['|', '|', ('project_id.user_id.gk_manager_chain_ids', 'in', [user.id]), ('user_ids.gk_manager_chain_ids', 'in', [user.id]), ('task_id.team_member_ids.gk_manager_chain_ids', 'in', [user.id])]</field>
         </record>
 
         <record id="rule_team_manager_burndown" model="ir.rule">
-            <field name="name">Burndown chart: managers see their direct reports' tasks</field>
+            <field name="name">Burndown chart: managers see their team' tasks</field>
             <field name="model_id" ref="project.model_project_task_burndown_chart_report"/>
             <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
-            <field name="domain_force">['|', ('project_id.user_id.gk_manager_user_id', '=', user.id), ('user_ids.gk_manager_user_id', '=', user.id)]</field>
+            <field name="domain_force">['|', ('project_id.user_id.gk_manager_chain_ids', 'in', [user.id]), ('user_ids.gk_manager_chain_ids', 'in', [user.id])]</field>
+        </record>
+
+        <!-- Timesheets: a team manager can READ the timesheet lines of everyone
+             below them in the Employee > Manager hierarchy.  OR-ed with the
+             core own-lines rule, so editing stays limited to one's own lines. -->
+        <record id="group_project_team_manager" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('hr_timesheet.group_hr_timesheet_user'))]"/>
+        </record>
+
+        <record id="rule_team_manager_timesheet" model="ir.rule">
+            <field name="name">Timesheets: managers see their team's timesheets</field>
+            <field name="model_id" ref="analytic.model_account_analytic_line"/>
+            <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">[('project_id', '!=', False), ('user_id.gk_manager_chain_ids', 'in', [user.id])]</field>
+        </record>
+
+        <record id="rule_team_manager_timesheet_report" model="ir.rule">
+            <field name="name">Timesheets Analysis: managers see their team's timesheets</field>
+            <field name="model_id" ref="hr_timesheet.model_timesheets_analysis_report"/>
+            <field name="groups" eval="[(4, ref('group_project_team_manager'))]"/>
+            <field name="domain_force">[('user_id.gk_manager_chain_ids', 'in', [user.id])]</field>
         </record>
 
     </data>
