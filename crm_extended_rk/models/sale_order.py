@@ -22,6 +22,19 @@ class SaleOrder(models.Model):
     # Same approved list as the pipeline - see models/crm_tag.py.
     tag_ids = fields.Many2many(domain=APPROVED_TAG_DOMAIN)
 
+    @api.model
+    def _search(self, domain, offset=0, limit=None, order=None, **kwargs):
+        # Services > Proposal sets this context key. "User: Own Documents
+        # Only" salespeople see only quotations they created there. Done here
+        # and not as an ir.rule because refund_management_rk deliberately lets
+        # every user read all orders, and rules cannot be scoped to one menu.
+        if self.env.context.get('own_created_quotations_only') and not self.env.su:
+            user = self.env.user
+            if (user.has_group('sales_team.group_sale_salesman')
+                    and not user.has_group('sales_team.group_sale_salesman_all_leads')):
+                domain = [('create_uid', '=', user.id)] + list(domain or [])
+        return super()._search(domain, offset=offset, limit=limit, order=order, **kwargs)
+
     reminder_date = fields.Date(string='Reminder Date')
     advance_amount = fields.Float(string='Advance Amount', default=0.00)
     auto_invoice = fields.Boolean(string="Auto Invoice", default=True)

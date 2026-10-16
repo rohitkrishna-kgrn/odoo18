@@ -348,4 +348,10 @@
         </field>
     </record>
 
+    <!-- Services > Proposal: Own Documents Only users see just the quotations
+         they created (see SaleOrder._search). -->
+    <record id="sale.action_quotations_with_onboarding" model="ir.actions.act_window">
+        <field name="context">{'search_default_my_quotation': 1, 'own_created_quotations_only': True}</field>
+    </record>
+
 </odoo>

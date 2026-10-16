@@ -1,6 +1,6 @@
 {
     'name': 'CRM Extended RK',
-    'version': '1.51',
+    'version': '1.52',
     'depends': [
         'account',
         'sale',              # For sale.order and sale.order.line
