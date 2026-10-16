@@ -1,6 +1,6 @@
 {
     'name': 'CRM Extended RK',
-    'version': '1.53',
+    'version': '1.54',
     'depends': [
         'account',
         'sale',              # For sale.order and sale.order.line
@@ -18,6 +18,7 @@
     'summary': 'Extends Sale Order with CRM-related fields and a client discovery form',
     'data': [
         'security/ir.model.access.csv',
+        'security/crm_lead_rules.xml',
         'data/crm_stage_data.xml',
         'data/crm_tag_data.xml',
         'data/crm_tag_access_data.xml',

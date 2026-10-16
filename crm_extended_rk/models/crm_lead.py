@@ -11,6 +11,12 @@ from .discovery_schema import form_selection
 class CrmLead(models.Model):
     _inherit = 'crm.lead'
 
+    previous_user_ids = fields.Many2many(
+        'res.users', 'crm_lead_previous_user_rel', 'lead_id', 'user_id',
+        string='Previous Salespersons', copy=False, readonly=True,
+        help="Users who held this lead before it was reassigned. They keep "
+             "read access so a hand-off does not lock them out of the record.")
+
     # Restricting the field itself rather than each view: a domain set here
     # applies to the form, the list, the kanban, the quick-create card, the
     # search panel and anything added later, so no occurrence can be missed.
@@ -378,7 +384,16 @@ class CrmLead(models.Model):
         # The sync writes its own chatter note, saying where the tags came from.
         tags_before = ({lead.id: lead.tag_ids for lead in self}
                        if 'tag_ids' in vals and not self.env.context.get(TAG_SYNC_CTX) else {})
+        # Hand-off: remember who owned the lead so they can still open it afterwards
+        # (the "Personal Leads" rule would otherwise hide it the moment they
+        # reassign it, and the form's read-back fails).
+        previous_owners = ({lead.id: lead.user_id for lead in self}
+                           if 'user_id' in vals else {})
         res = super().write(vals)
+        for lead in self:
+            old_owner = previous_owners.get(lead.id)
+            if old_owner and old_owner != lead.user_id:
+                lead.sudo().previous_user_ids = [(4, old_owner.id)]
         for lead in self:
             if lead.id in tags_before:
                 log_tag_change(lead, tags_before[lead.id], lead.tag_ids)
