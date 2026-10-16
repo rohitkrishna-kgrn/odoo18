@@ -5,6 +5,7 @@ UPSELLING_LOG_ACTIONS = [
     ('submit_review', 'Submit for Review'),
     ('submit_approval', 'Submit for Approval'),
     ('reset_review', 'Reset to Review'),
+    ('reset_draft', 'Reset to Draft'),
     ('resubmit_approval', 'Re-Submit for Approval'),
     ('reject', 'Reject Upselling'),
     ('approve', 'Approve'),

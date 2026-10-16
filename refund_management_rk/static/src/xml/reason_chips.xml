@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="refund_management_rk.ReasonChipsField">
+        <div class="o_reason_chips d-flex flex-column gap-2">
+            <div class="d-flex flex-wrap gap-1" t-if="reasons.length">
+                <t t-foreach="reasons" t-as="reason" t-key="reason_index">
+                    <span class="badge rounded-pill text-bg-primary d-inline-flex align-items-center fs-6 fw-normal">
+                        <span t-esc="reason"/>
+                        <a t-if="!props.readonly" href="#" class="ms-2 text-white text-decoration-none"
+                           title="Remove" t-on-click.prevent="() => this.removeAt(reason_index)">
+                            <i class="fa fa-times"/>
+                        </a>
+                    </span>
+                </t>
+            </div>
+            <input t-if="!props.readonly" type="text" class="o_input"
+                   t-att-placeholder="placeholder" t-model="state.draft"
+                   t-on-keydown="onKeydown" t-on-blur="addDraft"/>
+        </div>
+    </t>
+</templates>

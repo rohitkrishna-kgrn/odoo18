@@ -1,0 +1,24 @@
+<odoo>
+    <record id="view_upselling_reset_draft_wizard_form" model="ir.ui.view">
+        <field name="name">upselling.reset.draft.wizard.form</field>
+        <field name="model">upselling.reset.draft.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reset to Draft">
+                <div class="alert alert-info" role="alert">
+                    This request will be sent back from Submitted for Review to Draft
+                    and the submitter will be notified by email. Add one or more reasons.
+                </div>
+                <group>
+                    <field name="upselling_id" invisible="1"/>
+                    <field name="reasons" required="1" widget="reason_chips"
+                           placeholder="Type a reason and press Enter..."/>
+                </group>
+                <footer>
+                    <button name="action_confirm_reset_draft" string="Confirm Reset to Draft"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -25,6 +25,9 @@
                     <button name="action_reset_to_review" string="Reset to Review" type="object"
                             invisible="state != 'approval'" class="btn-secondary"
                             groups="refund_management_rk.group_reimbursement_reviewer"/>
+                    <button name="action_reset_to_draft" string="Reset to Draft" type="object"
+                            invisible="state != 'review'" class="btn-secondary"
+                            groups="refund_management_rk.group_reimbursement_reviewer,refund_management_rk.group_reimbursement_approver"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,review,approval,approved"/>
                 </header>

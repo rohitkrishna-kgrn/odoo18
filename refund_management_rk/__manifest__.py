@@ -1,6 +1,6 @@
 {
     'name': 'Refund Management RK',
-    'version': '18.0.1.2.0',
+    'version': '18.0.1.3.3',
     'category': 'Accounting',
     'summary': 'Reimbursement and Upselling',
     'description': """Manage Reimbursement Requests with Excel Upload and Review.""",
@@ -13,6 +13,7 @@
         'wizards/upload_excel_wizard_view.xml',
         'wizards/attach_bills_wizard_view.xml',
         'wizards/upselling_reset_wizard_view.xml',
+        'wizards/upselling_reset_draft_wizard_view.xml',
         'wizards/upselling_reject_wizard_view.xml',
         'views/reimbursement_views.xml',
         'views/menus.xml',
@@ -21,6 +22,8 @@
     'assets': {
         'web.assets_backend': [
             'refund_management_rk/static/src/js/upselling_chatter.js',
+            'refund_management_rk/static/src/js/reason_chips.js',
+            'refund_management_rk/static/src/xml/reason_chips.xml',
         ],
     },
     'installable': True,

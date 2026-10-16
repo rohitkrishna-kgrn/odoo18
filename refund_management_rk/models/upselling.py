@@ -691,6 +691,99 @@ class Upselling(models.Model):
                 ).format(self.user_id.name, self.sequence, self.env.user.name, reason),
             )
 
+    def _check_reset_draft_authorisation(self):
+        self.ensure_one()
+        user = self.env.user
+        if not (
+            user.has_group('refund_management_rk.group_reimbursement_reviewer')
+            or user.has_group('refund_management_rk.group_reimbursement_approver')
+        ):
+            raise UserError(_(
+                'Only a Reimbursement Reviewer or Approver can reset a request to draft.'
+            ))
+
+    def action_reset_to_draft(self):
+        """Ask for the reason(s) before sending the request back to draft."""
+        self.ensure_one()
+        self._check_not_rejected()
+        if self.state != 'review':
+            raise UserError(_(
+                'Only a request submitted for review can be reset to draft.'
+            ))
+        self._check_reset_draft_authorisation()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Reset to Draft'),
+            'res_model': 'upselling.reset.draft.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_upselling_id': self.id},
+        }
+
+    def _reset_to_draft(self, reasons):
+        """Submitted for Review -> Draft, called by the wizard.
+
+        ``reasons`` is free text, one reason per line.
+        """
+        self.ensure_one()
+        self._check_not_rejected()
+        if self.state != 'review':
+            raise UserError(_(
+                'Only a request submitted for review can be reset to draft.'
+            ))
+        self._check_reset_draft_authorisation()
+        lines = [ln.strip() for ln in (reasons or '').splitlines() if ln.strip()]
+        if not lines:
+            raise UserError(_('Enter at least one reason to reset the request to draft.'))
+        self.write({'state': 'draft', 'was_reset_to_review': False})
+        log = self._add_log('reset_draft', '; '.join(lines))
+        items = Markup('').join(Markup('<li>%s</li>') % ln for ln in lines)
+        self.message_post(
+            body=Markup(
+                '<b>%(action)s</b> by %(user)s.<br/>'
+                '<span style="color:#1a73e8;">Reasons :</span><ul>%(items)s</ul>'
+            ) % {'action': log.action_label(), 'user': log.user_id.name, 'items': items},
+            message_type='notification', subtype_xmlid='mail.mt_note',
+        )
+        self._send_reset_draft_mail(items)
+
+    def _send_reset_draft_mail(self, items):
+        """Email the submitter the reset reasons.
+
+        Built as a mail.mail addressed to the submitter's email, not via
+        message_notify: that drops archived users' partners, so a request
+        submitted by someone since archived would never be mailed. Created with
+        sudo so it always appears under Technical > Emails, whatever the
+        resetting user's rights.
+        """
+        self.ensure_one()
+        submitter = self.user_id
+        email_to = submitter.partner_id.email or submitter.email
+        if not email_to:
+            self.message_post(
+                body=_('No email sent: %s has no email address.') % submitter.name,
+                message_type='notification', subtype_xmlid='mail.mt_note',
+            )
+            return
+        body = Markup(
+            '<p>Dear %s,</p><p>Upselling request <b>%s</b> has been reset to '
+            'draft by %s.</p><p><b>Reasons:</b></p><ul>%s</ul>'
+            '<p>Please update the request and submit it for review again.</p>'
+        ) % (submitter.name, self.sequence, self.env.user.name, items)
+        mail = self.env['mail.mail'].sudo().create({
+            'subject': f'Upselling {self.sequence} - Reset to Draft',
+            'body_html': body,
+            'email_to': email_to,
+            'email_from': self.env.user.email_formatted or self.env.company.email_formatted,
+            'author_id': self.env.user.partner_id.id,
+            'model': self._name,
+            'res_id': self.id,
+            'auto_delete': False,
+        })
+        # Try right away; on SMTP failure the row stays in Technical > Emails
+        # as "Delivery Failed" and can be retried from there.
+        mail.send(raise_exception=False)
+
     def action_view_invoices(self):
         self.ensure_one()
         return {
