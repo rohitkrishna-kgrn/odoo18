@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="module_category_contact_rk" model="ir.module.category">
+        <field name="name">Contact Management</field>
+        <field name="sequence">60</field>
+    </record>
+
+    <!-- Only members see the Contacts app and can browse/list every contact.
+         Everyone else reaches a contact only through a link from another
+         module (see models/res_partner.py). Settings Administrators imply it. -->
+    <record id="group_contact_admin" model="res.groups">
+        <field name="name">Contact Admin</field>
+        <field name="category_id" ref="module_category_contact_rk"/>
+        <field name="comment">Can open the Contacts app and see all contacts. Other users only reach a contact through a link in CRM, Services, Accounting etc., and must type at least 4 letters to search for one.</field>
+    </record>
+
+    <record id="base.group_system" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('group_contact_admin'))]"/>
+    </record>
+
+    <!-- Hide every menu that lists all contacts. groups_id is replaced, not
+         extended, so the menus are visible to Contact Admins only. -->
+    <record id="contacts.menu_contacts" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('group_contact_admin')])]"/>
+    </record>
+    <record id="account.menu_account_customer" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('group_contact_admin')])]"/>
+    </record>
+    <record id="account.menu_account_supplier" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('group_contact_admin')])]"/>
+    </record>
+    <record id="crm.res_partner_menu_customer" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('group_contact_admin')])]"/>
+    </record>
+    <record id="sale.res_partner_menu" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('group_contact_admin')])]"/>
+    </record>
+
+</odoo>

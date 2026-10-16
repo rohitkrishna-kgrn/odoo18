@@ -2,6 +2,12 @@ from datetime import timedelta
 
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, UserError
+from odoo.osv import expression
+
+MIN_SEARCH_CHARS = 4
+CREATE_SOURCES = ('crm', 'services')
+# Fields a free-text search can target; a search on these needs MIN_SEARCH_CHARS.
+TEXT_SEARCH_FIELDS = ('display_name', 'complete_name', 'name', 'email', 'ref', 'vat', 'company_registry')
 
 
 class ResPartner(models.Model):
@@ -37,6 +43,103 @@ class ResPartner(models.Model):
                 partner.form_submission_state = 'pending' if pending else ''
                 partner.form_submitted_date = False
                 partner.latest_form_token_id = False
+
+    # ------------------------------------------------------------------
+    # Access policy: only Contact Admins browse all contacts
+    # ------------------------------------------------------------------
+    def _is_contact_admin(self):
+        return self.env.su or self.env.user.has_group('contact_extended_rk.group_contact_admin')
+
+    @api.model
+    def _search_display_name(self, operator, value):
+        """Everyone but Contact Admins must type MIN_SEARCH_CHARS letters before
+        any client name matches. Dropdowns, search-bar autocomplete and
+        Customer filters all resolve through display_name, so this one hook
+        covers them."""
+        if (operator.endswith('like') and not self._is_contact_admin()
+                and len(value.strip() if isinstance(value, str) else '') < MIN_SEARCH_CHARS):
+            return expression.FALSE_DOMAIN
+        return super()._search_display_name(operator, value)
+
+    @api.model
+    def _domain_pins_contacts(self, domain):
+        """True when every branch of the domain names specific ids or carries a
+        text search of at least MIN_SEARCH_CHARS letters."""
+        tokens = iter(expression.normalize_domain(domain or []))
+
+        def parse():
+            token = next(tokens)
+            if token == '&':
+                left, right = parse(), parse()
+                return left or right
+            if token == '|':
+                left, right = parse(), parse()
+                return left and right
+            if token == '!':
+                parse()
+                return False
+            field, operator, value = token
+            if field == 'id' and operator in ('=', 'in', 'child_of'):
+                return bool(value)
+            if field in TEXT_SEARCH_FIELDS and operator.endswith('like'):
+                return isinstance(value, str) and len(value.strip()) >= MIN_SEARCH_CHARS
+            return False
+
+        try:
+            return parse()
+        except StopIteration:
+            return False
+
+    @api.model
+    def web_search_read(self, domain, specification, offset=0, limit=None, order=None, count_limit=None):
+        if not self._is_contact_admin() and not self._domain_pins_contacts(domain):
+            return {'length': 0, 'records': []}
+        return super().web_search_read(
+            domain, specification, offset=offset, limit=limit, order=order, count_limit=count_limit)
+
+    @api.model
+    def web_read_group(self, domain, fields, groupby, limit=None, offset=0, orderby=False, lazy=True):
+        if not self._is_contact_admin() and not self._domain_pins_contacts(domain):
+            return {'groups': [], 'length': 0}
+        return super().web_read_group(
+            domain, fields, groupby, limit=limit, offset=offset, orderby=orderby, lazy=lazy)
+
+    # ------------------------------------------------------------------
+    # No external company suggestions in the contact picker
+    # ------------------------------------------------------------------
+    # partner_autocomplete queries Odoo's IAP company database and lists
+    # companies (Bidfood B.V., ...) that are not in our Contacts at all.
+    @api.model
+    def autocomplete_by_name(self, query, query_country_id, timeout=15):
+        return []
+
+    @api.model
+    def autocomplete_by_vat(self, vat, query_country_id, timeout=15):
+        return []
+
+    # ------------------------------------------------------------------
+    # Contacts are created from CRM or Services only
+    # ------------------------------------------------------------------
+    def _check_ui_create_allowed(self):
+        if self._is_contact_admin() or self.env.context.get('partner_create_source') in CREATE_SOURCES:
+            return
+        raise UserError(_(
+            "Contacts can only be created from the CRM or Services apps. "
+            "Please create the contact from a lead or a quotation."))
+
+    @api.model
+    def name_create(self, name):
+        self._check_ui_create_allowed()
+        return super().name_create(name)
+
+    def web_save(self, vals, specification, next_id=None):
+        if not self:
+            self._check_ui_create_allowed()
+        return super().web_save(vals, specification, next_id=next_id)
+
+    def copy(self, default=None):
+        self._check_ui_create_allowed()
+        return super().copy(default)
 
     @api.model
     def create(self, vals):

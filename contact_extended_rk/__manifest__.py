@@ -1,12 +1,13 @@
 {
     'name': 'Contact Extended RK',
-    'version': '1.0',
+    'version': '1.1',
     'summary': 'Extend Contacts with Emirates ID, Passport, and Company License',
     'description': 'This module adds Emirates ID, Passport Number, and Company License Number to contacts and makes all contact fields mandatory.',
     'category': 'Contacts',
     'author': 'RK',
-    'depends': ['contacts', 'mail', 'portal'],
+    'depends': ['contacts', 'mail', 'portal', 'account', 'crm', 'sale'],
     'data': [
+        'security/contact_security.xml',
         'security/ir.model.access.csv',
         'data/mail_template.xml',
         'report/contact_form_report.xml',
