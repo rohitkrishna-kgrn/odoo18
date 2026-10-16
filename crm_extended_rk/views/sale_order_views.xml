@@ -354,4 +354,35 @@
         <field name="context">{'search_default_my_quotation': 1, 'own_created_quotations_only': True}</field>
     </record>
 
+    <!-- Same restriction on every other list that shows sale orders:
+         Service Engagement, CRM My Quotations, sales-team views, partner and
+         opportunity smart buttons. -->
+    <record id="sale.action_orders" model="ir.actions.act_window">
+        <field name="context">{'own_created_quotations_only': True}</field>
+    </record>
+    <record id="sale.action_quotations" model="ir.actions.act_window">
+        <field name="context">{'search_default_my_quotation': 1, 'own_created_quotations_only': True}</field>
+    </record>
+    <record id="sale.action_orders_to_invoice" model="ir.actions.act_window">
+        <field name="context">{'create': False, 'own_created_quotations_only': True}</field>
+    </record>
+    <record id="sale.action_orders_upselling" model="ir.actions.act_window">
+        <field name="context">{'create': False, 'own_created_quotations_only': True}</field>
+    </record>
+    <record id="sale.action_quotations_salesteams" model="ir.actions.act_window">
+        <field name="context">{'search_default_team_id': [active_id], 'default_team_id': active_id, 'show_address': 1, 'own_created_quotations_only': True}</field>
+    </record>
+    <record id="sale.action_orders_salesteams" model="ir.actions.act_window">
+        <field name="context">{'search_default_team_id': [active_id], 'default_team_id': active_id, 'own_created_quotations_only': True}</field>
+    </record>
+    <record id="sale.action_orders_to_invoice_salesteams" model="ir.actions.act_window">
+        <field name="context">{'search_default_team_id': [active_id], 'default_team_id': active_id, 'own_created_quotations_only': True}</field>
+    </record>
+    <record id="sale.act_res_partner_2_sale_order" model="ir.actions.act_window">
+        <field name="context">{'default_partner_id': active_id, 'own_created_quotations_only': True}</field>
+    </record>
+    <record id="sale_crm.sale_action_quotations_new" model="ir.actions.act_window">
+        <field name="context">{'search_default_opportunity_id': active_id, 'default_opportunity_id': active_id, 'own_created_quotations_only': True}</field>
+    </record>
+
 </odoo>
