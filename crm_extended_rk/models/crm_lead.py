@@ -139,6 +139,16 @@ class CrmLead(models.Model):
             self.write({'stage_id': lost_stage.id, 'active': True})
         return res
 
+    def _prepare_partner_name_from_partner(self, partner):
+        """Company Name is mandatory on the form, but core only fills it from the
+        contact's parent company / company_name. Most contacts here are standalone
+        records (no parent), which left the field blank and blocked saving even
+        though a Contact was selected - fall back to the contact's own name."""
+        res = super()._prepare_partner_name_from_partner(partner)
+        if partner and not res.get('partner_name'):
+            res['partner_name'] = partner.name
+        return res
+
     # ------------------------------------------------------------------
     # Discovery form: prefill helper (used by the public controller)
     # ------------------------------------------------------------------
