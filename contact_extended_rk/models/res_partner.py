@@ -132,6 +132,21 @@ class ResPartner(models.Model):
         self._check_ui_create_allowed()
         return super().name_create(name)
 
+    def action_open_partner_popup(self):
+        """Row button in the 'Search: Contact' picker: open the client's form
+        in a popup on top of the picker so it can be corrected without leaving
+        the lead / quotation."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': self.display_name,
+            'res_model': 'res.partner',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'views': [(False, 'form')],
+            'target': 'new',
+        }
+
     def web_save(self, vals, specification, next_id=None):
         if not self:
             self._check_ui_create_allowed()
