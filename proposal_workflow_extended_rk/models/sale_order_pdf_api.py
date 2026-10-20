@@ -53,6 +53,18 @@ def _clip(value, size):
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
+    @api.depends('order_line.product_id.einv_pdf_service')
+    def _compute_has_asp_subscription(self):
+        """crm_extended_rk recognises the subscription by the retired [S6] code;
+        Service 4 (the new S4, Annual Subscription & Support) succeeds it, so
+        the overage rate applies to it too. Old orders holding S6 keep theirs."""
+        super()._compute_has_asp_subscription()
+        for order in self.filtered(lambda o: not o.has_asp_subscription):
+            order.has_asp_subscription = any(
+                line.product_id.einv_pdf_service == '4'
+                for line in order.order_line
+                if not line.display_type and line.product_id)
+
     # ── services and fees ─────────────────────────────────────────────────
     def _pdf_api_service_number(self, product):
         if product.einv_pdf_service:
