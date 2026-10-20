@@ -404,6 +404,14 @@ class CrmLead(models.Model):
             old_owner = previous_owners.get(lead.id)
             if old_owner and old_owner != lead.user_id:
                 lead.sudo().previous_user_ids = [(4, old_owner.id)]
+        if vals.get('user_id') and not self.env.context.get('salesperson_sync'):
+            # Hand-off: quotations attached through the CRM Pipeline field follow
+            # the lead's new Salesperson (mirror of sale.order.write).
+            leads = self.sudo().with_context(salesperson_sync=True)
+            orders = leads.mapped('order_ids')
+            if 'crm_pipeline_id' in orders._fields:
+                orders |= orders.search([('crm_pipeline_id', 'in', leads.ids)])
+            orders.filtered(lambda o: o.user_id.id != vals['user_id']).write({'user_id': vals['user_id']})
         for lead in self:
             if lead.id in tags_before:
                 log_tag_change(lead, tags_before[lead.id], lead.tag_ids)

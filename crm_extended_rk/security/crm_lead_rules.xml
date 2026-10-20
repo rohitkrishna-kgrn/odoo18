@@ -14,5 +14,52 @@
             <field name="perm_create" eval="False"/>
             <field name="perm_unlink" eval="False"/>
         </record>
+
+        <!-- Assigned salesperson can open their own records.
+             crm.lead and sale.order grant model access only to the Sales (and a
+             few accounting/referral/project) groups, so an Internal User named
+             as Salesperson without one of them was refused before any record
+             rule ran. The read-only access added in ir.model.access.csv is
+             confined here to records where the user is the Salesperson. -->
+        <record id="crm_lead_rule_assigned_salesperson" model="ir.rule">
+            <field name="name">Leads: assigned salesperson can read</field>
+            <field name="model_id" ref="crm.model_crm_lead"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="sale_order_rule_assigned_salesperson" model="ir.rule">
+            <field name="name">Sales Order: assigned salesperson can read</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- "Upselling: Base users can read all sale orders" (refund_management_rk)
+             gives every Internal User read on every order; it only did nothing
+             because those users had no model access. Now that they do, this
+             global rule keeps a user who holds none of the groups that already
+             grant sale.order access to their own orders. Everyone else (and
+             portal/share users) evaluates to the always-true domain, so nothing
+             changes for them. -->
+        <record id="sale_order_rule_assigned_salesperson_confine" model="ir.rule">
+            <field name="name">Sales Order: users without a sales group read only their own</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">[('user_id', '=', user.id)] if not (user.share or user.has_group('sales_team.group_sale_salesman') or user.has_group('account.group_account_invoice') or user.has_group('account.group_account_user') or user.has_group('account.group_account_readonly') or user.has_group('project.group_project_manager') or user.has_group('referral_crm_gk.group_referral_user') or user.has_group('referral_crm_gk.group_referral_manager')) else [(1, '=', 1)]</field>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
     </data>
 </odoo>

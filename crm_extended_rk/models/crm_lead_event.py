@@ -91,7 +91,10 @@ class CrmLeadEvent(models.Model):
             lead = event.lead_id
             if lead.id not in ordered_by_lead:
                 ordered_by_lead[lead.id] = lead.journey_event_ids.sorted(
-                    key=lambda e: (e.event_date or fields.Datetime.now(), e.id))
+                    # Unsaved rows (onchange) carry a NewId, which cannot be
+                    # ordered against another NewId - tie-break on real ids only.
+                    key=lambda e: (e.event_date or fields.Datetime.now(),
+                                   e.id if isinstance(e.id, int) else 0))
         for event in self:
             siblings = ordered_by_lead.get(event.lead_id.id, self.browse())
             previous_date = False

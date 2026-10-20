@@ -25,14 +25,15 @@ class SaleOrder(models.Model):
     @api.model
     def _search(self, domain, offset=0, limit=None, order=None, **kwargs):
         # Services > Proposal sets this context key. "User: Own Documents
-        # Only" salespeople see only quotations they created there. Done here
+        # Only" salespeople see only quotations where they are the
+        # Salesperson, so a reassigned quotation moves to the new owner. Done here
         # and not as an ir.rule because refund_management_rk deliberately lets
         # every user read all orders, and rules cannot be scoped to one menu.
         if self.env.context.get('own_created_quotations_only') and not self.env.su:
             user = self.env.user
             if (user.has_group('sales_team.group_sale_salesman')
                     and not user.has_group('sales_team.group_sale_salesman_all_leads')):
-                domain = [('create_uid', '=', user.id)] + list(domain or [])
+                domain = [('user_id', '=', user.id)] + list(domain or [])
         return super()._search(domain, offset=offset, limit=limit, order=order, **kwargs)
 
     reminder_date = fields.Date(string='Reminder Date')
@@ -768,6 +769,16 @@ class SaleOrder(models.Model):
         tags_before = ({order.id: order.tag_ids for order in self}
                        if 'tag_ids' in vals and not self.env.context.get(TAG_SYNC_CTX) else {})
         res = super().write(vals)
+        if vals.get('user_id') and not self.env.context.get('salesperson_sync'):
+            # Hand-off: the linked CRM lead (CRM Pipeline field) follows the
+            # quotation's new Salesperson, so it shows under the new owner too.
+            # sudo because the user changing the quotation may not be allowed
+            # to edit the lead; the flag stops crm.lead.write echoing it back.
+            leads = self.mapped('opportunity_id')
+            if 'crm_pipeline_id' in self._fields:
+                leads |= self.mapped('crm_pipeline_id')
+            leads = leads.sudo().with_context(salesperson_sync=True)
+            leads.filtered(lambda l: l.user_id.id != vals['user_id']).write({'user_id': vals['user_id']})
         for order in self:
             if order.id in tags_before:
                 log_tag_change(order, tags_before[order.id], order.tag_ids)

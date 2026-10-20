@@ -12,3 +12,5 @@ access_crm_lead_discovery_entity_user,crm.lead.discovery.entity user,model_crm_l
 access_crm_lead_discovery_entity_manager,crm.lead.discovery.entity manager,model_crm_lead_discovery_entity,sales_team.group_sale_manager,1,1,1,1
 access_ir_exports_sale_manager,ir.exports sale manager,base.model_ir_exports,sales_team.group_sale_manager,1,1,1,1
 access_ir_exports_line_sale_manager,ir.exports.line sale manager,base.model_ir_exports_line,sales_team.group_sale_manager,1,1,1,1
+access_crm_lead_assigned_salesperson,crm.lead assigned salesperson (read own),crm.model_crm_lead,base.group_user,1,0,0,0
+access_sale_order_assigned_salesperson,sale.order assigned salesperson (read own),sale.model_sale_order,base.group_user,1,0,0,0
