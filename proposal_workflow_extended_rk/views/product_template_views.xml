@@ -10,28 +10,7 @@
             <!-- Reporting flag sits with the rest of the product classification. -->
             <xpath expr="//field[@name='type'][@widget='radio']" position="after">
                 <field name="is_einvoicing_product"/>
-            </xpath>
-
-            <xpath expr="//notebook" position="inside">
-                <page string="Proposal" name="proposal">
-                    <div class="text-muted mb-3">
-                        This text is copied onto the Proposal tab of any quotation this
-                        product is added to, where it can still be edited for that
-                        particular proposal. Enter one bullet per line.
-                    </div>
-                    <group>
-                        <field name="proposal_scope" nolabel="1"
-                               placeholder="Scope of work — one bullet per line"/>
-                    </group>
-                    <group>
-                        <field name="proposal_methodology" nolabel="1"
-                               placeholder="Methodology — one bullet per line"/>
-                    </group>
-                    <group>
-                        <field name="proposal_deliverables" nolabel="1"
-                               placeholder="Deliverables — one per line, optionally 'Title | description'"/>
-                    </group>
-                </page>
+                <field name="einv_pdf_service" invisible="not is_einvoicing_product"/>
             </xpath>
         </field>
     </record>
@@ -43,6 +22,7 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='default_code']" position="after">
                 <field name="is_einvoicing_product" optional="hide"/>
+                <field name="einv_pdf_service" optional="hide"/>
             </xpath>
         </field>
     </record>

@@ -19,3 +19,17 @@ class ResConfigSettings(models.TransientModel):
              "Bearer token. Leave either field blank to switch the "
              "eInvoicing Dashboard's Project Status / UAT AR-AP / Live "
              "AR-AP columns off — they read NA instead of calling out.")
+
+    proposal_pdf_api_url = fields.Char(
+        string='Proposal PDF API URL',
+        config_parameter='proposal_workflow_extended_rk.pdf_api_url',
+        help="Base URL of the KGRN eInvoicing PDF API, e.g. "
+             "http://139.59.71.76:3000 — no trailing slash. "
+             "/api/v1/proposal and /api/v1/service-engagement are added "
+             "automatically.")
+    proposal_pdf_api_key = fields.Char(
+        string='Proposal PDF API Key',
+        config_parameter='proposal_workflow_extended_rk.pdf_api_key',
+        groups='base.group_system',
+        help="The API_KEY from the PDF service's .env file, sent in the "
+             "X-API-Key header.")

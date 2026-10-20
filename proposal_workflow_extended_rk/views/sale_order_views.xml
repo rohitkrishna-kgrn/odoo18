@@ -11,11 +11,12 @@
             <xpath expr="//header" position="inside">
                 <button name="action_download_proposal" type="object"
                         string="Download Proposal" class="btn-primary"
-                        invisible="state not in ('draft', 'sent')"/>
+                        invisible="not einvoicing_service or state not in ('draft', 'sent')"/>
                 <button name="action_download_se" type="object"
                         string="Download SE" class="btn-primary"
-                        invisible="not is_service_engagement_stage"/>
+                        invisible="not einvoicing_service or not is_service_engagement_stage"/>
                 <field name="is_service_engagement_stage" invisible="1"/>
+                <field name="einvoicing_service" invisible="1"/>
             </xpath>
 
             <!-- CRM pipeline link - mandatory only while the quotation is
@@ -42,52 +43,6 @@
                     <group>
                         <field name="proposal_name"
                                placeholder="e.g. eInvoicing Services"/>
-                    </group>
-                    <div class="d-flex align-items-center mb-2">
-                        <button name="action_refresh_proposal_lines" type="object"
-                                string="Reload from Products" class="btn-link"
-                                icon="fa-refresh"
-                                confirm="This replaces every scope, methodology and deliverable below with the current text from the products. Edits made here will be lost. Continue?"/>
-                        <span class="text-muted ms-2">
-                            One block per product on this quotation. Edit freely — changes
-                            stay on this proposal and do not touch the product.
-                        </span>
-                    </div>
-                    <field name="proposal_line_ids" nolabel="1">
-                        <list>
-                            <field name="sequence" widget="handle"/>
-                            <field name="code" string="Ref"/>
-                            <field name="name"/>
-                            <field name="scope" string="Scope of Work"/>
-                            <field name="methodology"/>
-                            <field name="is_einvoicing_product" optional="hide"/>
-                        </list>
-                        <form>
-                            <group>
-                                <field name="product_id"/>
-                                <field name="code" placeholder="S1"/>
-                                <field name="name"/>
-                            </group>
-                            <group string="Scope of Work">
-                                <field name="scope" nolabel="1"
-                                       placeholder="One bullet per line"/>
-                            </group>
-                            <group string="Methodology">
-                                <field name="methodology" nolabel="1"
-                                       placeholder="One bullet per line"/>
-                            </group>
-                            <group string="Deliverables">
-                                <field name="deliverables" nolabel="1"
-                                       placeholder="One per line, optionally 'Title | description'"/>
-                            </group>
-                        </form>
-                    </field>
-                    <group string="Executive Summary">
-                        <field name="proposal_executive_summary" nolabel="1"
-                               placeholder="Opening paragraph of the proposal. Leave empty for the standard KGRN opening."/>
-                    </group>
-                    <group string="Terms &amp; Conditions">
-                        <field name="proposal_terms" nolabel="1"/>
                     </group>
                     <group string="Service Engagement Agreement"
                            invisible="not is_service_engagement_stage">

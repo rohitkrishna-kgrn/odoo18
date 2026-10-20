@@ -13,6 +13,7 @@ const ORANGE = "#F15C22";
 const PALETTE = [
     "#F15C22", "#1A2F4E", "#0EA5E9", "#7C3AED", "#12B76A",
     "#F79009", "#D92D20", "#0891B2", "#9333EA", "#65A30D",
+    "#DB2777", "#475467", "#CA8A04", "#0D9488", "#4F46E5",
 ];
 
 function toISO(date) {

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The four services of the KGRN eInvoicing PDF API. They replace the S1-S8
+         catalogue on new quotations (archived by the 18.0.1.27 migration, which
+         also gives these the same per-company 5% VAT as the old products).
+         Prices are set by hand. -->
+    <data noupdate="1">
+        <record id="product_einv_service_1" model="product.template">
+            <field name="name">Business Readiness &amp; Gap Analysis</field>
+            <field name="default_code">S1</field>
+            <field name="type">service</field>
+            <field name="invoice_policy">order</field>
+            <field name="categ_id" ref="product.product_category_all"/>
+            <field name="list_price">0.0</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="is_einvoicing_product" eval="True"/>
+            <field name="einv_pdf_service">1</field>
+        </record>
+        <record id="product_einv_service_2" model="product.template">
+            <field name="name">Onboarding &amp; ASP Linking</field>
+            <field name="default_code">S2</field>
+            <field name="type">service</field>
+            <field name="invoice_policy">order</field>
+            <field name="categ_id" ref="product.product_category_all"/>
+            <field name="list_price">0.0</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="is_einvoicing_product" eval="True"/>
+            <field name="einv_pdf_service">2</field>
+        </record>
+        <record id="product_einv_service_3" model="product.template">
+            <field name="name">ERP Development &amp; Integration</field>
+            <field name="default_code">S3</field>
+            <field name="type">service</field>
+            <field name="invoice_policy">order</field>
+            <field name="categ_id" ref="product.product_category_all"/>
+            <field name="list_price">0.0</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="is_einvoicing_product" eval="True"/>
+            <field name="einv_pdf_service">3</field>
+        </record>
+        <record id="product_einv_service_4" model="product.template">
+            <field name="name">Annual Subscription &amp; Support</field>
+            <field name="default_code">S4</field>
+            <field name="type">service</field>
+            <field name="invoice_policy">order</field>
+            <field name="categ_id" ref="product.product_category_all"/>
+            <field name="list_price">0.0</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="is_einvoicing_product" eval="True"/>
+            <field name="einv_pdf_service">4</field>
+        </record>
+    </data>
+</odoo>

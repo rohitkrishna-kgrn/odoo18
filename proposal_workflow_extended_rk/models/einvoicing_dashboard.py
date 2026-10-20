@@ -410,6 +410,11 @@ class EinvoicingDashboard(models.AbstractModel):
 
     # ── analytics payload (charts dashboard) ──────────────────────────────
     @api.model
+    def _service_label(self, template):
+        label = ' · '.join(filter(None, (template.default_code, template.name)))
+        return label if template.active else _('%s (archived)', label)
+
+    @api.model
     def _month_buckets(self, date_from, date_to):
         """Ordered YYYY-MM keys spanning the selected range."""
         start = fields.Date.to_date(date_from) if date_from else False
@@ -455,17 +460,27 @@ class EinvoicingDashboard(models.AbstractModel):
             by_person[name] = by_person.get(name, 0.0) + order.amount_total
         person_items = sorted(by_person.items(), key=lambda kv: kv[1], reverse=True)[:10]
 
-        # Revenue mix across the catalogue that belongs to this scope
+        # Revenue mix across the catalogue that belongs to this scope, one slice
+        # per product. The eInvoicing catalogue is listed whole, archived
+        # products included: the retired S1-S8 still carry the value of the
+        # orders that sold them, and they share codes with the current S1-S4,
+        # so each slice is named by code *and* name.
         wants_einvoicing = scope != 'other'
         by_service = {}
+        if wants_einvoicing:
+            catalogue = self.env['product.template'].with_context(active_test=False).search(
+                [('is_einvoicing_product', '=', True)], order='active desc, default_code, id')
+            by_service = dict.fromkeys(catalogue, 0.0)
         for line in orders.mapped('order_line'):
             if line.display_type or not line.product_id:
                 continue
             if line.product_id.is_einvoicing_product != wants_einvoicing:
                 continue
-            label = line.product_id.default_code or line.product_id.name
-            by_service[label] = by_service.get(label, 0.0) + line.price_subtotal
-        service_items = sorted(by_service.items(), key=lambda kv: kv[1], reverse=True)
+            template = line.product_id.product_tmpl_id
+            by_service[template] = by_service.get(template, 0.0) + line.price_subtotal
+        service_items = sorted(
+            ((self._service_label(template), value) for template, value in by_service.items()),
+            key=lambda kv: kv[1], reverse=True)
 
         # Month-by-month: new pipeline records against agreement value booked
         months = self._month_buckets(date_from, date_to)

@@ -26,6 +26,22 @@
                         </div>
                     </setting>
                 </block>
+                <block title="Proposal PDF API" name="proposal_pdf_api_setting">
+                    <setting id="proposal_pdf_api_setting_id"
+                             string="Proposal &amp; Service Engagement PDFs"
+                             help="The Download Proposal and Download SE buttons on quotations send the order to this service and attach the PDF it returns.">
+                        <div class="content-group">
+                            <div class="mt16 row">
+                                <label for="proposal_pdf_api_url" class="col-lg-6 o_light_label"/>
+                                <field name="proposal_pdf_api_url" placeholder="http://139.59.71.76:3000"/>
+                            </div>
+                            <div class="mt8 row">
+                                <label for="proposal_pdf_api_key" class="col-lg-6 o_light_label"/>
+                                <field name="proposal_pdf_api_key" password="True"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
             </xpath>
         </field>
     </record>
