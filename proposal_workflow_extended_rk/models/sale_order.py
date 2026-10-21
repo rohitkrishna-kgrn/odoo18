@@ -185,6 +185,8 @@ class SaleOrder(models.Model):
             raise UserError(_(
                 "The proposal can only be downloaded while this is still a "
                 "quotation."))
+        # The document lists the client's entities from the discovery form.
+        self._auto_fill_entities_from_discovery()
         datas = self._pdf_api_render('proposal', self._pdf_api_proposal_payload())
         self.proposal_generated_on = fields.Datetime.now()
         return self._attach_pdf('Proposal - %s.pdf' % self.name, datas)
@@ -198,6 +200,7 @@ class SaleOrder(models.Model):
                 "quotation is approved."))
         if not self.se_effective_date:
             self.se_effective_date = fields.Date.context_today(self)
+        self._auto_fill_entities_from_discovery()
         datas = self._pdf_api_render(
             'service-engagement', self._pdf_api_service_engagement_payload())
         self.se_generated_on = fields.Datetime.now()

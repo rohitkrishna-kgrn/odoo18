@@ -1,6 +1,7 @@
 from collections import Counter
+import logging
 
-from odoo import api, models, fields, _
+from odoo import api, models, fields, _, Command
 from lxml.builder import E
 
 from .crm_lead_discovery_entity import entity_name_key
@@ -15,6 +16,8 @@ ASP_SUBSCRIPTION_CODE = 'S6'
 # would spawn that many tasks. Cap it here.
 MAX_ORDER_LINE_QTY = 50
 
+
+_logger = logging.getLogger(__name__)
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
@@ -451,15 +454,96 @@ class SaleOrder(models.Model):
                 "that form, so there is nothing to fetch yet.") % lead.display_name)
         return form
 
+    @api.model
+    def _discovery_service_products(self, codes):
+        """Products for the service codes ticked on a discovery form entity.
+
+        Nothing here: the form still lists the retired S1-S8 codes, and which
+        product each one now stands for is decided by the module that owns the
+        current service catalogue (proposal_workflow_extended_rk). Matching on
+        default_code here would be wrong - the new S1-S4 reuse the old codes
+        for different services.
+        """
+        return self.env['product.product']
+
     def action_fetch_discovery_invoice_counts(self):
-        """Populate each entity's annual inbound/outbound invoice counts from
-        the eInvoicing discovery form, matching on entity name."""
+        """The Fetch Invoice Counts button: fill the Entities tab now and say
+        what was found."""
         self.ensure_one()
-        if not self.entity_ids:
-            raise UserError(_(
-                "There are no entities on this quotation yet. Set the Number of "
-                "Entities and name them first."))
         form = self._discovery_counts_source()
+        stats = self._fill_entities_from_discovery(form)
+        matched, added, review, kept = (
+            stats['matched'], stats['added'], stats['review'], stats['kept'])
+
+        message = _("%(matched)s of %(total)s entities filled from the discovery form.") % {
+            'matched': matched, 'total': len(self.entity_ids)}
+        if added:
+            message += _(" %s added as new rows.") % added
+        if review:
+            message += _(" %s left blank for review.") % review
+        if kept:
+            message += _(" %s kept as entered by hand.") % kept
+        if stats['duplicates']:
+            message += _(" The form repeats %s entity name(s).") % stats['duplicates']
+        if not form.entity_ids:
+            message = _("The discovery form %s does not name any entity, so there "
+                        "is nothing to fill in.") % form.display_name
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'type': 'warning' if (review or not form.entity_ids) else 'success',
+                'title': _("Entities Fetched"),
+                'message': message,
+                'sticky': bool(review),
+                # Closing reloads the form, so the filled and added rows show
+                # straight away instead of after a manual refresh.
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }
+
+    def _auto_fill_entities_from_discovery(self):
+        """Fill the Entities tab of every order here whose opportunity has a
+        submitted eInvoicing discovery form naming at least one entity.
+
+        Runs on its own - when a quotation is created, when the client submits
+        the form, and right before the Proposal or Service Engagement PDF is
+        built - so the documents always carry the client's entities without
+        anyone clicking Fetch Invoice Counts. Orders without such a form are
+        left exactly as they are.
+        """
+        for order in self:
+            form = order._discovery_counts_source(raise_if_missing=False)
+            if form and form.entity_ids:
+                order._fill_entities_from_discovery(form)
+
+    def _auto_fill_entities_from_discovery_safely(self):
+        """`_auto_fill_entities_from_discovery` for the background routes
+        (quotation created, form submitted): a problem filling the entities is
+        logged and rolled back on its own, never allowed to stop the quotation
+        being saved or the client's form being accepted. The button and the
+        PDF downloads stay strict so a problem there is shown to the user."""
+        for order in self:
+            try:
+                with self.env.cr.savepoint():
+                    order._auto_fill_entities_from_discovery()
+            except Exception:
+                _logger.exception(
+                    "Could not fill the entities of %s from its discovery form",
+                    order.display_name)
+
+    def _fill_entities_from_discovery(self, form):
+        """Fill the Entities tab from the eInvoicing discovery form `form`.
+
+        Rows already named are matched to the form's entities by name. Every
+        entity the form names that no row claims then fills the next row
+        nobody has named yet, and a new row is added for whatever is still
+        left, so the tab ends up listing the client's entities with their
+        annual counts and services without anything being typed in first.
+        Numbers typed by hand are never touched.
+        """
+        self.ensure_one()
         # Refresh the rows behind the dropdown, so a form submitted before this
         # feature existed is picked up on first use rather than reading empty.
         form._sync_entity_records()
@@ -471,9 +555,31 @@ class SaleOrder(models.Model):
         seen = Counter(entity_name_key(answers.get('entityName'))
                        for answers in form._entity_answers())
         duplicates = {key for key, count in seen.items() if key and count > 1}
+        # The services ticked for each entity, first block per name (the same
+        # one the sync kept).
+        services_by_name = {}
+        for answers in form._entity_answers():
+            key = entity_name_key(answers.get('entityName'))
+            codes = answers.get('services') or []
+            if isinstance(codes, str):
+                codes = [codes]
+            services_by_name.setdefault(key, codes)
+
+        def services_vals(entity, source):
+            # Only onto a row with no services yet: a pick made by hand on the
+            # quotation is never overwritten.
+            if entity and entity.service_ids:
+                return {}
+            products = self._discovery_service_products(
+                services_by_name.get(entity_name_key(source.name), []))
+            return {'service_ids': [Command.set(products.ids)]} if products else {}
 
         matched = review = kept = 0
         used = set()
+        # Rows nobody has named or linked yet - the ones Number of Entities
+        # generated. They take the form's unclaimed entities below instead of
+        # being flagged as "No Match".
+        slots = self.env['sale.order.entity']
         for entity in self.entity_ids:
             # An explicitly picked entity wins over the name: it is an exact
             # link, not a text match.
@@ -494,7 +600,11 @@ class SaleOrder(models.Model):
                 kept += 1
                 continue
 
-            if not key or not source:
+            if not key:
+                slots |= entity
+                continue
+
+            if not source:
                 entity.write({
                     'discovery_entity_id': False,
                     'inbound_invoice_count': 0,
@@ -519,6 +629,7 @@ class SaleOrder(models.Model):
                     'inbound_count_set': False,
                     'outbound_count_set': False,
                     'discovery_state': 'incomplete',
+                    **services_vals(entity, source),
                 })
                 review += 1
                 continue
@@ -531,41 +642,51 @@ class SaleOrder(models.Model):
                 'inbound_count_set': True,
                 'outbound_count_set': True,
                 'discovery_state': 'matched',
+                **services_vals(entity, source),
             })
             matched += 1
 
-        self.write({
+        # The form's entities no row claimed, in the order the client listed
+        # them: into the blank rows first, then onto new rows. Linking the row
+        # is enough - sale.order.entity's create/write copy the name and both
+        # counts off the linked entity ('incomplete' when the form left one out).
+        unclaimed = [source for source in form.entity_ids.sorted('sequence')
+                     if entity_name_key(source.name) not in used]
+        filled = added = 0
+        for entity, source in zip(slots, unclaimed):
+            entity.write({'discovery_entity_id': source.id,
+                          **services_vals(entity, source)})
+            filled += 1
+        extra = unclaimed[len(slots):]
+        if extra:
+            sequence = self._next_entity_sequence()
+            self.env['sale.order.entity'].create([
+                {'order_id': self.id,
+                 'sequence': sequence + index * 10,
+                 'discovery_entity_id': source.id,
+                 **services_vals(None, source)}
+                for index, source in enumerate(extra)])
+            added = len(extra)
+        # More blank rows than the form has entities: nothing to put in them.
+        leftover = slots[len(unclaimed):]
+        if leftover:
+            leftover.write({'discovery_state': 'unmatched'})
+            review += len(leftover)
+        incomplete = len([source for source in unclaimed if not source.has_counts])
+        review += incomplete
+        matched += filled + added - incomplete
+
+        vals = {
             'discovery_counts_form_id': form.id,
             'discovery_counts_date': fields.Datetime.now(),
-        })
-
-        # Entities the client described that no row on the quotation claims -
-        # reported, never auto-added: the quotation's entity list is the
-        # proposal's own scope and is not changed here.
-        unclaimed = [source.name for key, source in by_name.items()
-                     if key not in used and key not in duplicates]
-        message = _("%(matched)s of %(total)s entities matched the discovery form.") % {
-            'matched': matched, 'total': len(self.entity_ids)}
-        if review:
-            message += _(" %s left blank for review.") % review
-        if kept:
-            message += _(" %s kept as entered by hand.") % kept
-        if duplicates:
-            message += _(" The form repeats %s entity name(s).") % len(duplicates)
-        if unclaimed:
-            message += _(" Not on this quotation: %s.") % ', '.join(
-                name for name in unclaimed if name)
-
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'type': 'warning' if (review or unclaimed) else 'success',
-                'title': _("Invoice Counts Fetched"),
-                'message': message,
-                'sticky': bool(review or unclaimed),
-            },
         }
+        if self.entity_count != len(self.entity_ids):
+            # Rows were added above, so Number of Entities follows them. The
+            # resize write() runs on a count change is then a no-op.
+            vals['entity_count'] = len(self.entity_ids)
+        self.write(vals)
+        return {'matched': matched, 'added': added, 'review': review,
+                'kept': kept, 'duplicates': len(duplicates)}
 
     @api.depends('opportunity_id.discovery_form_type')
     def _compute_opportunity_einvoicing(self):
@@ -755,6 +876,9 @@ class SaleOrder(models.Model):
         # res_partner._sync_crm_tags.
         orders._tags_from_partner()
         self.env['res.partner']._apply_crm_tags_from(orders.filtered('tag_ids'), mirror=False)
+        # A quotation raised on an opportunity whose client already submitted
+        # the eInvoicing discovery form opens with its entities filled in.
+        orders.filtered('opportunity_id')._auto_fill_entities_from_discovery_safely()
         return orders
 
     def write(self, vals):

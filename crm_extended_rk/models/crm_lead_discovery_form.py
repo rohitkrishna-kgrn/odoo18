@@ -284,6 +284,14 @@ class CrmLeadDiscoveryForm(models.Model):
             ) % self.form_label
 
         self._sync_entity_records()
+        if self.form_type == 'einvoicing' and self.lead_id:
+            # Quotations already open on this opportunity pick the client's
+            # entities up straight away. sudo: the client submits as the
+            # public user.
+            self.env['sale.order'].sudo().search([
+                ('opportunity_id', '=', self.lead_id.id),
+                ('state', 'in', ('draft', 'sent')),
+            ])._auto_fill_entities_from_discovery_safely()
 
         self.lead_id._log_journey_event(
             'discovery_received', event_name, discovery_form_id=self.id)

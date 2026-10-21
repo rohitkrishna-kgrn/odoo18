@@ -136,9 +136,10 @@
                             next time they are fetched.
                         </span>
                         <span class="text-muted ms-2" invisible="discovery_counts_date">
-                            Annual invoice counts come from the eInvoicing discovery
-                            form — fetch them once the client has submitted it, or
-                            type them in below.
+                            Fetching fills the rows below with the entities from the
+                            client's submitted eInvoicing discovery form - names,
+                            annual invoice counts and services - and adds a row for
+                            any entity not yet listed. Or type them in below.
                         </span>
                     </div>
                     <field name="has_discovery_entities" invisible="1"/>

@@ -71,6 +71,20 @@ class SaleOrder(models.Model):
             return int(product.einv_pdf_service)
         return LEGACY_SERVICE_BY_CODE.get((product.default_code or '').strip().upper())
 
+    @api.model
+    def _discovery_service_products(self, codes):
+        """The current service products for the codes ticked on a discovery form
+        entity. The form still offers the retired S1-S8 codes, so each is folded
+        the same way old orders are, then resolved to the product carrying that
+        service - never to the new S1-S4 that merely reuse the old codes."""
+        numbers = {LEGACY_SERVICE_BY_CODE.get((code or '').strip().upper())
+                   for code in codes if isinstance(code, str)} - {None}
+        if not numbers:
+            return super()._discovery_service_products(codes)
+        return self.env['product.product'].search(
+            [('einv_pdf_service', 'in', [str(number) for number in numbers]),
+             ('sale_ok', '=', True)], order='default_code, id')
+
     def _pdf_api_fees(self):
         """{service number: fee excl. VAT} from the order lines.
 
