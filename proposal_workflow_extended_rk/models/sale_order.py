@@ -185,6 +185,11 @@ class SaleOrder(models.Model):
             raise UserError(_(
                 "The proposal can only be downloaded while this is still a "
                 "quotation."))
+        # Once approved, the quotation offers the Service Engagement instead.
+        if self.approval_state == 'approved':
+            raise UserError(_(
+                "This quotation is approved. Download the Service Engagement "
+                "Agreement (Download SE) instead of the proposal."))
         # The document lists the client's entities from the discovery form.
         self._auto_fill_entities_from_discovery()
         datas = self._pdf_api_render('proposal', self._pdf_api_proposal_payload())
@@ -194,7 +199,9 @@ class SaleOrder(models.Model):
     def action_download_se(self):
         self.ensure_one()
         self._check_einvoicing_document()
-        if not self.is_service_engagement_stage:
+        # Approval only: the pipeline record can reach Service Engagement while
+        # this quotation is still a draft (S08018, S08020).
+        if self.approval_state != 'approved':
             raise UserError(_(
                 "The Service Engagement Agreement becomes available once this "
                 "quotation is approved."))

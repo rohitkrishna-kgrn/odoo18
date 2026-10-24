@@ -11,11 +11,12 @@
             <xpath expr="//header" position="inside">
                 <button name="action_download_proposal" type="object"
                         string="Download Proposal" class="btn-primary"
-                        invisible="not einvoicing_service or state not in ('draft', 'sent')"/>
+                        invisible="not einvoicing_service or state not in ('draft', 'sent') or approval_state == 'approved'"/>
                 <button name="action_download_se" type="object"
                         string="Download SE" class="btn-primary"
-                        invisible="not einvoicing_service or not is_service_engagement_stage"/>
+                        invisible="not einvoicing_service or approval_state != 'approved'"/>
                 <field name="is_service_engagement_stage" invisible="1"/>
+                <field name="approval_state" invisible="1"/>
                 <field name="einvoicing_service" invisible="1"/>
             </xpath>
 
