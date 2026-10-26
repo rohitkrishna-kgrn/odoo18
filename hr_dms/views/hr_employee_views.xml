@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_employee_form_hr_dms" model="ir.ui.view">
+        <field name="name">hr.employee.form.hr.dms</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <div name="button_box" position="inside">
+                <button name="action_open_dms_documents" type="object" class="oe_stat_button"
+                        icon="fa-folder-open" groups="hr_dms.group_hr_dms_manager">
+                    <field name="dms_document_count" widget="statinfo" string="Documents"/>
+                </button>
+                <button name="action_open_dms_details" type="object" class="oe_stat_button"
+                        icon="fa-id-card" groups="hr_dms.group_hr_dms_manager">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_text">Personal Details</span>
+                        <field name="dms_details_state" class="o_stat_value"/>
+                    </div>
+                </button>
+            </div>
+        </field>
+    </record>
+</odoo>

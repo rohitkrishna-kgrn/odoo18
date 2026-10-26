@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_hr_dms" model="ir.module.category">
+        <field name="name">Employee Documents</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <!-- Employee: view / upload / edit own documents as each category allows; never removes a file -->
+    <record id="group_hr_dms_employee" model="res.groups">
+        <field name="name">Employee (view / upload / edit)</field>
+        <field name="category_id" ref="module_category_hr_dms"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Can view, upload and edit their own documents and personal details, as each category allows. Adding files needs 'Employee can upload' or 'Employee can update' on the category, editing the fields needs 'Employee can update'; removing a file is allowed only while the document is in Draft, after which removing files or deleting a document is HR-only.</field>
+    </record>
+    <record id="group_hr_dms_manager" model="res.groups">
+        <field name="name">HR Manager (view / upload / edit / approve / delete)</field>
+        <field name="category_id" ref="module_category_hr_dms"/>
+        <field name="implied_ids" eval="[(6, 0, [ref('group_hr_dms_employee'), ref('group_hr_dms_confidential')])]"/>
+        <field name="comment">Works on the documents of all employees, including confidential ones; can approve, reject and delete, and read the audit trail.</field>
+    </record>
+    <record id="group_hr_dms_admin" model="res.groups">
+        <field name="name">Administrator (categories &amp; permissions)</field>
+        <field name="category_id" ref="module_category_hr_dms"/>
+        <field name="implied_ids" eval="[(4, ref('group_hr_dms_manager'))]"/>
+        <field name="comment">The only role that can change categories and the permissions attached to them. Also has confidential access through HR Manager.</field>
+    </record>
+    <record id="group_hr_dms_confidential" model="res.groups">
+        <field name="name">Confidential Records Access</field>
+        <field name="category_id" eval="False"/>
+        <field name="implied_ids" eval="[(6, 0, [ref('group_hr_dms_employee')])]"/>
+        <field name="comment">Not assigned directly: granted automatically with HR Manager and Administrator. Gives access to salary, appraisal, disciplinary and medical records.</field>
+    </record>
+
+    <data noupdate="1">
+        <record id="group_hr_dms_admin" model="res.groups">
+            <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+        </record>
+    </data>
+</odoo>

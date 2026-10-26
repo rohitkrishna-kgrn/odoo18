@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="param_max_file_mb" model="ir.config_parameter">
+            <field name="key">hr_dms.max_file_mb</field>
+            <field name="value">10</field>
+        </record>
+
+        <!-- Employee-facing categories -->
+        <record id="cat_personal_id" model="hr.dms.category">
+            <field name="name">Personal Identification</field><field name="code">PID</field><field name="sequence">10</field>
+        </record>
+        <record id="cat_education" model="hr.dms.category">
+            <field name="name">Educational Qualifications</field><field name="code">EDU</field><field name="sequence">20</field>
+        </record>
+        <record id="cat_experience" model="hr.dms.category">
+            <field name="name">Experience Certificates</field><field name="code">EXP</field><field name="sequence">30</field>
+        </record>
+        <record id="cat_contract" model="hr.dms.category">
+            <field name="name">Employment Contracts</field><field name="code">CON</field><field name="sequence">40</field>
+            <field name="employee_can_upload" eval="False"/>
+            <field name="employee_can_edit" eval="False"/>
+            <field name="description">Issued by HR. Employees can view and download but not upload or change.</field>
+        </record>
+        <record id="cat_visa" model="hr.dms.category">
+            <field name="name">Visa and Identification Documents</field><field name="code">VISA</field><field name="sequence">50</field>
+        </record>
+        <record id="cat_other" model="hr.dms.category">
+            <field name="name">Other Employment Records</field><field name="code">OTH</field><field name="sequence">60</field>
+        </record>
+
+        <!-- Confidential categories: hidden from employees by default -->
+        <record id="cat_salary" model="hr.dms.category">
+            <field name="name">Salary and Compensation</field><field name="code">SAL</field><field name="sequence">110</field>
+            <field name="confidential" eval="True"/>
+            <field name="employee_can_view" eval="False"/><field name="employee_can_upload" eval="False"/>
+            <field name="employee_can_edit" eval="False"/><field name="employee_can_download" eval="False"/>
+        </record>
+        <record id="cat_appraisal" model="hr.dms.category">
+            <field name="name">Performance Appraisals</field><field name="code">APR</field><field name="sequence">120</field>
+            <field name="confidential" eval="True"/>
+            <field name="employee_can_view" eval="False"/><field name="employee_can_upload" eval="False"/>
+            <field name="employee_can_edit" eval="False"/><field name="employee_can_download" eval="False"/>
+        </record>
+        <record id="cat_disciplinary" model="hr.dms.category">
+            <field name="name">Disciplinary Records</field><field name="code">DIS</field><field name="sequence">130</field>
+            <field name="confidential" eval="True"/>
+            <field name="employee_can_view" eval="False"/><field name="employee_can_upload" eval="False"/>
+            <field name="employee_can_edit" eval="False"/><field name="employee_can_download" eval="False"/>
+        </record>
+        <record id="cat_medical" model="hr.dms.category">
+            <field name="name">Medical Documents</field><field name="code">MED</field><field name="sequence">140</field>
+            <field name="confidential" eval="True"/>
+            <field name="employee_can_view" eval="False"/><field name="employee_can_upload" eval="False"/>
+            <field name="employee_can_edit" eval="False"/><field name="employee_can_download" eval="False"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ===== Categories ===== -->
+    <record id="rule_category_employee" model="ir.rule">
+        <field name="name">HR DMS category: employees see categories they may view or upload to</field>
+        <field name="model_id" ref="model_hr_dms_category"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_employee'))]"/>
+        <field name="perm_read" eval="True"/><field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/><field name="perm_unlink" eval="False"/>
+        <field name="domain_force">['|', ('employee_can_view', '=', True), ('employee_can_upload', '=', True)]</field>
+    </record>
+    <record id="rule_category_confidential" model="ir.rule">
+        <field name="name">HR DMS category: confidential holders see all</field>
+        <field name="model_id" ref="model_hr_dms_category"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_confidential'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="rule_category_admin" model="ir.rule">
+        <field name="name">HR DMS category: administrators manage all</field>
+        <field name="model_id" ref="model_hr_dms_category"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ===== Documents ===== -->
+    <record id="rule_document_company" model="ir.rule">
+        <field name="name">HR DMS document: multi-company</field>
+        <field name="model_id" ref="model_hr_dms_document"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[('company_id', 'in', company_ids + [False])]</field>
+    </record>
+    <record id="rule_document_own_read" model="ir.rule">
+        <field name="name">HR DMS document: employee reads own (viewable, updatable or downloadable categories)</field>
+        <field name="model_id" ref="model_hr_dms_document"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_employee'))]"/>
+        <field name="perm_read" eval="True"/><field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/><field name="perm_unlink" eval="False"/>
+        <field name="domain_force">[('user_id', '=', user.id), '|', '|', ('emp_can_view', '=', True), ('emp_can_edit', '=', True), ('emp_can_download', '=', True)]</field>
+    </record>
+    <record id="rule_document_own_create" model="ir.rule">
+        <field name="name">HR DMS document: employee uploads own (uploadable categories)</field>
+        <field name="model_id" ref="model_hr_dms_document"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_employee'))]"/>
+        <field name="perm_read" eval="False"/><field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="True"/><field name="perm_unlink" eval="False"/>
+        <field name="domain_force">[('user_id', '=', user.id), ('emp_can_upload', '=', True)]</field>
+    </record>
+    <record id="rule_document_own_write" model="ir.rule">
+        <field name="name">HR DMS document: employee edits own while in Draft</field>
+        <field name="model_id" ref="model_hr_dms_document"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_employee'))]"/>
+        <field name="perm_read" eval="False"/><field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="False"/><field name="perm_unlink" eval="False"/>
+        <field name="domain_force">[('user_id', '=', user.id), '|', ('emp_can_edit', '=', True), ('emp_can_upload', '=', True), ('state', '=', 'draft')]</field>
+    </record>
+    <record id="rule_document_officer" model="ir.rule">
+        <field name="name">HR DMS document: HR works on non-confidential records</field>
+        <field name="model_id" ref="model_hr_dms_document"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_manager'))]"/>
+        <field name="domain_force">[('confidential', '=', False)]</field>
+    </record>
+    <record id="rule_document_confidential" model="ir.rule">
+        <field name="name">HR DMS document: confidential holders see everything</field>
+        <field name="model_id" ref="model_hr_dms_document"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_confidential'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ===== Personal details ===== -->
+    <record id="rule_details_company" model="ir.rule">
+        <field name="name">HR DMS personal details: multi-company</field>
+        <field name="model_id" ref="model_hr_dms_personal_details"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[('company_id', 'in', company_ids + [False])]</field>
+    </record>
+    <record id="rule_details_own_read" model="ir.rule">
+        <field name="name">HR DMS personal details: employee reads own</field>
+        <field name="model_id" ref="model_hr_dms_personal_details"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_employee'))]"/>
+        <field name="perm_read" eval="True"/><field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="True"/><field name="perm_unlink" eval="False"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+    </record>
+    <record id="rule_details_own_write" model="ir.rule">
+        <field name="name">HR DMS personal details: employee edits own until submitted</field>
+        <field name="model_id" ref="model_hr_dms_personal_details"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_employee'))]"/>
+        <field name="perm_read" eval="False"/><field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="False"/><field name="perm_unlink" eval="False"/>
+        <field name="domain_force">[('user_id', '=', user.id), ('state', '=', 'draft')]</field>
+    </record>
+    <record id="rule_details_officer" model="ir.rule">
+        <field name="name">HR DMS personal details: HR sees all</field>
+        <field name="model_id" ref="model_hr_dms_personal_details"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ===== Audit log ===== -->
+    <record id="rule_audit_manager" model="ir.rule">
+        <field name="name">HR DMS audit: managers read non-confidential entries</field>
+        <field name="model_id" ref="model_hr_dms_audit_log"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_manager'))]"/>
+        <field name="domain_force">[('is_confidential', '=', False)]</field>
+    </record>
+    <record id="rule_audit_confidential" model="ir.rule">
+        <field name="name">HR DMS audit: confidential holders read all entries</field>
+        <field name="model_id" ref="model_hr_dms_audit_log"/>
+        <field name="groups" eval="[(4, ref('group_hr_dms_confidential'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+</odoo>

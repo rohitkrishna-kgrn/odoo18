@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hr_dms.FilesField">
+        <div t-attf-class="o_hr_dms_files oe_fileupload {{props.className ? props.className : ''}}" aria-atomic="true">
+            <div t-if="showZip" class="o_hr_dms_files_bar">
+                <a class="btn btn-sm btn-outline-primary" t-att-href="zipUrl" download="">
+                    <i class="fa fa-file-archive-o me-1"/>Download all (.zip)
+                </a>
+            </div>
+            <div t-if="files.length" class="o_hr_dms_files_grid">
+                <t t-foreach="files" t-as="file" t-key="file.id">
+                    <t t-call="hr_dms.FilesField.file"/>
+                </t>
+            </div>
+            <div t-elif="props.readonly" class="o_hr_dms_files_empty">
+                <i class="fa fa-folder-open-o"/>
+                <span>No files uploaded yet</span>
+            </div>
+            <div t-if="!props.readonly" class="o_hr_dms_files_upload">
+                <FileInput
+                    acceptedFileExtensions="props.acceptedFileExtensions"
+                    multiUpload="true"
+                    onUpload.bind="onFileUploaded"
+                    resModel="props.record.resModel"
+                    resId="props.record.resId or 0"
+                >
+                    <button class="btn o_hr_dms_dropzone o_attach" type="button">
+                        <i class="fa fa-cloud-upload"/>
+                        <span class="o_hr_dms_dropzone_title"><t t-esc="uploadText"/></span>
+                        <span class="o_hr_dms_dropzone_hint">PDF, images, Word or Excel · up to 10 MB each</span>
+                    </button>
+                </FileInput>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="hr_dms.FilesField.file">
+        <t t-set="ext" t-value="getExtension(file)"/>
+        <div class="o_hr_dms_file" t-att-title="file.name">
+            <div t-attf-class="o_hr_dms_file_thumb {{ canDownload ? 'o_hr_dms_clickable' : '' }}"
+                 t-on-click="() => canDownload and this.onFileClick(file)">
+                <span class="o_image" t-att-data-mimetype="file.mimetype" t-att-data-ext="ext" role="img"/>
+            </div>
+            <div class="o_hr_dms_file_body">
+                <div class="o_hr_dms_file_name" t-esc="file.name"/>
+                <div class="o_hr_dms_file_meta">
+                    <span class="o_hr_dms_ext" t-esc="ext"/>
+                    <span t-if="file.file_size" t-esc="sizeText(file)"/>
+                </div>
+                <div class="o_hr_dms_expiry">
+                    <i class="fa fa-calendar" title="Expiry date"/>
+                    <span>Expiry:</span>
+                    <DateTimeInput t-if="canEditExpiry(file)" type="'date'"
+                                   value="file.hr_dms_expiry_date || false"
+                                   placeholder="'No expiry'"
+                                   onChange="(value) => this.onExpiryChange(file, value)"/>
+                    <span t-else="" class="o_hr_dms_expiry_value" t-esc="expiryText(file)"/>
+                    <t t-set="expiry" t-value="expiryState(file)"/>
+                    <span t-if="expiry === 'expired'" class="badge rounded-pill text-bg-danger">Expired</span>
+                    <span t-elif="expiry === 'expiring'" class="badge rounded-pill text-bg-warning">Expiring</span>
+                </div>
+                <div t-if="canDownload" class="o_hr_dms_file_actions">
+                    <button t-if="isViewable(file)" type="button" class="btn btn-sm btn-light"
+                            t-on-click.prevent="() => this.onFileClick(file)">
+                        <i class="fa fa-eye me-1"/>Preview
+                    </button>
+                    <a class="btn btn-sm btn-primary" t-att-href="getUrl(file.id)" download=""
+                       t-att-data-tooltip="'Download ' + file.name">
+                        <i class="fa fa-download me-1"/>Download
+                    </a>
+                </div>
+                <div t-else="" class="o_hr_dms_file_locked">
+                    <i class="fa fa-lock me-1"/>Download not allowed
+                </div>
+            </div>
+            <button t-if="canRemove(file)" type="button" class="o_hr_dms_file_remove" title="Remove"
+                    aria-label="Remove" t-on-click.stop="() => this.onFileRemove(file.id)">
+                <i class="fa fa-times"/>
+            </button>
+        </div>
+    </t>
+</templates>

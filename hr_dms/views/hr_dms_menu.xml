@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- clicking the app opens the dashboard -->
+    <menuitem id="menu_hr_dms_root" name="Employee Documents" web_icon="hr,static/description/icon.png"
+              action="action_hr_dms_dashboard" sequence="45" groups="hr_dms.group_hr_dms_employee"/>
+    <menuitem id="menu_hr_dms_my_documents" name="My Documents" parent="menu_hr_dms_root"
+              action="action_hr_dms_my_documents" sequence="10"/>
+    <menuitem id="menu_hr_dms_my_details_root" name="My Personal Details" parent="menu_hr_dms_root"
+              sequence="20"/>
+    <menuitem id="menu_hr_dms_my_details_list" name="All Forms" parent="menu_hr_dms_my_details_root"
+              action="action_hr_dms_my_details_list" sequence="20"/>
+
+    <menuitem id="menu_hr_dms_hr" name="HR Administration" parent="menu_hr_dms_root" sequence="30"
+              groups="hr_dms.group_hr_dms_manager"/>
+    <menuitem id="menu_hr_dms_all" name="All Employee Documents" parent="menu_hr_dms_hr"
+              action="action_hr_dms_all_documents" sequence="10" groups="hr_dms.group_hr_dms_manager"/>
+    <menuitem id="menu_hr_dms_details" name="Personal Details Forms" parent="menu_hr_dms_hr"
+              action="action_hr_dms_details" sequence="30" groups="hr_dms.group_hr_dms_manager"/>
+
+    <!-- HR Managers see the categories read-only (no write ACL); only Administrators change them -->
+    <menuitem id="menu_hr_dms_config" name="Configuration" parent="menu_hr_dms_root" sequence="90"
+              groups="hr_dms.group_hr_dms_manager"/>
+    <menuitem id="menu_hr_dms_categories" name="Document Categories" parent="menu_hr_dms_config"
+              action="action_hr_dms_category" sequence="10" groups="hr_dms.group_hr_dms_manager"/>
+    <menuitem id="menu_hr_dms_export" name="Reporting" parent="menu_hr_dms_root" sequence="95"
+              groups="hr_dms.group_hr_dms_admin"/>
+    <menuitem id="menu_hr_dms_export_documents" name="Employee Documents" parent="menu_hr_dms_export"
+              action="action_hr_dms_export_documents" sequence="10" groups="hr_dms.group_hr_dms_admin"/>
+    <menuitem id="menu_hr_dms_export_details" name="Personal Details" parent="menu_hr_dms_export"
+              action="action_hr_dms_export_details" sequence="20" groups="hr_dms.group_hr_dms_admin"/>
+</odoo>

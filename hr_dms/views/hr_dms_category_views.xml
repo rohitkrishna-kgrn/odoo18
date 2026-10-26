@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_dms_category_list" model="ir.ui.view">
+        <field name="name">hr.dms.category.list</field>
+        <field name="model">hr.dms.category</field>
+        <field name="arch" type="xml">
+            <!-- checkbox columns are capped at 100px by default, which cut the labels to "Employee can..." -->
+            <list editable="bottom" class="o_hr_dms_category_list">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/><field name="code"/>
+                <!-- confidential = no employee access: it can only be ticked with every employee box off,
+                     and the employee boxes stay locked while it is ticked -->
+                <field name="confidential" width="120px" readonly="not confidential and (employee_can_view or employee_can_upload or employee_can_edit or employee_can_download)"/>
+                <field name="employee_can_view" width="185px" readonly="confidential"/>
+                <field name="employee_can_upload" width="185px" readonly="confidential or not employee_can_view" force_save="1"/>
+                <field name="employee_can_edit" width="185px" readonly="confidential"/>
+                <field name="employee_can_download" width="185px" readonly="confidential"/>
+                <field name="document_count" string="Documents" width="110px"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_hr_dms_category_form" model="ir.ui.view">
+        <field name="name">hr.dms.category.form</field>
+        <field name="model">hr.dms.category</field>
+        <field name="arch" type="xml">
+            <form class="o_hr_dms_form">
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <field name="active" invisible="1"/>
+                    <div class="o_hr_dms_hero">
+                        <div class="o_hr_dms_hero_icon"><i class="fa fa-folder-open-o"/></div>
+                        <div class="oe_title o_hr_dms_hero_title">
+                            <label for="name" string="Category"/>
+                            <h1><field name="name" placeholder="e.g. Visa and Identification Documents"/></h1>
+                            <div class="o_hr_dms_hero_meta">
+                                <span><i class="fa fa-tag me-1"/>Code <field name="code" placeholder="VISA"/></span>
+                                <span><i class="fa fa-sort me-1"/>Sequence <field name="sequence"/></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info o_hr_dms_alert" role="alert" invisible="not confidential">
+                        <i class="fa fa-user-secret me-2"/>Confidential: only HR users with
+                        <b>Confidential Records Access</b> can open these documents. Employees have no access,
+                        so the permissions below stay off. Untick Confidential to give employees access.
+                    </div>
+                    <div class="o_hr_dms_section">
+                        <div class="o_hr_dms_section_title"><i class="fa fa-lock"/>Confidentiality</div>
+                        <group>
+                            <field name="confidential" widget="boolean_toggle" readonly="not confidential and (employee_can_view or employee_can_upload or employee_can_edit or employee_can_download)"/>
+                            <div colspan="2" class="text-muted small" invisible="confidential or not (employee_can_view or employee_can_upload or employee_can_edit or employee_can_download)">
+                                Turn off every employee permission below to make this category confidential.
+                            </div>
+                        </group>
+                    </div>
+                    <div class="o_hr_dms_section">
+                        <div class="o_hr_dms_section_title"><i class="fa fa-user"/>Employee permissions on their own documents</div>
+                        <group>
+                            <field name="employee_can_view" widget="boolean_toggle" readonly="confidential"/>
+                            <field name="employee_can_upload" widget="boolean_toggle" readonly="confidential or not employee_can_view" force_save="1"/>
+                            <field name="employee_can_edit" widget="boolean_toggle" readonly="confidential"/>
+                            <field name="employee_can_download" widget="boolean_toggle" readonly="confidential"/>
+                        </group>
+                    </div>
+                    <div class="o_hr_dms_section">
+                        <div class="o_hr_dms_section_title"><i class="fa fa-align-left"/>Description</div>
+                        <field name="description" placeholder="What belongs in this category..."/>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_hr_dms_category" model="ir.actions.act_window">
+        <field name="name">Document Categories</field>
+        <field name="res_model">hr.dms.category</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

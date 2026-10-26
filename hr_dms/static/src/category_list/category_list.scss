@@ -1,0 +1,6 @@
+// Document Categories list: on narrow screens wrap long permission headers instead of "Employee can..."
+.o_hr_dms_category_list .o_list_table thead th .text-truncate {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}

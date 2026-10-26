@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hr_dms_category_user,hr.dms.category user,model_hr_dms_category,group_hr_dms_employee,1,0,0,0
+access_hr_dms_category_admin,hr.dms.category admin,model_hr_dms_category,group_hr_dms_admin,1,1,1,1
+access_hr_dms_document_user,hr.dms.document user,model_hr_dms_document,group_hr_dms_employee,1,1,1,0
+access_hr_dms_document_manager,hr.dms.document manager,model_hr_dms_document,group_hr_dms_manager,1,1,1,1
+access_hr_dms_details_user,hr.dms.personal.details user,model_hr_dms_personal_details,group_hr_dms_employee,1,1,1,0
+access_hr_dms_details_manager,hr.dms.personal.details manager,model_hr_dms_personal_details,group_hr_dms_manager,1,1,1,1
+access_hr_dms_audit_manager,hr.dms.audit.log manager,model_hr_dms_audit_log,group_hr_dms_manager,1,0,0,0
+access_hr_dms_reject_wizard,hr.dms.reject.wizard manager,model_hr_dms_reject_wizard,group_hr_dms_manager,1,1,1,1
+access_hr_dms_return_wizard,hr.dms.return.wizard manager,model_hr_dms_return_wizard,group_hr_dms_manager,1,1,1,1
+access_hr_dms_draft_wizard,hr.dms.draft.wizard manager,model_hr_dms_draft_wizard,group_hr_dms_manager,1,1,1,1

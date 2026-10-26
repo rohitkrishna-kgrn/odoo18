@@ -1,0 +1,451 @@
+// Employee Documents dashboard — same KGRN look as the eInvoicing dashboards
+// (proposal_workflow_extended_rk/static/src/scss/einvoicing_dashboard.scss).
+// Status colours always come with an icon and a label, never colour alone.
+$hr-dms-navy: #1A2F4E;
+$hr-dms-orange: #F15C22;
+$hr-dms-border: #E6E2DA;
+$hr-dms-sand: #FBFBF2;
+$hr-dms-ink: #1F1F1F;
+$hr-dms-muted: #8A93A0;
+$hr-dms-green: #12B76A;
+$hr-dms-amber: #F79009;
+$hr-dms-red: #D92D20;
+$hr-dms-grey: #98A2B3;
+
+// The client action root takes Odoo's .o_action class: full height, no scroll of its own;
+// the inner .o_content does the scrolling.
+.o_hr_dms_shell {
+    height: 100%;
+    display: flex;
+    flex-flow: column nowrap;
+    overflow: hidden;
+}
+
+.o_hr_dms_dash {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 20px 24px 40px;
+    background: #F7F7F4;
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: $hr-dms-ink;
+
+    @include media-breakpoint-down(sm) {
+        padding: 16px 16px 32px;
+    }
+
+    .o_hr_dms_clickable {
+        cursor: pointer;
+    }
+    .o_hr_dms_muted {
+        color: $hr-dms-muted;
+    }
+
+    // ── Header ──────────────────────────────────────────────────────────
+    .o_hr_dms_head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+    .o_hr_dms_title h1 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: $hr-dms-navy;
+        letter-spacing: -0.01em;
+
+        &::after {
+            content: '';
+            display: block;
+            width: 42px;
+            height: 3px;
+            margin-top: 8px;
+            border-radius: 2px;
+            background: $hr-dms-orange;
+        }
+    }
+    .o_hr_dms_sub {
+        display: block;
+        margin-top: 8px;
+        font-size: 12.5px;
+        color: $hr-dms-muted;
+    }
+
+    // buttons: white outline, orange on hover; the primary one is navy
+    .o_hr_dms_quick {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+
+        button {
+            border: 1px solid $hr-dms-border;
+            background: #fff;
+            border-radius: 6px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: $hr-dms-navy;
+            cursor: pointer;
+
+            &:hover {
+                border-color: $hr-dms-orange;
+                color: $hr-dms-orange;
+            }
+        }
+        .o_hr_dms_primary,
+        .is-active {
+            background: $hr-dms-navy;
+            border-color: $hr-dms-navy;
+            color: #fff;
+
+            &:hover {
+                background: darken($hr-dms-navy, 5%);
+                border-color: darken($hr-dms-navy, 5%);
+                color: #fff;
+            }
+        }
+    }
+
+    // ── States ──────────────────────────────────────────────────────────
+    .o_hr_dms_loading {
+        padding: 40px;
+        text-align: center;
+        color: $hr-dms-muted;
+        font-size: 14px;
+    }
+    .o_hr_dms_alert {
+        color: $hr-dms-red;
+        background: #FEF3F2;
+        border: 1px solid #FDA29B;
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin-bottom: 14px;
+    }
+
+    // ── KPI cards ───────────────────────────────────────────────────────
+    .o_hr_dms_kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+    .o_hr_dms_kpi {
+        background: #fff;
+        border: 1px solid $hr-dms-border;
+        border-top: 3px solid $hr-dms-navy;
+        border-radius: 10px;
+        padding: 14px 16px;
+        transition: box-shadow .15s;
+
+        &.o_hr_dms_clickable:hover {
+            box-shadow: 0 2px 10px rgba(26, 47, 78, .10);
+        }
+        .o_hr_dms_kpi_label {
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: $hr-dms-muted;
+            margin-bottom: 6px;
+        }
+        .o_hr_dms_kpi_value {
+            font-size: 20px;
+            font-weight: 700;
+            color: $hr-dms-navy;
+            line-height: 1.2;
+
+            small {
+                font-size: 13px;
+                font-weight: 600;
+                color: $hr-dms-muted;
+            }
+        }
+        .o_hr_dms_kpi_sub {
+            margin-top: 4px;
+            font-size: 11.5px;
+            color: $hr-dms-muted;
+        }
+
+        &.o_hr_dms_kpi_draft { border-top-color: $hr-dms-grey; }
+        &.o_hr_dms_kpi_submitted { border-top-color: $hr-dms-amber; }
+        &.o_hr_dms_kpi_approved { border-top-color: $hr-dms-green; }
+        &.o_hr_dms_kpi_rejected { border-top-color: $hr-dms-red; }
+        &.o_hr_dms_kpi_alert {
+            border-top-color: $hr-dms-red;
+
+            .o_hr_dms_kpi_value { color: $hr-dms-red; }
+
+            &.is-clear {
+                border-top-color: $hr-dms-green;
+
+                .o_hr_dms_kpi_value { color: $hr-dms-green; }
+            }
+        }
+    }
+
+    // ── Cards and charts ────────────────────────────────────────────────
+    .o_hr_dms_card {
+        background: #fff;
+        border: 1px solid $hr-dms-border;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 14px;
+    }
+    .o_hr_dms_grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 14px;
+
+        .o_hr_dms_card {
+            margin-bottom: 0;
+        }
+        @media (max-width: 1100px) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+    .o_hr_dms_chart {
+        padding: 16px 18px 18px;
+
+        &.span-2 {
+            grid-column: span 2;
+
+            @media (max-width: 1100px) {
+                grid-column: span 1;
+            }
+        }
+    }
+    .o_hr_dms_chart_head {
+        margin-bottom: 12px;
+
+        h2 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: $hr-dms-navy;
+        }
+        span {
+            display: block;
+            margin-top: 2px;
+            font-size: 11.5px;
+            color: $hr-dms-muted;
+        }
+    }
+    // Chart.js needs a sized parent to be responsive without growing forever.
+    .o_hr_dms_canvas {
+        position: relative;
+        height: 260px;
+    }
+
+    // ── Table card ──────────────────────────────────────────────────────
+    .o_hr_dms_card_head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 14px 16px 12px;
+        border-bottom: 1px solid $hr-dms-border;
+
+        h2 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: $hr-dms-navy;
+        }
+        > .o_hr_dms_muted {
+            font-size: 12px;
+        }
+    }
+    .o_hr_dms_filters {
+        margin-left: auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .o_hr_dms_field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: $hr-dms-muted;
+            margin: 0;
+        }
+        input,
+        select {
+            border: 1px solid $hr-dms-border;
+            border-radius: 6px;
+            background: #fff;
+            padding: 7px 10px;
+            font-size: 13px;
+            color: $hr-dms-ink;
+            min-width: 180px;
+
+            &:focus {
+                outline: none;
+                border-color: $hr-dms-orange;
+                box-shadow: 0 0 0 3px rgba(241, 92, 34, .14);
+            }
+        }
+    }
+    .o_hr_dms_chips {
+        padding: 12px 16px;
+        border-bottom: 1px solid $hr-dms-border;
+    }
+    .o_hr_dms_table_wrap {
+        overflow-x: auto;
+        max-height: 70vh;
+    }
+    .o_hr_dms_table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: $hr-dms-navy;
+            color: #fff;
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            white-space: nowrap;
+        }
+        tbody tr {
+            border-bottom: 1px solid $hr-dms-border;
+            background: #fff;
+
+            &:nth-child(even) {
+                background: $hr-dms-sand;
+            }
+            &:hover {
+                background: #FFF4EE;
+            }
+        }
+        td {
+            padding: 10px 14px;
+            vertical-align: middle;
+            color: #40484F;
+        }
+        .num {
+            text-align: right;
+            white-space: nowrap;
+        }
+        .mid {
+            text-align: center;
+            white-space: nowrap;
+        }
+        .o_hr_dms_name {
+            font-weight: 600;
+            color: $hr-dms-navy;
+        }
+        a {
+            color: $hr-dms-navy;
+            font-weight: 600;
+            text-decoration: none;
+
+            &:hover {
+                color: $hr-dms-orange;
+                text-decoration: underline;
+            }
+        }
+    }
+    // the employee column stays put while the category columns scroll
+    .o_hr_dms_matrix {
+        .o_hr_dms_matrix_emp {
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            min-width: 200px;
+            background: inherit;
+        }
+        thead .o_hr_dms_matrix_emp {
+            z-index: 3;
+            background: $hr-dms-navy;
+        }
+        td.o_hr_dms_matrix_emp {
+            box-shadow: inset -1px 0 0 $hr-dms-border;
+        }
+    }
+    .o_hr_dms_empty {
+        text-align: center;
+        padding: 40px !important;
+        color: $hr-dms-muted !important;
+    }
+
+    // ── Status pills and matrix cells ───────────────────────────────────
+    .o_hr_dms_pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .o_hr_dms_kpi_value .o_hr_dms_pill {
+        font-size: 13px;
+        padding: 4px 11px;
+    }
+    .o_hr_dms_cell {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 22px;
+        border-radius: 4px;
+        font-size: 11px;
+    }
+    .o_hr_dms_cell_none {
+        color: $hr-dms-muted;
+    }
+    .o_hr_dms_is_not_started {
+        background: #EEF1F5;
+        color: $hr-dms-muted;
+    }
+    .o_hr_dms_is_draft {
+        background: #F2F4F7;
+        color: #475467;
+    }
+    .o_hr_dms_is_submitted {
+        background: #FEF0C7;
+        color: #B54708;
+    }
+    .o_hr_dms_is_approved,
+    .o_hr_dms_is_verified {
+        background: #D1FADF;
+        color: #067647;
+    }
+    .o_hr_dms_is_rejected {
+        background: #FEE4E2;
+        color: $hr-dms-red;
+    }
+
+    .o_hr_dms_legend {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 16px;
+        padding: 12px 16px;
+        border-top: 1px solid $hr-dms-border;
+        font-size: 12px;
+    }
+    .o_hr_dms_legend_item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+}

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_dms_document_list" model="ir.ui.view">
+        <field name="name">hr.dms.document.list</field>
+        <field name="model">hr.dms.document</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="state == 'rejected'" decoration-warning="is_expiring" decoration-muted="not active">
+                <field name="employee_id" widget="many2one_avatar_employee" groups="hr_dms.group_hr_dms_manager"/>
+                <field name="name" class="fw-semibold"/>
+                <field name="category_id" widget="badge"/>
+                <field name="file_count" string="Files" optional="show"/>
+                <field name="expiry_date" optional="show"/>
+                <field name="uploaded_by" widget="many2one_avatar_user" optional="hide"/>
+                <field name="create_date" string="Uploaded On" widget="date" optional="show"/>
+                <field name="state" widget="badge" decoration-success="state == 'approved'" decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'" decoration-danger="state == 'rejected'"/>
+                <button name="action_download_files" type="object" icon="fa-download" string="Download"
+                        class="btn-link text-primary" invisible="not can_download or not file_count"/>
+                <field name="can_download" column_invisible="1"/>
+                <field name="is_expiring" column_invisible="1"/>
+                <field name="active" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_hr_dms_document_kanban" model="ir.ui.view">
+        <field name="name">hr.dms.document.kanban</field>
+        <field name="model">hr.dms.document</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="category_id" class="o_hr_dms_kanban">
+                <field name="state"/>
+                <field name="is_expiring"/>
+                <field name="file_count"/>
+                <field name="can_download"/>
+                <templates>
+                    <t t-name="card" class="o_hr_dms_kanban_card">
+                        <div class="d-flex align-items-start gap-2">
+                            <span t-attf-class="o_hr_dms_kanban_icon o_hr_dms_state_{{ record.state.raw_value }}">
+                                <i class="fa fa-file-text-o"/>
+                            </span>
+                            <div class="flex-grow-1 overflow-hidden">
+                                <field name="name" class="o_hr_dms_kanban_title"/>
+                                <div class="text-muted small" groups="hr_dms.group_hr_dms_manager">
+                                    <field name="employee_id" widget="many2one_avatar_employee"/>
+                                </div>
+                            </div>
+                            <field name="state" widget="badge" decoration-success="state == 'approved'" decoration-info="state == 'draft'"
+                                   decoration-warning="state == 'submitted'" decoration-danger="state == 'rejected'"/>
+                        </div>
+                        <div class="o_hr_dms_kanban_meta">
+                            <span><i class="fa fa-paperclip me-1"/><field name="file_count"/> file(s)</span>
+                            <span t-if="record.expiry_date.raw_value" t-attf-class="{{ record.is_expiring.raw_value ? 'text-warning fw-semibold' : '' }}">
+                                <i class="fa fa-calendar me-1"/>Expires <field name="expiry_date"/>
+                            </span>
+                        </div>
+                        <div class="o_hr_dms_kanban_footer">
+                            <span><i class="fa fa-clock-o me-1"/>Uploaded <field name="create_date" options="{'show_time': false}"/></span>
+                            <a t-if="record.can_download.raw_value and record.file_count.raw_value" type="object"
+                               name="action_download_files" class="btn btn-sm btn-outline-primary">
+                                <i class="fa fa-download me-1"/>Download
+                            </a>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    <record id="view_hr_dms_document_form" model="ir.ui.view">
+        <field name="name">hr.dms.document.form</field>
+        <field name="model">hr.dms.document</field>
+        <field name="arch" type="xml">
+            <!-- Odoo focuses the first btn-primary after a save, so a stray Enter would submit -->
+            <form disable_autofocus="1" class="o_hr_dms_form">
+                <field name="can_download" invisible="1"/>
+                <field name="can_add_files" invisible="1"/>
+                <field name="can_remove_files" invisible="1"/>
+                <field name="can_edit" invisible="1"/>
+                <field name="can_approve" invisible="1"/>
+                <field name="can_reject" invisible="1"/>
+                <field name="can_submit" invisible="1"/>
+                <field name="can_reset_draft" invisible="1"/>
+                <field name="active" invisible="1"/>
+                <field name="user_id" invisible="1"/>
+                <field name="file_count" invisible="1"/>
+                <field name="expiry_date" invisible="1"/>
+                <header>
+                    <button name="action_submit" string="Submit" type="object" class="btn-primary" icon="fa-paper-plane"
+                            invisible="not can_submit"/>
+                    <button name="action_approve" string="Approve" type="object" class="btn-primary" icon="fa-check"
+                            invisible="not can_approve" groups="hr_dms.group_hr_dms_manager"/>
+                    <button name="action_open_reject_wizard" string="Reject" type="object" icon="fa-times"
+                            invisible="not can_reject" groups="hr_dms.group_hr_dms_manager"/>
+                    <button name="action_open_draft_wizard" string="Move to Draft" type="object" icon="fa-undo"
+                            invisible="not can_reset_draft" groups="hr_dms.group_hr_dms_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved,rejected"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <widget name="web_ribbon" title="Approved" bg_color="text-bg-success" invisible="not active or state != 'approved'"/>
+                    <widget name="web_ribbon" title="Rejected" bg_color="text-bg-danger" invisible="not active or state != 'rejected'"/>
+                    <div class="alert alert-danger o_hr_dms_alert" role="alert" invisible="state != 'rejected' or not reject_reason">
+                        <i class="fa fa-exclamation-circle me-2"/><b>Rejected:</b> <field name="reject_reason"/>
+                    </div>
+                    <div class="o_hr_dms_section o_hr_dms_section_compact">
+                        <div class="o_hr_dms_section_title"><i class="fa fa-file-text-o"/>Document</div>
+                        <group>
+                            <field name="name" string="Title" class="fw-semibold" placeholder="e.g. Passport, Degree Certificate"
+                                   readonly="id and not can_edit"/>
+                            <field name="employee_id" widget="many2one_avatar_employee" groups="hr_dms.group_hr_dms_manager"
+                                   readonly="id" options="{'no_create': True}"/>
+                            <field name="category_id" readonly="id and not can_edit" widget="selection"
+                                   groups="hr_dms.group_hr_dms_manager"/>
+                            <field name="category_id" readonly="id and not can_edit" widget="selection"
+                                   groups="!hr_dms.group_hr_dms_manager"
+                                   domain="['|', ('employee_can_upload', '=', True), ('id', '=', category_id)]"/>
+                            <field name="notes" string="Description" placeholder="What is this document about..."
+                                   readonly="id and not can_edit"/>
+                            <field name="uploaded_by" widget="many2one_avatar_user"/>
+                            <field name="approved_by" widget="many2one_avatar_user" invisible="not approved_by"/>
+                            <field name="approved_date" invisible="not approved_date"/>
+                            <field name="attachment_ids" widget="hr_dms_files" string="Files"
+                                   readonly="id and not can_add_files"
+                                   options="{'accepted_file_extensions': '.pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx'}"/>
+                        </group>
+                    </div>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="view_hr_dms_document_search" model="ir.ui.view">
+        <field name="name">hr.dms.document.search</field>
+        <field name="model">hr.dms.document</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="employee_id" groups="hr_dms.group_hr_dms_manager"/>
+                <field name="category_id"/>
+                <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <filter name="pending" string="Pending Approval" domain="[('state', '=', 'submitted')]"/>
+                <filter name="approved" string="Approved" domain="[('state', '=', 'approved')]"/>
+                <filter name="rejected" string="Rejected" domain="[('state', '=', 'rejected')]"/>
+                <separator/>
+                <filter name="expiring" string="Expiring in 30 days" domain="[('expiry_date', '!=', False), ('expiry_date', '&lt;=', (context_today() + relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <filter name="confidential" string="Confidential" domain="[('confidential', '=', True)]" groups="hr_dms.group_hr_dms_confidential"/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]" groups="hr_dms.group_hr_dms_manager"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_employee" string="Employee" context="{'group_by': 'employee_id'}" groups="hr_dms.group_hr_dms_manager"/>
+                    <filter name="group_category" string="Category" context="{'group_by': 'category_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_hr_dms_my_documents" model="ir.actions.act_window">
+        <field name="name">My Documents</field>
+        <field name="res_model">hr.dms.document</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('user_id', '=', uid)]</field>
+        <field name="context">{'search_default_group_category': 1}</field>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Upload your first document</p></field>
+    </record>
+    <record id="action_hr_dms_all_documents" model="ir.actions.act_window">
+        <field name="name">All Employee Documents</field>
+        <field name="res_model">hr.dms.document</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_group_employee': 1}</field>
+    </record>
+    <record id="action_hr_dms_pending" model="ir.actions.act_window">
+        <field name="name">Pending Approval</field>
+        <field name="res_model">hr.dms.document</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_pending': 1, 'search_default_group_category': 1}</field>
+    </record>
+</odoo>

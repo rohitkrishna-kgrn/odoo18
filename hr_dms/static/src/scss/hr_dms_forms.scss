@@ -1,0 +1,434 @@
+// Employee Documents look: header block, titled section cards, file cards, kanban cards.
+// Everything is scoped to the module's own classes so nothing leaks into other apps.
+// Odoo 18's backend does not define Bootstrap's --bs-* CSS variables, so only SCSS variables are
+// used here; the dark-mode bundle recompiles them with its own values.
+
+$hr-dms-label-width: 210px;
+$hr-dms-radius: 12px;
+$hr-dms-tint: rgba($primary, 0.1);
+$hr-dms-muted: $text-muted;
+
+@mixin hr-dms-icon-tile($size, $font, $color, $radius: 10px) {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: $size;
+    height: $size;
+    border-radius: $radius;
+    font-size: $font;
+    color: $color;
+    background-color: rgba($color, 0.12);
+}
+
+.o_hr_dms_form {
+    // ----- header block: icon or photo, big title, meta line
+    .o_hr_dms_hero {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid $border-color;
+    }
+    .o_hr_dms_hero_icon {
+        @include hr-dms-icon-tile(72px, 32px, $primary, 18px);
+    }
+    .o_hr_dms_hero_avatar {
+        flex: 0 0 auto;
+        width: auto !important;
+
+        img {
+            width: 84px;
+            height: 84px;
+            object-fit: cover;
+            border-radius: 50%;
+            box-shadow: 0 0 0 4px rgba($primary, 0.18);
+        }
+    }
+    .o_hr_dms_hero_title {
+        flex: 1 1 auto;
+        min-width: 0;
+        margin-bottom: 0;
+        padding-right: 120px;   // keep clear of the status ribbon
+
+        > label {
+            margin-bottom: 2px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: $hr-dms-muted;
+        }
+        h1 {
+            margin-bottom: 6px;
+        }
+    }
+    .o_hr_dms_hero_meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+
+        > span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: $body-color;
+            background-color: $gray-100;
+            border: 1px solid $border-color;
+
+            > .fa {
+                color: $primary;
+            }
+        }
+        .o_field_widget {
+            display: inline;
+            width: auto !important;
+            margin: 0;
+        }
+    }
+
+    .o_hr_dms_alert {
+        display: flex;
+        align-items: center;
+        border-radius: 10px;
+        margin-bottom: 16px;
+
+        .o_field_widget {
+            display: inline;
+            width: auto;
+            margin-left: 4px;
+        }
+    }
+
+    // ----- titled section cards
+    .o_hr_dms_section {
+        padding: 18px 22px 10px;
+        margin-bottom: 18px;
+        border: 1px solid $border-color;
+        border-radius: $hr-dms-radius;
+        background-color: $o-view-background-color;
+        box-shadow: 0 1px 3px rgba($black, 0.05);
+
+        > .o_group {
+            margin: 0;
+        }
+        > .o_field_widget {
+            display: block;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        textarea {
+            min-height: 60px;
+        }
+    }
+    .o_hr_dms_section_title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid $border-color;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: $headings-color;
+
+        > .fa {
+            @include hr-dms-icon-tile(32px, 15px, $primary, 8px);
+        }
+    }
+    // one compact card holding every field of the document form
+    .o_hr_dms_section_compact {
+        padding: 14px 20px 6px;
+
+        .o_hr_dms_section_title {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+        }
+        .o_inner_group {
+            row-gap: 6px;
+        }
+        textarea {
+            min-height: 40px;
+        }
+    }
+    .o_hr_dms_section_upload {
+        border-style: dashed;
+        border-color: rgba($primary, 0.45);
+        background-color: rgba($primary, 0.03);
+        padding-bottom: 18px;
+
+        .o_field_binary {
+            width: auto;
+        }
+    }
+
+    // ----- one label column for every section, so all values start at the same place
+    .o_hr_dms_section .o_inner_group {
+        row-gap: 10px;
+        margin-bottom: 8px;
+
+        @include media-breakpoint-up(sm) {
+            grid-template-columns: $hr-dms-label-width minmax(0, 1fr);
+        }
+        // same look for every label, editable or read-only
+        .o_form_label, .o_form_label.o_form_label_readonly {
+            margin-bottom: 0;
+            font-weight: 500 !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: $gray-700 !important;
+            opacity: 1 !important;
+        }
+        .o_field_widget > span:not(.o_tooltip):empty::before,
+        .o_field_widget > span:not(.o_tooltip) > span:empty::before {
+            content: "—";
+            color: $gray-400;
+        }
+    }
+}
+
+// ----- Files widget: file cards with Preview / Download
+.o_field_hr_dms_files {
+    width: 100% !important;
+}
+.o_hr_dms_files {
+    width: 100%;
+
+    .o_hr_dms_files_bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+    .o_hr_dms_files_count {
+        font-weight: 600;
+        color: $hr-dms-muted;
+    }
+    .o_hr_dms_files_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 10px;
+    }
+    .o_hr_dms_file {
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 10px 12px;
+        border: 1px solid $border-color;
+        border-radius: 10px;
+        background-color: $o-view-background-color;
+        transition: box-shadow 0.15s ease, border-color 0.15s ease;
+
+        &:hover {
+            border-color: rgba($primary, 0.5);
+            box-shadow: 0 4px 14px rgba($black, 0.08);
+        }
+    }
+    .o_hr_dms_file_thumb {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 10px;
+        background-color: $gray-100;
+
+        .o_image {
+            width: 34px;
+            height: 34px;
+        }
+        &.o_hr_dms_clickable {
+            cursor: zoom-in;
+        }
+    }
+    .o_hr_dms_file_body {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding-right: 20px;
+    }
+    .o_hr_dms_file_name {
+        font-weight: 600;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+    .o_hr_dms_file_meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 2px;
+        font-size: 0.8rem;
+        color: $hr-dms-muted;
+    }
+    .o_hr_dms_ext {
+        padding: 0 6px;
+        border-radius: 4px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: $primary;
+        background-color: $hr-dms-tint;
+    }
+    .o_hr_dms_expiry {
+        display: flex;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+        align-items: center;
+        gap: 6px;
+        margin-top: 6px;
+        font-size: 0.8rem;
+        color: $hr-dms-muted;
+
+        .o_datetime_input {
+            width: 6.5rem;
+            padding: 0 2px;
+            background-color: transparent;
+        }
+        .o_hr_dms_expiry_value {
+            color: $body-color;
+        }
+    }
+    .o_hr_dms_file_actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 6px;
+    }
+    .o_hr_dms_file_locked {
+        display: inline-flex;
+        align-items: center;
+        margin-top: 10px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        color: $hr-dms-muted;
+        background-color: $gray-100;
+    }
+    .o_hr_dms_file_remove {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 26px;
+        height: 26px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        line-height: 26px;
+        color: $hr-dms-muted;
+        background: transparent;
+
+        &:hover {
+            color: $danger;
+            background-color: rgba($danger, 0.1);
+        }
+    }
+    .o_hr_dms_files_empty {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px;
+        border-radius: 10px;
+        color: $hr-dms-muted;
+        background-color: $gray-100;
+
+        .fa {
+            font-size: 20px;
+        }
+    }
+    .o_hr_dms_files_upload {
+        margin-top: 10px;
+
+        .o_hr_dms_dropzone {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px dashed rgba($primary, 0.4);
+            border-radius: $hr-dms-radius;
+            color: $primary;
+            background-color: rgba($primary, 0.03);
+
+            &:hover {
+                border-color: $primary;
+                background-color: rgba($primary, 0.08);
+            }
+            .fa {
+                font-size: 20px;
+            }
+        }
+        .o_hr_dms_dropzone_title {
+            font-weight: 600;
+        }
+        .o_hr_dms_dropzone_hint {
+            font-size: 0.8rem;
+            color: $hr-dms-muted;
+        }
+    }
+}
+
+// ----- My Documents kanban
+.o_hr_dms_kanban {
+    .o_hr_dms_kanban_card {
+        border-radius: 10px;
+        padding: 12px 14px;
+    }
+    .o_hr_dms_kanban_icon {
+        @include hr-dms-icon-tile(40px, 18px, $info);
+
+        &.o_hr_dms_state_submitted {
+            color: darken($warning, 10%);
+            background-color: rgba($warning, 0.18);
+        }
+        &.o_hr_dms_state_approved {
+            color: $success;
+            background-color: rgba($success, 0.12);
+        }
+        &.o_hr_dms_state_rejected {
+            color: $danger;
+            background-color: rgba($danger, 0.12);
+        }
+    }
+    .o_hr_dms_kanban_meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 14px;
+        margin-top: 10px;
+        font-size: 0.85rem;
+        color: $hr-dms-muted;
+    }
+    .o_hr_dms_kanban_title {
+        display: block;
+        font-size: 1.05rem;
+        font-weight: 600;
+        line-height: 1.3;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+    .o_hr_dms_kanban_footer .o_field_widget,
+    .o_hr_dms_kanban_meta .o_field_widget {
+        display: inline;
+    }
+    .o_hr_dms_kanban_footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid $border-color;
+        font-size: 0.8rem;
+        color: $hr-dms-muted;
+    }
+}

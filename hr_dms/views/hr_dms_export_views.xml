@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Configuration › Export (Administrator only): lists grouped by employee, folded; tick the
+         rows (or "Select all") and use Export to Excel. Files are listed by name, never exported. -->
+    <record id="view_hr_dms_document_export_list" model="ir.ui.view">
+        <field name="name">hr.dms.document.export.list</field>
+        <field name="model">hr.dms.document</field>
+        <field name="mode">primary</field>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" decoration-muted="not active">
+                <header>
+                    <button name="action_export_xlsx" type="object" string="Export to Excel" icon="fa-file-excel-o"
+                            class="btn-primary"/>
+                </header>
+                <field name="employee_id" widget="many2one_avatar_employee"/>
+                <field name="name" class="fw-semibold"/>
+                <field name="category_id" widget="badge"/>
+                <field name="file_count" string="Files"/>
+                <field name="expiry_date" optional="show"/>
+                <field name="create_date" string="Uploaded On" widget="date"/>
+                <field name="state" widget="badge" decoration-success="state == 'approved'" decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'" decoration-danger="state == 'rejected'"/>
+                <field name="active" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_hr_dms_export_documents" model="ir.actions.act_window">
+        <field name="name">Export Employee Documents</field>
+        <field name="groups_id" eval="[(4, ref('hr_dms.group_hr_dms_admin'))]"/>
+        <field name="res_model">hr.dms.document</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_group_employee': 1}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_hr_dms_document_export_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_hr_dms_document_form')})]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No documents to export</p>
+        </field>
+    </record>
+
+    <record id="view_hr_dms_details_export_list" model="ir.ui.view">
+        <field name="name">hr.dms.personal.details.export.list</field>
+        <field name="model">hr.dms.personal.details</field>
+        <field name="mode">primary</field>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" default_order="id desc">
+                <header>
+                    <button name="action_export_xlsx" type="object" string="Export to Excel" icon="fa-file-excel-o"
+                            class="btn-primary"/>
+                </header>
+                <field name="employee_id" widget="many2one_avatar_employee"/>
+                <field name="department_name"/>
+                <field name="submitted_date" widget="date"/>
+                <field name="verified_by" widget="many2one_avatar_user"/>
+                <field name="verified_date" widget="date"/>
+                <field name="state" widget="badge" decoration-success="state == 'verified'" decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_hr_dms_export_details" model="ir.actions.act_window">
+        <field name="name">Export Personal Details</field>
+        <field name="groups_id" eval="[(4, ref('hr_dms.group_hr_dms_admin'))]"/>
+        <field name="res_model">hr.dms.personal.details</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_group_employee': 1}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_hr_dms_details_export_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_hr_dms_details_form')})]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No personal details forms to export</p>
+        </field>
+    </record>
+</odoo>

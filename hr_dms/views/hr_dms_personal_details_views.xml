@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_dms_details_list" model="ir.ui.view">
+        <field name="name">hr.dms.personal.details.list</field>
+        <field name="model">hr.dms.personal.details</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="employee_id" widget="many2one_avatar_employee"/>
+                <field name="department_name" optional="show"/>
+                <field name="submitted_date" optional="show"/>
+                <field name="verified_by" widget="many2one_avatar_user" optional="show"/>
+                <field name="state" widget="badge" decoration-success="state == 'verified'" decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_hr_dms_details_form" model="ir.ui.view">
+        <field name="name">hr.dms.personal.details.form</field>
+        <field name="model">hr.dms.personal.details</field>
+        <field name="arch" type="xml">
+            <form class="o_hr_dms_form">
+                <field name="can_edit_details" invisible="1"/>
+                <field name="is_own" invisible="1"/>
+                <field name="user_id" invisible="1"/>
+                <field name="profile_edit_open" invisible="1"/>
+                <!-- a new form needs its employee for "is own" to make the fields editable -->
+                <field name="employee_id" invisible="1" groups="!hr_dms.group_hr_dms_manager"/>
+                <header>
+                    <button name="action_submit" string="Submit to HR" type="object" class="btn-primary" icon="fa-paper-plane"
+                            invisible="state != 'draft' or not is_own"/>
+                    <button name="action_verify" string="Verify" type="object" class="btn-primary" icon="fa-check"
+                            invisible="state != 'submitted'" groups="hr_dms.group_hr_dms_manager"/>
+                    <button name="action_open_return_wizard" string="Return for Correction" type="object" icon="fa-reply"
+                            invisible="state != 'submitted'" groups="hr_dms.group_hr_dms_manager"/>
+                    <button name="action_apply_to_profile" string="Update Employee Profile" type="object" icon="fa-user"
+                            invisible="state != 'verified' or profile_edit_open" groups="hr_dms.group_hr_dms_manager"
+                            confirm="This overwrites the matching fields on the employee profile and opens the form for one edit. Continue?"/>
+                    <button name="action_lock_form" string="Lock Form" type="object" icon="fa-lock"
+                            invisible="state != 'verified' or not profile_edit_open" groups="hr_dms.group_hr_dms_manager"/>
+                    <button name="action_open_reopen_wizard" string="Reopen" type="object" icon="fa-undo"
+                            invisible="state != 'verified'" groups="hr_dms.group_hr_dms_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,verified"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Verified" bg_color="text-bg-success" invisible="state != 'verified'"/>
+                    <widget name="web_ribbon" title="With HR" bg_color="text-bg-warning" invisible="state != 'submitted'"/>
+                    <div class="o_hr_dms_hero">
+                        <field name="employee_image" widget="image" class="o_hr_dms_hero_avatar" readonly="1"
+                               options="{'size': [84, 84]}" invisible="not employee_image"/>
+                        <div class="o_hr_dms_hero_icon" invisible="employee_image"><i class="fa fa-user"/></div>
+                        <div class="oe_title o_hr_dms_hero_title">
+                            <label for="full_name" string="Employee Name" groups="!hr_dms.group_hr_dms_manager"/>
+                            <h1 groups="!hr_dms.group_hr_dms_manager"><field name="full_name" placeholder="Full name" readonly="not can_edit_details"/></h1>
+                            <!-- HR picks the employee; the form belongs to that employee's user and can't be moved once saved -->
+                            <label for="employee_id" string="Employee Name" groups="hr_dms.group_hr_dms_manager"/>
+                            <h1 groups="hr_dms.group_hr_dms_manager">
+                                <field name="employee_id" placeholder="Select an employee" readonly="id"
+                                       domain="[('user_id', '!=', False)]"
+                                       options="{'no_create': True, 'no_open': True}"/>
+                            </h1>
+                            <div class="o_hr_dms_hero_meta">
+                                <span invisible="not submitted_date"><i class="fa fa-paper-plane me-1"/>Submitted <field name="submitted_date" options="{'show_time': false}"/></span>
+                                <span invisible="not verified_by"><i class="fa fa-check-circle me-1"/>Verified by <field name="verified_by" options="{'no_open': True}"/></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning o_hr_dms_alert" role="alert" invisible="state != 'draft' or not return_reason">
+                        <i class="fa fa-exclamation-triangle me-2"/><b>Correction needed:</b> <field name="return_reason" readonly="1" nolabel="1"/>
+                    </div>
+                    <div class="alert alert-info o_hr_dms_alert" role="alert" invisible="state != 'verified' or not profile_edit_open"
+                         groups="hr_dms.group_hr_dms_manager">
+                        <i class="fa fa-pencil me-2"/>Open for one edit. Saving your changes updates the employee profile and locks the form again.
+                        Use <b>Lock Form</b> if nothing needs to change.
+                    </div>
+                    <div class="alert alert-success o_hr_dms_alert" role="alert" invisible="state != 'verified' or (profile_edit_open and can_edit_details)">
+                        <i class="fa fa-lock me-2"/>This form is verified and locked.
+                        <span class="ms-1" groups="hr_dms.group_hr_dms_manager">Use <b>Update Employee Profile</b> to copy it to the employee, or <b>Reopen</b> to change it.</span>
+                    </div>
+                    <div class="alert alert-info o_hr_dms_alert" role="alert" invisible="not is_own or state != 'submitted'">
+                        <i class="fa fa-hourglass-half me-2"/>Your form is with HR for review, so it can't be changed right now.
+                    </div>
+                    <div class="o_hr_dms_section o_hr_dms_section_upload" invisible="not can_edit_details and not source_file">
+                        <div class="o_hr_dms_section_title"><i class="fa fa-cloud-upload"/>Upload Document</div>
+                        <p class="text-muted small mb-2" invisible="not can_edit_details">
+                            Have the HR personal details form already filled in? Upload it (PDF or Word) and press
+                            <b>Fill Fields from Document</b> to copy the answers into the blank fields below.
+                        </p>
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <field name="source_file" filename="source_filename" nolabel="1"
+                                   readonly="not can_edit_details"/>
+                            <field name="source_filename" invisible="1"/>
+                            <button name="action_fill_from_document" type="object" icon="fa-magic"
+                                    string="Fill Fields from Document" class="btn-primary"
+                                    invisible="not source_file or not can_edit_details"/>
+                        </div>
+                    </div>
+                    <div class="o_hr_dms_section">
+                        <div class="o_hr_dms_section_title"><i class="fa fa-address-card"/>Private Contact</div>
+                        <group>
+                            <field name="current_street" readonly="not can_edit_details" placeholder="House no., street"/>
+                            <field name="private_street2" readonly="not can_edit_details" placeholder="Area, landmark"/>
+                            <field name="current_city" readonly="not can_edit_details"/>
+                            <field name="private_state_id" readonly="not can_edit_details" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="current_zip" readonly="not can_edit_details"/>
+                            <field name="current_country_id" readonly="not can_edit_details" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="personal_email" readonly="not can_edit_details" widget="email" placeholder="name@example.com"/>
+                            <field name="personal_mobile" readonly="not can_edit_details" widget="phone"/>
+                            <field name="bank_account_no" readonly="not can_edit_details"/>
+                            <field name="private_car_plate" readonly="not can_edit_details"/>
+                            <field name="km_home_work" readonly="not can_edit_details"/>
+                        </group>
+                    </div>
+                    <div class="o_hr_dms_section">
+                        <div class="o_hr_dms_section_title"><i class="fa fa-globe"/>Citizenship</div>
+                        <group>
+                            <field name="country_id" readonly="not can_edit_details" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="gender" readonly="not can_edit_details"/>
+                            <field name="birthday" readonly="not can_edit_details"/>
+                            <field name="place_of_birth" readonly="not can_edit_details"/>
+                            <field name="country_of_birth_id" readonly="not can_edit_details" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="passport_no" readonly="not can_edit_details"/>
+                            <field name="uid_aadhar_no" readonly="not can_edit_details"/>
+                            <field name="emirates_id_no" readonly="not can_edit_details"/>
+                        </group>
+                    </div>
+                    <div class="o_hr_dms_section">
+                        <div class="o_hr_dms_section_title"><i class="fa fa-medkit"/>Emergency Contact</div>
+                        <group>
+                            <field name="emergency_name" readonly="not can_edit_details"/>
+                            <field name="emergency_phone" readonly="not can_edit_details" widget="phone"/>
+                        </group>
+                    </div>
+                    <div class="o_hr_dms_section">
+                        <div class="o_hr_dms_section_title"><i class="fa fa-graduation-cap"/>Education</div>
+                        <group>
+                            <field name="highest_qualification" readonly="not can_edit_details"/>
+                            <field name="field_of_study" readonly="not can_edit_details"/>
+                            <field name="school" readonly="not can_edit_details"/>
+                        </group>
+                    </div>
+                    <div class="o_hr_dms_section">
+                        <div class="o_hr_dms_section_title"><i class="fa fa-users"/>Family Status</div>
+                        <group>
+                            <field name="marital" readonly="not can_edit_details"/>
+                            <field name="children" string="Dependent Children" readonly="not can_edit_details"/>
+                        </group>
+                    </div>
+                    <div class="o_hr_dms_section">
+                        <div class="o_hr_dms_section_title"><i class="fa fa-id-badge"/>Work Permit</div>
+                        <group>
+                            <field name="visa_no" readonly="not can_edit_details"/>
+                            <field name="visa_expiry" readonly="not can_edit_details"/>
+                            <field name="work_permit_no" readonly="not can_edit_details"/>
+                            <field name="work_permit_expiry" readonly="not can_edit_details"/>
+                            <field name="work_permit_file" filename="work_permit_filename" readonly="not can_edit_details"/>
+                            <field name="work_permit_filename" invisible="1"/>
+                        </group>
+                    </div>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <!-- The employee's form ("All Forms"): new forms are started from the list, a form can't be
+         duplicated or deleted, and the name comes from the employee record. -->
+    <record id="view_hr_dms_my_details_form" model="ir.ui.view">
+        <field name="name">hr.dms.personal.details.my.form</field>
+        <field name="model">hr.dms.personal.details</field>
+        <field name="inherit_id" ref="view_hr_dms_details_form"/>
+        <field name="mode">primary</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="attributes">
+                <attribute name="create">0</attribute>
+                <attribute name="duplicate">0</attribute>
+                <attribute name="delete">0</attribute>
+            </xpath>
+            <field name="full_name" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+        </field>
+    </record>
+    <record id="view_hr_dms_my_details_list" model="ir.ui.view">
+        <field name="name">hr.dms.personal.details.my.list</field>
+        <field name="model">hr.dms.personal.details</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <list default_order="id desc" duplicate="0" delete="0">
+                <field name="create_date" string="Started"/>
+                <field name="full_name"/>
+                <field name="submitted_date"/>
+                <field name="verified_by" widget="many2one_avatar_user"/>
+                <field name="verified_date" widget="date"/>
+                <field name="state" widget="badge" decoration-success="state == 'verified'" decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_hr_dms_details_search" model="ir.ui.view">
+        <field name="name">hr.dms.personal.details.search</field>
+        <field name="model">hr.dms.personal.details</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <filter name="submitted" string="Awaiting Review" domain="[('state', '=', 'submitted')]"/>
+                <filter name="draft" string="Not Submitted" domain="[('state', '=', 'draft')]"/>
+                <filter name="verified" string="Verified" domain="[('state', '=', 'verified')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_employee" string="Employee" context="{'group_by': 'employee_id'}"
+                            groups="hr_dms.group_hr_dms_manager"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_hr_dms_details" model="ir.actions.act_window">
+        <field name="name">Personal Details Forms</field>
+        <field name="res_model">hr.dms.personal.details</field>
+        <field name="view_mode">list,form</field>
+        <!-- HR starts a new form by picking the employee, not prefilled with their own -->
+        <field name="context">{'search_default_submitted': 1, 'search_default_group_state': 1, 'default_employee_id': False}</field>
+    </record>
+    <record id="action_hr_dms_my_details_list" model="ir.actions.act_window">
+        <field name="name">All Forms</field>
+        <field name="res_model">hr.dms.personal.details</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('user_id', '=', uid)]</field>
+        <field name="context">{'search_default_group_state': 1}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_hr_dms_my_details_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_hr_dms_my_details_form')})]"/>
+    </record>
+    <record id="action_hr_dms_my_details" model="ir.actions.server">
+        <field name="name">My Personal Details</field>
+        <field name="model_id" ref="model_hr_dms_personal_details"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_my_details()</field>
+    </record>
+</odoo>

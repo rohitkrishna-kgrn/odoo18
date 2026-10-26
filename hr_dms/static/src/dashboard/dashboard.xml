@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hr_dms.Dashboard">
+        <div class="o_action o_hr_dms_shell">
+            <div class="o_content o_hr_dms_dash">
+
+                <!-- ── Header ─────────────────────────────────────────────── -->
+                <div class="o_hr_dms_head">
+                    <div class="o_hr_dms_title">
+                        <h1>Employee Documents</h1>
+                        <span class="o_hr_dms_sub" t-if="data and data.is_hr">
+                            All employees with a login · <t t-esc="employeeCount"/> employees · updates live
+                        </span>
+                        <span class="o_hr_dms_sub" t-elif="data">Your personal details and documents · updates live</span>
+                    </div>
+                    <div t-if="data and !data.is_hr" class="o_hr_dms_quick">
+                        <button t-on-click="openMyDetails"><i class="fa fa-id-card-o me-1"/>My Personal Details</button>
+                        <button class="o_hr_dms_primary" t-on-click="openMyDocuments"><i class="fa fa-upload me-1"/>My Documents</button>
+                    </div>
+                </div>
+
+                <div t-if="state.error" class="o_hr_dms_alert">
+                    <i class="fa fa-exclamation-triangle"/> <t t-esc="state.error"/>
+                </div>
+                <div t-elif="!data" class="o_hr_dms_loading">
+                    <i class="fa fa-circle-o-notch fa-spin"/> Loading…
+                </div>
+
+                <t t-else="">
+                    <!-- ── KPI cards ──────────────────────────────────────── -->
+                    <div class="o_hr_dms_kpis">
+                        <t t-if="data.is_hr">
+                            <div class="o_hr_dms_kpi">
+                                <div class="o_hr_dms_kpi_label">Employees</div>
+                                <div class="o_hr_dms_kpi_value" t-esc="employeeCount"/>
+                                <div class="o_hr_dms_kpi_sub">with a user account</div>
+                            </div>
+                            <div class="o_hr_dms_kpi o_hr_dms_clickable" t-on-click="openDetailsList">
+                                <div class="o_hr_dms_kpi_label">Personal Details</div>
+                                <div class="o_hr_dms_kpi_value"><t t-esc="detailsDone"/><small> / <t t-esc="employeeCount"/></small></div>
+                                <div class="o_hr_dms_kpi_sub"><t t-esc="data.details_states.verified"/> verified · <t t-esc="data.details_states.not_started"/> not started</div>
+                            </div>
+                        </t>
+                        <div t-else="" class="o_hr_dms_kpi o_hr_dms_clickable" t-on-click="openMyDetails">
+                            <div class="o_hr_dms_kpi_label">My Personal Details</div>
+                            <div class="o_hr_dms_kpi_value">
+                                <span t-attf-class="o_hr_dms_pill o_hr_dms_is_{{ me ? me.details_state : 'not_started' }}">
+                                    <i t-attf-class="fa {{ detailsLabel(me ? me.details_state : 'not_started').icon }}"/>
+                                    <t t-esc="detailsLabel(me ? me.details_state : 'not_started').label"/>
+                                </span>
+                            </div>
+                            <div class="o_hr_dms_kpi_sub">open your latest form</div>
+                        </div>
+                        <div class="o_hr_dms_kpi">
+                            <div class="o_hr_dms_kpi_label">Documents</div>
+                            <div class="o_hr_dms_kpi_value" t-esc="data.doc_total"/>
+                            <div class="o_hr_dms_kpi_sub"><t t-esc="pct(data.doc_states.approved, data.doc_total)"/>% approved</div>
+                        </div>
+                        <t t-foreach="docStates" t-as="s" t-key="s.key">
+                            <div t-attf-class="o_hr_dms_kpi o_hr_dms_clickable o_hr_dms_kpi_{{ s.key }}" t-on-click="() => this.openState(s.key)">
+                                <div class="o_hr_dms_kpi_label"><i t-attf-class="fa {{ s.icon }} me-1"/><t t-esc="s.label"/></div>
+                                <div class="o_hr_dms_kpi_value" t-esc="data.doc_states[s.key]"/>
+                                <div class="o_hr_dms_kpi_sub">documents</div>
+                            </div>
+                        </t>
+                        <div t-attf-class="o_hr_dms_kpi o_hr_dms_clickable o_hr_dms_kpi_alert {{ data.expiring ? '' : 'is-clear' }}" t-on-click="openExpiring">
+                            <div class="o_hr_dms_kpi_label"><i class="fa fa-calendar-times-o me-1"/>Expiring</div>
+                            <div class="o_hr_dms_kpi_value" t-esc="data.expiring"/>
+                            <div class="o_hr_dms_kpi_sub">expired or within 30 days</div>
+                        </div>
+                    </div>
+
+                    <!-- ── Charts ─────────────────────────────────────────── -->
+                    <div class="o_hr_dms_grid">
+                        <div class="o_hr_dms_card o_hr_dms_chart">
+                            <div class="o_hr_dms_chart_head">
+                                <t t-if="data.is_hr">
+                                    <h2>Personal Details Status</h2>
+                                    <span>Latest form of each employee</span>
+                                </t>
+                                <t t-else="">
+                                    <h2>My Document Status</h2>
+                                    <span>All your documents by status</span>
+                                </t>
+                            </div>
+                            <div class="o_hr_dms_canvas"><canvas t-ref="statusChart"/></div>
+                        </div>
+
+                        <div class="o_hr_dms_card o_hr_dms_chart">
+                            <div class="o_hr_dms_chart_head">
+                                <h2>Documents Uploaded</h2>
+                                <span>Last 6 months</span>
+                            </div>
+                            <div class="o_hr_dms_canvas"><canvas t-ref="monthChart"/></div>
+                        </div>
+
+                        <div class="o_hr_dms_card o_hr_dms_chart span-2">
+                            <div class="o_hr_dms_chart_head">
+                                <h2>Documents by Category</h2>
+                                <span><t t-if="data.is_hr">All employees</t><t t-else="">Your documents</t> by status · click a bar to open those documents</span>
+                            </div>
+                            <div class="o_hr_dms_canvas" t-attf-style="height: {{ categoryChartHeight }}px">
+                                <canvas t-ref="categoryChart"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── HR: who submitted what ─────────────────────────── -->
+                    <div t-if="data.is_hr" class="o_hr_dms_card">
+                        <div class="o_hr_dms_card_head">
+                            <h2>Submission Status by Employee</h2>
+                            <span class="o_hr_dms_muted"><t t-esc="rows.length"/> shown</span>
+                            <div class="o_hr_dms_filters">
+                                <div class="o_hr_dms_field">
+                                    <label>Employee</label>
+                                    <input type="text" placeholder="Search employee…" t-model="state.search"/>
+                                </div>
+                                <div class="o_hr_dms_field">
+                                    <label>Department</label>
+                                    <select t-model="state.department">
+                                        <option value="">All departments</option>
+                                        <t t-foreach="departments" t-as="d" t-key="d"><option t-att-value="d" t-esc="d"/></t>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="o_hr_dms_quick o_hr_dms_chips">
+                            <t t-foreach="filters" t-as="f" t-key="f.key">
+                                <button t-att-class="{ 'is-active': state.filter === f.key }"
+                                        t-on-click="() => this.setFilter(f.key)" t-esc="f.label"/>
+                            </t>
+                        </div>
+                        <div class="o_hr_dms_table_wrap">
+                            <table class="o_hr_dms_table o_hr_dms_matrix">
+                                <thead>
+                                    <tr>
+                                        <th class="o_hr_dms_matrix_emp">Employee</th>
+                                        <th>Personal Details</th>
+                                        <th t-foreach="data.categories" t-as="cat" t-key="cat.id" class="mid" t-att-title="cat.name">
+                                            <t t-esc="cat.code"/>
+                                        </th>
+                                        <th class="num">Approved</th>
+                                        <th class="num">Last Upload</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="rows" t-as="row" t-key="row.id">
+                                        <td class="o_hr_dms_matrix_emp">
+                                            <a href="#" t-on-click.prevent="() => this.openEmployee(row)" t-esc="row.name"/>
+                                            <div class="o_hr_dms_muted small" t-esc="row.department"/>
+                                        </td>
+                                        <td>
+                                            <span t-attf-class="o_hr_dms_pill o_hr_dms_is_{{ row.details_state }} {{ row.details_id ? 'o_hr_dms_clickable' : '' }}"
+                                                  t-on-click="() => this.openDetails(row)">
+                                                <i t-attf-class="fa {{ detailsLabel(row.details_state).icon }}"/>
+                                                <t t-esc="detailsLabel(row.details_state).label"/>
+                                            </span>
+                                        </td>
+                                        <td t-foreach="data.categories" t-as="cat" t-key="cat.id" class="mid">
+                                            <t t-set="cell" t-value="row.cells[cat.id]"/>
+                                            <span t-if="cell" t-attf-class="o_hr_dms_cell o_hr_dms_is_{{ cell.state }} o_hr_dms_clickable"
+                                                  t-att-title="cellTitle(row, cat)" t-on-click="() => this.openCell(row, cat)">
+                                                <i t-attf-class="fa {{ docState(cell.state).icon }}"/>
+                                            </span>
+                                            <span t-else="" class="o_hr_dms_cell o_hr_dms_cell_none" t-att-title="cellTitle(row, cat)">–</span>
+                                        </td>
+                                        <td class="num"><t t-esc="row.totals.approved"/> / <t t-esc="row.doc_count"/></td>
+                                        <td class="num o_hr_dms_muted" t-esc="lastUpload(row)"/>
+                                    </tr>
+                                    <tr t-if="!rows.length">
+                                        <td t-att-colspan="data.categories.length + 4" class="o_hr_dms_empty">No employee matches.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="o_hr_dms_legend">
+                            <t t-foreach="docStates" t-as="s" t-key="s.key">
+                                <span class="o_hr_dms_legend_item">
+                                    <span t-attf-class="o_hr_dms_cell o_hr_dms_is_{{ s.key }}"><i t-attf-class="fa {{ s.icon }}"/></span>
+                                    <t t-esc="s.label"/>
+                                </span>
+                            </t>
+                            <span class="o_hr_dms_legend_item"><span class="o_hr_dms_cell o_hr_dms_cell_none">–</span>Not submitted</span>
+                            <span class="o_hr_dms_muted">A cell shows the furthest any document in that category got; hover for counts.</span>
+                        </div>
+                    </div>
+
+                    <!-- ── Employee: where they stand in each category ────── -->
+                    <div t-else="" class="o_hr_dms_card">
+                        <div class="o_hr_dms_card_head">
+                            <h2>My Documents by Category</h2>
+                            <span class="o_hr_dms_muted">Click a row to open your documents in it</span>
+                        </div>
+                        <div class="o_hr_dms_table_wrap">
+                            <table class="o_hr_dms_table">
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Status</th>
+                                        <th class="num">Documents</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="myCategories" t-as="cat" t-key="cat.id" class="o_hr_dms_clickable"
+                                        t-on-click="() => this.openCategory(cat)">
+                                        <td class="o_hr_dms_name" t-esc="cat.name"/>
+                                        <td>
+                                            <span t-if="cat.cell" t-attf-class="o_hr_dms_pill o_hr_dms_is_{{ cat.cell.state }}">
+                                                <i t-attf-class="fa {{ docState(cat.cell.state).icon }}"/>
+                                                <t t-esc="docState(cat.cell.state).label"/>
+                                            </span>
+                                            <span t-else="" class="o_hr_dms_pill o_hr_dms_is_not_started"><i class="fa fa-circle-o"/> Not submitted</span>
+                                        </td>
+                                        <td class="num" t-esc="cat.cell ? sum(cat.cell.counts) : 0"/>
+                                    </tr>
+                                    <tr t-if="!myCategories.length">
+                                        <td colspan="3" class="o_hr_dms_empty">No categories are open to you yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>

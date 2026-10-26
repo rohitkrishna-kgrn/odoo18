@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Correction mail sent to the employee when HR sends a form or document back to Draft.
+         Table layout with inline styles so it renders the same in Outlook and Gmail. -->
+    <template id="mail_correction" name="HR DMS: correction needed">
+        <div style="margin:0;padding:24px 0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+            <table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0"
+                   style="width:600px;max-width:600px;margin:0 auto;background-color:#ffffff;border:1px solid #e5e7eb;border-radius:8px;border-collapse:separate;">
+                <tr>
+                    <td style="padding:18px 28px;border-bottom:3px solid #f26a21;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td style="vertical-align:middle;">
+                                    <div style="font-size:18px;font-weight:bold;color:#111827;" t-esc="title"/>
+                                    <div style="font-size:12px;color:#6b7280;margin-top:2px;" t-esc="subtitle"/>
+                                </td>
+                                <td style="vertical-align:middle;text-align:right;width:110px;">
+                                    <img t-att-src="logo_url" alt="KGRN" style="height:38px;width:auto;border:0;"/>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:24px 28px 6px;font-size:14px;line-height:1.6;">
+                        <p style="margin:0 0 10px;">Dear <b t-esc="employee_name"/>,</p>
+                        <p style="margin:0;" t-esc="intro"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:14px 28px 6px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                               style="border-collapse:collapse;font-size:13px;border:1px solid #e5e7eb;">
+                            <tr style="background-color:#f9fafb;">
+                                <th style="text-align:left;padding:9px 12px;border-bottom:1px solid #e5e7eb;width:38%;color:#374151;">Detail</th>
+                                <th style="text-align:left;padding:9px 12px;border-bottom:1px solid #e5e7eb;color:#374151;">Information</th>
+                            </tr>
+                            <tr t-foreach="rows" t-as="row">
+                                <td style="padding:9px 12px;border-bottom:1px solid #f0f1f3;color:#6b7280;" t-esc="row[0]"/>
+                                <td style="padding:9px 12px;border-bottom:1px solid #f0f1f3;color:#111827;font-weight:600;" t-esc="row[1]"/>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:14px 28px 6px;">
+                        <div style="background-color:#fff7ed;border-left:4px solid #f26a21;padding:12px 16px;font-size:13px;line-height:1.6;">
+                            <div style="font-weight:bold;color:#9a3412;margin-bottom:4px;">Correction needed</div>
+                            <t t-foreach="reason_lines" t-as="line"><t t-esc="line"/><br t-if="not line_last"/></t>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:18px 28px 6px;font-size:14px;line-height:1.6;">
+                        <p style="margin:0 0 16px;" t-esc="action_text"/>
+                        <a t-att-href="url"
+                           style="display:inline-block;background-color:#f26a21;color:#ffffff;padding:10px 22px;border-radius:4px;text-decoration:none;font-weight:bold;font-size:13px;"
+                           t-esc="button"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:22px 28px 24px;font-size:14px;line-height:1.6;">
+                        Regards,<br/>
+                        <b t-esc="sender_name"/><br/>
+                        <span style="color:#6b7280;" t-esc="company_name"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:12px 28px;background-color:#f9fafb;border-top:1px solid #e5e7eb;border-radius:0 0 8px 8px;font-size:11px;color:#9ca3af;text-align:center;">
+                        This is an automated message from <t t-esc="company_name"/> Employee Documents. Please do not reply to this email.
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </template>
+</odoo>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_dms_reject_wizard_form" model="ir.ui.view">
+        <field name="name">hr.dms.reject.wizard.form</field>
+        <field name="model">hr.dms.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-danger mb-3" role="alert"><i class="fa fa-times-circle me-2"/>The employee will see this reason on the document.</div>
+                <group><field name="reason" placeholder="Why is this document rejected?"/></group>
+                <footer>
+                    <button string="Reject" icon="fa-times" name="action_confirm" type="object" class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="view_hr_dms_draft_wizard_form" model="ir.ui.view">
+        <field name="name">hr.dms.draft.wizard.form</field>
+        <field name="model">hr.dms.draft.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-info mb-3" role="alert"><i class="fa fa-undo me-2"/>The document goes back to Draft so the employee can correct it. They are emailed this note.</div>
+                <group><field name="reason" placeholder="What must the employee correct? This text is emailed to them."/></group>
+                <footer>
+                    <button string="Move to Draft" name="action_confirm" type="object" class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="view_hr_dms_return_wizard_form" model="ir.ui.view">
+        <field name="name">hr.dms.return.wizard.form</field>
+        <field name="model">hr.dms.return.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="mode" invisible="1"/>
+                <div class="alert alert-warning mb-3" role="alert" invisible="mode != 'return'">
+                    <i class="fa fa-reply me-2"/>The form goes back to <b>Draft</b>. The reason is logged in the chatter and emailed to the employee.
+                </div>
+                <div class="alert alert-warning mb-3" role="alert" invisible="mode != 'reopen'">
+                    <i class="fa fa-undo me-2"/>The verified form is reopened in <b>Draft</b>. The reason is logged in the chatter and emailed to the employee.
+                </div>
+                <group><field name="details_id" invisible="1"/><field name="reason" placeholder="What must the employee correct?"/></group>
+                <footer>
+                    <button string="Return to Employee" name="action_confirm" type="object" class="btn-primary" data-hotkey="q" invisible="mode != 'return'"/>
+                    <button string="Reopen" name="action_confirm" type="object" class="btn-primary" data-hotkey="q" invisible="mode != 'reopen'"/>
+                    <button string="Cancel" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
