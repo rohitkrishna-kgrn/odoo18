@@ -1,6 +1,6 @@
 {
     'name': 'CRM Extended RK',
-    'version': '1.57',
+    'version': '1.58',
     'depends': [
         'account',
         'sale',              # For sale.order and sale.order.line
@@ -41,6 +41,8 @@
             'crm_extended_rk/static/src/js/crm_lead_statusbar.js',
             'crm_extended_rk/static/src/js/sale_team_filter_groupby.js',
             'crm_extended_rk/static/src/js/crm_list_export.js',
+            'crm_extended_rk/static/src/js/entity_name_field.js',
+            'crm_extended_rk/static/src/xml/entity_name_field.xml',
         ],
     },
     'installable': True,

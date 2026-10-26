@@ -312,4 +312,13 @@ class SaleOrderEntity(models.Model):
                     'outbound_count_set': False,
                     'discovery_state': 'none',
                 })
+            # A hand-counted row keeps its numbers, but no longer the link: a
+            # row renamed to something else is not that form entity any more,
+            # and the link would keep it out of every other row's dropdown.
+            relinked = self.filtered(
+                lambda entity: entity.discovery_state == 'manual'
+                and entity.discovery_entity_id
+                and (entity.name or '') != (vals.get('name') or ''))
+            if relinked:
+                super(SaleOrderEntity, relinked).write({'discovery_entity_id': False})
         return super().write(vals)

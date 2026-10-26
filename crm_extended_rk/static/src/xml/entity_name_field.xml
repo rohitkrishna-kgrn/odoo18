@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="crm_extended_rk.EntityNameField">
+        <span t-if="props.readonly" t-esc="value"/>
+        <AutoComplete t-else=""
+            value="value"
+            sources="sources"
+            onSelect.bind="onSelect"
+            input="inputRef"
+            placeholder="props.placeholder or ''"
+            id="props.id"/>
+    </t>
+
+</templates>
