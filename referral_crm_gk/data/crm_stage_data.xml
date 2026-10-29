@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo noupdate="1">
-
-    <!-- Referral pipeline stages removed: the Referral app is not in use.
-         See crm_extended_rk for the stages actually used in the main pipeline. -->
-
-</odoo>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- A level of the Sales dropdown on the user form:
+               User: Own Documents Only > Manager > User: All Documents > Administrator
+             Odoo only renders a category as a dropdown when its groups form one
+             implication chain, so Manager implies Own Documents and All Documents
+             implies Manager.  That gives All Documents / Administrator users the
+             Manager rules too, which adds nothing: they already see and edit
+             every lead and order. -->
+        <record id="group_crm_manager" model="res.groups">
+            <field name="name">Manager</field>
+            <field name="category_id" ref="base.module_category_sales_sales"/>
+            <field name="implied_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
+            <field name="comment">Own documents, plus view and edit of the CRM and Services records of everyone below them in the Employee &gt; Manager hierarchy, at every level. Cannot create or delete records for others.</field>
+        </record>
+
+        <record id="sales_team.group_sale_salesman_all_leads" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('group_crm_manager'))]"/>
+        </record>
+
+        <!-- Hierarchy rules.  res.users.gk_manager_chain_ids (project_assigned_gk)
+             lists every user above a user in the Employee > Manager chain, so
+             "owner.gk_manager_chain_ids in me" is "owner reports to me, directly
+             or indirectly".  The domain only uses user.id, so the per-uid rule
+             cache can never hold a stale list of reports.
+
+             Read + edit on leads and orders; never create or delete them.
+             Order lines also get create/delete, because adding or removing a
+             line is part of editing a quotation.  Rules of different groups are
+             OR-ed per operation, so create/delete of leads and orders stay
+             governed by the existing Sales rules.  Global rules (company,
+             crm_extended_rk's no-sales-group confine) still apply on top. -->
+
+        <record id="rule_crm_manager_lead" model="ir.rule">
+            <field name="name">CRM Manager: leads of the reporting hierarchy</field>
+            <field name="model_id" ref="crm.model_crm_lead"/>
+            <field name="groups" eval="[(4, ref('group_crm_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">['|', ('user_id', '=', user.id), ('user_id.gk_manager_chain_ids', 'in', [user.id])]</field>
+        </record>
+
+        <record id="rule_crm_manager_activity_report" model="ir.rule">
+            <field name="name">CRM Manager: activity analysis of the reporting hierarchy</field>
+            <field name="model_id" ref="crm.model_crm_activity_report"/>
+            <field name="groups" eval="[(4, ref('group_crm_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">['|', ('user_id', '=', user.id), ('user_id.gk_manager_chain_ids', 'in', [user.id])]</field>
+        </record>
+
+        <!-- Services.  Every internal user can already read every sale.order
+             (refund_management_rk), so on the Services menus the Own Documents
+             limit is crm_extended_rk's _search filter, widened in
+             models/sale_order.py.  This rule states the same scope at record
+             level so it does not depend on that read-all rule staying. -->
+        <record id="rule_crm_manager_sale_order" model="ir.rule">
+            <field name="name">CRM Manager: quotations and engagements of the reporting hierarchy</field>
+            <field name="model_id" ref="sale.model_sale_order"/>
+            <field name="groups" eval="[(4, ref('group_crm_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">['|', ('user_id', '=', user.id), ('user_id.gk_manager_chain_ids', 'in', [user.id])]</field>
+        </record>
+
+        <!-- Without this the order form of a report's quotation opens with no
+             lines, and saving it with an added or removed line fails. -->
+
+        <record id="rule_crm_manager_sale_order_line" model="ir.rule">
+            <field name="name">CRM Manager: order lines of the reporting hierarchy</field>
+            <field name="model_id" ref="sale.model_sale_order_line"/>
+            <field name="groups" eval="[(4, ref('group_crm_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+            <field name="domain_force">['|', ('salesman_id', '=', user.id), ('salesman_id.gk_manager_chain_ids', 'in', [user.id])]</field>
+        </record>
+
+        <record id="rule_crm_manager_sale_report" model="ir.rule">
+            <field name="name">CRM Manager: sales analysis of the reporting hierarchy</field>
+            <field name="model_id" ref="sale.model_sale_report"/>
+            <field name="groups" eval="[(4, ref('group_crm_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+            <field name="domain_force">['|', ('user_id', '=', user.id), ('user_id.gk_manager_chain_ids', 'in', [user.id])]</field>
+        </record>
+
+    </data>
+</odoo>
