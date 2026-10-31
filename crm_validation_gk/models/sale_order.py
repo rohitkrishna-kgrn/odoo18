@@ -60,16 +60,17 @@ class SaleOrder(models.Model):
     def _find_duplicate_proposal_lines(self):
         """Lines of earlier proposals for the same customer and service.
 
-        An earlier line is a duplicate when its engagement period overlaps
-        (both ends inclusive), or - whatever the dates - when it is still an
-        open quotation whose engagement has not ended yet. Open quotations
-        whose period is over (old drafts that were never closed) and
-        confirmed orders for another period do not block, so next year's work
-        can still be quoted.
+        Only earlier quotations that are still open and not yet approved
+        (Draft or To Approve) count. Once a proposal is approved - or
+        confirmed - the same customer and service can be quoted again. Such
+        an open line is a duplicate when its engagement period overlaps
+        (both ends inclusive), or - whatever the dates - when its engagement
+        has not ended yet. Open quotations whose period is over (old drafts
+        that were never closed) do not block.
 
         Only quotations created before this one count, so the first proposal
         always goes through and a later copy stays blocked until the first is
-        cancelled. Customer is matched at company level (child_of the
+        approved or cancelled. Customer is matched at company level (child_of the
         commercial partner), so a quotation raised for a contact person still
         collides with one raised for the company. Searched with sudo: the
         Services menus only show a salesperson their own quotations, but a
@@ -85,15 +86,15 @@ class SaleOrder(models.Model):
         for line in self._proposal_service_lines():
             duplicates |= Line.search([
                 ('order_id', '<', self.id),
-                ('order_id.state', '!=', 'cancel'),
+                ('order_id.state', 'in', ('draft', 'sent')),
+                ('order_id.approval_state', '!=', 'approved'),
                 ('order_id.partner_id', 'child_of', customer.id),
                 ('product_id', '=', line.product_id.id),
                 ('display_type', '=', False),
                 '|',
                 '&', ('engagement_start', '<=', line.engagement_end),
                      ('engagement_end', '>=', line.engagement_start),
-                '&', ('order_id.state', 'in', ('draft', 'sent')),
-                     ('engagement_end', '>=', today),
+                ('engagement_end', '>=', today),
             ])
         return duplicates
 

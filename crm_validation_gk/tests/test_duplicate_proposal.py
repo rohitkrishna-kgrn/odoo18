@@ -66,6 +66,13 @@ class TestDuplicateProposal(TransactionCase):
             "UPDATE sale_order SET state = 'sale' WHERE id = %s", [order.id])
         order.invalidate_recordset(['state'])
 
+    def _set_approval(self, order, approval_state):
+        # SQL as well: Approve renames the order and books follow-up steps.
+        self.env.cr.execute(
+            "UPDATE sale_order SET approval_state = %s WHERE id = %s",
+            [approval_state, order.id])
+        order.invalidate_recordset(['approval_state'])
+
     def _download(self, order):
         """Run Download Proposal with the PDF API stubbed out."""
         SaleOrder = type(self.env['sale.order'])
@@ -126,11 +133,26 @@ class TestDuplicateProposal(TransactionCase):
         result, render = self._download(order)
         render.assert_called_once()
 
-    def test_confirmed_order_blocks(self):
+    def test_confirmed_order_does_not_block(self):
         self._confirm(self.existing)
         order = self._order(self.customer, self.service, self.start, self.end)
-        with self.assertRaisesRegex(UserError, 'Duplicate proposal'):
-            self._download(order)
+        result, render = self._download(order)
+        render.assert_called_once()
+
+    def test_approved_quotation_does_not_block(self):
+        self._set_approval(self.existing, 'approved')
+        order = self._create(self._create_vals(self.customer, [
+            self._line_cmd(self.service, self.start, self.end)]))
+        self.assertFalse(order._find_duplicate_proposal_lines())
+        self._submit(order)
+        self.assertEqual(order.approval_state, 'to_approve')
+
+    def test_quotation_awaiting_approval_blocks(self):
+        self._set_approval(self.existing, 'to_approve')
+        with self.assertRaisesRegex(UserError, 'cannot be created'), \
+                self.env.cr.savepoint():
+            self._create(self._create_vals(self.customer, [
+                self._line_cmd(self.service, self.start, self.end)]))
 
     def test_regenerating_the_same_proposal_is_allowed(self):
         result, render = self._download(self.existing)
