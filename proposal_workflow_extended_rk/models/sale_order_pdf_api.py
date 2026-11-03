@@ -150,9 +150,9 @@ class SaleOrder(models.Model):
         Uses the Entities tab rows that carry anything; a quotation with none
         sends one entity under the client's name carrying the Total line's
         counts. With Service 4 (annual subscription & support) the counts set
-        the agreed volume and the entity fees must add up to that service's
-        fee, so both are checked here, where the salesperson can be told which
-        field to fix.
+        the agreed volume, so they are checked here, where the salesperson can
+        be told which field to fix. The entity prices are sent as entered; they
+        need not add up to the Service 4 fee.
         """
         self.ensure_one()
         subscription = 4 in fees
@@ -200,16 +200,6 @@ class SaleOrder(models.Model):
             if len(entities) == 1:
                 entities[0]['fee'] = subscription_fee
             else:
-                entity_total = round(sum(entity['fee'] or 0.0 for entity in entities), 2)
-                if abs(entity_total - subscription_fee) >= 0.005:
-                    raise UserError(_(
-                        "The document splits the annual subscription & support fee "
-                        "across the entities, so the entity prices must add up to it.\n\n"
-                        "Annual subscription & support lines: AED %(fee)s\n"
-                        "Entity prices on the Entities tab: AED %(total)s\n\n"
-                        "Adjust the entity prices so they total AED %(fee)s.",
-                        fee='{:,.2f}'.format(subscription_fee),
-                        total='{:,.2f}'.format(entity_total)))
                 for entity in entities:
                     entity['fee'] = entity['fee'] or 0.0
         return entities
