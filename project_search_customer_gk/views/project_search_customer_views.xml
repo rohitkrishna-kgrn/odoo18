@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Search dialog -->
+    <record id="project_search_customer_wizard_view_form" model="ir.ui.view">
+        <field name="name">project.search.customer.wizard.form</field>
+        <field name="model">project.search.customer.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Search Existing Customer" create="0" delete="0" duplicate="0">
+                <group>
+                    <field name="partner_id"
+                           widget="project_customer_search"
+                           placeholder="Type customer name..."
+                           options="{'no_open': True, 'no_create': True}"/>
+                </group>
+                <field name="result_count" invisible="1"/>
+                <div class="text-muted" invisible="partner_id">
+                    Type at least 3 characters of the customer name, then pick the customer from the list.
+                </div>
+                <div class="alert alert-info mb-0" role="status" invisible="not partner_id or result_count">
+                    No Sale Orders or Service Engagements found for this customer.
+                </div>
+                <div class="text-muted small mb-1" invisible="not result_count">
+                    Click a row to open the quotation.
+                </div>
+                <!-- project_customer_orders: a row click opens the sale order form. -->
+                <field name="line_ids" nolabel="1" readonly="1" invisible="not result_count"
+                       widget="project_customer_orders">
+                    <list create="0" edit="0" delete="0" limit="100"
+                          decoration-muted="is_cancelled">
+                        <field name="customer_name"/>
+                        <field name="record_type"/>
+                        <field name="order_name"/>
+                        <field name="salesperson_name"/>
+                        <field name="order_id" column_invisible="1"/>
+                        <field name="is_cancelled" column_invisible="1"/>
+                    </list>
+                </field>
+                <footer>
+                    <button string="Close" special="cancel" class="btn-secondary" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Read-only quotation preview: fallback when the user cannot open the real order
+         (e.g. its company is not selected in the company switcher). -->
+    <record id="project_search_customer_preview_view_form" model="ir.ui.view">
+        <field name="name">project.search.customer.preview.form</field>
+        <field name="model">project.search.customer.preview</field>
+        <field name="arch" type="xml">
+            <form string="Quotation" create="0" edit="0" delete="0" duplicate="0">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="order_name"/></h1>
+                        <field name="record_type" class="text-muted"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="customer_name"/>
+                            <field name="invoice_address"/>
+                            <field name="client_order_ref" invisible="not client_order_ref"/>
+                            <field name="crm_pipeline_name" invisible="not crm_pipeline_name"/>
+                            <field name="tag_names" invisible="not tag_names"/>
+                            <field name="new_renewed_label" invisible="not new_renewed_label"/>
+                            <field name="billable_type_label" invisible="not billable_type_label"/>
+                        </group>
+                        <group>
+                            <field name="state_label"/>
+                            <field name="approval_label" invisible="not approval_label"/>
+                            <field name="date_order"/>
+                            <field name="validity_date" invisible="not validity_date"/>
+                            <field name="payment_term_name" invisible="not payment_term_name"/>
+                            <field name="se_effective_date" invisible="not se_effective_date"/>
+                            <field name="se_project_duration" invisible="not se_project_duration"/>
+                            <field name="salesperson_name"/>
+                            <field name="team_name" invisible="not team_name"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Order Lines" name="order_lines">
+                            <field name="line_ids" widget="section_and_note_one2many" nolabel="1">
+                                <list create="0" edit="0" delete="0" no_open="1">
+                                    <field name="display_type" column_invisible="1"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="product_name"/>
+                                    <field name="name" widget="section_and_note_text" optional="show"/>
+                                    <field name="engagement_start" optional="hide"/>
+                                    <field name="engagement_end" optional="hide"/>
+                                    <field name="manager_name" optional="hide"/>
+                                    <field name="project_name" optional="hide"/>
+                                    <field name="product_uom_qty"/>
+                                    <field name="uom_name" optional="show"/>
+                                    <field name="price_unit"/>
+                                    <field name="tax_names" optional="show"/>
+                                    <field name="discount" optional="hide"/>
+                                    <field name="price_subtotal"/>
+                                </list>
+                            </field>
+                            <group name="note_group" col="6" class="mt-2 mt-md-0">
+                                <group colspan="4">
+                                    <field name="note" nolabel="1" readonly="1" invisible="not note"/>
+                                </group>
+                                <group class="oe_subtotal_footer" colspan="2">
+                                    <field name="currency_id" invisible="1"/>
+                                    <field name="amount_untaxed"/>
+                                    <field name="amount_tax"/>
+                                    <field name="amount_total" class="oe_subtotal_footer_separator"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <!-- No <footer>: the read-only FormViewDialog adds its own Close button. -->
+            </form>
+        </field>
+    </record>
+
+    <record id="action_project_search_customer" model="ir.actions.act_window">
+        <field name="name">Search Existing Customer</field>
+        <field name="res_model">project.search.customer.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="project_search_customer_wizard_view_form"/>
+        <field name="target">new</field>
+        <field name="context">{'dialog_size': 'extra-large'}</field>
+    </record>
+
+    <!-- Tasks is sequence 2 and Extra Hours Approval 10 in the Project bar: 3 puts this right after Tasks. -->
+    <menuitem id="menu_project_search_customer"
+              name="Search Existing Customer"
+              parent="project.menu_main_pm"
+              action="action_project_search_customer"
+              sequence="3"
+              groups="group_project_search_customer"/>
+
+</odoo>

@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_project_search_customer_wizard,project.search.customer.wizard,model_project_search_customer_wizard,group_project_search_customer,1,1,1,1
+access_project_search_customer_line,project.search.customer.line,model_project_search_customer_line,group_project_search_customer,1,1,1,1
+access_project_search_customer_preview,project.search.customer.preview,model_project_search_customer_preview,group_project_search_customer,1,1,1,1
+access_project_search_customer_preview_line,project.search.customer.preview.line,model_project_search_customer_preview_line,group_project_search_customer,1,1,1,1

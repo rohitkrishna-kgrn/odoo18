@@ -1,0 +1,35 @@
+{
+    'name': 'Project Search Customer',
+    'version': '18.0.1.0.2',
+    'summary': "Look up a customer from Project, list their Sale Orders and Service Engagements, and open any quotation read-only",
+    'description': """
+Project > Search Existing Customer.
+
+Copied from crm_search_customer_gk. Differences:
+
+* The menu sits in the Project app, right after Tasks.
+* Visible only to users with the "Project Search Customer" checkbox
+  (Project Tools section of the user's Access Rights tab).
+* Customers and orders are read with sudo, so the user sees every
+  quotation regardless of sale record rules or sale access rights.
+* Clicking a row opens the sale order form. If the user cannot open it
+  (an order of a company not selected in the switcher), a read-only copy
+  (header, lines, totals, terms) opens instead.
+""",
+    'category': 'Services/Project',
+    'author': 'Gokul',
+    'depends': ['project', 'sale'],
+    'data': [
+        'security/project_search_customer_groups.xml',
+        'security/ir.model.access.csv',
+        'views/project_search_customer_views.xml',
+    ],
+    'assets': {
+        'web.assets_backend': [
+            'project_search_customer_gk/static/src/js/customer_search_field.js',
+        ],
+    },
+    'installable': True,
+    'application': False,
+    'license': 'LGPL-3',
+}
