@@ -690,8 +690,11 @@ class SaleOrder(models.Model):
 
     @api.depends('opportunity_id.discovery_form_type')
     def _compute_opportunity_einvoicing(self):
+        # sudo: a display-only flag. Without it the whole quotation form
+        # fails to load for a user who can read the order but not its lead
+        # (e.g. Project Search Customer opening another salesperson's SE).
         for order in self:
-            order.opportunity_einvoicing = order.opportunity_id.discovery_form_type == 'einvoicing'
+            order.opportunity_einvoicing = order.sudo().opportunity_id.discovery_form_type == 'einvoicing'
 
     @api.depends('opportunity_id.discovery_form_type')
     def _compute_einvoicing_service(self):

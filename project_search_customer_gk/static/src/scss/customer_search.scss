@@ -1,0 +1,6 @@
+// Search Existing Customer result list: customer name and SO/SE number in blue.
+// A fixed colour on purpose: the Odoo 18 backend has no --bs-* CSS variables,
+// and its $primary is the purple brand colour, not blue.
+.o_list_renderer .o_data_row .o_data_cell.o_psc_blue {
+    color: #1a6fd8;
+}

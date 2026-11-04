@@ -1,6 +1,6 @@
 {
     'name': 'Project Search Customer',
-    'version': '18.0.1.0.2',
+    'version': '18.0.1.0.4',
     'summary': "Look up a customer from Project, list their Sale Orders and Service Engagements, and open any quotation read-only",
     'description': """
 Project > Search Existing Customer.
@@ -15,6 +15,10 @@ Copied from crm_search_customer_gk. Differences:
 * Clicking a row opens the sale order form. If the user cannot open it
   (an order of a company not selected in the switcher), a read-only copy
   (header, lines, totals, terms) opens instead.
+* The group carries read-only record rules on sale.order and
+  sale.order.line, so the opened form shows every order line and its
+  values even for a Sales "Own Documents Only" user looking at another
+  salesperson's quotation. Editing stays limited to the Sales rights.
 """,
     'category': 'Services/Project',
     'author': 'Gokul',
@@ -22,11 +26,13 @@ Copied from crm_search_customer_gk. Differences:
     'data': [
         'security/project_search_customer_groups.xml',
         'security/ir.model.access.csv',
+        'security/project_search_customer_rules.xml',
         'views/project_search_customer_views.xml',
     ],
     'assets': {
         'web.assets_backend': [
             'project_search_customer_gk/static/src/js/customer_search_field.js',
+            'project_search_customer_gk/static/src/scss/customer_search.scss',
         ],
     },
     'installable': True,

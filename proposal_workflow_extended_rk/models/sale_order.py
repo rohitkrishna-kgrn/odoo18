@@ -78,10 +78,13 @@ class SaleOrder(models.Model):
         if the stage was moved by hand or the automation was bypassed.
         """
         stage = self.env.ref(SE_STAGE_XMLID, raise_if_not_found=False)
+        # sudo on the lead: a user who can read the order but not its pipeline
+        # record (e.g. Project Search Customer opening another salesperson's
+        # SE) would otherwise get an AccessError instead of the form.
         for order in self:
             order.is_service_engagement_stage = (
                 order.approval_state == 'approved'
-                or bool(stage and order.crm_pipeline_id.stage_id == stage))
+                or bool(stage and order.sudo().crm_pipeline_id.stage_id == stage))
 
     # ── CRM link <-> Opportunity synchronisation ──────────────────────────
     @api.model

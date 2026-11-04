@@ -28,9 +28,9 @@
                        widget="project_customer_orders">
                     <list create="0" edit="0" delete="0" limit="100"
                           decoration-muted="is_cancelled">
-                        <field name="customer_name"/>
+                        <field name="customer_name" class="o_psc_blue"/>
                         <field name="record_type"/>
-                        <field name="order_name"/>
+                        <field name="order_name" class="o_psc_blue"/>
                         <field name="salesperson_name"/>
                         <field name="order_id" column_invisible="1"/>
                         <field name="is_cancelled" column_invisible="1"/>

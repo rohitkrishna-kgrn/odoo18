@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Read-only, all records: a Search Customer user who is a Sales
+         "Own Documents Only" user (rule "Personal Order Lines") could open
+         another salesperson's quotation but saw no order lines, and so no
+         line values. Group rules are OR-ed per mode, so these widen READ
+         only; write/create/delete stay as the Sales rights allow. The global
+         multi-company rules still apply. -->
+    <record id="rule_sale_order_read_all" model="ir.rule">
+        <field name="name">Project Search Customer: read all quotations</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="groups" eval="[(4, ref('group_project_search_customer'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_sale_order_line_read_all" model="ir.rule">
+        <field name="name">Project Search Customer: read all quotation lines</field>
+        <field name="model_id" ref="sale.model_sale_order_line"/>
+        <field name="groups" eval="[(4, ref('group_project_search_customer'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+</odoo>
