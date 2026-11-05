@@ -8,7 +8,7 @@
         <field name="name">referral.commission.list</field>
         <field name="model">referral.commission</field>
         <field name="arch" type="xml">
-            <list string="Commissions" default_order="create_date desc" delete="false">
+            <list string="Commissions" default_order="create_date desc" create="0" delete="false">
                 <field name="name" string="Reference"/>
                 <field name="referrer_id" string="Referrer"/>
                 <field name="referrer_company" string="Referrer Company" optional="show"/>
@@ -56,7 +56,7 @@
         <field name="name">referral.commission.form</field>
         <field name="model">referral.commission</field>
         <field name="arch" type="xml">
-            <form string="Commission" delete="false">
+            <form string="Commission" create="0" delete="false">
                 <header>
                     <!-- Commission Paid: visible only when commission is Unpaid -->
                     <button name="action_mark_commission_paid" type="object"
@@ -288,6 +288,7 @@
     <record id="action_referral_commission_report" model="ir.actions.act_window">
         <field name="name">Commission Report</field>
         <field name="res_model">referral.commission</field>
+        <field name="groups_id" eval="[(6, 0, [ref('referral_crm_gk.group_referral_admin')])]"/>
         <field name="view_mode">pivot,graph,list</field>
         <field name="domain">[]</field>
         <field name="context">{}</field>
@@ -307,10 +308,9 @@
         <field name="name">Referral Summary</field>
         <field name="model_id" ref="crm.model_crm_lead"/>
         <!-- Without groups_id, run() demands crm.lead write access, which the
-             read-only Admin and Accounts groups do not have -->
+             Admin group may not have. Reports are Admin-only: Manager and
+             Accounts are left out on purpose. -->
         <field name="groups_id" eval="[(6, 0, [
-            ref('referral_crm_gk.group_referral_manager'),
-            ref('referral_crm_gk.group_referral_accounts'),
             ref('referral_crm_gk.group_referral_admin'),
         ])]"/>
         <field name="state">code</field>
@@ -319,12 +319,14 @@ list_view   = env.ref('referral_crm_gk.view_referral_lead_list').id
 pivot_view  = env.ref('referral_crm_gk.view_referral_lead_pivot').id
 graph_view  = env.ref('referral_crm_gk.view_referral_lead_graph').id
 search_view = env.ref('referral_crm_gk.view_referral_lead_search').id
+kanban_view = env.ref('referral_crm_gk.view_referral_lead_kanban').id
+form_view   = env.ref('referral_crm_gk.view_referral_lead_form').id
 action = {
     'type': 'ir.actions.act_window',
     'name': 'Referral Summary',
     'res_model': 'crm.lead',
     'view_mode': 'list,pivot,graph,kanban,form',
-    'views': [(list_view, 'list'), (pivot_view, 'pivot'), (graph_view, 'graph'), (False, 'kanban'), (False, 'form')],
+    'views': [(list_view, 'list'), (pivot_view, 'pivot'), (graph_view, 'graph'), (kanban_view, 'kanban'), (form_view, 'form')],
     'search_view_id': [search_view, 'referral.lead.search'],
     'domain': [('x_is_referral', '=', True)],
     'context': {'default_x_is_referral': True},

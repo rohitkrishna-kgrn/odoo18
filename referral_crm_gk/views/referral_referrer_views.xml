@@ -25,7 +25,7 @@
         <field name="name">referral.referrer.list</field>
         <field name="model">referral.referrer</field>
         <field name="arch" type="xml">
-            <list string="Referrers" default_order="name">
+            <list string="Referrers" default_order="name" create="0">
                 <field name="name"/>
                 <field name="company"/>
                 <field name="email"/>
@@ -48,7 +48,7 @@
         <field name="name">referral.referrer.form</field>
         <field name="model">referral.referrer</field>
         <field name="arch" type="xml">
-            <form string="Referrer">
+            <form string="Referrer" create="0">
                 <sheet>
                     <!-- KPI stat buttons -->
                     <div class="oe_button_box" name="button_box">
@@ -103,7 +103,7 @@
                         <page string="Referral Leads" name="leads">
                             <field name="lead_ids" nolabel="1" widget="one2many_list"
                                    context="{'default_x_referrer_id': id, 'default_x_is_referral': True}">
-                                <list string="Referral Leads">
+                                <list string="Referral Leads" create="0">
                                     <field name="partner_name" string="Contact"/>
                                     <field name="x_referral_company" string="Company"/>
                                     <field name="stage_id"/>

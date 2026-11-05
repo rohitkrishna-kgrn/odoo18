@@ -236,11 +236,28 @@
          records_draggable="false" prevents stage drag-and-drop;
          stage changes must use the action buttons in the form.
     ══════════════════════════════════════════════════════════ -->
+    <!-- Referral lead form: the full CRM form (with every module's extension)
+         minus the New button. Used by every Referral menu, so New disappears
+         there while the CRM app's own form keeps it. -->
+    <record id="view_referral_lead_form" model="ir.ui.view">
+        <field name="name">referral.lead.form</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="mode">primary</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <xpath expr="/form" position="attributes">
+                <attribute name="create">0</attribute>
+            </xpath>
+        </field>
+    </record>
+
     <record id="view_referral_lead_kanban" model="ir.ui.view">
         <field name="name">referral.lead.kanban</field>
         <field name="model">crm.lead</field>
         <field name="arch" type="xml">
             <kanban default_group_by="stage_id"
+                    create="0"
                     group_create="false"
                     group_delete="false"
                     quick_create="false"
@@ -310,7 +327,7 @@
         <field name="name">referral.lead.list</field>
         <field name="model">crm.lead</field>
         <field name="arch" type="xml">
-            <list string="Referral Leads" default_order="create_date desc">
+            <list string="Referral Leads" default_order="create_date desc" create="0">
                 <field name="x_referral_ref" string="Ref" optional="show"/>
                 <field name="partner_name" string="Contact"/>
                 <field name="x_referral_company" string="Company"/>
@@ -380,6 +397,7 @@
             (5, 0, 0),
             (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_referral_lead_kanban')}),
             (0, 0, {'view_mode': 'list',   'view_id': ref('view_referral_lead_list')}),
+            (0, 0, {'view_mode': 'form',   'view_id': ref('view_referral_lead_form')}),
         ]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
@@ -400,6 +418,7 @@
             (5, 0, 0),
             (0, 0, {'view_mode': 'list',   'view_id': ref('view_referral_lead_list')}),
             (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_referral_lead_kanban')}),
+            (0, 0, {'view_mode': 'form',   'view_id': ref('view_referral_lead_form')}),
         ]"/>
     </record>
 
@@ -415,6 +434,7 @@
             (5, 0, 0),
             (0, 0, {'view_mode': 'list',   'view_id': ref('view_referral_lead_list')}),
             (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_referral_lead_kanban')}),
+            (0, 0, {'view_mode': 'form',   'view_id': ref('view_referral_lead_form')}),
         ]"/>
     </record>
 
@@ -430,6 +450,7 @@
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'list', 'view_id': ref('view_referral_lead_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_referral_lead_form')}),
         ]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
@@ -451,12 +472,13 @@ if not is_manager:
     domain.append(('user_id', '=', env.uid))
 kanban_view = env.ref('referral_crm_gk.view_referral_lead_kanban').id
 list_view   = env.ref('referral_crm_gk.view_referral_lead_list').id
+form_view   = env.ref('referral_crm_gk.view_referral_lead_form').id
 action = {
     'type': 'ir.actions.act_window',
     'name': 'Referral Pipeline',
     'res_model': 'crm.lead',
     'view_mode': 'kanban,list,form',
-    'views': [(kanban_view, 'kanban'), (list_view, 'list'), (False, 'form')],
+    'views': [(kanban_view, 'kanban'), (list_view, 'list'), (form_view, 'form')],
     'domain': domain,
     'context': {'default_x_is_referral': True},
 }
@@ -476,12 +498,13 @@ if not is_manager:
 list_view   = env.ref('referral_crm_gk.view_referral_lead_list').id
 kanban_view = env.ref('referral_crm_gk.view_referral_lead_kanban').id
 search_view = env.ref('referral_crm_gk.view_referral_lead_search').id
+form_view   = env.ref('referral_crm_gk.view_referral_lead_form').id
 action = {
     'type': 'ir.actions.act_window',
     'name': 'All Referrals',
     'res_model': 'crm.lead',
     'view_mode': 'list,kanban,form',
-    'views': [(list_view, 'list'), (kanban_view, 'kanban'), (False, 'form')],
+    'views': [(list_view, 'list'), (kanban_view, 'kanban'), (form_view, 'form')],
     'search_view_id': [search_view, 'referral.lead.search'],
     'domain': domain,
     'context': {'default_x_is_referral': True},

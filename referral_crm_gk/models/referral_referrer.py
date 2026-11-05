@@ -84,11 +84,17 @@ class ReferralReferrer(models.Model):
 
     def action_view_leads(self):
         self.ensure_one()
+        domain = [('x_referrer_id', '=', self.id)]
+        # crm.lead rules can't scope this: they are OR'd with the Sales
+        # groups, so a referral User who is also a Sales admin reads every lead.
+        if not self.env.user.has_group('referral_crm_gk.group_referral_manager'):
+            domain.append(('user_id', '=', self.env.uid))
         return {
             'type': 'ir.actions.act_window',
             'name': f'Referrals – {self.name}',
             'res_model': 'crm.lead',
             'view_mode': 'list,kanban,form',
-            'domain': [('x_referrer_id', '=', self.id)],
+            'views': self.env['crm.lead']._get_referral_views(),
+            'domain': domain,
             'context': {'default_x_referrer_id': self.id, 'default_x_is_referral': True},
         }

@@ -178,6 +178,7 @@ class ReferralCommission(models.Model):
             'res_model': 'crm.lead',
             'res_id': self.lead_id.id,
             'view_mode': 'form',
+            'views': self.env['crm.lead']._get_referral_views(('form',)),
             'target': 'current',
         }
 

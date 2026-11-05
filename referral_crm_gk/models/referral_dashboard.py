@@ -76,6 +76,7 @@ class ReferralDashboard(models.TransientModel):
             'name': 'Referral Pipeline',
             'res_model': 'crm.lead',
             'view_mode': 'kanban,list,form',
+            'views': self.env['crm.lead']._get_referral_views(('kanban', 'list', 'form')),
             'domain': [('x_is_referral', '=', True)],
             'context': {'default_x_is_referral': True},
         }
@@ -94,6 +95,7 @@ class ReferralDashboard(models.TransientModel):
             'name': 'My Leads',
             'res_model': 'crm.lead',
             'view_mode': 'list,kanban,form',
+            'views': self.env['crm.lead']._get_referral_views(),
             'domain': [
                 ('x_is_referral', '=', True),
                 ('user_id', '=', self.env.uid),

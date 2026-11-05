@@ -185,6 +185,16 @@ class CrmLead(models.Model):
             rec.x_deal_value = rec.x_sale_order_id.amount_untaxed if rec.x_sale_order_id else 0.0
 
     @api.model
+    def _get_referral_views(self, modes=('list', 'kanban', 'form')):
+        """(view_id, mode) pairs for the Referral screens: they have no New button."""
+        xmlids = {
+            'list': 'referral_crm_gk.view_referral_lead_list',
+            'kanban': 'referral_crm_gk.view_referral_lead_kanban',
+            'form': 'referral_crm_gk.view_referral_lead_form',
+        }
+        return [(self.env.ref(xmlids[m]).id, m) for m in modes]
+
+    @api.model
     def _get_referral_lost_stages(self):
         stages = self.env['crm.stage']
         for xmlid in ('crm_extended_rk.stage_lost', 'crm_extended_rk.stage_not_qualified'):

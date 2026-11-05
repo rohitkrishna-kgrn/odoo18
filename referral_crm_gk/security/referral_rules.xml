@@ -25,16 +25,30 @@
         <field name="perm_unlink" eval="True"/>
     </record>
 
-    <!-- Referral User: can see all referrers (lead access is restricted separately) -->
+    <!-- Referral User: only referrers behind one of their own leads (lead
+         salesperson = the user). Users can't create referrers (ACL), since a
+         new referrer has no lead yet and would be unreadable once saved. -->
     <record id="rule_referral_referrer_user" model="ir.rule">
-        <field name="name">Referral Referrer: User sees all referrers</field>
+        <field name="name">Referral Referrer: User sees only own referrers</field>
         <field name="model_id" ref="model_referral_referrer"/>
-        <field name="domain_force">[(1, '=', 1)]</field>
-        <field name="groups" eval="[(4, ref('referral_crm_gk.group_referral_user'))]"/>
+        <field name="domain_force">[('lead_ids.user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(6, 0, [ref('referral_crm_gk.group_referral_user')])]"/>
         <field name="perm_read" eval="True"/>
-        <field name="perm_write" eval="False"/>
+        <field name="perm_write" eval="True"/>
         <field name="perm_create" eval="False"/>
-        <field name="perm_unlink" eval="False"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- Referral User: only commissions on their own leads -->
+    <record id="rule_referral_commission_user" model="ir.rule">
+        <field name="name">Referral Commission: User sees only own commissions</field>
+        <field name="model_id" ref="model_referral_commission"/>
+        <field name="domain_force">[('lead_id.user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(6, 0, [ref('referral_crm_gk.group_referral_user')])]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
     </record>
 
     <!-- Referral Manager: sees all referrers -->
@@ -54,6 +68,19 @@
         <field name="name">Referral Lead: Accounts sees only converted leads</field>
         <field name="model_id" ref="crm.model_crm_lead"/>
         <field name="domain_force">[('x_is_referral', '=', True), ('stage_id.is_won', '=', True)]</field>
+        <field name="groups" eval="[(4, ref('referral_crm_gk.group_referral_accounts'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Referral Accounts: lead journey log (crm_extended_rk) on the leads they
+         can open, so the lead form loads for accounts staff without Sales -->
+    <record id="rule_referral_lead_event_accounts" model="ir.rule">
+        <field name="name">Referral Lead Journey: Accounts reads converted referral leads</field>
+        <field name="model_id" ref="crm_extended_rk.model_crm_lead_event"/>
+        <field name="domain_force">[('lead_id.x_is_referral', '=', True), ('lead_id.stage_id.is_won', '=', True)]</field>
         <field name="groups" eval="[(4, ref('referral_crm_gk.group_referral_accounts'))]"/>
         <field name="perm_read" eval="True"/>
         <field name="perm_write" eval="False"/>

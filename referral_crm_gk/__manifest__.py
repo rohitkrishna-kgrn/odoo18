@@ -1,11 +1,11 @@
 {
     'name': 'Referral',
-    'version': '18.0.2.0.18',
+    'version': '18.0.2.0.25',
     'category': 'Sales/CRM',
     'summary': 'Referral portal integration with tier-based commission tracking',
     'author': 'KGRN Chartered Accountants',
     'website': 'https://kgrnaudit.com',
-    'depends': ['crm', 'mail', 'crm_iap_enrich', 'sale', 'sale_order_approval', 'account'],
+    'depends': ['crm', 'mail', 'crm_iap_enrich', 'sale', 'sale_order_approval', 'account', 'crm_extended_rk'],
     'data': [
         'security/referral_groups.xml',
         'security/ir.model.access.csv',
