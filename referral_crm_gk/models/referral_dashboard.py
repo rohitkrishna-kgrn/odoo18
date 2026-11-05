@@ -34,12 +34,9 @@ class ReferralDashboard(models.TransientModel):
                 ('user_id', '=', self.env.uid),
             ])
 
-        converted = all_referrals.filtered(
-            lambda l: l.stage_id.x_is_referral_converted
-        )
+        converted = all_referrals.filtered('x_stage_is_converted')
         active = all_referrals.filtered(
-            lambda l: not l.stage_id.x_is_referral_converted
-            and not l.stage_id.x_is_referral_lost
+            lambda l: l.active and not l.x_stage_is_converted and not l.x_stage_is_lost
         )
         commission_paid = converted.filtered(lambda l: l.x_payment_status == 'full')
 

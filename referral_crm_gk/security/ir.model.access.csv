@@ -3,7 +3,7 @@ access_referral_referrer_user,referral.referrer user,model_referral_referrer,ref
 access_referral_referrer_manager,referral.referrer manager,model_referral_referrer,referral_crm_gk.group_referral_manager,1,1,1,1
 access_referral_dashboard_user,referral.dashboard user,model_referral_dashboard,referral_crm_gk.group_referral_user,1,1,1,1
 access_referral_dashboard_manager,referral.dashboard manager,model_referral_dashboard,referral_crm_gk.group_referral_manager,1,1,1,1
-access_referral_config_manager,referral.config manager,model_referral_config,referral_crm_gk.group_referral_manager,1,1,1,1
+access_referral_config_admin,referral.config admin,model_referral_config,referral_crm_gk.group_referral_admin,1,1,1,1
 access_referral_commission_user,referral.commission user,model_referral_commission,referral_crm_gk.group_referral_user,1,0,0,0
 access_referral_commission_manager,referral.commission manager,model_referral_commission,referral_crm_gk.group_referral_manager,1,1,1,1
 access_sale_order_referral_user,sale.order referral user,sale.model_sale_order,referral_crm_gk.group_referral_user,1,1,1,0
@@ -15,3 +15,7 @@ access_referral_referrer_accounts,referral.referrer accounts,model_referral_refe
 access_referral_dashboard_accounts,referral.dashboard accounts,model_referral_dashboard,referral_crm_gk.group_referral_accounts,1,0,0,0
 access_referral_commission_accounts,referral.commission accounts,model_referral_commission,referral_crm_gk.group_referral_accounts,1,1,0,0
 access_referral_payment_wizard_accounts,referral.payment.wizard accounts,model_referral_payment_wizard,referral_crm_gk.group_referral_accounts,1,1,1,1
+access_crm_lead_referral_admin,crm.lead referral admin,crm.model_crm_lead,referral_crm_gk.group_referral_admin,1,0,0,0
+access_crm_tag_referral_admin,crm.tag referral admin,sales_team.model_crm_tag,referral_crm_gk.group_referral_admin,1,0,0,0
+access_referral_referrer_admin,referral.referrer admin,model_referral_referrer,referral_crm_gk.group_referral_admin,1,0,0,0
+access_referral_commission_admin,referral.commission admin,model_referral_commission,referral_crm_gk.group_referral_admin,1,0,0,0

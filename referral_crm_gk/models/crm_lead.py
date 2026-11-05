@@ -2,6 +2,7 @@ import logging
 import re
 
 from odoo import api, fields, models
+from odoo.exceptions import AccessError, UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -15,6 +16,10 @@ class CrmLead(models.Model):
         index=True,
     )
     x_referral_company = fields.Char(string='Referred Company')
+    # What the referrer ticked on the portal. Kept out of tag_ids: CRM tags
+    # classify where a lead came from (this one: REF BY CONSULTANT), and
+    # they sync onto the contact.
+    x_referral_services = fields.Char(string='Services of Interest')
     x_referrer_id = fields.Many2one(
         'referral.referrer',
         string='Referrer',
@@ -111,17 +116,22 @@ class CrmLead(models.Model):
         store=True,
         digits=(16, 2),
     )
-    x_has_quotation = fields.Boolean(
-        string='Has Quotation',
-        compute='_compute_has_quotation',
-    )
-
+    # Follows the referrer's tier rate until a Referral Manager edits it on the
+    # lead; from then on x_commission_rate_manual pins the edited value.
     x_commission_rate = fields.Float(
-        related='x_referrer_id.commission_rate',
+        compute='_compute_commission_rate',
         string='Commission Rate (%)',
         store=True,
-        readonly=True,
+        readonly=False,
+        tracking=True,
         digits=(5, 2),
+    )
+    x_commission_rate_manual = fields.Boolean(
+        string='Commission Rate Edited',
+        copy=False,
+    )
+    x_can_edit_commission_rate = fields.Boolean(
+        compute='_compute_can_edit_commission_rate',
     )
     x_referrer_company_name = fields.Char(
         related='x_referrer_id.company', string='Referrer Company', readonly=True,
@@ -151,71 +161,84 @@ class CrmLead(models.Model):
         readonly=True,
         digits=(16, 2),
     )
-    x_stage_color_hex = fields.Char(
-        related='stage_id.x_color_hex',
-        string='Stage Colour',
-        readonly=True,
-    )
-    x_stage_name = fields.Char(
-        related='stage_id.name',
-        string='Stage Name',
-        readonly=True,
-    )
+    # Converted = Won, which crm_extended_rk sets when the quotation is
+    # confirmed; lost = its Lost or Not Qualified column.
     x_stage_is_converted = fields.Boolean(
-        related='stage_id.x_is_referral_converted',
+        related='stage_id.is_won',
         string='Stage Is Converted',
         readonly=True,
     )
     x_stage_is_lost = fields.Boolean(
-        related='stage_id.x_is_referral_lost',
+        compute='_compute_stage_is_lost',
+        search='_search_stage_is_lost',
         string='Stage Is Lost',
-        readonly=True,
     )
     x_commission_id = fields.Many2one(
         'referral.commission',
         compute='_compute_commission_id',
         string='Commission',
     )
-    x_stage_entry_criteria = fields.Char(
-        related='stage_id.x_entry_criteria',
-        string='Entry Criteria',
-        readonly=True,
-    )
-    x_stage_guidance = fields.Text(
-        related='stage_id.x_stage_description',
-        string='Stage Guidance',
-        readonly=True,
-    )
-
     @api.depends('x_sale_order_id', 'x_sale_order_id.amount_untaxed')
     def _compute_deal_value(self):
         # Use untaxed amount so commissions are calculated on the net service fee, not on VAT
         for rec in self:
             rec.x_deal_value = rec.x_sale_order_id.amount_untaxed if rec.x_sale_order_id else 0.0
 
-    @api.depends('x_sale_order_id')
-    def _compute_has_quotation(self):
-        for rec in self:
-            rec.x_has_quotation = bool(rec.x_sale_order_id)
+    @api.model
+    def _get_referral_lost_stages(self):
+        stages = self.env['crm.stage']
+        for xmlid in ('crm_extended_rk.stage_lost', 'crm_extended_rk.stage_not_qualified'):
+            stages |= self.env.ref(xmlid, raise_if_not_found=False) or stages
+        return stages
 
-    @api.depends('x_deal_value', 'x_referrer_id.commission_rate', 'x_is_referral')
+    @api.depends('stage_id')
+    def _compute_stage_is_lost(self):
+        lost_stages = self._get_referral_lost_stages()
+        for rec in self:
+            rec.x_stage_is_lost = rec.stage_id in lost_stages
+
+    def _search_stage_is_lost(self, operator, value):
+        if operator not in ('=', '!=') or not isinstance(value, bool):
+            raise NotImplementedError()
+        positive = (operator == '=') == value
+        return [('stage_id', 'in' if positive else 'not in', self._get_referral_lost_stages().ids)]
+
+    @api.depends('x_referrer_id.commission_rate')
+    def _compute_commission_rate(self):
+        for rec in self:
+            # Records left unassigned keep their stored (manually edited) rate
+            if not rec.x_commission_rate_manual:
+                rec.x_commission_rate = rec.x_referrer_id.commission_rate
+
+    @api.depends_context('uid')
+    def _compute_can_edit_commission_rate(self):
+        can_edit = self.env.user.has_group('referral_crm_gk.group_referral_manager')
+        for rec in self:
+            rec.x_can_edit_commission_rate = can_edit
+
+    @api.depends('x_deal_value', 'x_commission_rate', 'x_is_referral')
     def _compute_commission(self):
         for rec in self:
             if rec.x_is_referral and rec.x_referrer_id and rec.x_deal_value:
-                rec.x_commission_amount = rec.x_deal_value * rec.x_referrer_id.commission_rate / 100.0
+                rec.x_commission_amount = rec.x_deal_value * rec.x_commission_rate / 100.0
             else:
                 rec.x_commission_amount = 0.0
 
     def _compute_commission_id(self):
-        commissions = self.env['referral.commission'].search([('lead_id', 'in', self.ids)])
+        # sudo: this only feeds the smart button; any CRM user opening a lead
+        # computes it, and most of them have no Referral group (ACL error).
+        # Opening the commission itself still goes through the normal ACL.
+        commissions = self.env['referral.commission'].sudo().search([('lead_id', 'in', self.ids)])
         commission_map = {c.lead_id.id: c for c in commissions}
         for rec in self:
             rec.x_commission_id = commission_map.get(rec.id)
 
+    # in_payment = the customer has paid in full and only the bank
+    # reconciliation is outstanding, so it counts as paid here.
     _INVOICE_PAYMENT_STATE_MAP = {
         'not_paid': 'pending',
         'partial': 'partial',
-        'in_payment': 'partial',
+        'in_payment': 'full',
         'paid': 'full',
         'reversed': 'pending',
         'invoicing_legacy': 'pending',
@@ -250,9 +273,9 @@ class CrmLead(models.Model):
                 rec.x_billing_stage = 'invoice_draft'
             elif inv.payment_state in ('not_paid', 'invoicing_legacy', 'reversed'):
                 rec.x_billing_stage = 'not_paid'
-            elif inv.payment_state in ('partial', 'in_payment'):
+            elif inv.payment_state == 'partial':
                 rec.x_billing_stage = 'partial'
-            elif inv.payment_state == 'paid':
+            elif inv.payment_state in ('in_payment', 'paid'):
                 rec.x_billing_stage = 'paid'
             else:
                 rec.x_billing_stage = 'not_paid'
@@ -303,35 +326,6 @@ class CrmLead(models.Model):
             'target': 'current',
         }
 
-    def action_create_invoice(self):
-        """Create invoice from the linked sale order and open it."""
-        self.ensure_one()
-        from odoo.exceptions import UserError
-        if not self.x_sale_order_id:
-            raise UserError(
-                "No sale order is linked to this referral. "
-                "Please create a quotation first."
-            )
-        if self.x_sale_order_id.state not in ('sale', 'done'):
-            raise UserError(
-                "The sale order must be confirmed before creating an invoice."
-            )
-        # If invoice already exists, just open it
-        if self.x_invoice_id:
-            return self.action_open_invoice()
-        # Create the invoice — our _create_invoices override auto-links it
-        self.x_sale_order_id.sudo()._create_invoices()
-        # Fallback link in case override didn't fire
-        if not self.x_invoice_id:
-            existing = self.x_sale_order_id.invoice_ids.filtered(
-                lambda m: m.move_type == 'out_invoice' and m.state != 'cancel'
-            )
-            if existing:
-                self.sudo().x_invoice_id = existing[0].id
-        if self.sudo().x_invoice_id:
-            return self.action_open_invoice()
-        raise UserError("Invoice could not be created. Please try from the Sales Order.")
-
     def action_register_payment(self):
         """Open the standard Odoo payment registration wizard for the linked invoice."""
         self.ensure_one()
@@ -355,11 +349,15 @@ class CrmLead(models.Model):
         if not template:
             _logger.warning('referral_crm_gk: template %s not found', template_xml_id)
             return
-        email_values = {'auto_delete': False}
+        # user_notification keeps the mail linked to the lead (Settings >
+        # Emails) but out of its chatter, where the full HTML email was
+        # being pasted as a message.
+        email_values = {'auto_delete': False, 'message_type': 'user_notification'}
         if email_to:
             email_values.update({'email_to': email_to, 'recipient_ids': []})
         elif extra_recipients:
-            partners = extra_recipients.filtered('email')
+            # Referral Admins never receive mail from this module
+            partners = extra_recipients.filtered('email') - self._get_referral_admin_partners()
             if not partners:
                 _logger.warning(
                     'referral_crm_gk: no email recipients for template %s', template_xml_id
@@ -385,6 +383,13 @@ class CrmLead(models.Model):
             lambda u: u.active and not u.share and u != system_user
         )
         return managers.mapped('partner_id').filtered('email')
+
+    @api.model
+    def _get_referral_admin_partners(self):
+        group = self.env.ref('referral_crm_gk.group_referral_admin', raise_if_not_found=False)
+        if not group:
+            return self.env['res.partner'].browse()
+        return group.sudo().users.mapped('partner_id')
 
     def _notify_managers_new_referral(self):
         self.ensure_one()
@@ -416,6 +421,18 @@ class CrmLead(models.Model):
     # ── ORM overrides ─────────────────────────────────────────────────────
 
     def write(self, vals):
+        if 'x_commission_rate' in vals:
+            if not (self.env.su or self.env.user.has_group('referral_crm_gk.group_referral_manager')):
+                raise AccessError("Only a Referral Manager can change the commission rate.")
+            if self.env['referral.commission'].sudo().search_count([
+                ('lead_id', 'in', self.ids), ('commission_payment_status', '=', 'paid'),
+            ]):
+                raise UserError(
+                    "The commission for this referral has already been paid, "
+                    "so its commission rate can no longer be changed."
+                )
+            vals = dict(vals, x_commission_rate_manual=True)
+
         old_user_ids = {}
         if 'user_id' in vals:
             old_user_ids = {
@@ -435,7 +452,7 @@ class CrmLead(models.Model):
         if 'stage_id' in vals:
             Commission = self.env['referral.commission'].sudo()
             for rec in self:
-                if rec.x_is_referral and rec.stage_id.x_is_referral_converted:
+                if rec.x_is_referral and rec.stage_id.is_won:
                     if not Commission.search([('lead_id', '=', rec.id)], limit=1):
                         Commission.create({'lead_id': rec.id})
                         rec.sudo()._notify_managers_converted()
@@ -445,34 +462,20 @@ class CrmLead(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         default_manager = self._get_default_referral_manager()
-        first_referral_stage = None
-        referral_stage_ids = None  # cached set of valid referral stage IDs
+        new_stage = self.env.ref('crm.stage_lead1', raise_if_not_found=False)
+        ref_tag = self.env.ref(
+            'crm_extended_rk.quotation_tag_ref_by_consultant', raise_if_not_found=False)
         for vals in vals_list:
             if vals.get('x_is_referral'):
                 if not vals.get('user_id') and default_manager:
                     vals['user_id'] = default_manager.id
-                # Ensure the stage is actually a referral stage.
-                # Odoo's model default resolves stage_id before create() runs and may
-                # pick a non-referral stage (first global CRM stage by sequence).
-                if referral_stage_ids is None:
-                    referral_stage_ids = set(
-                        self.env['crm.stage'].search(
-                            [('x_is_referral_stage', '=', True)]
-                        ).ids
-                    )
-                if vals.get('stage_id') not in referral_stage_ids:
-                    if first_referral_stage is None:
-                        first_referral_stage = self.env['crm.stage'].search(
-                            [
-                                ('x_is_referral_stage', '=', True),
-                                ('x_is_referral_converted', '=', False),
-                                ('x_is_referral_lost', '=', False),
-                            ],
-                            order='sequence asc',
-                            limit=1,
-                        )
-                    if first_referral_stage:
-                        vals['stage_id'] = first_referral_stage.id
+                # The CRM pipeline only shows opportunities, and only an
+                # opportunity gets the New Quotation button.
+                vals.setdefault('type', 'opportunity')
+                if not vals.get('stage_id') and new_stage:
+                    vals['stage_id'] = new_stage.id
+                if ref_tag:
+                    vals['tag_ids'] = list(vals.get('tag_ids') or []) + [(4, ref_tag.id)]
         records = super().create(vals_list)
         for rec in records:
             if rec.x_is_referral:
@@ -496,21 +499,15 @@ class CrmLead(models.Model):
                 lead.show_enrich_button = False
 
     @api.model
-    def _read_group_stage_ids(self, stages, domain):
-        if self.env.context.get('default_x_is_referral'):
-            return stages.search([('x_is_referral_stage', '=', True)])
-        # Keep referral-only stages out of the main (non-referral) pipeline.
-        return super()._read_group_stage_ids(stages, domain).filtered(
-            lambda stage: not stage.x_is_referral_stage)
-
-    @api.model
     def _get_default_referral_manager(self):
         group = self.env.ref('referral_crm_gk.group_referral_manager', raise_if_not_found=False)
         if not group:
             return self.env['res.users'].browse()
         system_user = self.env.ref('base.user_root', raise_if_not_found=False)
+        admin_users = self._get_referral_admin_partners().user_ids
         managers = group.users.filtered(
             lambda u: u.active and not u.share and u != system_user
+            and u not in admin_users
         )
         return managers[0] if managers else self.env['res.users'].browse()
 
@@ -546,114 +543,6 @@ class CrmLead(models.Model):
                 'is_company': True,
             })
         return partner
-
-    def _get_referral_stage(self, name_ilike):
-        return self.env['crm.stage'].search(
-            [('x_is_referral_stage', '=', True), ('name', 'ilike', name_ilike)],
-            order='sequence', limit=1,
-        )
-
-    # ── Stage actions ─────────────────────────────────────────────────────
-
-    def action_move_to_contacted(self):
-        self.ensure_one()
-        stage = self._get_referral_stage('Contacted')
-        if stage:
-            self.stage_id = stage.id
-        return True
-
-    def action_move_to_not_qualified(self):
-        self.ensure_one()
-        stage = self._get_referral_stage('Not Qualified')
-        if stage:
-            self.stage_id = stage.id
-        return True
-
-    def action_next_stage(self):
-        self.ensure_one()
-        active_stages = self.env['crm.stage'].search(
-            [('x_is_referral_stage', '=', True), ('x_is_referral_lost', '=', False)],
-            order='sequence',
-        )
-        stage_ids = active_stages.ids
-        if self.stage_id.id in stage_ids:
-            idx = stage_ids.index(self.stage_id.id)
-            if idx + 1 < len(stage_ids):
-                self.stage_id = active_stages[idx + 1]
-        return True
-
-    # ── Quotation actions ─────────────────────────────────────────────────
-
-    def action_create_quotation(self):
-        self.ensure_one()
-        if self.x_sale_order_id:
-            return {
-                'type': 'ir.actions.act_window',
-                'res_model': 'sale.order',
-                'res_id': self.x_sale_order_id.id,
-                'view_mode': 'form',
-                'target': 'current',
-            }
-        partner = self.partner_id or self._find_or_create_referral_partner()
-        if partner and not self.partner_id:
-            self.partner_id = partner.id
-        so = self.env['sale.order'].create({
-            'partner_id': partner.id if partner else self.env.ref('base.res_partner_1').id,
-            'x_referral_lead_id': self.id,
-            'client_order_ref': self.x_referral_ref or self.name,
-        })
-        self.x_sale_order_id = so.id
-
-        # Auto-create order lines from referral service tags
-        if self.tag_ids:
-            ProductProduct = self.env['product.product'].sudo()
-            order_lines = []
-            today = fields.Date.today()
-            line_manager_id = (self.user_id or self.env.user).id
-            for tag in self.tag_ids:
-                product = ProductProduct.search(
-                    [('name', '=', tag.name), ('type', '=', 'service')], limit=1
-                )
-                if not product:
-                    product = ProductProduct.create({
-                        'name': tag.name,
-                        'type': 'service',
-                        'invoice_policy': 'order',
-                    })
-                order_lines.append((0, 0, {
-                    'product_id': product.id,
-                    'product_uom_qty': 1,
-                    'price_unit': 0.0,
-                    'name': tag.name,
-                    'manager_id': line_manager_id,
-                    'engagement_start': today,
-                    'engagement_end': today,
-                    'deadline': today,
-                    'estimated_hours': product.sudo().product_tmpl_id.estimated_hours or 0.0,
-                }))
-            if order_lines:
-                so.sudo().write({'order_line': order_lines})
-
-        stage = self._get_referral_stage('In Progress')
-        if stage:
-            self.stage_id = stage.id
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'sale.order',
-            'res_id': so.id,
-            'view_mode': 'form',
-            'target': 'current',
-        }
-
-    def action_view_quotation(self):
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'sale.order',
-            'res_id': self.x_sale_order_id.id,
-            'view_mode': 'form',
-            'target': 'current',
-        }
 
     def action_view_commission(self):
         self.ensure_one()

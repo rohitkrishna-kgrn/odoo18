@@ -306,15 +306,26 @@
     <record id="action_referral_summary_report" model="ir.actions.server">
         <field name="name">Referral Summary</field>
         <field name="model_id" ref="crm.model_crm_lead"/>
+        <!-- Without groups_id, run() demands crm.lead write access, which the
+             read-only Admin and Accounts groups do not have -->
+        <field name="groups_id" eval="[(6, 0, [
+            ref('referral_crm_gk.group_referral_manager'),
+            ref('referral_crm_gk.group_referral_accounts'),
+            ref('referral_crm_gk.group_referral_admin'),
+        ])]"/>
         <field name="state">code</field>
         <field name="code">
 list_view   = env.ref('referral_crm_gk.view_referral_lead_list').id
+pivot_view  = env.ref('referral_crm_gk.view_referral_lead_pivot').id
+graph_view  = env.ref('referral_crm_gk.view_referral_lead_graph').id
+search_view = env.ref('referral_crm_gk.view_referral_lead_search').id
 action = {
     'type': 'ir.actions.act_window',
     'name': 'Referral Summary',
     'res_model': 'crm.lead',
-    'view_mode': 'list,kanban,form',
-    'views': [(list_view, 'list'), (False, 'kanban'), (False, 'form')],
+    'view_mode': 'list,pivot,graph,kanban,form',
+    'views': [(list_view, 'list'), (pivot_view, 'pivot'), (graph_view, 'graph'), (False, 'kanban'), (False, 'form')],
+    'search_view_id': [search_view, 'referral.lead.search'],
     'domain': [('x_is_referral', '=', True)],
     'context': {'default_x_is_referral': True},
 }

@@ -20,31 +20,6 @@
                 <attribute name="string">Tags</attribute>
             </xpath>
 
-            <!-- Filter the header stage statusbar for referral leads (exclude New stage) -->
-            <xpath expr="//header/field[@name='stage_id']" position="attributes">
-                <attribute name="domain">[('x_is_referral_stage', '=', True), ('name', '!=', 'New')] if x_is_referral else []</attribute>
-            </xpath>
-
-            <!-- Make statusbar non-clickable to prevent manual stage changes -->
-            <xpath expr="//header/field[@name='stage_id']" position="attributes">
-                <attribute name="options">{'clickable': False}</attribute>
-            </xpath>
-
-            <!-- Show statusbar for referral leads even though type='lead' hides it by default -->
-            <xpath expr="//header/field[@name='stage_id']" position="attributes">
-                <attribute name="invisible">not active or (type == 'lead' and not x_is_referral)</attribute>
-            </xpath>
-
-            <!-- Hide Convert to Opportunity button for referral leads (data-hotkey="v" is unique to this button) -->
-            <xpath expr="//button[@data-hotkey='v']" position="attributes">
-                <attribute name="invisible">type == 'opportunity' or not active or x_is_referral</attribute>
-            </xpath>
-
-            <!-- Hide Lost (lead variant) button for referral leads -->
-            <xpath expr="//button[@name='toggle_active']/following-sibling::button[@data-hotkey='l']" position="attributes">
-                <attribute name="invisible">type == 'opportunity' or x_is_referral or (probability == 0 and not active)</attribute>
-            </xpath>
-
             <!-- Smart button: Commission (shown when lead is converted and commission exists) -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <field name="x_commission_id" invisible="1"/>
@@ -52,6 +27,7 @@
                 <field name="x_invoice_payment_state" invisible="1"/>
                 <button type="object" name="action_view_commission"
                         class="oe_stat_button" icon="fa-money"
+                        groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager,referral_crm_gk.group_referral_accounts"
                         invisible="not x_is_referral or not x_commission_id">
                     <div class="o_stat_info">
                         <span class="o_stat_text">Commission</span>
@@ -72,8 +48,6 @@
             <!-- Referral action buttons in header -->
             <xpath expr="//header/field[@name='stage_id']" position="before">
                 <field name="x_is_referral" invisible="1"/>
-                <field name="x_has_quotation" invisible="1"/>
-                <field name="x_stage_name" invisible="1"/>
                 <field name="x_stage_is_converted" invisible="1"/>
                 <field name="x_stage_is_lost" invisible="1"/>
                 <field name="x_invoice_id" invisible="1"/>
@@ -81,30 +55,8 @@
                 <field name="x_invoice_state" invisible="1"/>
                 <field name="x_invoice_payment_state" invisible="1"/>
 
-                <!-- Pipeline stage actions (Sales team) -->
-                <button name="action_move_to_contacted" type="object"
-                        string="Contacted"
-                        class="btn btn-primary"
-                        invisible="not x_is_referral or x_stage_name != 'New'"/>
-                <button name="action_move_to_not_qualified" type="object"
-                        string="Lost"
-                        class="btn btn-danger"
-                        invisible="not x_is_referral or x_stage_name != 'New'"/>
-                <button name="action_create_quotation" type="object"
-                        string="New Quotation"
-                        class="btn btn-primary"
-                        invisible="not x_is_referral or x_stage_is_converted or x_stage_is_lost or x_has_quotation"/>
-                <button name="action_view_quotation" type="object"
-                        string="View Sales Order"
-                        class="btn btn-secondary"
-                        invisible="not x_is_referral or not x_has_quotation"/>
-
-                <!-- Accounting workflow actions (Accounts team) -->
-                <button name="action_create_invoice" type="object"
-                        string="Create Invoice"
-                        class="btn btn-primary"
-                        invisible="not x_is_referral or not x_stage_is_converted or x_invoice_id"
-                        groups="referral_crm_gk.group_referral_accounts,referral_crm_gk.group_referral_manager"/>
+                <!-- Accounting (invoices are raised from the order with the
+                     Services Create Invoice wizard and linked automatically) -->
                 <button name="action_open_invoice" type="object"
                         string="View Invoice"
                         class="btn btn-secondary"
@@ -144,36 +96,10 @@
                 <attribute name="invisible">x_is_referral</attribute>
             </xpath>
 
-            <!-- Hide Won button for referral leads -->
-            <xpath expr="//button[@name='action_set_won_rainbowman']" position="attributes">
-                <attribute name="invisible">x_is_referral or not active or probability == 100 or type == 'lead'</attribute>
-            </xpath>
-
-            <!-- Hide Lost button (opportunity variant, sibling after Won) -->
-            <xpath expr="//button[@name='action_set_won_rainbowman']/following-sibling::button[1]" position="attributes">
-                <attribute name="invisible">x_is_referral or type == 'lead' or not active and probability &lt; 100</attribute>
-            </xpath>
-
-
             <xpath expr="//notebook" position="inside">
                 <page string="Referral Info" name="referral_info"
                       invisible="not x_is_referral"
                       groups="referral_crm_gk.group_referral_user,referral_crm_gk.group_referral_manager,referral_crm_gk.group_referral_accounts">
-
-                    <!-- Stage guidance banner -->
-                    <div class="alert alert-info d-flex align-items-start gap-2 mb-3"
-                         invisible="not x_stage_entry_criteria">
-                        <i class="fa fa-info-circle mt-1"/>
-                        <div>
-                            <strong>
-                                <field name="stage_id" readonly="1" nolabel="1"/>
-                                — <field name="x_stage_entry_criteria" readonly="1" nolabel="1"/>
-                            </strong>
-                            <div class="mt-1 text-muted">
-                                <field name="x_stage_guidance" readonly="1" nolabel="1"/>
-                            </div>
-                        </div>
-                    </div>
 
                     <group>
                         <group string="Referrer">
@@ -181,13 +107,16 @@
                                    options="{'no_create': True}"
                                    readonly="1"/>
                             <field name="x_referral_ref" readonly="1"/>
+                            <field name="x_referral_services" readonly="1"/>
                         </group>
                         <group string="Commission">
                             <field name="x_payment_status" readonly="1" widget="badge"
                                    decoration-danger="x_payment_status == 'pending'"
                                    decoration-warning="x_payment_status == 'partial'"
                                    decoration-success="x_payment_status == 'full'"/>
-                            <field name="x_commission_rate" readonly="1"
+                            <field name="x_can_edit_commission_rate" invisible="1"/>
+                            <field name="x_commission_rate"
+                                   readonly="not x_can_edit_commission_rate"
                                    string="Commission Rate (%)" widget="float"/>
                             <field name="x_commission_amount" readonly="1"
                                    widget="monetary"
@@ -268,23 +197,35 @@
                 <field name="x_referrer_id" string="Referrer"/>
                 <field name="stage_id"/>
                 <field name="user_id" string="Salesperson"/>
-                <field name="tag_ids" string="Services"/>
+                <field name="x_referral_services"/>
                 <filter string="My Leads" name="my_leads" domain="[('user_id', '=', uid)]"/>
                 <separator/>
-                <filter string="Converted" name="stage_converted"
-                        domain="[('stage_id.x_is_referral_converted', '=', True)]"/>
-                <filter string="Not Qualified" name="stage_lost"
-                        domain="[('stage_id.x_is_referral_lost', '=', True)]"/>
+                <filter string="Converted (Won)" name="stage_converted"
+                        domain="[('x_stage_is_converted', '=', True)]"/>
+                <filter string="Lost / Not Qualified" name="stage_lost"
+                        domain="[('x_stage_is_lost', '=', True)]"/>
                 <separator/>
                 <filter string="Full Payment" name="payment_full"
                         domain="[('x_payment_status', '=', 'full')]"/>
                 <filter string="Commission Due" name="commission_due"
                         domain="[('x_commission_amount', '>', 0)]"/>
+                <separator/>
+                <!-- Submitted = create_date; day bounds in the user's timezone -->
+                <filter string="Submitted Today" name="submitted_today"
+                        domain="[('create_date', '>=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)).to_utc().strftime('%Y-%m-%d %H:%M:%S'))]"/>
+                <filter string="Submitted Yesterday" name="submitted_yesterday"
+                        domain="[('create_date', '>=', datetime.datetime.combine(context_today() - relativedelta(days=1), datetime.time(0,0,0)).to_utc().strftime('%Y-%m-%d %H:%M:%S')),
+                                 ('create_date', '&lt;', datetime.datetime.combine(context_today(), datetime.time(0,0,0)).to_utc().strftime('%Y-%m-%d %H:%M:%S'))]"/>
+                <filter string="Submitted Date" name="filter_create_date" date="create_date"/>
                 <group expand="0" string="Group By">
                     <filter string="Stage" name="group_stage" context="{'group_by': 'stage_id'}"/>
                     <filter string="Referrer" name="group_referrer" context="{'group_by': 'x_referrer_id'}"/>
                     <filter string="Salesperson" name="group_user" context="{'group_by': 'user_id'}"/>
                     <filter string="Payment Status" name="group_payment" context="{'group_by': 'x_payment_status'}"/>
+                    <separator/>
+                    <filter string="Submitted: Day" name="group_create_day" context="{'group_by': 'create_date:day'}"/>
+                    <filter string="Submitted: Month" name="group_create_month" context="{'group_by': 'create_date:month'}"/>
+                    <filter string="Submitted: Year" name="group_create_year" context="{'group_by': 'create_date:year'}"/>
                 </group>
             </search>
         </field>
@@ -313,7 +254,7 @@
                 <field name="expected_revenue"/>
                 <field name="tag_ids"/>
                 <field name="user_id"/>
-                <field name="stage_id" domain="[('x_is_referral_stage', '=', True)]"/>
+                <field name="stage_id"/>
                 <field name="x_commission_amount"/>
                 <field name="x_referrer_tier"/>
                 <field name="color"/>
@@ -375,13 +316,15 @@
                 <field name="x_referral_company" string="Company"/>
                 <field name="x_referrer_id" string="Referrer"/>
                 <field name="stage_id" widget="badge"
-                       decoration-success="stage_id.x_is_referral_converted"
-                       decoration-danger="stage_id.x_is_referral_lost"
-                       decoration-info="not stage_id.x_is_referral_converted and not stage_id.x_is_referral_lost"/>
+                       decoration-success="x_stage_is_converted"
+                       decoration-danger="x_stage_is_lost"
+                       decoration-info="not x_stage_is_converted and not x_stage_is_lost"/>
+                <field name="x_stage_is_converted" column_invisible="1"/>
+                <field name="x_stage_is_lost" column_invisible="1"/>
                 <field name="user_id" string="Salesperson" widget="many2one_avatar_user"/>
                 <field name="expected_revenue" string="Deal Value (AED)"
                        widget="monetary" options="{'currency_field': 'company_currency'}"/>
-                <field name="tag_ids" string="Services" widget="many2many_tags" optional="show"/>
+                <field name="x_referral_services" optional="show"/>
                 <field name="x_payment_status" widget="badge"
                        decoration-danger="x_payment_status == 'pending'"
                        decoration-warning="x_payment_status == 'partial'"
@@ -395,6 +338,33 @@
     </record>
 
     <!-- ══════════════════════════════════════════════════════
+         Referral Leads — Pivot / Graph (Referral Summary report)
+    ══════════════════════════════════════════════════════════ -->
+    <record id="view_referral_lead_pivot" model="ir.ui.view">
+        <field name="name">referral.lead.pivot</field>
+        <field name="model">crm.lead</field>
+        <field name="arch" type="xml">
+            <pivot string="Referral Leads">
+                <field name="create_date" interval="month" type="row" string="Submitted"/>
+                <field name="stage_id" type="col"/>
+                <field name="x_deal_value" type="measure"/>
+                <field name="x_commission_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_referral_lead_graph" model="ir.ui.view">
+        <field name="name">referral.lead.graph</field>
+        <field name="model">crm.lead</field>
+        <field name="arch" type="xml">
+            <graph string="Referral Leads" type="bar">
+                <field name="create_date" interval="month" string="Submitted"/>
+                <field name="stage_id"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════
          Window Actions
     ══════════════════════════════════════════════════════════ -->
 
@@ -404,7 +374,7 @@
         <field name="res_model">crm.lead</field>
         <field name="view_mode">kanban,list,form</field>
         <field name="domain">[('x_is_referral', '=', True)]</field>
-        <field name="context">{'default_x_is_referral': True, 'default_stage_domain': [('x_is_referral_stage', '=', True)]}</field>
+        <field name="context">{'default_x_is_referral': True}</field>
         <field name="search_view_id" ref="view_referral_lead_search"/>
         <field name="view_ids" eval="[
             (5, 0, 0),
@@ -454,7 +424,7 @@
         <field name="name">Converted Referrals</field>
         <field name="res_model">crm.lead</field>
         <field name="view_mode">list,form</field>
-        <field name="domain">[('x_is_referral', '=', True), ('stage_id.x_is_referral_converted', '=', True)]</field>
+        <field name="domain">[('x_is_referral', '=', True), ('stage_id.is_won', '=', True)]</field>
         <field name="context">{'default_x_is_referral': True}</field>
         <field name="search_view_id" ref="view_referral_lead_search"/>
         <field name="view_ids" eval="[
@@ -463,83 +433,10 @@
         ]"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                No converted referrals yet. Referrals appear here once the sales team
-                moves them to the Converted stage.
+                No converted referrals yet. Referrals appear here once their quotation
+                is confirmed and the opportunity reaches Won.
             </p>
         </field>
-    </record>
-
-    <!-- Config: Stage list view (adds colour + description columns) -->
-    <record id="view_referral_crm_stage_list" model="ir.ui.view">
-        <field name="name">referral.crm.stage.list</field>
-        <field name="model">crm.stage</field>
-        <field name="arch" type="xml">
-            <list string="Pipeline Stages" default_order="sequence">
-                <field name="sequence" widget="handle"/>
-                <field name="name"/>
-                <field name="x_color_hex" string="Colour"/>
-                <field name="x_entry_criteria" string="Entry Criteria"/>
-                <field name="x_is_referral_converted" string="Converted" widget="boolean_toggle"/>
-                <field name="x_is_referral_lost" string="Lost / Not Qualified" widget="boolean_toggle"/>
-                <field name="fold" string="Folded in Kanban" widget="boolean_toggle"/>
-            </list>
-        </field>
-    </record>
-
-    <!-- Config: Stage form view (shows all referral fields) -->
-    <record id="view_referral_crm_stage_form" model="ir.ui.view">
-        <field name="name">referral.crm.stage.form</field>
-        <field name="model">crm.stage</field>
-        <field name="arch" type="xml">
-            <form string="Pipeline Stage">
-                <sheet>
-                    <div class="oe_title">
-                        <label for="name" string="Stage Name"/>
-                        <h1><field name="name" placeholder="e.g. New"/></h1>
-                    </div>
-                    <group>
-                        <group string="Display">
-                            <field name="sequence"/>
-                            <field name="x_color_hex" string="Colour Code"
-                                   placeholder="#3949AB"/>
-                            <field name="fold" string="Fold in Kanban"/>
-                        </group>
-                        <group string="Stage Flags">
-                            <field name="x_is_referral_converted" string="Converted Stage"
-                                   widget="boolean_toggle"/>
-                            <field name="x_is_referral_lost" string="Lost / Not Qualified Stage"
-                                   widget="boolean_toggle"/>
-                        </group>
-                    </group>
-                    <group string="Pipeline Guidance">
-                        <field name="x_entry_criteria" string="Entry Criteria"
-                               placeholder="Condition required before moving a lead here…"/>
-                        <field name="x_stage_description" string="Description &amp; Actions"
-                               placeholder="Expected actions at this stage…"/>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <!-- Config: Stages -->
-    <record id="action_config_crm_stages" model="ir.actions.act_window">
-        <field name="name">Pipeline Stages</field>
-        <field name="res_model">crm.stage</field>
-        <field name="view_mode">list,form</field>
-        <field name="domain">[('x_is_referral_stage', '=', True)]</field>
-        <field name="view_ids" eval="[
-            (5, 0, 0),
-            (0, 0, {'view_mode': 'list', 'view_id': ref('view_referral_crm_stage_list')}),
-            (0, 0, {'view_mode': 'form', 'view_id': ref('view_referral_crm_stage_form')}),
-        ]"/>
-    </record>
-
-    <!-- Config: Tags -->
-    <record id="action_config_crm_tags" model="ir.actions.act_window">
-        <field name="name">Service Tags</field>
-        <field name="res_model">crm.tag</field>
-        <field name="view_mode">list,form</field>
     </record>
 
     <!-- Pipeline dispatch: managers see all referral leads; users see only their assigned leads -->
@@ -561,7 +458,7 @@ action = {
     'view_mode': 'kanban,list,form',
     'views': [(kanban_view, 'kanban'), (list_view, 'list'), (False, 'form')],
     'domain': domain,
-    'context': {'default_x_is_referral': True, 'default_stage_domain': [('x_is_referral_stage', '=', True)]},
+    'context': {'default_x_is_referral': True},
 }
         </field>
     </record>
@@ -578,12 +475,14 @@ if not is_manager:
     domain.append(('user_id', '=', env.uid))
 list_view   = env.ref('referral_crm_gk.view_referral_lead_list').id
 kanban_view = env.ref('referral_crm_gk.view_referral_lead_kanban').id
+search_view = env.ref('referral_crm_gk.view_referral_lead_search').id
 action = {
     'type': 'ir.actions.act_window',
     'name': 'All Referrals',
     'res_model': 'crm.lead',
     'view_mode': 'list,kanban,form',
     'views': [(list_view, 'list'), (kanban_view, 'kanban'), (False, 'form')],
+    'search_view_id': [search_view, 'referral.lead.search'],
     'domain': domain,
     'context': {'default_x_is_referral': True},
 }

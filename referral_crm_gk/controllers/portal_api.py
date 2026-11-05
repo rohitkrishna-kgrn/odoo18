@@ -67,24 +67,6 @@ class ReferralPortalAPI(http.Controller):
                 'phone': referrer_data.get('phone', ''),
             })
 
-        # Resolve CRM tags from service names
-        tag_ids = []
-        for svc in services:
-            tag = request.env['crm.tag'].sudo().search([('name', '=', svc)], limit=1)
-            if tag:
-                tag_ids.append(tag.id)
-
-        # Find the first referral stage that is not converted/lost (= "New")
-        new_stage = request.env['crm.stage'].sudo().search(
-            [
-                ('x_is_referral_stage', '=', True),
-                ('x_is_referral_converted', '=', False),
-                ('x_is_referral_lost', '=', False),
-            ],
-            order='sequence asc',
-            limit=1,
-        )
-
         description = (
             f"<b>Referred by:</b> {referrer_data.get('name', '')} "
             f"({referrer_data.get('company', '')})<br/>"
@@ -107,12 +89,10 @@ class ReferralPortalAPI(http.Controller):
             'description': description,
             'x_referrer_id': referrer.id,
             'x_referral_ref': data.get('ref', ''),
+            'x_referral_services': ', '.join(services),
             'x_is_referral': True,
-            'tag_ids': [(6, 0, tag_ids)],
-            'type': 'lead',
+            'type': 'opportunity',
         }
-        if new_stage:
-            lead_vals['stage_id'] = new_stage.id
 
         try:
             lead = request.env['crm.lead'].sudo().with_context(

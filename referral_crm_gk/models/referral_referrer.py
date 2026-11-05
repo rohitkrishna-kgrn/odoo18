@@ -53,13 +53,13 @@ class ReferralReferrer(models.Model):
         for rec in self:
             rec.currency_id = self.env.company.currency_id
 
-    @api.depends('lead_ids.stage_id', 'lead_ids.stage_id.x_is_referral_converted')
+    @api.depends('lead_ids.stage_id', 'lead_ids.stage_id.is_won')
     def _compute_stats(self):
         for rec in self:
             leads = rec.lead_ids
             rec.total_referrals = len(leads)
             rec.total_conversions = len(
-                leads.filtered(lambda l: l.stage_id.x_is_referral_converted)
+                leads.filtered(lambda l: l.stage_id.is_won)
             )
 
     @api.depends('total_conversions')
@@ -76,10 +76,10 @@ class ReferralReferrer(models.Model):
                 rec.tier = 'starter'
                 rec.commission_rate = 10.0
 
-    @api.depends('lead_ids.x_commission_amount', 'lead_ids.stage_id.x_is_referral_converted')
+    @api.depends('lead_ids.x_commission_amount', 'lead_ids.stage_id.is_won')
     def _compute_total_commission(self):
         for rec in self:
-            converted = rec.lead_ids.filtered(lambda l: l.stage_id.x_is_referral_converted)
+            converted = rec.lead_ids.filtered(lambda l: l.stage_id.is_won)
             rec.total_commission_earned = sum(converted.mapped('x_commission_amount'))
 
     def action_view_leads(self):

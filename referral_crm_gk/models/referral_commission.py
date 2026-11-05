@@ -195,6 +195,8 @@ class ReferralCommission(models.Model):
             if extra_recipients
             else self.env['res.partner'].browse()
         )
+        # Referral Admins never receive mail from this module
+        partners -= self.env['crm.lead']._get_referral_admin_partners()
         if not partners:
             _logger.warning(
                 'referral_crm_gk: no email recipients for template %s', template_xml_id
@@ -208,6 +210,8 @@ class ReferralCommission(models.Model):
                 'recipient_ids': [(4, p.id) for p in partners],
                 'email_to': '',
                 'auto_delete': False,
+                # Linked to the commission but kept out of its chatter
+                'message_type': 'user_notification',
             },
         )
 
