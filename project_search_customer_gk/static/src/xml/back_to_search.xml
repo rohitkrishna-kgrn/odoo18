@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Left of the breadcrumb (where "New" sits), only on an order opened
+         from Project > Search Existing Customer. -->
+    <t t-inherit="web.FormView" t-inherit-mode="extension">
+        <xpath expr="//Layout" position="inside">
+            <t t-set-slot="control-panel-always-buttons">
+                <button t-if="pscBackPartnerId" type="button"
+                        class="btn btn-secondary o_psc_back_to_search"
+                        title="Back to Search Existing Customer"
+                        t-on-click.stop="onPscBackToSearch">
+                    <i class="fa fa-arrow-left me-1"/>Back to Search
+                </button>
+            </t>
+        </xpath>
+    </t>
+
+</templates>

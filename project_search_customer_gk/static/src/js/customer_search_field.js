@@ -92,9 +92,15 @@ class ProjectCustomerOrdersField extends X2ManyField {
         }
         this.opening = true;
         try {
-            const result = await this.orm.call(WIZARD_MODEL, "action_open_order", [orderId], {
-                context: this.props.context,
-            });
+            // The picked customer, so the order form can offer "Back to Search".
+            const partner = this.props.record.data.partner_id;
+            const partnerId = Array.isArray(partner) ? partner[0] : partner?.id || false;
+            const result = await this.orm.call(
+                WIZARD_MODEL,
+                "action_open_order",
+                [orderId, partnerId],
+                { context: this.props.context }
+            );
             if (result.type) {
                 return await this.action.doAction(result);
             }

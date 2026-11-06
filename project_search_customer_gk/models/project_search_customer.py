@@ -90,7 +90,7 @@ class ProjectSearchCustomerWizard(models.TransientModel):
         self.result_count = len(lines)
 
     @api.model
-    def action_open_order(self, order_id):
+    def action_open_order(self, order_id, partner_id=False):
         """Row click: open the real sale.order form.
 
         Checked as the user, with the companies currently selected in the
@@ -98,7 +98,11 @@ class ProjectSearchCustomerWizard(models.TransientModel):
         the form will be able to load. Only if the form would be refused (in
         practice an order of a company not selected in the switcher) does this
         fall back to the read-only preview, so the click never ends in an
-        access error."""
+        access error.
+
+        `partner_id` is the customer picked in the search. It rides along in
+        the action context, so the order form shows a "Back to Search" button
+        that reopens this search with the same customer and results."""
         self._check_search_access()
         order = self.env['sale.order'].browse(int(order_id or 0))
         if not order.sudo().exists():
@@ -111,7 +115,7 @@ class ProjectSearchCustomerWizard(models.TransientModel):
                 'res_id': order.id,
                 'views': [(False, 'form')],
                 'target': 'current',
-                'context': {},
+                'context': {'psc_back_partner_id': int(partner_id)} if partner_id else {},
             }
         return {'preview_id': self.action_preview_order(order.id)}
 

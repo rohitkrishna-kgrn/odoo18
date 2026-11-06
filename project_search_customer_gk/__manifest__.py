@@ -1,6 +1,6 @@
 {
     'name': 'Project Search Customer',
-    'version': '18.0.1.0.4',
+    'version': '18.0.1.0.5',
     'summary': "Look up a customer from Project, list their Sale Orders and Service Engagements, and open any quotation read-only",
     'description': """
 Project > Search Existing Customer.
@@ -19,6 +19,9 @@ Copied from crm_search_customer_gk. Differences:
   sale.order.line, so the opened form shows every order line and its
   values even for a Sales "Own Documents Only" user looking at another
   salesperson's quotation. Editing stays limited to the Sales rights.
+* An order opened from the search shows a "Back to Search" button beside
+  the breadcrumb. It returns to the page the search was opened from and
+  reopens the search with the same customer and results.
 """,
     'category': 'Services/Project',
     'author': 'Gokul',
@@ -33,6 +36,8 @@ Copied from crm_search_customer_gk. Differences:
         'web.assets_backend': [
             'project_search_customer_gk/static/src/js/customer_search_field.js',
             'project_search_customer_gk/static/src/scss/customer_search.scss',
+            'project_search_customer_gk/static/src/js/back_to_search.js',
+            'project_search_customer_gk/static/src/xml/back_to_search.xml',
         ],
     },
     'installable': True,
