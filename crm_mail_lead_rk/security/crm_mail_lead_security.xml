@@ -13,10 +13,30 @@
         salesperson group rather than trying to stand completely alone.
     -->
     <record id="group_crm_mail_lead_user" model="res.groups">
-        <field name="name">Mail Leads</field>
+        <field name="name">User</field>
         <field name="category_id" ref="module_category_crm_mail_lead"/>
         <field name="implied_ids" eval="[(4, ref('sales_team.group_sale_salesman'))]"/>
         <field name="comment">Sees CRM &gt; Mail Leads and can assign incoming mail to a salesperson.</field>
+    </record>
+
+    <!--
+        Mail Leads Admin: everything a Mail Leads user can do, plus the
+        Sales-Manager-level rights on this module (configure the CRM mailboxes,
+        create/delete mail leads, delete assigned ones), plus an e-mail alert
+        for every new Mail Lead whose tag the admin has picked under
+        "Mail Lead Alert Tags" on their user record.
+
+        Implying the user group is a genuine hard minimum (an admin without
+        the Mail Leads menu makes no sense), and it turns the category into a
+        single dropdown on the user form: (blank) / User / Administrator.
+        It deliberately does NOT imply Sales Manager - that would hand over
+        all of CRM, not just Mail Leads.
+    -->
+    <record id="group_crm_mail_lead_admin" model="res.groups">
+        <field name="name">Administrator</field>
+        <field name="category_id" ref="module_category_crm_mail_lead"/>
+        <field name="implied_ids" eval="[(4, ref('group_crm_mail_lead_user'))]"/>
+        <field name="comment">Full Mail Leads access including mailbox configuration, and an e-mail for every new Mail Lead on the tags picked in "Mail Lead Alert Tags".</field>
     </record>
 
     <!--

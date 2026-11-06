@@ -2,11 +2,17 @@
 """One incoming mail, waiting to be handed to a salesperson."""
 import base64
 import logging
+from datetime import timedelta
 
-from odoo import _, api, fields, models
+from odoo import _, api, fields, models, tools
 from odoo.exceptions import UserError
+from odoo.osv import expression
 
 _logger = logging.getLogger(__name__)
+
+# New-lead alerts only go out for mail received within this window, so the
+# 'Fetch Mails' backlog walk (which imports months-old history) stays silent.
+NOTIFY_MAX_AGE = timedelta(days=3)
 
 
 class CrmMailLead(models.Model):
@@ -58,6 +64,16 @@ class CrmMailLead(models.Model):
     body = fields.Html(string='Message', readonly=True, sanitize_style=True)
     message_id = fields.Char(string='Message-Id', readonly=True, index=True)
 
+    keyword_match = fields.Boolean(
+        string='Keyword Match', default=True, readonly=True, index=True,
+        help="Set when the subject or message contains one of the mailbox's "
+             "Keywords. Unmatched mail is still imported but is hidden from "
+             "the default Mail Leads list and sends no admin alert. Mail "
+             "imported before keywords existed counts as matched.")
+    matched_keyword = fields.Char(
+        string='Matched Keyword', readonly=True,
+        help="The mailbox keyword found in this mail.")
+
     state = fields.Selection(
         [('new', 'New'), ('assigned', 'Assigned')],
         string='Status', default='new', required=True, readonly=True, index=True)
@@ -83,6 +99,45 @@ class CrmMailLead(models.Model):
         ('message_uniq', 'unique(server_id, message_id)',
          'This mail has already been imported for this mailbox.'),
     ]
+
+    # ------------------------------------------------------------------
+    # Unmatched mail is hidden from the list unless asked for
+    # ------------------------------------------------------------------
+    @api.model
+    def _hide_unmatched_domain(self, domain):
+        """Add ``keyword_match = True`` unless the domain already filters on
+        ``keyword_match`` (the 'Not Matched' filter) - the same idea as
+        Odoo's ``active`` field, but limited to what the list view loads, so
+        the fetch dedup, the Assign wizard and counts still see every mail.
+        """
+        if self.env.context.get('crm_mail_lead_show_unmatched'):
+            return domain
+
+        def mentions(node):
+            if isinstance(node, (list, tuple)):
+                if len(node) == 3 and isinstance(node[0], str) \
+                        and node[0].split('.')[0] == 'keyword_match':
+                    return True
+                return any(mentions(child) for child in node)
+            return False
+
+        if mentions(domain or []):
+            return domain
+        return expression.AND([domain or [], [('keyword_match', '=', True)]])
+
+    @api.model
+    def web_search_read(self, domain, specification, offset=0, limit=None,
+                        order=None, count_limit=None):
+        return super().web_search_read(
+            self._hide_unmatched_domain(domain), specification, offset=offset,
+            limit=limit, order=order, count_limit=count_limit)
+
+    @api.model
+    def web_read_group(self, domain, fields, groupby, limit=None, offset=0,
+                       orderby=False, lazy=True):
+        return super().web_read_group(
+            self._hide_unmatched_domain(domain), fields, groupby, limit=limit,
+            offset=offset, orderby=orderby, lazy=lazy)
 
     @api.depends('attachment_ids')
     def _compute_attachment_count(self):
@@ -228,8 +283,81 @@ class CrmMailLead(models.Model):
 
     def unlink(self):
         assigned = self.filtered(lambda record: record.state == 'assigned')
-        if assigned and not self.env.user.has_group('sales_team.group_sale_manager'):
+        if assigned and not (
+                self.env.user.has_group('sales_team.group_sale_manager')
+                or self.env.user.has_group('crm_mail_lead_rk.group_crm_mail_lead_admin')):
             raise UserError(_(
                 "Assigned mail leads keep the audit trail to the pipeline record "
-                "and can only be deleted by a Sales Manager."))
+                "and can only be deleted by a Sales Manager or a Mail Leads "
+                "Administrator."))
         return super().unlink()
+
+    # ------------------------------------------------------------------
+    # New-lead alert to Mail Leads Administrators
+    # ------------------------------------------------------------------
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records._notify_mail_lead_admins()
+        return records
+
+    def _notify_mail_lead_admins(self):
+        """E-mail every Mail Leads Administrator who picked this lead's tag.
+
+        Only mail that is genuinely new is announced: anything received more
+        than NOTIFY_MAX_AGE ago (the 'Fetch Mails' backlog walk importing old
+        history) is skipped, so a backlog import can never send a flood of
+        alerts. A failure here is logged and swallowed - an alert must never
+        stop a mail from being imported.
+        """
+        admin_group = self.env.ref(
+            'crm_mail_lead_rk.group_crm_mail_lead_admin', raise_if_not_found=False)
+        template = self.env.ref(
+            'crm_mail_lead_rk.mail_template_new_mail_lead', raise_if_not_found=False)
+        if not admin_group or not template:
+            return
+        admins = admin_group.sudo().users.filtered(
+            lambda user: user.active and user.email
+            and user.crm_mail_lead_notify_tag_ids)
+        if not admins:
+            return
+        oldest = fields.Datetime.now() - NOTIFY_MAX_AGE
+        for record in self:
+            if not record.tag_id or not record.keyword_match:
+                continue
+            if record.date_received and record.date_received < oldest:
+                continue
+            recipients = admins.filtered(
+                lambda user: record.tag_id in user.crm_mail_lead_notify_tag_ids)
+            if not recipients:
+                continue
+            try:
+                # Queued as an outgoing e-mail only (Settings > Technical >
+                # Email > Emails), sent by the standard mail queue cron - no
+                # chatter post, no Discuss notification. auto_delete is forced
+                # off so every alert stays listed there with its Sent /
+                # Exception status, whatever the template says.
+                template.sudo().send_mail(
+                    record.id,
+                    email_values={
+                        'recipient_ids': [
+                            fields.Command.set(recipients.partner_id.ids)],
+                        'auto_delete': False,
+                    },
+                )
+            except Exception:  # noqa: BLE001 - never block the import
+                _logger.warning(
+                    "Mail Lead %s: could not queue the admin alert.",
+                    record.id, exc_info=True)
+
+    def _get_alert_snippet(self, limit=600):
+        """First few hundred characters of the mail, as plain text."""
+        self.ensure_one()
+        text = tools.html2plaintext(self.body or '').strip()
+        return text if len(text) <= limit else text[:limit].rstrip() + '...'
+
+    def _get_alert_url(self):
+        """Deep link to this Mail Lead for the alert e-mail."""
+        self.ensure_one()
+        return '%s/odoo/action-crm_mail_lead_rk.crm_mail_lead_action/%s' % (
+            self.get_base_url(), self.id)

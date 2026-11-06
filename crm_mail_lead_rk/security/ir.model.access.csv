@@ -4,3 +4,5 @@ access_crm_mail_lead_manager,crm.mail.lead.manager,model_crm_mail_lead,sales_tea
 access_crm_mail_server_user,crm.mail.server.readonly,model_crm_mail_server,group_crm_mail_lead_user,1,0,0,0
 access_crm_mail_server_manager,crm.mail.server.manager,model_crm_mail_server,sales_team.group_sale_manager,1,1,1,1
 access_crm_mail_lead_assign_wizard,crm.mail.lead.assign.wizard,model_crm_mail_lead_assign_wizard,group_crm_mail_lead_user,1,1,1,1
+access_crm_mail_lead_admin,crm.mail.lead.admin,model_crm_mail_lead,group_crm_mail_lead_admin,1,1,1,1
+access_crm_mail_server_admin,crm.mail.server.admin,model_crm_mail_server,group_crm_mail_lead_admin,1,1,1,1

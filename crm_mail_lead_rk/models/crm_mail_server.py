@@ -62,6 +62,43 @@ FETCH_MAILS_SYNC_BATCH = 40
 FETCH_LOCK_NS = 0x43524D4C  # 'CRML'
 
 
+# ---------------------------------------------------------------------------
+# Keyword relevance check
+# ---------------------------------------------------------------------------
+KEYWORD_SPLIT_RE = re.compile(r'[,;\n]+')
+KEYWORD_TOKEN_RE = re.compile(r'[^\W_]+')
+# Separators tolerated between the parts of a keyword, so "e-invoice" also
+# matches "e invoice", "einvoice", "E.Invoice", "e_invoice".
+KEYWORD_SEPARATOR = r'[\s\-_./]*'
+# Keywords this short ("DM") must match a whole word, or they would hit the
+# middle of everyday words ("aDMin"). Longer ones match the start of a word,
+# so "invoice" also catches "invoices".
+SHORT_KEYWORD_LEN = 3
+
+
+def split_keywords(keywords):
+    """The comma / semicolon / newline separated list, cleaned up."""
+    return [k.strip() for k in KEYWORD_SPLIT_RE.split(keywords or '') if k.strip()]
+
+
+def match_keyword(text, keywords):
+    """First keyword (as typed) found in ``text``, or ``None``.
+
+    Case-insensitive; matches at the start of a word; the parts of a keyword
+    may be joined by a space, hyphen, dot, underscore, slash or nothing.
+    """
+    for keyword in split_keywords(keywords):
+        tokens = KEYWORD_TOKEN_RE.findall(keyword)
+        if not tokens:
+            continue
+        pattern = r'(?<![^\W_])' + KEYWORD_SEPARATOR.join(map(re.escape, tokens))
+        if len(''.join(tokens)) <= SHORT_KEYWORD_LEN:
+            pattern += r'(?![^\W_])'
+        if re.search(pattern, text or '', re.IGNORECASE):
+            return keyword
+    return None
+
+
 class CrmMailServer(models.Model):
     _name = 'crm.mail.server'
     _description = 'CRM Incoming Mail Server'
@@ -81,6 +118,19 @@ class CrmMailServer(models.Model):
         help="Tag stamped on every mail pulled from this inbox, so you can tell "
              "at a glance which mailbox a Mail Lead came from. It is also copied "
              "onto the CRM pipeline record created on assignment.")
+    keywords = fields.Text(
+        string='Keywords',
+        help="Words that make a mail relevant to this mailbox, separated by "
+             "commas or new lines, e.g. \"e-invoice, e-invoicing\". Every "
+             "mail is still imported, but only mail whose subject or message "
+             "contains one of these words shows in Mail Leads by default and "
+             "triggers the admin alert; the rest is kept under the 'Not "
+             "Matched' filter. Not case-sensitive; a keyword matches the start "
+             "of a word (\"invoice\" also finds \"invoices\"), and its parts "
+             "may be written joined, spaced or hyphenated (\"e-invoice\" also "
+             "finds \"einvoice\" and \"e invoice\"). Keywords of 3 letters or "
+             "fewer must match a whole word. Leave empty to treat every mail "
+             "as relevant.")
 
     # ------------------------------------------------------------------
     # Connection
@@ -172,6 +222,12 @@ class CrmMailServer(models.Model):
             [('server_id', 'in', self.ids)], ['server_id'], ['__count']))
         for server in self:
             server.mail_lead_count = counts.get(server, 0)
+
+    @api.onchange('tag_id')
+    def _onchange_tag_id_keywords(self):
+        """Start the keyword list from the tag's own name."""
+        if self.tag_id and not self.keywords:
+            self.keywords = self.tag_id.name
 
     @api.onchange('is_ssl')
     def _onchange_is_ssl(self):
@@ -752,6 +808,15 @@ Two passes, and the first one always runs:
         return sender_resolution.build_internal_directory(
             self.env, extra_addresses=[self.user] if self.user else [])
 
+    def _keyword_match_values(self, subject, body):
+        """``keyword_match`` / ``matched_keyword`` for one mail."""
+        self.ensure_one()
+        if not split_keywords(self.keywords):
+            return {'keyword_match': True, 'matched_keyword': False}
+        text = '%s\n%s' % (subject or '', tools.html2plaintext(body or ''))
+        keyword = match_keyword(text, self.keywords)
+        return {'keyword_match': bool(keyword), 'matched_keyword': keyword or False}
+
     def _prepare_mail_lead_values(self, raw_message, cutoff=None, internal=None):
         """Turn one raw RFC-2822 mail into ``crm.mail.lead`` values.
 
@@ -819,6 +884,7 @@ Two passes, and the first one always runs:
             'date_received': date_received,
             'body': body or False,
         }
+        values.update(self._keyword_match_values(subject, body))
         if self.keep_attachments:
             values['__attachments__'] = parsed.get('attachments') or []
         return values

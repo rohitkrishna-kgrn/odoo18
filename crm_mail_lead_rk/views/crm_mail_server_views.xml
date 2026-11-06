@@ -52,6 +52,8 @@
                     <group>
                         <group string="Routing">
                             <field name="tag_id" options="{'no_quick_create': True}"/>
+                            <field name="keywords"
+                                   placeholder="e.g. e-invoice, e-invoicing (empty = every mail is relevant)"/>
                             <field name="company_id" groups="base.group_multi_company"
                                    options="{'no_create': True}"/>
                             <field name="active" invisible="1"/>

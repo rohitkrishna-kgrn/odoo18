@@ -1,6 +1,6 @@
 {
     'name': 'CRM Mail Leads RK',
-    'version': '18.0.1.10',
+    'version': '18.0.1.14',
     'author': 'Rohit',
     'category': 'Sales/CRM',
     'summary': 'Pull mail from dedicated Gmail inboxes into CRM Mail Leads '
@@ -30,7 +30,28 @@ Odoo's standard *Settings > Technical > Incoming Mail Servers* (fetchmail):
   mailbox is caught up. Once history is in, the button is simply an
   **immediate** version of the 2-minute pass: press it and anything that has
   just landed is in the list at once, instead of waiting for the next beat.
-* A dedicated access group, *CRM / Mail Leads*, gates that menu.
+* **Keywords per mailbox.** Each CRM mailbox has a *Keywords* list (started
+  from its Mail Lead Tag, e.g. "e-invoice, e-invoicing" for Einvoicing).
+  Every mail is still imported, but only mail whose subject or message
+  contains one of the words is shown in Mail Leads and sends the admin alert;
+  the rest stays hidden (no filter needed) until the *Not Matched* filter is
+  picked. Matching ignores
+  case, matches the start of a word, and accepts the parts of a keyword
+  joined, spaced or hyphenated ("e-invoice" = "einvoice" = "e invoice").
+  Empty Keywords = every mail counts as relevant.
+* Access is one dropdown on the user form, *CRM Mail Leads*:
+
+  - **User** - sees CRM > Mail Leads and assigns mail to salespeople.
+  - **Administrator** - everything a User can do, plus mailbox
+    configuration (CRM > Configuration > Incoming Mail Servers (CRM)),
+    create/delete Mail Leads (including assigned ones), **and an e-mail
+    alert for every new Mail Lead** whose tag the admin picked under
+    *Mail Lead Alert Tags* (user form > Access Rights, or My Preferences).
+    Only mail received in the last 3 days is announced, so the Fetch Mails
+    backlog walk never sends a flood of alerts. The wording is the e-mail
+    template *CRM Mail Leads: New Mail Lead alert*. Alerts go out only as
+    outgoing e-mails (Settings > Technical > Email > Emails) and stay listed
+    there after sending.
 * **Internal staff are never shown as the lead.** When a colleague forwards a
   client enquiry into one of the inboxes, the ``From`` header names the
   colleague, not the client. Mail from an internal address is therefore read
@@ -55,10 +76,12 @@ Odoo's standard *Settings > Technical > Incoming Mail Servers* (fetchmail):
         'data/crm_tag_data.xml',
         'data/ir_cron_data.xml',
         'data/ir_config_parameter_data.xml',
+        'data/mail_template_data.xml',
         'views/crm_mail_server_views.xml',
         'views/crm_mail_lead_views.xml',
         'wizard/crm_mail_lead_assign_wizard_views.xml',
         'views/crm_mail_lead_menus.xml',
+        'views/res_users_views.xml',
     ],
     'installable': True,
     'application': False,

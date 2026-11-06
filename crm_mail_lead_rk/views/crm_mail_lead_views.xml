@@ -23,6 +23,7 @@
                 <field name="email_from" string="From (Client)"/>
                 <field name="contact_name" optional="show"/>
                 <field name="forwarded_by" string="Forwarded By" optional="hide"/>
+                <field name="matched_keyword" optional="hide"/>
                 <field name="server_id" optional="hide"/>
                 <field name="attachment_count" string="Files" optional="hide"/>
                 <field name="user_id" string="Assigned To" optional="show" widget="many2one_avatar_user"/>
@@ -72,6 +73,8 @@
                             <field name="tag_id" widget="badge"/>
                             <field name="server_id"/>
                             <field name="date_received"/>
+                            <field name="keyword_match"/>
+                            <field name="matched_keyword" invisible="not matched_keyword"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                         <group>
@@ -131,6 +134,9 @@
                 <field name="user_id"/>
                 <filter name="filter_new" string="To Assign" domain="[('state', '=', 'new')]"/>
                 <filter name="filter_assigned" string="Assigned" domain="[('state', '=', 'assigned')]"/>
+                <separator/>
+                <filter name="filter_not_matched" string="Not Matched"
+                        domain="[('keyword_match', '=', False)]"/>
                 <separator/>
                 <filter name="filter_mine" string="Assigned to Me"
                         domain="[('user_id', '=', uid)]"/>

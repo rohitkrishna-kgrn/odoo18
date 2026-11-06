@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Settings > Users: pick the tags an admin wants e-mail alerts for. -->
+    <record id="view_users_form_crm_mail_lead_alerts" model="ir.ui.view">
+        <field name="name">res.users.form.crm.mail.lead.alerts</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='access_rights']" position="inside">
+                <group string="CRM Mail Leads Alerts" name="crm_mail_lead_alerts">
+                    <field name="crm_mail_lead_notify_tag_ids" widget="many2many_tags"
+                           options="{'no_create': True}"
+                           placeholder="Tags to be e-mailed about (Mail Leads Administrators only)"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- My Preferences: an admin can change their own alert tags. -->
+    <record id="view_users_form_simple_modif_crm_mail_lead_alerts" model="ir.ui.view">
+        <field name="name">res.users.preferences.form.crm.mail.lead.alerts</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form_simple_modif"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='preferences_page']" position="inside">
+                <field name="is_crm_mail_lead_admin" invisible="1"/>
+                <group string="CRM Mail Leads Alerts" name="crm_mail_lead_alerts"
+                       invisible="not is_crm_mail_lead_admin">
+                    <field name="crm_mail_lead_notify_tag_ids" widget="many2many_tags"
+                           options="{'no_create': True}"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Alert sent to Mail Leads Administrators for every new Mail Lead on a
+        tag they picked (res.users.crm_mail_lead_notify_tag_ids). noupdate so
+        the wording can be edited in Settings > Technical > Email Templates
+        without an upgrade undoing it.
+    -->
+    <data noupdate="1">
+        <record id="mail_template_new_mail_lead" model="mail.template">
+            <field name="name">CRM Mail Leads: New Mail Lead alert</field>
+            <field name="model_id" ref="model_crm_mail_lead"/>
+            <field name="subject">New Mail Lead [{{ object.tag_id.name or '' }}]: {{ object.name }}</field>
+            <field name="email_from">{{ object.company_id.email_formatted or user.email_formatted }}</field>
+            <field name="auto_delete" eval="False"/>
+            <field name="body_html" type="html">
+<div style="font-family: Arial, sans-serif; font-size: 14px; color: #222;">
+    <p>A new mail has arrived in the <b t-out="object.tag_id.name or ''">DM</b> mailbox and is waiting in <b>CRM &gt; Mail Leads</b>.</p>
+    <table cellpadding="4" style="border-collapse: collapse; margin: 12px 0;">
+        <tr><td style="color:#666;">Subject</td><td><b t-out="object.name or ''">Subject</b></td></tr>
+        <tr><td style="color:#666;">From (Client)</td><td t-out="object.email_from or 'Not identified'">client@example.com</td></tr>
+        <tr t-if="object.contact_name"><td style="color:#666;">Contact Name</td><td t-out="object.contact_name">Name</td></tr>
+        <tr t-if="object.forwarded_by"><td style="color:#666;">Forwarded By</td><td t-out="object.forwarded_by">colleague@kgrnaudit.com</td></tr>
+        <tr><td style="color:#666;">Tag</td><td t-out="object.tag_id.name or ''">DM</td></tr>
+        <tr><td style="color:#666;">Mailbox</td><td t-out="object.server_id.name or ''">Mailbox</td></tr>
+        <tr><td style="color:#666;">Received On</td><td t-out="format_datetime(object.date_received, tz=user.tz)">Date</td></tr>
+        <tr t-if="object.attachment_count"><td style="color:#666;">Attachments</td><td t-out="object.attachment_count">0</td></tr>
+    </table>
+    <p style="white-space: pre-wrap; color:#444; border-left: 3px solid #ddd; padding-left: 8px;" t-out="object._get_alert_snippet()">Message preview</p>
+    <p style="margin: 20px 0;">
+        <a t-att-href="object._get_alert_url()" style="background-color:#714B67; color:#fff; padding:8px 16px; text-decoration:none; border-radius:4px;">Open Mail Lead</a>
+    </p>
+    <p style="color:#888; font-size: 12px;">You receive this because you are a Mail Leads Administrator and picked this tag under "Mail Lead Alert Tags" on your user.</p>
+</div>
+            </field>
+        </record>
+    </data>
+</odoo>
