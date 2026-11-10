@@ -302,7 +302,7 @@ class CrmMailLead(models.Model):
         return records
 
     def _notify_mail_lead_admins(self):
-        """E-mail every Mail Leads Administrator who picked this lead's tag.
+        """E-mail every Mail Leads Administrator about every new Mail Lead.
 
         Only mail that is genuinely new is announced: anything received more
         than NOTIFY_MAX_AGE ago (the 'Fetch Mails' backlog walk importing old
@@ -316,20 +316,16 @@ class CrmMailLead(models.Model):
             'crm_mail_lead_rk.mail_template_new_mail_lead', raise_if_not_found=False)
         if not admin_group or not template:
             return
-        admins = admin_group.sudo().users.filtered(
-            lambda user: user.active and user.email
-            and user.crm_mail_lead_notify_tag_ids)
-        if not admins:
+        recipients = admin_group.sudo().users.filtered(
+            lambda user: user.active and user.email)
+        if not recipients:
             return
         oldest = fields.Datetime.now() - NOTIFY_MAX_AGE
         for record in self:
-            if not record.tag_id or not record.keyword_match:
+            # Mail hidden by the mailbox keyword filter is not announced.
+            if not record.keyword_match:
                 continue
             if record.date_received and record.date_received < oldest:
-                continue
-            recipients = admins.filtered(
-                lambda user: record.tag_id in user.crm_mail_lead_notify_tag_ids)
-            if not recipients:
                 continue
             try:
                 # Queued as an outgoing e-mail only (Settings > Technical >

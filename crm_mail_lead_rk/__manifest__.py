@@ -1,6 +1,6 @@
 {
     'name': 'CRM Mail Leads RK',
-    'version': '18.0.1.14',
+    'version': '18.0.1.15',
     'author': 'Rohit',
     'category': 'Sales/CRM',
     'summary': 'Pull mail from dedicated Gmail inboxes into CRM Mail Leads '
@@ -44,10 +44,9 @@ Odoo's standard *Settings > Technical > Incoming Mail Servers* (fetchmail):
   - **User** - sees CRM > Mail Leads and assigns mail to salespeople.
   - **Administrator** - everything a User can do, plus mailbox
     configuration (CRM > Configuration > Incoming Mail Servers (CRM)),
-    create/delete Mail Leads (including assigned ones), **and an e-mail
-    alert for every new Mail Lead** whose tag the admin picked under
-    *Mail Lead Alert Tags* (user form > Access Rights, or My Preferences).
-    Only mail received in the last 3 days is announced, so the Fetch Mails
+    create/delete Mail Leads (including assigned ones), **and an automatic
+    e-mail alert for every new Mail Lead**, from every mailbox (nothing to
+    configure per user). Only mail received in the last 3 days is announced, so the Fetch Mails
     backlog walk never sends a flood of alerts. The wording is the e-mail
     template *CRM Mail Leads: New Mail Lead alert*. Alerts go out only as
     outgoing e-mails (Settings > Technical > Email > Emails) and stay listed
@@ -81,7 +80,6 @@ Odoo's standard *Settings > Technical > Incoming Mail Servers* (fetchmail):
         'views/crm_mail_lead_views.xml',
         'wizard/crm_mail_lead_assign_wizard_views.xml',
         'views/crm_mail_lead_menus.xml',
-        'views/res_users_views.xml',
     ],
     'installable': True,
     'application': False,

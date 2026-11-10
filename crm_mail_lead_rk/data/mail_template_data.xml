@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!--
-        Alert sent to Mail Leads Administrators for every new Mail Lead on a
-        tag they picked (res.users.crm_mail_lead_notify_tag_ids). noupdate so
+        Alert sent automatically to every Mail Leads Administrator for every
+        new Mail Lead. noupdate so
         the wording can be edited in Settings > Technical > Email Templates
         without an upgrade undoing it.
     -->
@@ -30,7 +30,7 @@
     <p style="margin: 20px 0;">
         <a t-att-href="object._get_alert_url()" style="background-color:#714B67; color:#fff; padding:8px 16px; text-decoration:none; border-radius:4px;">Open Mail Lead</a>
     </p>
-    <p style="color:#888; font-size: 12px;">You receive this because you are a Mail Leads Administrator and picked this tag under "Mail Lead Alert Tags" on your user.</p>
+    <p style="color:#888; font-size: 12px;">You receive this because you are a Mail Leads Administrator.</p>
 </div>
             </field>
         </record>
