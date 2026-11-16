@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Applied after sale_order_approval's and aml_automation_extended_rk's
+         form extensions (priority 99), so the buttons they add exist here.
+
+         While the quotation is To Approve:
+           * Send AML Form - AML team only, until a request exists.
+           * AML Bypass    - AML team or Quotation Approver, until AML/KYC is Completed.
+           * Approve       - Quotation Approver, only once AML/KYC is Completed,
+                             never on a cancelled quotation.
+         Orders approved before this module keep the old post-approval
+         Send AML Form / AML Bypass buttons so their AML step can finish. -->
+    <record id="view_order_form_aml_first_approval" model="ir.ui.view">
+        <field name="name">sale.order.form.aml.first.approval</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <!-- A cancelled quotation shows "Cancelled" instead of its approval step. -->
+            <xpath expr="//header/field[@name='approval_state']" position="attributes">
+                <attribute name="invisible">state == 'cancel'</attribute>
+            </xpath>
+            <xpath expr="//header/field[@name='approval_state']" position="after">
+                <field name="approval_status_display" widget="statusbar"
+                       statusbar_visible="draft,to_approve,approved"
+                       invisible="state != 'cancel'"/>
+            </xpath>
+            <xpath expr="//field[@name='aml_bypass_allowed']" position="after">
+                <field name="aml_is_aml_team" invisible="1"/>
+                <field name="aml_can_send_form" invisible="1"/>
+            </xpath>
+            <xpath expr="//button[@name='action_approve_order']" position="attributes">
+                <attribute name="invisible">state == 'cancel' or not is_user_approver or approval_state != 'to_approve' or not aml_gate_completed</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_send_aml_form']" position="attributes">
+                <attribute name="invisible">state == 'cancel' or approval_state not in ('to_approve', 'approved') or not aml_can_send_form or not aml_action_allowed or (approval_state == 'to_approve' and not aml_is_aml_team)</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_open_aml_bypass_wizard']" position="attributes">
+                <attribute name="invisible">state == 'cancel' or approval_state not in ('to_approve', 'approved') or aml_gate_completed or not aml_action_allowed or not aml_bypass_allowed</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

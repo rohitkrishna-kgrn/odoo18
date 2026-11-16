@@ -31,40 +31,47 @@ class SaleOrder(models.Model):
             if not order.company_id.approver_user_id:
                 raise UserError(_("No approver set in the company."))
             order.approval_state = 'to_approve'
+            order._notify_approval_submitted()
 
-            order.activity_schedule(
-                'mail.mail_activity_data_todo',
-                user_id=order.company_id.approver_user_id.id,
-                note=_("Quotation %s needs your approval.") % order.name,
-                summary=_("Approval Request")
-            )
-            approver = order.company_id.approver_user_id.sudo()
-            if approver.email:
-                mail_values = {
-                    'subject': _("Approval Required: Quotation %s") % order.name,
-                    'body_html': """
-                        <p>Dear {approver_name},</p>
-                        <p>The quotation <strong>{order_name}</strong> has been submitted for your approval.</p>
-                        <p><strong>Customer:</strong> {customer_name}<br/>
-                           <strong>Amount Total:</strong> {amount} {currency}<br/>
-                           <strong>Submitted By:</strong> {user}</p>
-                        <p>You can review it in the system.</p>
-                        <p>Thank you.</p>
-                    """.format(
-                        approver_name=approver.name,
-                        order_name=order.name,
-                        customer_name=order.partner_id.name,
-                        amount=order.amount_total,
-                        currency=order.currency_id.name,
-                        user=self.env.user.name
-                    ),
-                    'email_to': approver.email,
-                    'author_id': self.env.user.partner_id.id,
-                    'model': 'sale.order',
-                    'res_id': order.id,
-                }
+    def _notify_approval_submitted(self):
+        """Tell the company's Quotation Approver that this quotation is
+        waiting on them: a To-Do activity plus an email. Kept as its own
+        method so other modules can re-route the notification (see
+        quotation_aml_approval_gk, which sends it to the AML Managers first)."""
+        self.ensure_one()
+        self.activity_schedule(
+            'mail.mail_activity_data_todo',
+            user_id=self.company_id.approver_user_id.id,
+            note=_("Quotation %s needs your approval.") % self.name,
+            summary=_("Approval Request")
+        )
+        approver = self.company_id.approver_user_id.sudo()
+        if approver.email:
+            mail_values = {
+                'subject': _("Approval Required: Quotation %s") % self.name,
+                'body_html': """
+                    <p>Dear {approver_name},</p>
+                    <p>The quotation <strong>{order_name}</strong> has been submitted for your approval.</p>
+                    <p><strong>Customer:</strong> {customer_name}<br/>
+                       <strong>Amount Total:</strong> {amount} {currency}<br/>
+                       <strong>Submitted By:</strong> {user}</p>
+                    <p>You can review it in the system.</p>
+                    <p>Thank you.</p>
+                """.format(
+                    approver_name=approver.name,
+                    order_name=self.name,
+                    customer_name=self.partner_id.name,
+                    amount=self.amount_total,
+                    currency=self.currency_id.name,
+                    user=self.env.user.name
+                ),
+                'email_to': approver.email,
+                'author_id': self.env.user.partner_id.id,
+                'model': 'sale.order',
+                'res_id': self.id,
+            }
 
-                self.env['mail.mail'].sudo().create(mail_values).send()
+            self.env['mail.mail'].sudo().create(mail_values).send()
 
     def action_confirm(self):
         self.ensure_one()
