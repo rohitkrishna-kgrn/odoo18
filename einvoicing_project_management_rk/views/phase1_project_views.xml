@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_phase1_project_list" model="ir.ui.view">
+        <field name="name">einvoicing.phase1.project.list</field>
+        <field name="model">einvoicing.phase1.project</field>
+        <field name="arch" type="xml">
+            <!-- Edited in place like a sheet; the row's expand icon still
+                 opens the form for the chatter. -->
+            <list string="Phase 1 Projects" editable="bottom" open_form_view="True">
+                <field name="s_no" readonly="1"/>
+                <field name="name"/>
+                <field name="peppol_id"/>
+                <field name="sale_order_id" options="{'no_create': True, 'no_open': True}"/>
+                <field name="partner_id" optional="hide"/>
+                <field name="user_id" optional="hide" widget="many2one_avatar_user" readonly="1"/>
+                <field name="subscription_start_date"/>
+                <field name="renewal_date"
+                       decoration-danger="renewal_date and renewal_date &lt; current_date"/>
+                <field name="gap_assessment"
+                       decoration-info="gap_assessment == 'new'"
+                       decoration-warning="gap_assessment in ('in_progress', 'on_hold')"
+                       decoration-success="gap_assessment == 'done'"
+                       decoration-danger="gap_assessment == 'cancelled'"/>
+                <field name="uat_onboarding"
+                       decoration-success="uat_onboarding == 'yes'"/>
+                <field name="emaratax_onboarding"
+                       decoration-success="emaratax_onboarding == 'active'"
+                       decoration-warning="emaratax_onboarding == 'suspended'"
+                       decoration-danger="emaratax_onboarding == 'delinked'"/>
+                <field name="live_middleware"
+                       decoration-success="live_middleware == 'yes'"/>
+                <field name="remarks"/>
+                <field name="company_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_phase1_project_form" model="ir.ui.view">
+        <field name="name">einvoicing.phase1.project.form</field>
+        <field name="model">einvoicing.phase1.project</field>
+        <field name="arch" type="xml">
+            <form string="Phase 1 Project">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Emaratax legal name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="s_no"/>
+                            <field name="peppol_id"/>
+                            <field name="sale_order_id" options="{'no_create': True}"/>
+                            <field name="partner_id"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="subscription_start_date"/>
+                            <field name="renewal_date"/>
+                        </group>
+                        <group>
+                            <field name="gap_assessment"/>
+                            <field name="uat_onboarding"/>
+                            <field name="emaratax_onboarding"/>
+                            <field name="live_middleware"/>
+                            <field name="company_id" invisible="True"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="remarks"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_phase1_project_search" model="ir.ui.view">
+        <field name="name">einvoicing.phase1.project.search</field>
+        <field name="model">einvoicing.phase1.project</field>
+        <field name="arch" type="xml">
+            <search string="Phase 1 Projects">
+                <field name="name"/>
+                <field name="peppol_id"/>
+                <field name="sale_order_id"/>
+                <field name="partner_id"/>
+                <field name="remarks"/>
+                <field name="user_id"/>
+                <filter string="Renewal Overdue" name="renewal_overdue"
+                        domain="[('renewal_date', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="Renewal in 30 Days" name="renewal_30"
+                        domain="[('renewal_date', '&gt;=', context_today().strftime('%Y-%m-%d')), ('renewal_date', '&lt;=', (context_today() + relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter string="GA New" name="ga_new" domain="[('gap_assessment', '=', 'new')]"/>
+                <filter string="GA In Progress" name="ga_in_progress" domain="[('gap_assessment', '=', 'in_progress')]"/>
+                <filter string="GA On Hold" name="ga_on_hold" domain="[('gap_assessment', '=', 'on_hold')]"/>
+                <filter string="GA Done" name="ga_done" domain="[('gap_assessment', '=', 'done')]"/>
+                <filter string="GA Cancelled" name="ga_cancelled" domain="[('gap_assessment', '=', 'cancelled')]"/>
+                <separator/>
+                <filter string="UAT Onboarded" name="uat_yes" domain="[('uat_onboarding', '=', 'yes')]"/>
+                <filter string="Not UAT Onboarded" name="uat_no" domain="[('uat_onboarding', '=', 'no')]"/>
+                <separator/>
+                <filter string="Emaratax Active" name="emaratax_active" domain="[('emaratax_onboarding', '=', 'active')]"/>
+                <filter string="Emaratax Suspended" name="emaratax_suspended" domain="[('emaratax_onboarding', '=', 'suspended')]"/>
+                <filter string="Emaratax Delinked" name="emaratax_delinked" domain="[('emaratax_onboarding', '=', 'delinked')]"/>
+                <separator/>
+                <filter string="LIVE Middleware" name="live_yes" domain="[('live_middleware', '=', 'yes')]"/>
+                <filter string="Not on LIVE Middleware" name="live_no" domain="[('live_middleware', '=', 'no')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="SE Number" name="group_se" context="{'group_by': 'sale_order_id'}"/>
+                    <filter string="Customer" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Salesperson" name="group_user" context="{'group_by': 'user_id'}"/>
+                    <filter string="Renewal Month" name="group_renewal" context="{'group_by': 'renewal_date:month'}"/>
+                    <filter string="Gap Assessment" name="group_ga" context="{'group_by': 'gap_assessment'}"/>
+                    <filter string="UAT Onboarding" name="group_uat" context="{'group_by': 'uat_onboarding'}"/>
+                    <filter string="Emaratax Onboarding" name="group_emaratax" context="{'group_by': 'emaratax_onboarding'}"/>
+                    <filter string="LIVE Middleware" name="group_live" context="{'group_by': 'live_middleware'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Graph and pivot, offered as extra views on Phase 1 Projects. -->
+    <record id="view_phase1_project_graph" model="ir.ui.view">
+        <field name="name">einvoicing.phase1.project.graph</field>
+        <field name="model">einvoicing.phase1.project</field>
+        <field name="arch" type="xml">
+            <graph string="Phase 1 Projects" type="bar" stacked="1">
+                <field name="gap_assessment"/>
+                <field name="emaratax_onboarding"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_phase1_project_pivot" model="ir.ui.view">
+        <field name="name">einvoicing.phase1.project.pivot</field>
+        <field name="model">einvoicing.phase1.project</field>
+        <field name="arch" type="xml">
+            <pivot string="Phase 1 Projects">
+                <field name="gap_assessment" type="row"/>
+                <field name="uat_onboarding" type="col"/>
+                <field name="live_middleware" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_phase1_project" model="ir.actions.act_window">
+        <field name="name">Phase 1 Projects</field>
+        <field name="res_model">einvoicing.phase1.project</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_phase1_project_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_phase1_project_form')}),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('view_phase1_project_pivot')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('view_phase1_project_graph')})]"/>
+        <field name="search_view_id" ref="view_phase1_project_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Add the first Phase 1 Project</p>
+            <p>One row per Emaratax legal name (TRN) on an approved eInvoicing SE.</p>
+        </field>
+    </record>
+
+    <record id="action_phase1_dashboard_owl" model="ir.actions.client">
+        <field name="name">Dashboard</field>
+        <field name="tag">einvoicing_pm.dashboard</field>
+    </record>
+
+</odoo>

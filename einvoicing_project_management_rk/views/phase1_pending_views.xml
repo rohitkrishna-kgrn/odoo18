@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_phase1_pending_list" model="ir.ui.view">
+        <field name="name">einvoicing.phase1.pending.list</field>
+        <field name="model">einvoicing.phase1.pending</field>
+        <field name="arch" type="xml">
+            <list string="Pending" create="0" edit="0" delete="0">
+                <field name="sale_order_id"/>
+                <field name="partner_id"/>
+                <field name="total_entities" sum="Total"/>
+                <field name="listed_count" optional="show" sum="Total"/>
+                <field name="pending_count" sum="Total" decoration-danger="1" decoration-bf="1"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="company_id" column_invisible="True"/>
+                <button name="action_add_project" type="object" string="Add"
+                        icon="fa-plus" class="btn-link"
+                        groups="einvoicing_project_management_rk.group_einvoicing_pm_user"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_phase1_pending_form" model="ir.ui.view">
+        <field name="name">einvoicing.phase1.pending.form</field>
+        <field name="model">einvoicing.phase1.pending</field>
+        <field name="arch" type="xml">
+            <form string="Pending" create="0" edit="0" delete="0">
+                <header>
+                    <button name="action_add_project" type="object"
+                            string="Add Phase 1 Project" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="sale_order_id"/>
+                            <field name="partner_id"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                        </group>
+                        <group>
+                            <field name="total_entities"/>
+                            <field name="listed_count"/>
+                            <field name="pending_count"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_phase1_pending_search" model="ir.ui.view">
+        <field name="name">einvoicing.phase1.pending.search</field>
+        <field name="model">einvoicing.phase1.pending</field>
+        <field name="arch" type="xml">
+            <search string="Pending">
+                <field name="sale_order_id"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <filter string="Not listed at all" name="none_listed" domain="[('listed_count', '=', 0)]"/>
+                <filter string="Partly listed" name="partly_listed" domain="[('listed_count', '>', 0)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Salesperson" name="group_user" context="{'group_by': 'user_id'}"/>
+                    <filter string="Customer" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_phase1_pending" model="ir.actions.act_window">
+        <field name="name">Pending</field>
+        <field name="res_model">einvoicing.phase1.pending</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_phase1_pending_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing pending</p>
+            <p>Every approved eInvoicing SE has a Phase 1 Project row for each
+               entity in its Entities tab.</p>
+        </field>
+    </record>
+
+</odoo>

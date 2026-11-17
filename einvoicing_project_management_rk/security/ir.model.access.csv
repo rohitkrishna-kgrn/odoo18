@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_phase1_project_user,phase1.project.user,model_einvoicing_phase1_project,group_einvoicing_pm_user,1,1,1,0
+access_phase1_project_manager,phase1.project.manager,model_einvoicing_phase1_project,group_einvoicing_pm_manager,1,1,1,1
+access_phase1_pending_user,phase1.pending.user,model_einvoicing_phase1_pending,group_einvoicing_pm_user,1,0,0,0
+access_unidentified_user,unidentified.user,model_einvoicing_unidentified,group_einvoicing_pm_user,1,1,1,0
+access_unidentified_manager,unidentified.manager,model_einvoicing_unidentified,group_einvoicing_pm_manager,1,1,1,1

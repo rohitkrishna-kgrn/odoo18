@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="einvoicing_project_management_rk.Dashboard">
+        <div class="o_action o_epm_shell">
+            <div class="o_content o_epm_dash">
+
+                <!-- ── Header + filters (one row) ───────────────────────────── -->
+                <div class="o_epm_head">
+                    <div class="o_epm_title">
+                        <h1>E-Invoicing Projects</h1>
+                        <span class="o_epm_sub" t-if="data">
+                            <t t-esc="scopeLabel"/> · as of <t t-esc="fmtDate(data.today)"/>
+                        </span>
+                    </div>
+                    <div class="o_epm_filters" t-if="data">
+                        <label class="o_epm_filter">
+                            <span>Salesperson</span>
+                            <select class="form-select form-select-sm" t-on-change="onSalespersonChange">
+                                <option value="" t-att-selected="!state.salespersonId">All salespeople</option>
+                                <t t-foreach="data.salesperson_options" t-as="opt" t-key="opt.id">
+                                    <option t-att-value="opt.id" t-att-selected="opt.id === state.salespersonId" t-esc="opt.name"/>
+                                </t>
+                            </select>
+                        </label>
+                        <button class="btn btn-sm btn-light o_epm_refresh" t-on-click="() => this.load()" title="Refresh">
+                            <i t-attf-class="fa fa-refresh {{ state.loading ? 'fa-spin' : '' }}"/>
+                        </button>
+                    </div>
+                </div>
+
+                <div t-if="state.error" class="alert alert-danger" role="alert">
+                    <i class="fa fa-exclamation-triangle me-1"/><t t-esc="state.error"/>
+                </div>
+                <div t-elif="!data" class="o_epm_loading">
+                    <i class="fa fa-circle-o-notch fa-spin me-1"/>Loading…
+                </div>
+
+                <t t-else="">
+                    <!-- ── KPI row ──────────────────────────────────────────── -->
+                    <div class="o_epm_kpis">
+                        <button class="o_epm_kpi" t-on-click="() => this.openKpi('total')">
+                            <span class="o_epm_kpi_label">Listed TRNs</span>
+                            <span class="o_epm_kpi_value" t-esc="data.kpis.total"/>
+                            <span class="o_epm_kpi_sub">Phase 1 Projects</span>
+                        </button>
+                        <button class="o_epm_kpi o_epm_kpi_accent" t-on-click="() => this.openPendingList()">
+                            <span class="o_epm_kpi_label">Pending Entities</span>
+                            <span class="o_epm_kpi_value" t-esc="data.kpis.pending_entities"/>
+                            <span class="o_epm_kpi_sub">across <t t-esc="data.kpis.pending_ses"/> SEs</span>
+                        </button>
+                        <button class="o_epm_kpi" t-on-click="() => this.openKpi('ga_done')">
+                            <span class="o_epm_kpi_label">Gap Assessment Done</span>
+                            <span class="o_epm_kpi_value"><t t-esc="data.kpis.ga_done"/><small> / <t t-esc="data.kpis.total"/></small></span>
+                            <span class="o_epm_kpi_sub"><t t-esc="pct(data.kpis.ga_done, data.kpis.total)"/>% of TRNs</span>
+                        </button>
+                        <button class="o_epm_kpi" t-on-click="() => this.openKpi('uat')">
+                            <span class="o_epm_kpi_label">UAT Onboarded</span>
+                            <span class="o_epm_kpi_value"><t t-esc="data.kpis.uat"/><small> / <t t-esc="data.kpis.total"/></small></span>
+                            <span class="o_epm_kpi_sub"><t t-esc="pct(data.kpis.uat, data.kpis.total)"/>% of TRNs</span>
+                        </button>
+                        <button class="o_epm_kpi" t-on-click="() => this.openKpi('emaratax_active')">
+                            <span class="o_epm_kpi_label">Emaratax Active</span>
+                            <span class="o_epm_kpi_value"><t t-esc="data.kpis.emaratax_active"/><small> / <t t-esc="data.kpis.total"/></small></span>
+                            <span class="o_epm_kpi_sub"><t t-esc="pct(data.kpis.emaratax_active, data.kpis.total)"/>% of TRNs</span>
+                        </button>
+                        <button class="o_epm_kpi" t-on-click="() => this.openKpi('live')">
+                            <span class="o_epm_kpi_label">LIVE Middleware</span>
+                            <span class="o_epm_kpi_value"><t t-esc="data.kpis.live"/><small> / <t t-esc="data.kpis.total"/></small></span>
+                            <span class="o_epm_kpi_sub"><t t-esc="pct(data.kpis.live, data.kpis.total)"/>% of TRNs</span>
+                        </button>
+                        <button class="o_epm_kpi" t-on-click="() => this.openKpi('renew_due')">
+                            <span class="o_epm_kpi_label">Renewals in 30 Days</span>
+                            <span class="o_epm_kpi_value" t-esc="data.kpis.renew_due"/>
+                            <span class="o_epm_kpi_sub" t-if="data.kpis.renew_overdue">
+                                <i class="fa fa-exclamation-circle o_epm_ic_critical"/> <t t-esc="data.kpis.renew_overdue"/> overdue
+                            </span>
+                            <span class="o_epm_kpi_sub" t-else="">none overdue</span>
+                        </button>
+                    </div>
+
+                    <!-- ── Progress + Gap Assessment ─────────────────────────── -->
+                    <div class="o_epm_grid">
+                        <section class="o_epm_card">
+                            <header class="o_epm_card_head">
+                                <div>
+                                    <h2>Onboarding progress</h2>
+                                    <p>TRNs that reached each step · click a bar to open them</p>
+                                </div>
+                                <button class="o_epm_toggle" t-on-click="() => this.toggleTable('progress')">
+                                    <i t-attf-class="fa {{ state.tables.progress ? 'fa-bar-chart' : 'fa-table' }} me-1"/>
+                                    <t t-if="state.tables.progress">Chart</t><t t-else="">Table</t>
+                                </button>
+                            </header>
+                            <div t-if="!data.kpis.total" class="o_epm_empty">No Phase 1 Projects yet.</div>
+                            <table t-elif="state.tables.progress" class="o_epm_table">
+                                <thead><tr><th>Step</th><th class="text-end">TRNs</th><th class="text-end">Share</th></tr></thead>
+                                <tbody>
+                                    <tr t-foreach="data.progress" t-as="p" t-key="p.key" class="o_epm_row" t-on-click="() => this.openProjects(p.label, p.domain)">
+                                        <td t-esc="p.label"/>
+                                        <td class="text-end" t-esc="p.count"/>
+                                        <td class="text-end"><t t-esc="pct(p.count, data.kpis.total)"/>%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="o_epm_canvas o_epm_canvas_progress"><canvas t-ref="progressChart"/></div>
+                        </section>
+
+                        <section class="o_epm_card">
+                            <header class="o_epm_card_head">
+                                <div>
+                                    <h2>Gap Assessment</h2>
+                                    <p>TRNs by status</p>
+                                </div>
+                            </header>
+                            <div t-if="!data.kpis.total" class="o_epm_empty">No Phase 1 Projects yet.</div>
+                            <ul t-else="" class="o_epm_meters">
+                                <li t-foreach="data.ga" t-as="g" t-key="g.key" class="o_epm_meter" t-on-click="() => this.openProjects(g.label, g.domain)"
+                                    t-att-title="g.label">
+                                    <span class="o_epm_meter_name" t-esc="g.label"/>
+                                    <span class="o_epm_meter_track"><span class="o_epm_meter_fill" t-att-style="widthStyle(g.count, data.kpis.total)"/></span>
+                                    <span class="o_epm_meter_value"><t t-esc="g.count"/><small> · <t t-esc="pct(g.count, data.kpis.total)"/>%</small></span>
+                                </li>
+                            </ul>
+                        </section>
+                    </div>
+
+                    <!-- ── Emaratax / UAT / LIVE + Renewals ────────────────── -->
+                    <div class="o_epm_grid">
+                        <section class="o_epm_card">
+                            <header class="o_epm_card_head">
+                                <div>
+                                    <h2>Emaratax onboarding</h2>
+                                    <p>How the listed TRNs split</p>
+                                </div>
+                            </header>
+                            <div t-if="!data.kpis.total" class="o_epm_empty">No Phase 1 Projects yet.</div>
+                            <t t-else="">
+                                <div class="o_epm_segbar" role="img" aria-label="Emaratax onboarding split">
+                                    <t t-foreach="emarataxSegments" t-as="e" t-key="e.key">
+                                        <span t-attf-class="o_epm_seg {{ emarataxMeta[e.key].cls }}" t-att-style="growStyle(e.count)"
+                                              t-att-title="e.label" t-on-click="() => this.openProjects(e.label, e.domain)">
+                                            <t t-esc="segmentLabel(e.count, data.kpis.total)"/>
+                                        </span>
+                                    </t>
+                                </div>
+                                <ul class="o_epm_legend">
+                                    <li t-foreach="data.emaratax" t-as="e" t-key="e.key" t-on-click="() => this.openProjects(e.label, e.domain)">
+                                        <span t-attf-class="o_epm_swatch {{ emarataxMeta[e.key].cls }}"/>
+                                        <i t-attf-class="fa {{ emarataxMeta[e.key].icon }} o_epm_legend_icon"/>
+                                        <span class="o_epm_legend_name" t-esc="e.label"/>
+                                        <span class="o_epm_legend_value" t-esc="e.count"/>
+                                    </li>
+                                </ul>
+                                <div class="o_epm_split">
+                                    <div class="o_epm_split_item" t-on-click="() => this.openKpi('uat')">
+                                        <div class="o_epm_split_head">
+                                            <span>UAT Onboarding</span>
+                                            <strong><t t-esc="data.uat.yes"/> Yes · <t t-esc="data.uat.no"/> No</strong>
+                                        </div>
+                                        <span class="o_epm_meter_track"><span class="o_epm_meter_fill" t-att-style="widthStyle(data.uat.yes, data.kpis.total)"/></span>
+                                    </div>
+                                    <div class="o_epm_split_item" t-on-click="() => this.openKpi('live')">
+                                        <div class="o_epm_split_head">
+                                            <span>LIVE Middleware</span>
+                                            <strong><t t-esc="data.live.yes"/> Yes · <t t-esc="data.live.no"/> No</strong>
+                                        </div>
+                                        <span class="o_epm_meter_track"><span class="o_epm_meter_fill" t-att-style="widthStyle(data.live.yes, data.kpis.total)"/></span>
+                                    </div>
+                                </div>
+                            </t>
+                        </section>
+
+                        <section class="o_epm_card">
+                            <header class="o_epm_card_head">
+                                <div>
+                                    <h2>Renewals by month</h2>
+                                    <p>TRNs whose renewal date falls in each of the next 12 months</p>
+                                </div>
+                                <button class="o_epm_toggle" t-on-click="() => this.toggleTable('renewals')">
+                                    <i t-attf-class="fa {{ state.tables.renewals ? 'fa-bar-chart' : 'fa-table' }} me-1"/>
+                                    <t t-if="state.tables.renewals">Chart</t><t t-else="">Table</t>
+                                </button>
+                            </header>
+                            <table t-if="state.tables.renewals" class="o_epm_table">
+                                <thead><tr><th>Month</th><th class="text-end">Renewals</th></tr></thead>
+                                <tbody>
+                                    <tr t-foreach="data.renewal_months" t-as="m" t-key="m.label" class="o_epm_row" t-on-click="() => this.openProjects(m.label, m.domain)">
+                                        <td t-esc="m.label"/>
+                                        <td class="text-end" t-esc="m.count"/>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div t-else="" class="o_epm_canvas o_epm_canvas_renewals"><canvas t-ref="renewalsChart"/></div>
+                        </section>
+                    </div>
+
+                    <!-- ── Pending SEs + Upcoming renewals ─────────────────── -->
+                    <div class="o_epm_grid">
+                        <section class="o_epm_card">
+                            <header class="o_epm_card_head">
+                                <div>
+                                    <h2>Pending SEs</h2>
+                                    <p>Approved eInvoicing SEs with entities not yet listed</p>
+                                </div>
+                                <button class="o_epm_toggle" t-on-click="() => this.openPendingList()">View all<i class="fa fa-angle-right ms-1"/></button>
+                            </header>
+                            <div t-if="!data.pending.length" class="o_epm_empty"><i class="fa fa-check-circle o_epm_ic_good me-1"/>Nothing pending.</div>
+                            <div t-else="" class="o_epm_table_wrap">
+                                <table class="o_epm_table">
+                                    <thead>
+                                        <tr>
+                                            <th>SE Number</th><th>Customer</th><th>Salesperson</th>
+                                            <th class="text-end">Entities</th><th class="text-end">Listed</th><th class="text-end">Pending</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="data.pending" t-as="p" t-key="p.id" class="o_epm_row" t-on-click="() => this.openPending(p.id)">
+                                            <td class="fw-semibold" t-esc="p.se"/>
+                                            <td class="o_epm_trunc" t-esc="p.customer" t-att-title="p.customer"/>
+                                            <td class="o_epm_trunc" t-esc="p.salesperson"/>
+                                            <td class="text-end" t-esc="p.total"/>
+                                            <td class="text-end" t-esc="p.listed"/>
+                                            <td class="text-end fw-bold" t-esc="p.pending"/>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div t-if="data.pending_more" class="o_epm_more" t-on-click="() => this.openPendingList()">
+                                    + <t t-esc="data.pending_more"/> more SEs
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="o_epm_card">
+                            <header class="o_epm_card_head">
+                                <div>
+                                    <h2>Upcoming renewals</h2>
+                                    <p>Overdue and due within 60 days</p>
+                                </div>
+                                <button class="o_epm_toggle" t-on-click="() => this.openKpi('renew_due')">Next 30 days<i class="fa fa-angle-right ms-1"/></button>
+                            </header>
+                            <div t-if="!data.renewals.length" class="o_epm_empty">No renewals in the next 60 days.</div>
+                            <div t-else="" class="o_epm_table_wrap">
+                                <table class="o_epm_table">
+                                    <thead>
+                                        <tr><th>S.No</th><th>Emaratax Legal Name</th><th>SE Number</th><th>Renewal Date</th><th>When</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="data.renewals" t-as="r" t-key="r.id" class="o_epm_row" t-on-click="() => this.openProject(r.id)">
+                                            <td t-esc="r.s_no"/>
+                                            <td class="o_epm_trunc fw-semibold" t-esc="r.name" t-att-title="r.name"/>
+                                            <td t-esc="r.se"/>
+                                            <td t-esc="fmtDate(r.date)"/>
+                                            <td>
+                                                <span t-if="r.days &lt; 0" class="o_epm_status o_epm_status_critical">
+                                                    <i class="fa fa-exclamation-circle me-1"/><t t-esc="renewalWhen(r.days)"/>
+                                                </span>
+                                                <span t-elif="r.days &lt;= 30" class="o_epm_status o_epm_status_warning">
+                                                    <i class="fa fa-clock-o me-1"/><t t-esc="renewalWhen(r.days)"/>
+                                                </span>
+                                                <span t-else="" class="o_epm_status">
+                                                    <i class="fa fa-calendar-o me-1"/><t t-esc="renewalWhen(r.days)"/>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- ── By salesperson ────────────────────────────────────── -->
+                    <section class="o_epm_card">
+                        <header class="o_epm_card_head">
+                            <div>
+                                <h2>By salesperson</h2>
+                                <p>TRNs listed against entities still pending, per SE salesperson</p>
+                            </div>
+                            <ul class="o_epm_legend o_epm_legend_inline">
+                                <li><span class="o_epm_swatch o_epm_sw_listed"/><span class="o_epm_legend_name">Listed</span></li>
+                                <li><span class="o_epm_swatch o_epm_sw_pending"/><span class="o_epm_legend_name">Pending</span></li>
+                            </ul>
+                        </header>
+                        <div t-if="!data.salespeople.length" class="o_epm_empty">Nothing to show yet.</div>
+                        <ul t-else="" class="o_epm_people">
+                            <li t-foreach="data.salespeople" t-as="sp" t-key="sp.id" class="o_epm_person" t-on-click="() => this.openProjects(sp.name, sp.domain)">
+                                <span class="o_epm_person_name o_epm_trunc" t-esc="sp.name" t-att-title="sp.name"/>
+                                <span class="o_epm_person_bar">
+                                    <span class="o_epm_stack" t-att-style="widthStyle(sp.listed + sp.pending, maxPerson)">
+                                        <span t-if="sp.listed" class="o_epm_stack_listed" t-att-style="growStyle(sp.listed)" t-att-title="sp.listed + ' listed'"/>
+                                        <span t-if="sp.pending" class="o_epm_stack_pending" t-att-style="growStyle(sp.pending)" t-att-title="sp.pending + ' pending'"/>
+                                    </span>
+                                </span>
+                                <span class="o_epm_person_figs">
+                                    <t t-esc="sp.listed"/> listed · <strong><t t-esc="sp.pending"/> pending</strong>
+                                </span>
+                            </li>
+                        </ul>
+                    </section>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>

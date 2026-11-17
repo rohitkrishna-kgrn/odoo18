@@ -1,0 +1,523 @@
+// E-Invoicing Projects dashboard.
+// Chrome uses Odoo's SCSS variables (the backend has no --bs-* CSS vars).
+// Data colours come from the validated dataviz palette:
+//   magnitude blue #2a78d6, second series orange #eb6834,
+//   status good/warning/critical #0ca30c/#fab219/#d03b3b - always with an icon + label.
+// Text never wears a data colour; identity comes from the swatch or the mark beside it.
+
+$epm-blue: #2a78d6;
+$epm-blue-hover: #1c5cab;
+$epm-orange: #eb6834;
+$epm-good: #0ca30c;
+$epm-warning: #fab219;
+$epm-critical: #d03b3b;
+$epm-none: #c3c2b7;
+$epm-track: #f0efec;
+$epm-ink: #0b0b0b;
+$epm-ink-2: #52514e;
+$epm-muted: #898781;
+$epm-hairline: #e1e0d9;
+$epm-accent: #F15C22; // KGRN orange: title rule only, never data
+
+.o_epm_shell {
+    height: 100%;
+    display: flex;
+    flex-flow: column nowrap;
+    overflow: hidden;
+}
+
+.o_epm_dash {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 20px 24px 40px;
+    background: $o-webclient-background-color;
+    overflow-y: auto;
+    overflow-x: hidden;
+    color: $epm-ink;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+    @include media-breakpoint-down(md) {
+        padding: 16px 16px 32px;
+    }
+
+    // ── Header ───────────────────────────────────────────────────────────
+    .o_epm_head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+    .o_epm_title h1 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: $headings-color;
+        letter-spacing: -0.01em;
+
+        &::after {
+            content: '';
+            display: block;
+            width: 42px;
+            height: 3px;
+            margin-top: 8px;
+            border-radius: 2px;
+            background: $epm-accent;
+        }
+    }
+    .o_epm_sub {
+        display: block;
+        margin-top: 8px;
+        font-size: 12.5px;
+        color: $epm-muted;
+    }
+    .o_epm_filters {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+    }
+    .o_epm_filter {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 0;
+        font-size: 11px;
+        font-weight: 600;
+        color: $epm-muted;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+
+        select {
+            min-width: 200px;
+            text-transform: none;
+            letter-spacing: 0;
+            font-weight: 400;
+            color: $epm-ink;
+        }
+    }
+    .o_epm_refresh {
+        border: 1px solid $border-color;
+        background: $o-view-background-color;
+    }
+    .o_epm_loading,
+    .o_epm_empty {
+        padding: 28px 8px;
+        text-align: center;
+        color: $epm-muted;
+        font-size: 13px;
+    }
+
+    // ── KPI row ──────────────────────────────────────────────────────────
+    .o_epm_kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .o_epm_kpi {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 14px 16px;
+        text-align: left;
+        background: $o-view-background-color;
+        border: 1px solid $border-color;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: border-color 0.15s, box-shadow 0.15s;
+
+        &:hover {
+            border-color: $epm-blue;
+            box-shadow: 0 2px 8px rgba($epm-ink, 0.06);
+        }
+        &:focus-visible {
+            outline: 2px solid $epm-blue;
+            outline-offset: 2px;
+        }
+    }
+    .o_epm_kpi_accent {
+        border-top: 3px solid $epm-orange;
+        padding-top: 12px; // keeps the figures level with the 1px-bordered tiles
+    }
+    .o_epm_kpi_label {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: $epm-ink-2;
+    }
+    .o_epm_kpi_value {
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.1;
+        color: $epm-ink;
+        font-variant-numeric: tabular-nums;
+
+        small {
+            font-size: 14px;
+            font-weight: 500;
+            color: $epm-muted;
+        }
+    }
+    .o_epm_kpi_sub {
+        font-size: 11.5px;
+        color: $epm-muted;
+    }
+
+    // ── Cards ────────────────────────────────────────────────────────────
+    .o_epm_grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+
+        @include media-breakpoint-down(lg) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+    .o_epm_card {
+        min-width: 0;
+        padding: 16px 18px;
+        background: $o-view-background-color;
+        border: 1px solid $border-color;
+        border-radius: 10px;
+    }
+    .o_epm_card_head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+
+        h2 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: $epm-ink;
+        }
+        p {
+            margin: 2px 0 0;
+            font-size: 12px;
+            color: $epm-muted;
+        }
+    }
+    .o_epm_toggle {
+        flex: none;
+        border: 1px solid $border-color;
+        background: $o-view-background-color;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 12px;
+        color: $epm-ink-2;
+        white-space: nowrap;
+
+        &:hover {
+            border-color: $epm-blue;
+            color: $epm-ink;
+        }
+    }
+    .o_epm_canvas {
+        position: relative;
+        width: 100%;
+    }
+    .o_epm_canvas_progress {
+        height: 220px;
+    }
+    .o_epm_canvas_renewals {
+        height: 240px;
+    }
+
+    // ── Meter list (one hue) ─────────────────────────────────────────────
+    .o_epm_meters {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .o_epm_meter {
+        display: grid;
+        grid-template-columns: 110px minmax(0, 1fr) 84px;
+        align-items: center;
+        gap: 12px;
+        padding: 9px 6px;
+        border-radius: 6px;
+        cursor: pointer;
+
+        &:hover {
+            background: rgba($epm-blue, 0.06);
+        }
+        @include media-breakpoint-down(sm) {
+            grid-template-columns: minmax(0, 1fr) 76px;
+            .o_epm_meter_track {
+                grid-column: 1 / -1;
+                grid-row: 2;
+            }
+        }
+    }
+    .o_epm_meter_name {
+        font-size: 13px;
+        color: $epm-ink;
+    }
+    .o_epm_meter_track {
+        display: block;
+        height: 10px;
+        background: $epm-track;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .o_epm_meter_fill {
+        display: block;
+        height: 100%;
+        background: $epm-blue;
+        border-radius: 0 4px 4px 0;
+    }
+    .o_epm_meter_value {
+        text-align: right;
+        font-weight: 700;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+
+        small {
+            font-weight: 400;
+            color: $epm-muted;
+        }
+    }
+
+    // ── Tall segmented bar + legend (status colours, icon + label) ───────
+    .o_epm_segbar {
+        display: flex;
+        gap: 2px; // surface gap between segments
+        height: 32px;
+        border-radius: 6px;
+        overflow: hidden;
+        background: $o-view-background-color;
+    }
+    .o_epm_seg {
+        flex: 1 1 0;
+        min-width: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #ffffff;
+        white-space: nowrap;
+        cursor: pointer;
+
+        &:first-child { border-radius: 4px 0 0 4px; }
+        &:last-child { border-radius: 0 4px 4px 0; }
+        &:only-child { border-radius: 4px; }
+        &:hover { filter: brightness(0.92); }
+    }
+    .o_epm_st_good { background: $epm-good; }
+    .o_epm_st_warning { background: $epm-warning; color: $epm-ink; }
+    .o_epm_st_critical { background: $epm-critical; }
+    .o_epm_st_none { background: $epm-none; color: $epm-ink; }
+
+    .o_epm_legend {
+        list-style: none;
+        margin: 12px 0 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+
+        li {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12.5px;
+            cursor: pointer;
+        }
+    }
+    .o_epm_legend_inline {
+        margin: 0;
+        li { cursor: default; }
+    }
+    .o_epm_swatch {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+    }
+    .o_epm_sw_listed { background: $epm-blue; }
+    .o_epm_sw_pending { background: $epm-orange; }
+    .o_epm_legend_icon { color: $epm-ink-2; }
+    .o_epm_legend_name { color: $epm-ink-2; }
+    .o_epm_legend_value {
+        font-weight: 700;
+        color: $epm-ink;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .o_epm_split {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 18px;
+        padding-top: 14px;
+        border-top: 1px solid $epm-hairline;
+
+        @include media-breakpoint-down(sm) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+    .o_epm_split_item {
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+
+        &:hover { background: rgba($epm-blue, 0.06); }
+    }
+    .o_epm_split_head {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+        font-size: 12.5px;
+        color: $epm-ink-2;
+
+        strong {
+            color: $epm-ink;
+            font-variant-numeric: tabular-nums;
+        }
+    }
+
+    // ── Tables ───────────────────────────────────────────────────────────
+    .o_epm_table_wrap {
+        overflow-x: auto;
+    }
+    .o_epm_table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+
+        th {
+            padding: 6px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: $epm-muted;
+            border-bottom: 1px solid $epm-hairline;
+            white-space: nowrap;
+        }
+        td {
+            padding: 8px;
+            border-bottom: 1px solid $epm-hairline;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        tr:last-child td {
+            border-bottom: 0;
+        }
+    }
+    .o_epm_row {
+        cursor: pointer;
+
+        &:hover td {
+            background: rgba($epm-blue, 0.06);
+        }
+    }
+    .o_epm_trunc {
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .o_epm_more {
+        padding: 8px;
+        font-size: 12px;
+        color: $epm-ink-2;
+        text-align: center;
+        cursor: pointer;
+
+        &:hover { color: $epm-ink; text-decoration: underline; }
+    }
+    .o_epm_status {
+        display: inline-flex;
+        align-items: center;
+        color: $epm-ink-2;
+
+        i { color: $epm-muted; }
+    }
+    .o_epm_status_critical {
+        color: $epm-ink;
+        font-weight: 600;
+        i { color: $epm-critical; }
+    }
+    .o_epm_status_warning {
+        color: $epm-ink;
+        i { color: darken($epm-warning, 12%); }
+    }
+    .o_epm_ic_critical { color: $epm-critical; }
+    .o_epm_ic_good { color: $epm-good; }
+
+    // ── By salesperson (thin stacked bar, two series + legend) ───────────
+    .o_epm_people {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .o_epm_person {
+        display: grid;
+        grid-template-columns: 180px minmax(0, 1fr) 170px;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 6px;
+        border-radius: 6px;
+        cursor: pointer;
+
+        &:hover { background: rgba($epm-blue, 0.06); }
+
+        @include media-breakpoint-down(md) {
+            grid-template-columns: minmax(0, 1fr) auto;
+            .o_epm_person_bar {
+                grid-column: 1 / -1;
+                grid-row: 2;
+            }
+        }
+    }
+    .o_epm_person_name {
+        font-size: 13px;
+        max-width: none;
+    }
+    .o_epm_person_bar {
+        display: block;
+        height: 12px;
+    }
+    .o_epm_stack {
+        display: flex;
+        gap: 2px; // surface gap between the two series
+        height: 100%;
+        min-width: 4px;
+    }
+    .o_epm_stack_listed,
+    .o_epm_stack_pending {
+        flex: 1 1 0;
+        min-width: 3px;
+        height: 100%;
+    }
+    .o_epm_stack_listed {
+        background: $epm-blue;
+        border-radius: 2px 0 0 2px;
+    }
+    .o_epm_stack_pending {
+        background: $epm-orange;
+        border-radius: 0 4px 4px 0;
+    }
+    .o_epm_stack_listed:only-child {
+        border-radius: 2px 4px 4px 2px;
+    }
+    .o_epm_stack_pending:only-child {
+        border-radius: 2px 4px 4px 2px;
+    }
+    .o_epm_person_figs {
+        text-align: right;
+        font-size: 12.5px;
+        color: $epm-ink-2;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+
+        strong { color: $epm-ink; }
+    }
+}

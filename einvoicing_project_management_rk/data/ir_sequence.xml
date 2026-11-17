@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- S.No on Phase 1 Projects: a plain number, no prefix or padding. -->
+        <record id="seq_phase1_project" model="ir.sequence">
+            <field name="name">E-Invoicing Phase 1 Project S.No</field>
+            <field name="code">einvoicing.phase1.project</field>
+            <field name="implementation">no_gap</field>
+            <field name="padding">0</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <!-- S.No on Unidentified: its own numbering, same shape. -->
+        <record id="seq_unidentified" model="ir.sequence">
+            <field name="name">E-Invoicing Unidentified S.No</field>
+            <field name="code">einvoicing.unidentified</field>
+            <field name="implementation">no_gap</field>
+            <field name="padding">0</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

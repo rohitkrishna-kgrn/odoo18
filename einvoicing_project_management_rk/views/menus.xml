@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_einvoicing_pm_root"
+              name="E-Invoicing Projects"
+              web_icon="einvoicing_project_management_rk,static/description/icon.png"
+              sequence="15"
+              groups="group_einvoicing_pm_user"/>
+
+    <menuitem id="menu_einvoicing_pm_dashboard"
+              name="Dashboard"
+              parent="menu_einvoicing_pm_root"
+              action="action_phase1_dashboard_owl"
+              sequence="10"/>
+
+    <!-- Projects: a dropdown holding the two project lists. -->
+    <menuitem id="menu_einvoicing_pm_projects"
+              name="Projects"
+              parent="menu_einvoicing_pm_root"
+              sequence="20"/>
+
+    <menuitem id="menu_einvoicing_pm_phase1"
+              name="Phase 1 Projects"
+              parent="menu_einvoicing_pm_projects"
+              action="action_phase1_project"
+              sequence="10"/>
+
+    <menuitem id="menu_einvoicing_pm_unidentified"
+              name="Unidentified"
+              parent="menu_einvoicing_pm_projects"
+              action="action_unidentified"
+              sequence="20"/>
+
+    <menuitem id="menu_einvoicing_pm_pending"
+              name="Pending"
+              parent="menu_einvoicing_pm_root"
+              action="action_phase1_pending"
+              sequence="30"/>
+</odoo>
