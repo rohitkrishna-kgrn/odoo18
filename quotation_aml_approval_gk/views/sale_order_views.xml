@@ -6,8 +6,8 @@
          While the quotation is To Approve:
            * Send AML Form - AML team only, until a request exists.
            * AML Bypass    - AML team or Quotation Approver, until AML/KYC is Completed.
-           * Approve       - Quotation Approver, only once AML/KYC is Completed,
-                             never on a cancelled quotation.
+           * Approve       - Quotation Approver, straight away (AML/KYC need not
+                             be Completed), never on a cancelled quotation.
          Orders approved before this module keep the old post-approval
          Send AML Form / AML Bypass buttons so their AML step can finish. -->
     <record id="view_order_form_aml_first_approval" model="ir.ui.view">
@@ -30,7 +30,7 @@
                 <field name="aml_can_send_form" invisible="1"/>
             </xpath>
             <xpath expr="//button[@name='action_approve_order']" position="attributes">
-                <attribute name="invisible">state == 'cancel' or not is_user_approver or approval_state != 'to_approve' or not aml_gate_completed</attribute>
+                <attribute name="invisible">state == 'cancel' or not is_user_approver or approval_state != 'to_approve'</attribute>
             </xpath>
             <xpath expr="//button[@name='action_send_aml_form']" position="attributes">
                 <attribute name="invisible">state == 'cancel' or approval_state not in ('to_approve', 'approved') or not aml_can_send_form or not aml_action_allowed or (approval_state == 'to_approve' and not aml_is_aml_team)</attribute>

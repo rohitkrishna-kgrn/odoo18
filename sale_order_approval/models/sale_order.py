@@ -49,22 +49,8 @@ class SaleOrder(models.Model):
         if approver.email:
             mail_values = {
                 'subject': _("Approval Required: Quotation %s") % self.name,
-                'body_html': """
-                    <p>Dear {approver_name},</p>
-                    <p>The quotation <strong>{order_name}</strong> has been submitted for your approval.</p>
-                    <p><strong>Customer:</strong> {customer_name}<br/>
-                       <strong>Amount Total:</strong> {amount} {currency}<br/>
-                       <strong>Submitted By:</strong> {user}</p>
-                    <p>You can review it in the system.</p>
-                    <p>Thank you.</p>
-                """.format(
-                    approver_name=approver.name,
-                    order_name=self.name,
-                    customer_name=self.partner_id.name,
-                    amount=self.amount_total,
-                    currency=self.currency_id.name,
-                    user=self.env.user.name
-                ),
+                'body_html': self._approval_request_mail_body(approver),
+                'email_from': self._approval_mail_from(),
                 'email_to': approver.email,
                 'author_id': self.env.user.partner_id.id,
                 'model': 'sale.order',
@@ -72,6 +58,39 @@ class SaleOrder(models.Model):
             }
 
             self.env['mail.mail'].sudo().create(mail_values).send()
+
+    def _approval_request_mail_body(self, approver):
+        """HTML body of the "Approval Required" email. Kept as its own
+        method so the layout can be replaced (quotation_aml_approval_gk sends
+        the branded version with an Open button)."""
+        self.ensure_one()
+        return """
+            <p>Dear {approver_name},</p>
+            <p>The quotation <strong>{order_name}</strong> has been submitted for your approval.</p>
+            <p><strong>Customer:</strong> {customer_name}<br/>
+               <strong>Amount Total:</strong> {amount} {currency}<br/>
+               <strong>Submitted By:</strong> {user}</p>
+            <p>You can review it in the system.</p>
+            <p>Thank you.</p>
+        """.format(
+            approver_name=approver.name,
+            order_name=self.name,
+            customer_name=self.partner_id.name,
+            amount=self.amount_total,
+            currency=self.currency_id.name,
+            user=self.env.user.name,
+        )
+
+    def _approval_mail_from(self):
+        """Technical sender for the approval-request email: the company's
+        email (e.g. "KGRN Chartered Accountants LLC <gokul@kgrnaudit.com>"),
+        not the person who clicked Submit. Falls back to the main company
+        when the order's company has no email."""
+        self.ensure_one()
+        company = self.company_id.sudo()
+        if not company.email:
+            company = self.env.ref('base.main_company').sudo()
+        return company.email_formatted or False
 
     def action_confirm(self):
         self.ensure_one()

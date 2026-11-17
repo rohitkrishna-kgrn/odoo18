@@ -1,4 +1,4 @@
-from markupsafe import Markup, escape
+from markupsafe import escape
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
@@ -75,17 +75,35 @@ class SaleOrder(models.Model):
             order.aml_is_aml_team = is_team
 
     # ------------------------------------------------------------------
-    # Submit for Approval -> AML Managers
+    # Submit for Approval -> Quotation Approver (as before) + AML Managers
     # ------------------------------------------------------------------
     def _notify_approval_submitted(self):
-        """Replaces the Quotation Approver notification on submit: the AML
-        Managers are told first. The approver is told once AML/KYC is
-        Completed (see _notify_approver_aml_completed)."""
+        """The Quotation Approver gets the usual To-Do + email from
+        sale_order_approval and can approve straight away. The AML Managers
+        are also told so the AML/KYC step can start; nothing is sent to the
+        approver again when AML/KYC is Completed."""
         self.ensure_one()
-        if self.aml_gate_completed:
-            self._notify_approver_aml_completed()
-            return
-        self._notify_aml_managers_submitted()
+        super()._notify_approval_submitted()
+        if not self.aml_gate_completed:
+            self._notify_aml_managers_submitted()
+
+    def _approval_request_mail_body(self, approver):
+        """Branded "Approval Required" email (same look as the AML emails)
+        with an Open button that takes the approver straight to the quotation."""
+        self.ensure_one()
+        # Plain str + %, as in the other AML-first mails: passing Markup
+        # arguments to _() escapes the template's own <br/>/<strong> tags.
+        intro = _("Dear %s,<br/><br/>Quotation <strong>%s</strong> has been "
+                  "submitted for your approval.") % (escape(approver.name), escape(self.name))
+        body, _email_from = self._aml_first_email(
+            title=_("Quotation Approval Required"),
+            intro=intro,
+            closing=_("Click the button below to open the quotation and approve it."),
+            submitted_by=self.env.user.name,
+        )
+        # The shared AML shell signs off as the compliance team; this one
+        # comes from the company, not the AML team.
+        return body.replace('&nbsp;|&nbsp; UAE AML/CFT Compliance Team', '')
 
     def _aml_manager_users(self):
         group = self.env.ref('aml_automation_extended_rk.group_aml_manager')
@@ -95,8 +113,7 @@ class SaleOrder(models.Model):
 
     def _aml_first_submitted_by(self):
         """Name of whoever moved the quotation to To Approve, read from the
-        approval_state tracking. The approver email is sent by whoever
-        completed AML, so env.user is the wrong person there."""
+        approval_state tracking (fallback when the caller doesn't pass it)."""
         self.ensure_one()
         tracking = self.env['mail.tracking.value'].sudo().search([
             ('field_id', '=', self.env['ir.model.fields']._get('sale.order', 'approval_state').id),
@@ -165,72 +182,26 @@ class SaleOrder(models.Model):
         self.sudo().message_post(body=note, author_id=self.env.user.partner_id.id)
 
     # ------------------------------------------------------------------
-    # AML/KYC Completed -> Quotation Approver
-    # ------------------------------------------------------------------
-    def _aml_gate_snapshot(self):
-        return {order.id: order.aml_gate_completed for order in self.sudo()}
-
-    def _aml_notify_if_gate_cleared(self, before):
-        if self.env.context.get('aml_first_skip_notify'):
-            return
-        for order in self.sudo():
-            if before.get(order.id) or not order.aml_gate_completed:
-                continue
-            if order.approval_state == 'to_approve' and order.state in ('draft', 'sent'):
-                order._notify_approver_aml_completed()
-
-    def _notify_approver_aml_completed(self):
-        """To-Do + email for the company's Quotation Approver once AML/KYC
-        is Completed. The To-Do is closed by Approve itself (core
-        sale_order_approval marks the approver's To-Dos done)."""
-        self.ensure_one()
-        order = self.sudo()
-        approver = order.company_id.approver_user_id
-        if not approver:
-            return
-        todo = self.env.ref('mail.mail_activity_data_todo')
-        if not order.activity_ids.filtered(
-                lambda a: a.user_id == approver and a.activity_type_id == todo):
-            order.activity_schedule(
-                'mail.mail_activity_data_todo',
-                user_id=approver.id,
-                summary=_("Approval Request"),
-                note=_("AML/KYC is completed for quotation %s. It now needs your approval.") % order.name,
-            )
-        order._send_aml_first_mail(
-            approver,
-            subject=_("Approval Required: Quotation %s (AML/KYC Completed)") % order.name,
-            title=_("AML/KYC Completed - Quotation Ready for Approval"),
-            intro=_("AML/KYC for quotation <strong>%s</strong> is now Completed. "
-                    "The quotation is waiting for your approval.") % escape(order.name),
-            closing=_("Please open the quotation to approve it."),
-            extra_rows=[(_('AML/KYC Completed By'), escape(self.env.user.name))],
-        )
-        order.message_post(
-            body=Markup('<p>%s</p>') % _("AML/KYC Completed. Sent to the Quotation Approver (%s) for approval.",
-                                         approver.name),
-            author_id=self.env.user.partner_id.id,
-        )
-
-    # ------------------------------------------------------------------
     # Guards
     # ------------------------------------------------------------------
     def action_approve_order(self):
         for order in self:
             if order.state == 'cancel':
                 raise UserError(_("Quotation %s is cancelled and cannot be approved.", order.name))
-        if not self.env.context.get('einvoicing_portal'):
-            for order in self:
-                if not order.aml_gate_completed:
-                    raise UserError(_(
-                        "Quotation %s cannot be approved yet: AML/KYC is not Completed. "
-                        "The AML/KYC request must be Approved or Cancelled, or the "
-                        "check bypassed, first.", order.name))
         return super().action_approve_order()
 
+    def _check_aml_gate(self, action_label=None):
+        """Once the quotation is Approved, AML/KYC no longer blocks Confirm
+        (aml_automation_extended_rk's write(state='sale')) or the project
+        that Confirm creates (project_extended_rk's project.create()). The
+        AML step carries on alongside; only unapproved orders are checked."""
+        pending = self.filtered(lambda o: o.approval_state != 'approved')
+        if pending:
+            return super(SaleOrder, pending)._check_aml_gate(action_label)
+
     def _notify_aml_team_order_approved(self):
-        # AML/KYC is already done by the time an order can be approved, so
-        # the old "approved - AML action needed" email would be noise.
+        # When AML/KYC is already Completed at approval time, the old
+        # "approved - AML action needed" email would be noise.
         if self.aml_gate_completed:
             return
         return super()._notify_aml_team_order_approved()
@@ -265,9 +236,9 @@ class SaleOrder(models.Model):
         return super().action_send_aml_form()
 
     def write(self, vals):
-        # Cancelling an order cascades its open AML requests to 'cancelled',
-        # which now ticks AML/KYC Completed - the approver must not be asked
-        # to approve an order that is being cancelled.
+        # Cancelling an order cascades its open AML requests to 'cancelled'.
+        # The context marks those requests cancelled_with_order, so they do
+        # not tick AML/KYC Completed (see aml.request.write).
         if vals.get('state') == 'cancel':
             return super(SaleOrder, self.with_context(aml_first_skip_notify=True)).write(vals)
         return super().write(vals)
