@@ -74,9 +74,8 @@ class EinvoicingPhase1Project(models.Model):
     def get_dashboard_data(self, salesperson_id=False):
         """Everything the Dashboard menu shows, in one call.
 
-        Runs as the current user, so the record rules apply: a User's figures
-        cover only the rows they created, an Administrator's cover every row.
-        Pending is a list of SEs and counts, not anyone's rows, and is shared.
+        Runs as the current user; Users and Administrators both see every
+        row, so the figures are the same for everyone.
         Every clickable figure carries the domain that opens its rows.
         """
         today = fields.Date.context_today(self)

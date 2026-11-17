@@ -4,3 +4,6 @@ access_phase1_project_manager,phase1.project.manager,model_einvoicing_phase1_pro
 access_phase1_pending_user,phase1.pending.user,model_einvoicing_phase1_pending,group_einvoicing_pm_user,1,0,0,0
 access_unidentified_user,unidentified.user,model_einvoicing_unidentified,group_einvoicing_pm_user,1,1,1,0
 access_unidentified_manager,unidentified.manager,model_einvoicing_unidentified,group_einvoicing_pm_manager,1,1,1,1
+access_quota_config_user,quota.config.user,model_einvoicing_quota_config,group_einvoicing_pm_user,1,0,0,0
+access_quota_config_manager,quota.config.manager,model_einvoicing_quota_config,group_einvoicing_pm_manager,1,1,0,0
+access_so_dashboard_user,so.dashboard.user,model_einvoicing_so_dashboard,group_einvoicing_pm_user,1,1,1,1

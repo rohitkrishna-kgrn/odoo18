@@ -87,6 +87,20 @@
                     <group>
                         <field name="remarks"/>
                     </group>
+                    <!-- Invoice quota from the KGRN platform, by Peppol ID. -->
+                    <div class="o_epm_q_section">
+                        <div class="o_epm_q_section_head">
+                            <h4>Invoice quota</h4>
+                            <field name="quota_fetched_at" readonly="1" invisible="not quota_fetched_at" class="o_epm_q_checked"/>
+                            <button name="action_fetch_quota" type="object" string="Check now"
+                                    icon="fa-refresh" class="btn btn-sm btn-secondary"
+                                    invisible="not id or not peppol_id"/>
+                        </div>
+                        <separator string="UAT"/>
+                        <field name="quota_uat_html" nolabel="1" readonly="1"/>
+                        <separator string="LIVE"/>
+                        <field name="quota_live_html" nolabel="1" readonly="1"/>
+                    </div>
                 </sheet>
                 <chatter/>
             </form>

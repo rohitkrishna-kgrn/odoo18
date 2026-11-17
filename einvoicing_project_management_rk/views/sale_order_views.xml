@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- E-Invoicing button beside the AML one on eInvoicing SEs. -->
+    <record id="view_sale_order_form_epm" model="ir.ui.view">
+        <field name="name">sale.order.form.einvoicing.project.management</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="aml_automation_extended_rk.view_sale_order_aml_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_view_aml_requests']" position="after">
+                <button name="action_open_epm_dashboard" type="object"
+                        class="oe_stat_button" icon="fa-file-text-o"
+                        invisible="not einvoicing_service"
+                        groups="einvoicing_project_management_rk.group_einvoicing_pm_user">
+                    <field name="epm_trn_count" widget="statinfo" string="E-Invoicing"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

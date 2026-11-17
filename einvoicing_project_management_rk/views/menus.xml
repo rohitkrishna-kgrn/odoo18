@@ -35,4 +35,18 @@
               parent="menu_einvoicing_pm_root"
               action="action_phase1_pending"
               sequence="30"/>
+
+    <!-- Configuration: Administrators only. -->
+    <menuitem id="menu_einvoicing_pm_config"
+              name="Configuration"
+              parent="menu_einvoicing_pm_root"
+              sequence="90"
+              groups="group_einvoicing_pm_manager"/>
+
+    <menuitem id="menu_einvoicing_pm_quota_config"
+              name="API Endpoints"
+              parent="menu_einvoicing_pm_config"
+              action="action_quota_config"
+              sequence="10"
+              groups="group_einvoicing_pm_manager"/>
 </odoo>

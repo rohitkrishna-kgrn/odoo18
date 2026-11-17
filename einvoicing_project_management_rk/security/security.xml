@@ -19,30 +19,11 @@
             <field name="comment">Everything a User can do, plus deleting Phase 1 Projects.</field>
         </record>
 
-        <!-- A User sees and edits only the Phase 1 rows they created. Group
-             rules are OR'ed, so the Administrator rule (all rows) wins for
-             administrators, who also carry the User group. Pending is not
-             restricted: it is a list of SEs and counts, not anyone's rows. -->
-        <record id="rule_phase1_project_user_own" model="ir.rule">
-            <field name="name">Phase 1 Project: User sees own rows</field>
-            <field name="model_id" ref="model_einvoicing_phase1_project"/>
-            <field name="domain_force">[('create_uid', '=', user.id)]</field>
-            <field name="groups" eval="[(4, ref('group_einvoicing_pm_user'))]"/>
-        </record>
+        <!-- Users and Administrators see and edit every row; only an
+             Administrator can delete (see ir.model.access.csv) or open
+             Configuration. Only the multi-company rules below restrict rows. -->
 
-        <record id="rule_unidentified_user_own" model="ir.rule">
-            <field name="name">Unidentified: User sees own rows</field>
-            <field name="model_id" ref="model_einvoicing_unidentified"/>
-            <field name="domain_force">[('create_uid', '=', user.id)]</field>
-            <field name="groups" eval="[(4, ref('group_einvoicing_pm_user'))]"/>
-        </record>
 
-        <record id="rule_unidentified_manager_all" model="ir.rule">
-            <field name="name">Unidentified: Administrator sees all rows</field>
-            <field name="model_id" ref="model_einvoicing_unidentified"/>
-            <field name="domain_force">[(1, '=', 1)]</field>
-            <field name="groups" eval="[(4, ref('group_einvoicing_pm_manager'))]"/>
-        </record>
 
         <record id="rule_unidentified_company" model="ir.rule">
             <field name="name">Unidentified: multi-company</field>
@@ -50,12 +31,6 @@
             <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
         </record>
 
-        <record id="rule_phase1_project_manager_all" model="ir.rule">
-            <field name="name">Phase 1 Project: Administrator sees all rows</field>
-            <field name="model_id" ref="model_einvoicing_phase1_project"/>
-            <field name="domain_force">[(1, '=', 1)]</field>
-            <field name="groups" eval="[(4, ref('group_einvoicing_pm_manager'))]"/>
-        </record>
     </data>
 
     <data noupdate="1">

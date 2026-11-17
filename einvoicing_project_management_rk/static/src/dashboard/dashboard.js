@@ -9,8 +9,7 @@ import { useService } from "@web/core/utils/hooks";
 /**
  * E-Invoicing Projects dashboard (data: einvoicing.phase1.project.get_dashboard_data).
  *
- * Runs as the current user, so a User sees the rows they created and an
- * Administrator sees every row; Pending is shared. Every figure opens the rows
+ * Every role sees every row (only multi-company rules apply). Every figure opens the rows
  * behind it - the server hands each one its domain.
  *
  * Colours (validated with the dataviz palette checker, light surface):
@@ -152,9 +151,7 @@ export class EinvoicingProjectDashboard extends Component {
         return _t("In %s days", days);
     }
     get scopeLabel() {
-        return this.data.is_manager
-            ? _t("All Phase 1 Projects")
-            : _t("Phase 1 Projects you created");
+        return _t("All Phase 1 Projects");
     }
 
     // ------------------------------------------------------------- actions

@@ -13,6 +13,11 @@ E-Invoicing Project Management
 * **Unidentified** - the same columns for projects whose SE is not known
   yet; **Add** moves a row into Phase 1 Projects (pre-filled form, the row is
   archived once the Phase 1 row is saved).
+* **Invoice quota** - UAT and LIVE sections on the form: AR / AP / overall
+  used, limit, remaining and overage from the KGRN platform, looked up by
+  Peppol ID (NA without one). Endpoints under Configuration.
+* **Sale order** - an E-Invoicing button beside AML opens a dashboard for that
+  SE: entities, listed, pending, onboarding, quotas and every TRN.
 * **Pending** - approved eInvoicing SEs whose Entities tab lists more entities
   than there are Phase 1 Project rows for that SE, with the shortfall.
 * **Dashboard** - an OWL dashboard over both: KPI tiles, onboarding progress,
@@ -24,18 +29,25 @@ E-Invoicing Project Management
     "author": "KGRN Chartered Accountants",
     "website": "https://kgrnaudit.com",
     "category": "Services/Project",
-    "version": "18.0.1.2.0",
+    "version": "18.0.1.3.1",
     "license": "LGPL-3",
     # crm_extended_rk: sale.order.einvoicing_service and the Entities tab
     # (sale.order.entity). sale_order_approval: sale.order.approval_state.
-    "depends": ["web", "mail", "sale_management", "crm_extended_rk", "sale_order_approval"],
+    "depends": ["web", "mail", "sale_management", "crm_extended_rk", "sale_order_approval",
+                "aml_automation_extended_rk"],
     "data": [
         "security/security.xml",
         "security/ir.model.access.csv",
         "data/ir_sequence.xml",
+        "data/quota_config_data.xml",
+        "data/ir_cron.xml",
+        "views/quota_templates.xml",
+        "views/quota_config_views.xml",
         "views/phase1_project_views.xml",
         "views/unidentified_views.xml",
         "views/phase1_pending_views.xml",
+        "views/sale_order_views.xml",
+        "wizard/so_dashboard_views.xml",
         "views/menus.xml",
     ],
     "assets": {
@@ -43,6 +55,7 @@ E-Invoicing Project Management
             "einvoicing_project_management_rk/static/src/dashboard/dashboard.scss",
             "einvoicing_project_management_rk/static/src/dashboard/dashboard.js",
             "einvoicing_project_management_rk/static/src/dashboard/dashboard.xml",
+            "einvoicing_project_management_rk/static/src/quota/quota.scss",
         ],
     },
     "installable": True,

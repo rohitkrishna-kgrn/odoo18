@@ -1,0 +1,263 @@
+// Invoice quota card (form UAT / LIVE sections) and the per-SE dashboard
+// opened from the sale order. Same palette as the main dashboard: one blue
+// for magnitude, status colours only with an icon and a label, text in ink.
+
+$epmq-blue: #2a78d6;
+$epmq-good: #0ca30c;
+$epmq-warning: #fab219;
+$epmq-critical: #d03b3b;
+$epmq-none: #c3c2b7;
+$epmq-track: #f0efec;
+$epmq-ink: #0b0b0b;
+$epmq-ink-2: #52514e;
+$epmq-muted: #898781;
+$epmq-hairline: #e1e0d9;
+
+// ── Form section wrapper ─────────────────────────────────────────────────
+.o_epm_q_section {
+    margin-top: 16px;
+
+    .o_epm_q_section_head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 4px;
+
+        h4 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .o_epm_q_checked {
+            color: $epmq-muted;
+            font-size: 12px;
+            &::before { content: 'checked '; }
+        }
+        .btn { margin-left: auto; }
+    }
+}
+
+// ── Card ─────────────────────────────────────────────────────────────────
+.o_epm_q {
+    margin: 4px 0 8px;
+    padding: 12px 14px;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    background: $o-view-background-color;
+    color: $epmq-ink;
+}
+.o_epm_q_head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 16px;
+    margin-bottom: 10px;
+    font-size: 12.5px;
+}
+.o_epm_q_badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 12px;
+    color: $epmq-ink;
+    background: rgba($epmq-none, 0.35);
+
+    i { color: $epmq-muted; }
+}
+.o_epm_q_badge_good { background: rgba($epmq-good, 0.12); i { color: $epmq-good; } }
+.o_epm_q_badge_warning { background: rgba($epmq-warning, 0.22); i { color: darken($epmq-warning, 14%); } }
+.o_epm_q_badge_critical { background: rgba($epmq-critical, 0.12); i { color: $epmq-critical; } }
+.o_epm_q_meta {
+    color: $epmq-ink-2;
+    strong { color: $epmq-ink; font-weight: 600; }
+}
+.o_epm_q_meta_right { margin-left: auto; color: $epmq-muted; }
+.o_epm_q_ic_good { color: $epmq-good; }
+.o_epm_q_ic_warning { color: darken($epmq-warning, 14%); }
+.o_epm_q_error {
+    margin: -4px 0 8px;
+    font-size: 12px;
+    color: $epmq-ink-2;
+}
+
+// ── Table ────────────────────────────────────────────────────────────────
+.o_epm_q_table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+
+    th, td {
+        padding: 6px 10px;
+        border-bottom: 1px solid $epmq-hairline;
+        white-space: nowrap;
+    }
+    thead th {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: $epmq-muted;
+    }
+    tbody th {
+        font-weight: 500;
+        color: $epmq-ink-2;
+    }
+    tbody tr:last-child th,
+    tbody tr:last-child td { border-bottom: 0; }
+}
+.o_epm_q_total {
+    th, td { font-weight: 700 !important; color: $epmq-ink !important; }
+    th, td { border-top: 1px solid $epmq-none; }
+}
+.o_epm_q_over {
+    color: $epmq-ink;
+    font-weight: 700;
+    i { color: $epmq-critical; }
+}
+.o_epm_q_muted { color: $epmq-muted !important; }
+.o_epm_q_usage {
+    width: 28%;
+    min-width: 140px;
+}
+.o_epm_q_track {
+    display: inline-block;
+    vertical-align: middle;
+    width: calc(100% - 48px);
+    height: 8px;
+    border-radius: 4px;
+    background: $epmq-track;
+    overflow: hidden;
+}
+.o_epm_q_fill {
+    display: block;
+    height: 100%;
+    background: $epmq-blue;
+    border-radius: 0 4px 4px 0;
+}
+.o_epm_q_fill_over { background: $epmq-critical; }
+.o_epm_q_pct {
+    display: inline-block;
+    width: 44px;
+    text-align: right;
+    font-size: 12px;
+    color: $epmq-ink-2;
+}
+
+// ── Per-SE dashboard (wizard) ────────────────────────────────────────────
+.o_epm_sod_field { display: block; width: 100%; }
+.o_epm_sod {
+    color: $epmq-ink;
+
+    h2 { margin: 0; font-size: 20px; font-weight: 700; }
+    h3 {
+        margin: 0 0 10px;
+        font-size: 13.5px;
+        font-weight: 700;
+        small { font-weight: 400; color: $epmq-muted; }
+    }
+}
+.o_epm_sod_head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 8px 24px;
+    margin-bottom: 14px;
+}
+.o_epm_sod_sub { color: $epmq-muted; font-size: 12.5px; }
+.o_epm_sod_dates {
+    display: flex;
+    gap: 18px;
+    font-size: 12.5px;
+    color: $epmq-ink-2;
+    strong { color: $epmq-ink; }
+}
+.o_epm_sod_kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.o_epm_sod_kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 14px;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+
+    span { font-size: 11.5px; font-weight: 600; color: $epmq-ink-2; }
+    strong { font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    small { font-size: 11.5px; color: $epmq-muted; }
+}
+.o_epm_sod_kpi_alert { border-top: 3px solid #eb6834; padding-top: 10px; }
+.o_epm_sod_grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+
+    @include media-breakpoint-down(lg) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+.o_epm_sod_card {
+    min-width: 0;
+    padding: 14px 16px;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    background: $o-view-background-color;
+}
+.o_epm_sod_note { margin: -4px 0 8px; font-size: 12px; color: $epmq-muted; }
+.o_epm_sod_meters {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+        display: grid;
+        grid-template-columns: 130px minmax(0, 1fr) 70px;
+        align-items: center;
+        gap: 10px;
+        padding: 5px 0;
+        font-size: 13px;
+    }
+    .o_epm_q_track { width: 100%; }
+}
+.o_epm_sod_val { text-align: right; font-variant-numeric: tabular-nums; }
+.o_epm_sod_legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    font-size: 12.5px;
+    color: $epmq-ink-2;
+
+    strong { color: $epmq-ink; margin-left: 2px; }
+}
+.o_epm_sod_sw {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    margin-right: 4px;
+    vertical-align: -1px;
+    background: $epmq-none;
+}
+.o_epm_sod_sw_active { background: $epmq-good; }
+.o_epm_sod_sw_suspended { background: $epmq-warning; }
+.o_epm_sod_sw_delinked { background: $epmq-critical; }
+.o_epm_sod_tablewrap { overflow-x: auto; }
+// the dashboard's cards are half the dialog wide: tighter cells keep the
+// four quota columns inside the card
+.o_epm_sod .o_epm_q_table {
+    th, td { padding: 6px 8px; }
+}
+.o_epm_sod_trns {
+    th, td { font-size: 12px; padding: 6px 6px !important; }
+}

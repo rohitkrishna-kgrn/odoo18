@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- noupdate: URLs edited under Configuration survive module upgrades. -->
+    <data noupdate="1">
+        <record id="quota_config_uat" model="einvoicing.quota.config">
+            <field name="name">UAT</field>
+            <field name="code">uat</field>
+            <field name="sequence">10</field>
+            <field name="url">https://uat.kgrnaudit.com</field>
+            <field name="timeout">10</field>
+        </record>
+        <record id="quota_config_live" model="einvoicing.quota.config">
+            <field name="name">LIVE</field>
+            <field name="code">live</field>
+            <field name="sequence">20</field>
+            <field name="url">https://live.kgrnaudit.com</field>
+            <field name="timeout">10</field>
+        </record>
+    </data>
+</odoo>

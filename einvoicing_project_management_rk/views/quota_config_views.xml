@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_quota_config_list" model="ir.ui.view">
+        <field name="name">einvoicing.quota.config.list</field>
+        <field name="model">einvoicing.quota.config</field>
+        <field name="arch" type="xml">
+            <list string="API Endpoints" editable="bottom" create="0" delete="0">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code" readonly="1"/>
+                <field name="url"/>
+                <field name="endpoint" readonly="1" optional="show"/>
+                <field name="timeout"/>
+                <button name="action_test_connection" type="object" string="Test connection"
+                        icon="fa-plug" class="btn-link"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_quota_config" model="ir.actions.act_window">
+        <field name="name">API Endpoints</field>
+        <field name="res_model">einvoicing.quota.config</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html">
+            <p>The UAT and LIVE base URLs of the KGRN invoice quota API
+               (<code>/api/v1/public/quota</code> is added to each).</p>
+        </field>
+    </record>
+</odoo>

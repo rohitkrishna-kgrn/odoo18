@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── One environment's quota, used in the UAT / LIVE form sections ── -->
+    <template id="quota_card">
+        <div t-attf-class="o_epm_q o_epm_q_{{ card['tone'] }}">
+            <div class="o_epm_q_head">
+                <span t-attf-class="o_epm_q_badge o_epm_q_badge_{{ card['tone'] }}">
+                    <i t-attf-class="fa {{ card['icon'] }} me-1"/><t t-esc="card['status_text']"/>
+                </span>
+                <span class="o_epm_q_meta">Peppol ID <strong t-esc="card['peppol']"/></span>
+                <span class="o_epm_q_meta" t-if="card['se_api']">
+                    Platform SE <strong t-esc="card['se_api']"/>
+                    <t t-if="card['se_check'] == 'match'"><i class="fa fa-check o_epm_q_ic_good ms-1" title="Matches this row's SE"/> matches</t>
+                    <t t-elif="card['se_check'] == 'differs'"><i class="fa fa-exclamation-triangle o_epm_q_ic_warning ms-1"/> differs from <t t-esc="card['se_ours']"/></t>
+                </span>
+                <span class="o_epm_q_meta o_epm_q_meta_right" t-if="card['as_of']">as of <t t-esc="card['as_of']"/></span>
+                <span class="o_epm_q_meta o_epm_q_meta_right" t-elif="card['checked']">checked <t t-esc="card['checked']"/></span>
+            </div>
+            <div class="o_epm_q_error" t-if="card['error']"><t t-esc="card['error']"/></div>
+            <table class="o_epm_q_table">
+                <thead>
+                    <tr>
+                        <th/>
+                        <th class="text-end">Used</th>
+                        <th class="text-end">Limit</th>
+                        <th class="text-end">Remaining</th>
+                        <th class="text-end">Overage</th>
+                        <th class="o_epm_q_usage">Usage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-if="card['rows']">
+                        <tr t-foreach="card['rows']" t-as="row" t-attf-class="{{ 'o_epm_q_total' if row['strong'] else '' }}">
+                            <th t-esc="row['label']"/>
+                            <td class="text-end" t-esc="row['used']"/>
+                            <td class="text-end" t-esc="row['limit']"/>
+                            <td class="text-end" t-esc="row['remaining']"/>
+                            <td t-attf-class="text-end {{ 'o_epm_q_over' if row['is_over'] else '' }}">
+                                <i t-if="row['is_over']" class="fa fa-exclamation-circle me-1"/><t t-esc="row['over']"/>
+                            </td>
+                            <td class="o_epm_q_usage">
+                                <t t-if="row['pct'] is not None">
+                                    <span class="o_epm_q_track"><span t-attf-class="o_epm_q_fill {{ 'o_epm_q_fill_over' if row['is_over'] else '' }}" t-attf-style="width: {{ row['bar'] }}%"/></span>
+                                    <span class="o_epm_q_pct"><t t-esc="row['pct']"/>%</span>
+                                </t>
+                                <span t-else="" class="o_epm_q_muted">no limit</span>
+                            </td>
+                        </tr>
+                    </t>
+                    <t t-else="">
+                        <tr t-foreach="['Issued (AR)', 'Received (AP)', 'Overall']" t-as="label" t-attf-class="{{ 'o_epm_q_total' if label == 'Overall' else '' }}">
+                            <th t-esc="label"/>
+                            <td class="text-end o_epm_q_muted">NA</td>
+                            <td class="text-end o_epm_q_muted">NA</td>
+                            <td class="text-end o_epm_q_muted">NA</td>
+                            <td class="text-end o_epm_q_muted">NA</td>
+                            <td class="o_epm_q_usage o_epm_q_muted">NA</td>
+                        </tr>
+                    </t>
+                </tbody>
+            </table>
+        </div>
+    </template>
+
+    <!-- ── Consolidated dashboard for one SE (sale order button) ────────── -->
+    <template id="so_dashboard">
+        <div class="o_epm_sod">
+            <div class="o_epm_sod_head">
+                <div>
+                    <h2 t-esc="so['name']"/>
+                    <span class="o_epm_sod_sub">
+                        <t t-esc="so['customer']"/>
+                        <t t-if="so['salesperson']"> · <t t-esc="so['salesperson']"/></t>
+                    </span>
+                </div>
+                <div class="o_epm_sod_dates">
+                    <span t-if="so['start']">Subscription start <strong t-esc="so['start']"/></span>
+                    <span t-if="so['renewal']">Next renewal <strong t-esc="so['renewal']"/></span>
+                </div>
+            </div>
+
+            <div class="o_epm_sod_kpis">
+                <div class="o_epm_sod_kpi"><span>Entities</span><strong t-esc="kpis['entities']"/><small>in the Entities tab</small></div>
+                <div class="o_epm_sod_kpi"><span>Listed TRNs</span><strong t-esc="kpis['listed']"/><small>Phase 1 Projects</small></div>
+                <div t-attf-class="o_epm_sod_kpi {{ 'o_epm_sod_kpi_alert' if kpis['pending'] else '' }}">
+                    <span>Pending</span><strong t-esc="kpis['pending']"/>
+                    <small t-if="kpis['pending']">entities not listed yet</small>
+                    <small t-else=""><i class="fa fa-check-circle o_epm_q_ic_good me-1"/>all listed</small>
+                </div>
+                <div class="o_epm_sod_kpi"><span>Unidentified</span><strong t-esc="kpis['unidentified']"/><small>rows naming this SE</small></div>
+            </div>
+
+            <div class="o_epm_sod_grid">
+                <section class="o_epm_sod_card">
+                    <h3>Gap Assessment</h3>
+                    <ul class="o_epm_sod_meters">
+                        <li t-foreach="ga" t-as="g">
+                            <span class="o_epm_sod_name" t-esc="g['label']"/>
+                            <span class="o_epm_q_track"><span class="o_epm_q_fill" t-attf-style="width: {{ g['pct'] }}%"/></span>
+                            <span class="o_epm_sod_val"><strong t-esc="g['count']"/></span>
+                        </li>
+                    </ul>
+                </section>
+                <section class="o_epm_sod_card">
+                    <h3>Onboarding</h3>
+                    <ul class="o_epm_sod_meters">
+                        <li>
+                            <span class="o_epm_sod_name">UAT Onboarded</span>
+                            <span class="o_epm_q_track"><span class="o_epm_q_fill" t-attf-style="width: {{ uat[0]['pct'] }}%"/></span>
+                            <span class="o_epm_sod_val"><strong t-esc="uat[0]['count']"/> / <t t-esc="kpis['visible']"/></span>
+                        </li>
+                        <li>
+                            <span class="o_epm_sod_name">LIVE Middleware</span>
+                            <span class="o_epm_q_track"><span class="o_epm_q_fill" t-attf-style="width: {{ live[0]['pct'] }}%"/></span>
+                            <span class="o_epm_sod_val"><strong t-esc="live[0]['count']"/> / <t t-esc="kpis['visible']"/></span>
+                        </li>
+                    </ul>
+                    <h3 class="mt-3">Emaratax Onboarding</h3>
+                    <ul class="o_epm_sod_legend">
+                        <li t-foreach="emaratax" t-as="e">
+                            <span t-attf-class="o_epm_sod_sw o_epm_sod_sw_{{ e['key'] }}"/>
+                            <t t-esc="e['label']"/> <strong t-esc="e['count']"/>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+
+            <div class="o_epm_sod_grid">
+                <section class="o_epm_sod_card" t-foreach="quotas" t-as="q">
+                    <h3><t t-esc="q['label']"/> invoice quota <small>· all TRNs on this SE</small></h3>
+                    <p class="o_epm_sod_note">
+                        <t t-esc="q['found']"/> of <t t-esc="q['total']"/> TRNs found on the platform
+                        <t t-if="q['na']"> · <t t-esc="q['na']"/> without a Peppol ID (NA)</t>
+                        <t t-if="q['not_found']"> · <t t-esc="q['not_found']"/> not found</t>
+                        <t t-if="q['pending']"> · <t t-esc="q['pending']"/> not checked yet</t>
+                        <t t-if="q['failed']"> · <t t-esc="q['failed']"/> failed</t>
+                    </p>
+                    <div class="o_epm_sod_tablewrap">
+                    <table class="o_epm_q_table">
+                        <thead>
+                            <tr><th/><th class="text-end">Used</th><th class="text-end">Limit</th><th class="text-end">Remaining</th><th class="text-end">Overage</th></tr>
+                        </thead>
+                        <tbody>
+                            <t t-if="q['rows']">
+                                <tr t-foreach="q['rows']" t-as="row" t-attf-class="{{ 'o_epm_q_total' if row['strong'] else '' }}">
+                                    <th t-esc="row['label']"/>
+                                    <td class="text-end" t-esc="row['used']"/>
+                                    <td class="text-end" t-esc="row['limit']"/>
+                                    <td class="text-end" t-esc="row['remaining']"/>
+                                    <td t-attf-class="text-end {{ 'o_epm_q_over' if row['is_over'] else '' }}">
+                                        <i t-if="row['is_over']" class="fa fa-exclamation-circle me-1"/><t t-esc="row['over']"/>
+                                    </td>
+                                </tr>
+                            </t>
+                            <t t-else="">
+                                <tr t-foreach="['Issued (AR)', 'Received (AP)', 'Overall']" t-as="label" t-attf-class="{{ 'o_epm_q_total' if label == 'Overall' else '' }}">
+                                    <th t-esc="label"/>
+                                    <td class="text-end o_epm_q_muted">NA</td><td class="text-end o_epm_q_muted">NA</td>
+                                    <td class="text-end o_epm_q_muted">NA</td><td class="text-end o_epm_q_muted">NA</td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                    </div>
+                </section>
+            </div>
+
+            <section class="o_epm_sod_card">
+                <h3>TRNs on this SE
+                    <small t-if="kpis['visible'] != kpis['listed']">· showing the <t t-esc="kpis['visible']"/> of <t t-esc="kpis['listed']"/> you can see</small>
+                </h3>
+                <p t-if="not trns" class="o_epm_sod_note">No Phase 1 Projects on this SE yet.</p>
+                <div t-else="" class="o_epm_sod_tablewrap">
+                    <table class="o_epm_q_table o_epm_sod_trns">
+                        <thead>
+                            <tr>
+                                <th>S.No</th><th>Emaratax Legal Name</th><th>Peppol ID</th><th>Gap Assessment</th>
+                                <th>UAT</th><th>Emaratax</th><th>LIVE</th><th>Renewal</th>
+                                <th class="text-end">LIVE used / limit</th><th class="text-end">UAT used / limit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="trns" t-as="t">
+                                <td t-esc="t['s_no']"/>
+                                <td class="fw-semibold" t-esc="t['name']"/>
+                                <td t-attf-class="{{ 'o_epm_q_muted' if t['peppol'] == 'NA' else '' }}" t-esc="t['peppol']"/>
+                                <td t-esc="t['ga']"/>
+                                <td><t t-if="t['uat']"><i class="fa fa-check o_epm_q_ic_good me-1"/>Yes</t><t t-else="">No</t></td>
+                                <td><span t-attf-class="o_epm_sod_sw o_epm_sod_sw_{{ t['emaratax_key'] }}"/> <t t-esc="t['emaratax']"/></td>
+                                <td><t t-if="t['live']"><i class="fa fa-check o_epm_q_ic_good me-1"/>Yes</t><t t-else="">No</t></td>
+                                <td t-esc="t['renewal']"/>
+                                <td t-attf-class="text-end {{ 'o_epm_q_muted' if t['q_live']['text'] == 'NA' else '' }}">
+                                    <t t-esc="t['q_live']['text']"/>
+                                    <span t-if="t['q_live']['over']" class="o_epm_q_over d-block"><i class="fa fa-exclamation-circle me-1"/><t t-esc="t['q_live']['over_text']"/> over</span>
+                                </td>
+                                <td t-attf-class="text-end {{ 'o_epm_q_muted' if t['q_uat']['text'] == 'NA' else '' }}">
+                                    <t t-esc="t['q_uat']['text']"/>
+                                    <span t-if="t['q_uat']['over']" class="o_epm_q_over d-block"><i class="fa fa-exclamation-circle me-1"/><t t-esc="t['q_uat']['over_text']"/> over</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </template>
+
+</odoo>
