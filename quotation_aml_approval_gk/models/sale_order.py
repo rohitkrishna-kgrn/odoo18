@@ -64,29 +64,11 @@ class SaleOrder(models.Model):
             order.approval_status_display = (
                 'cancel' if order.state == 'cancel' else order.approval_state)
 
-    # "Send AML Form" is for the AML team while the quotation is To Approve;
-    # the Quotation Approver only gets "AML Bypass" at that point.
-    aml_is_aml_team = fields.Boolean(compute='_compute_aml_is_aml_team')
-
-    @api.depends_context('uid')
-    def _compute_aml_is_aml_team(self):
-        is_team = self.env.user.has_group('aml_automation_extended_rk.group_aml_user')
-        for order in self:
-            order.aml_is_aml_team = is_team
-
     # ------------------------------------------------------------------
-    # Submit for Approval -> Quotation Approver (as before) + AML Managers
+    # Submit for Approval -> Quotation Approver only (sale_order_approval's
+    # To-Do + email, in the branded layout below). The AML team is not
+    # involved until the quotation is Approved.
     # ------------------------------------------------------------------
-    def _notify_approval_submitted(self):
-        """The Quotation Approver gets the usual To-Do + email from
-        sale_order_approval and can approve straight away. The AML Managers
-        are also told so the AML/KYC step can start; nothing is sent to the
-        approver again when AML/KYC is Completed."""
-        self.ensure_one()
-        super()._notify_approval_submitted()
-        if not self.aml_gate_completed:
-            self._notify_aml_managers_submitted()
-
     def _approval_request_mail_body(self, approver):
         """Branded "Approval Required" email (same look as the AML emails)
         with an Open button that takes the approver straight to the quotation."""
@@ -159,26 +141,34 @@ class SaleOrder(models.Model):
             }).send()
         return emails
 
-    def _notify_aml_managers_submitted(self):
+    # ------------------------------------------------------------------
+    # Approve -> AML Managers
+    # ------------------------------------------------------------------
+    def _notify_aml_team_order_approved(self):
+        """Replaces aml_automation's "approved - AML action needed" email to
+        the whole AML team: only the AML Managers are told, once the
+        quotation is Approved. Nothing is sent when AML/KYC is already
+        Completed."""
         self.ensure_one()
+        if self.aml_gate_completed:
+            return
         managers = self._aml_manager_users()
         sent_to = self._send_aml_first_mail(
             managers,
-            subject=_("AML/KYC Check Required: Quotation %s") % self.name,
-            title=_("Quotation Submitted - AML/KYC Check Required"),
-            intro=_("Quotation <strong>%s</strong> has been submitted for approval. "
-                    "Please complete the AML/KYC step first - send the AML/KYC form "
-                    "to the client, or record a bypass with a reason. The Quotation "
-                    "Approver can approve it once AML/KYC is Completed.") % escape(self.name),
-            closing=_("Please open the quotation to send the AML/KYC form."),
-            submitted_by=self.env.user.name,
+            subject=_("Quotation %s Approved - AML/KYC Action Needed") % self.name,
+            title=_("Quotation Approved - AML/KYC Action Needed"),
+            intro=_("Quotation <strong>%s</strong> has been approved. Please complete "
+                    "the AML/KYC step - send the AML/KYC form to the client, or record "
+                    "a bypass with a reason.") % escape(self.name),
+            closing=_("Click the button below to open the quotation."),
+            extra_rows=[(_('Approved By'), escape(self.env.user.name))],
         )
         if sent_to:
-            note = _("Submitted for approval. AML/KYC check requested from the AML Manager(s): %s.",
+            note = _("Approved. AML/KYC check requested from the AML Manager(s): %s.",
                      ', '.join(managers.filtered('email').mapped('name')))
         else:
-            note = _("Submitted for approval. No active AML Manager has an email "
-                     "address, so no AML/KYC request email was sent.")
+            note = _("Approved. No active AML Manager has an email address, so no "
+                     "AML/KYC request email was sent.")
         self.sudo().message_post(body=note, author_id=self.env.user.partner_id.id)
 
     # ------------------------------------------------------------------
@@ -199,20 +189,19 @@ class SaleOrder(models.Model):
         if pending:
             return super(SaleOrder, pending)._check_aml_gate(action_label)
 
-    def _notify_aml_team_order_approved(self):
-        # When AML/KYC is already Completed at approval time, the old
-        # "approved - AML action needed" email would be noise.
-        if self.aml_gate_completed:
-            return
-        return super()._notify_aml_team_order_approved()
+    def _aml_check_approved(self):
+        for order in self:
+            if order.approval_state != 'approved' and not self.env.su:
+                raise UserError(_(
+                    "The AML/KYC form can be sent, or the check bypassed, only once "
+                    "quotation %s is Approved.", order.name))
+
+    def action_open_aml_bypass_wizard(self):
+        self._aml_check_approved()
+        return super().action_open_aml_bypass_wizard()
 
     def action_send_aml_form(self):
-        for order in self:
-            if order.approval_state == 'to_approve' and not self.env.su \
-                    and not self.env.user.has_group('aml_automation_extended_rk.group_aml_user'):
-                raise UserError(_(
-                    "Only the AML team can send the AML/KYC form while the quotation "
-                    "is waiting for approval. The Quotation Approver can use AML Bypass."))
+        self._aml_check_approved()
         self.ensure_one()
         if self._aml_restart_allowed():
             # Core refuses once any request exists; the cancelled one stays

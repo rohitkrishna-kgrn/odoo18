@@ -6,6 +6,7 @@ class AmlBypassWizard(models.TransientModel):
 
     def action_save_bypass(self):
         order = self.sale_order_id
+        order._aml_check_approved()
         if order and order._aml_restart_allowed():
             # The core wizard refuses when the latest request is closed.
             # Open a fresh (unsent) request for the restarted AML step so the

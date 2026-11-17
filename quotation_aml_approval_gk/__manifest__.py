@@ -1,22 +1,20 @@
 {
     'name': 'Quotation AML-First Approval',
-    'version': '18.0.1.3.0',
+    'version': '18.0.1.4.0',
     'category': 'Sales',
-    'summary': 'AML/KYC runs alongside quotation approval',
+    'summary': 'Quotation approval first, then the AML/KYC step',
     'description': """
-Moves the AML/KYC step in front of quotation approval:
+Quotation approval first, then AML/KYC:
 
-* Submit for Approval sends the Quotation Approver the usual To-Do + email
-  and also emails the AML Manager group so the AML/KYC step can start.
-* While the quotation is To Approve, the Quotation Approver sees "Approve"
-  straight away, plus "AML Bypass" until AML/KYC is Completed.
+* Submit for Approval sends the Quotation Approver a branded To-Do + email
+  (with an Open button), from the company email. The AML team is not told yet.
+* While the quotation is To Approve, the Quotation Approver sees "Approve".
+* Once Approved, the AML Managers get an email, and "Send AML Form" /
+  "AML Bypass" appear (AML team or Quotation Approver).
 * AML/KYC Completed is ticked automatically when the AML request is Approved,
   Bypassed or Cancelled by the AML team (not by cancelling the quotation).
-  No extra email goes to the Quotation Approver at that point.
-* Once the quotation is Approved it can be confirmed (and its project
-  created) without AML/KYC being Completed.
-* Orders that were already approved before this module keep the old
-  post-approval Send AML Form / AML Bypass buttons, so they can still finish.
+* An Approved quotation can be confirmed (and its project created) without
+  AML/KYC being Completed.
     """,
     'author': 'KGRN',
     'depends': [
