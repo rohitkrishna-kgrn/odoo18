@@ -1,22 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Rolling refresh: each run re-checks the 12 rows checked longest ago
-         (24 calls), well inside the API's 60 requests/minute per IP. -->
+    <!-- Every 10 minutes: fetch and store the UAT and LIVE quota of every
+         Phase 1 and Unidentified row (see _cron_refresh_all_quotas for the
+         rate-limit pacing). -->
     <record id="cron_refresh_quota_phase1" model="ir.cron">
-        <field name="name">E-Invoicing Projects: refresh invoice quotas (Phase 1)</field>
+        <field name="name">E-Invoicing Projects: refresh invoice quotas (UAT + LIVE)</field>
         <field name="model_id" ref="model_einvoicing_phase1_project"/>
         <field name="state">code</field>
-        <field name="code">model._cron_refresh_quotas()</field>
-        <field name="interval_number">15</field>
-        <field name="interval_type">minutes</field>
-        <field name="active" eval="True"/>
-    </record>
-    <record id="cron_refresh_quota_unidentified" model="ir.cron">
-        <field name="name">E-Invoicing Projects: refresh invoice quotas (Unidentified)</field>
-        <field name="model_id" ref="model_einvoicing_unidentified"/>
-        <field name="state">code</field>
-        <field name="code">model._cron_refresh_quotas(batch=6)</field>
-        <field name="interval_number">30</field>
+        <field name="code">model._cron_refresh_all_quotas()</field>
+        <field name="interval_number">10</field>
         <field name="interval_type">minutes</field>
         <field name="active" eval="True"/>
     </record>

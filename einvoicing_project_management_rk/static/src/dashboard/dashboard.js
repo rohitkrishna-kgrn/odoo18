@@ -1,5 +1,5 @@
 /** @odoo-module **/
-import { Component, onWillStart, useEffect, useRef, useState } from "@odoo/owl";
+import { Component, onMounted, onWillStart, useEffect, useRef, useState } from "@odoo/owl";
 import { loadBundle } from "@web/core/assets";
 import { _t } from "@web/core/l10n/translation";
 import { formatDate, deserializeDate } from "@web/core/l10n/dates";
@@ -73,6 +73,8 @@ export class EinvoicingProjectDashboard extends Component {
             loading: false,
             salespersonId: false,
             tables: { progress: false, renewals: false },
+            quotaEnv: "live",
+            quotaRefreshing: false,
         });
         this.charts = [];
         this.progressRef = useRef("progressChart");
@@ -87,6 +89,10 @@ export class EinvoicingProjectDashboard extends Component {
             }
             await this.load();
         });
+        // The page shows the stored quota at once; quotas older than a few
+        // minutes are then re-checked on UAT and LIVE, and the page reloads
+        // only if something changed.
+        onMounted(() => this.refreshQuotas(false));
         useEffect(
             () => {
                 this.renderCharts();
@@ -114,6 +120,39 @@ export class EinvoicingProjectDashboard extends Component {
         } finally {
             this.state.loading = false;
         }
+    }
+
+    async refreshQuotas(force) {
+        this.state.quotaRefreshing = true;
+        try {
+            const counts = await Promise.all(
+                ["einvoicing.phase1.project", "einvoicing.unidentified"].map((model) =>
+                    this.orm.call(model, "refresh_stale_quotas", [], { force: !!force })
+                )
+            );
+            if (counts.some((n) => n > 0)) {
+                await this.load();
+            }
+        } catch (error) {
+            console.warn("Invoice quota refresh failed", error);
+        } finally {
+            this.state.quotaRefreshing = false;
+        }
+    }
+    setQuotaEnv(env) {
+        this.state.quotaEnv = env;
+    }
+    get quota() {
+        return this.data.quota[this.state.quotaEnv];
+    }
+    get quotaEnvLabel() {
+        return this.state.quotaEnv === "live" ? "LIVE" : "UAT";
+    }
+    fmt(value) {
+        return value === null || value === undefined ? "" : value.toLocaleString("en-US");
+    }
+    meterStyle(pct) {
+        return "width: " + Math.min(pct || 0, 100) + "%";
     }
 
     // ------------------------------------------------------------- helpers
@@ -180,6 +219,18 @@ export class EinvoicingProjectDashboard extends Component {
             views: [[false, "form"]],
             target: "current",
         });
+    }
+    openSaleOrder(id) {
+        this.action.doAction({
+            type: "ir.actions.act_window",
+            res_model: "sale.order",
+            res_id: id,
+            views: [[false, "form"]],
+            target: "current",
+        });
+    }
+    widthPct(pct) {
+        return "width: " + (pct || 0) + "%";
     }
     openPendingList() {
         this.action.doAction({

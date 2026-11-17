@@ -18,6 +18,7 @@
                 <span class="o_epm_q_meta o_epm_q_meta_right" t-elif="card['checked']">checked <t t-esc="card['checked']"/></span>
             </div>
             <div class="o_epm_q_error" t-if="card['error']"><t t-esc="card['error']"/></div>
+            <div class="o_epm_q_error" t-if="card['refresh_error']"><i class="fa fa-exclamation-triangle o_epm_q_ic_warning me-1"/><t t-esc="card['refresh_error']"/></div>
             <table class="o_epm_q_table">
                 <thead>
                     <tr>
@@ -60,6 +61,67 @@
                     </t>
                 </tbody>
             </table>
+        </div>
+    </template>
+
+    <!-- ── Payment: the SE's value against its invoices (form section) ──── -->
+    <template id="payment_card">
+        <div class="o_epm_q o_epm_pay">
+            <t t-if="card['state'] == 'na'">
+                <div class="o_epm_q_head">
+                    <span class="o_epm_q_badge o_epm_q_badge_none"><i class="fa fa-minus-circle me-1"/>N/A - no SE on this row</span>
+                </div>
+                <div class="o_epm_pay_tiles">
+                    <div class="o_epm_pay_tile"><span>Total value</span><strong class="o_epm_q_muted">NA</strong></div>
+                    <div class="o_epm_pay_tile"><span>Posted invoices</span><strong class="o_epm_q_muted">NA</strong></div>
+                    <div class="o_epm_pay_tile"><span>Paid</span><strong class="o_epm_q_muted">NA</strong></div>
+                    <div class="o_epm_pay_tile"><span>Pending</span><strong class="o_epm_q_muted">NA</strong></div>
+                </div>
+            </t>
+            <t t-else="">
+                <div class="o_epm_q_head">
+                    <span class="o_epm_q_meta">SE <strong t-esc="card['se']"/></span>
+                    <span class="o_epm_q_meta" t-esc="card['customer']"/>
+                    <span class="o_epm_q_meta o_epm_q_meta_right">Not yet invoiced <strong t-esc="card['to_invoice']"/></span>
+                </div>
+                <div class="o_epm_pay_tiles">
+                    <div class="o_epm_pay_tile"><span>Total value</span><strong t-esc="card['total']"/><small>sale order total</small></div>
+                    <div class="o_epm_pay_tile"><span>Posted invoices</span><strong t-esc="card['posted']"/><small><t t-esc="card['pct_posted']"/>% of the value</small></div>
+                    <div class="o_epm_pay_tile"><span>Paid</span><strong t-esc="card['paid']"/><small>received on posted invoices</small></div>
+                    <div t-attf-class="o_epm_pay_tile {{ 'o_epm_pay_tile_alert' if card['has_pending'] else '' }}">
+                        <span>Pending</span><strong t-esc="card['pending']"/><small>still due on posted invoices</small>
+                    </div>
+                </div>
+                <div class="o_epm_pay_bar" role="img" aria-label="Paid and pending against the SE value">
+                    <span class="o_epm_pay_seg o_epm_pay_seg_paid" t-attf-style="width: {{ card['pct_paid'] }}%" title="Paid"/>
+                    <span class="o_epm_pay_seg o_epm_pay_seg_pending" t-attf-style="width: {{ card['pct_pending'] }}%" title="Pending"/>
+                </div>
+                <ul class="o_epm_pay_legend">
+                    <li><span class="o_epm_pay_sw o_epm_pay_seg_paid"/>Paid</li>
+                    <li><span class="o_epm_pay_sw o_epm_pay_seg_pending"/>Pending</li>
+                    <li><span class="o_epm_pay_sw o_epm_pay_sw_rest"/>Not yet invoiced</li>
+                </ul>
+                <table class="o_epm_q_table o_epm_pay_invoices" t-if="card['invoices']">
+                    <thead>
+                        <tr><th>Invoice</th><th>Date</th><th>Type</th><th class="text-end">Amount</th><th class="text-end">Due</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="card['invoices']" t-as="inv">
+                            <td class="fw-semibold" t-esc="inv['name']"/>
+                            <td t-esc="inv['date']"/>
+                            <td t-esc="inv['kind']"/>
+                            <td class="text-end" t-esc="inv['amount']"/>
+                            <td class="text-end" t-esc="inv['due']"/>
+                            <td>
+                                <i t-if="inv['paid']" class="fa fa-check-circle o_epm_q_ic_good me-1"/>
+                                <i t-else="" class="fa fa-clock-o o_epm_q_ic_warning me-1"/>
+                                <t t-esc="inv['status']"/>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="o_epm_q_error" t-else="">No posted invoices on this SE yet.</p>
+            </t>
         </div>
     </template>
 

@@ -521,3 +521,104 @@ $epm-accent: #F15C22; // KGRN orange: title rule only, never data
         strong { color: $epm-ink; }
     }
 }
+
+// ── Invoice quota section ────────────────────────────────────────────────
+.o_epm_dash {
+    .o_epm_quota {
+        margin-bottom: 16px;
+
+        .o_epm_card_head {
+            flex-wrap: wrap; // on a phone the LIVE/UAT switch drops under the title
+        }
+    }
+    .o_epm_quota_tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: none;
+    }
+    .o_epm_quota_tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .o_epm_qtile {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px 14px;
+        border: 1px solid $border-color;
+        border-radius: 10px;
+        background: $o-view-background-color;
+    }
+    .o_epm_qtile_alert {
+        border-top: 3px solid $epm-critical;
+        padding-top: 10px; // keeps the figure level with the other tiles
+    }
+    .o_epm_qtile_na {
+        color: $epm-muted;
+        font-weight: 600;
+    }
+    .o_epm_qtile_meter {
+        margin-top: 4px;
+    }
+    .o_epm_fill_over {
+        background: $epm-critical;
+    }
+    .o_epm_subhead {
+        margin: 0 0 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: $epm-muted;
+    }
+    .o_epm_quota_detail {
+        margin-bottom: 0;
+    }
+    .o_epm_meter_static {
+        grid-template-columns: 110px minmax(0, 1fr) 190px;
+        cursor: default;
+
+        &:hover { background: transparent; }
+
+        @include media-breakpoint-down(sm) {
+            grid-template-columns: minmax(0, 1fr) auto;
+        }
+    }
+    .o_epm_meter_value_wide {
+        small { margin-left: 2px; }
+    }
+    .o_epm_over_note {
+        display: block;
+        color: $epm-ink !important;
+        font-weight: 700 !important;
+        i { color: $epm-critical; }
+    }
+}
+
+// ── Billing & payments section ───────────────────────────────────────────
+// Paid = blue, pending = orange (the validated two-series pair), the rest of
+// the value is the track.
+.o_epm_dash {
+    .o_epm_billing { margin-bottom: 16px; }
+    .o_epm_money { font-size: 21px; }
+    .o_epm_qtile_pending {
+        border-top: 3px solid $epm-orange;
+        padding-top: 10px;
+    }
+    .o_epm_billbar {
+        display: flex;
+        gap: 2px;
+        height: 14px;
+        border-radius: 7px;
+        background: $epm-track;
+        overflow: hidden;
+    }
+    .o_epm_billseg { display: block; height: 100%; }
+    .o_epm_billseg_paid { background: $epm-blue; }
+    .o_epm_billseg_pending { background: $epm-orange; }
+    .o_epm_billlegend { margin-top: 10px; }
+    .o_epm_sw_rest { background: $epm-track; border: 1px solid $epm-hairline; }
+}

@@ -15,7 +15,11 @@ E-Invoicing Project Management
   archived once the Phase 1 row is saved).
 * **Invoice quota** - UAT and LIVE sections on the form: AR / AP / overall
   used, limit, remaining and overage from the KGRN platform, looked up by
-  Peppol ID (NA without one). Endpoints under Configuration.
+  Peppol ID (NA without one). Endpoints under Configuration. Re-checked
+  every 10 minutes by a cron (all rows, paced to the rate limit), on every
+  module install/upgrade, and when a page opens if a row is older than that.
+* **Payment** - per SE: value, posted invoices, paid and pending, with the
+  invoice list; totals on the dashboard (each SE counted once).
 * **Sale order** - an E-Invoicing button beside AML opens a dashboard for that
   SE: entities, listed, pending, onboarding, quotas and every TRN.
 * **Pending** - approved eInvoicing SEs whose Entities tab lists more entities
@@ -29,7 +33,7 @@ E-Invoicing Project Management
     "author": "KGRN Chartered Accountants",
     "website": "https://kgrnaudit.com",
     "category": "Services/Project",
-    "version": "18.0.1.3.1",
+    "version": "18.0.1.5.0",
     "license": "LGPL-3",
     # crm_extended_rk: sale.order.einvoicing_service and the Entities tab
     # (sale.order.entity). sale_order_approval: sale.order.approval_state.
@@ -49,6 +53,7 @@ E-Invoicing Project Management
         "views/sale_order_views.xml",
         "wizard/so_dashboard_views.xml",
         "views/menus.xml",
+        "data/quota_refresh_on_load.xml",
     ],
     "assets": {
         "web.assets_backend": [
@@ -56,6 +61,7 @@ E-Invoicing Project Management
             "einvoicing_project_management_rk/static/src/dashboard/dashboard.js",
             "einvoicing_project_management_rk/static/src/dashboard/dashboard.xml",
             "einvoicing_project_management_rk/static/src/quota/quota.scss",
+            "einvoicing_project_management_rk/static/src/quota/quota_autorefresh.js",
         ],
     },
     "installable": True,

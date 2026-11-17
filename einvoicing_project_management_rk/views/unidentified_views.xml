@@ -9,7 +9,7 @@
         <field name="arch" type="xml">
             <!-- Edited in place like a sheet; the row's expand icon still
                  opens the form for the chatter. -->
-            <list string="Unidentified" editable="bottom" open_form_view="True">
+            <list string="Unidentified" editable="bottom" open_form_view="True" js_class="epm_quota_list">
                 <field name="s_no" readonly="1"/>
                 <field name="name"/>
                 <field name="peppol_id"/>
@@ -23,7 +23,8 @@
                        decoration-info="gap_assessment == 'new'"
                        decoration-warning="gap_assessment in ('in_progress', 'on_hold')"
                        decoration-success="gap_assessment == 'done'"
-                       decoration-danger="gap_assessment == 'cancelled'"/>
+                       decoration-danger="gap_assessment == 'cancelled'"
+                       decoration-muted="gap_assessment == 'not_required'"/>
                 <field name="uat_onboarding"
                        decoration-success="uat_onboarding == 'yes'"/>
                 <field name="emaratax_onboarding"
@@ -47,7 +48,7 @@
         <field name="name">einvoicing.unidentified.form</field>
         <field name="model">einvoicing.unidentified</field>
         <field name="arch" type="xml">
-            <form string="Unidentified">
+            <form string="Unidentified" js_class="epm_quota_form">
                 <header>
                     <button name="action_add_to_phase1" type="object" string="Add to Phase 1 Projects"
                             class="btn-primary" invisible="not active or not id"/>
@@ -101,6 +102,13 @@
                         <separator string="LIVE"/>
                         <field name="quota_live_html" nolabel="1" readonly="1"/>
                     </div>
+                    <!-- Payment: the SE's value against its posted and paid invoices. -->
+                    <div class="o_epm_q_section">
+                        <div class="o_epm_q_section_head">
+                            <h4>Payment</h4>
+                        </div>
+                        <field name="payment_html" nolabel="1" readonly="1"/>
+                    </div>
                 </sheet>
                 <chatter/>
             </form>
@@ -128,6 +136,7 @@
                 <filter string="GA On Hold" name="ga_on_hold" domain="[('gap_assessment', '=', 'on_hold')]"/>
                 <filter string="GA Done" name="ga_done" domain="[('gap_assessment', '=', 'done')]"/>
                 <filter string="GA Cancelled" name="ga_cancelled" domain="[('gap_assessment', '=', 'cancelled')]"/>
+                <filter string="GA Not Required" name="ga_not_required" domain="[('gap_assessment', '=', 'not_required')]"/>
                 <separator/>
                 <filter string="UAT Onboarded" name="uat_yes" domain="[('uat_onboarding', '=', 'yes')]"/>
                 <filter string="Not UAT Onboarded" name="uat_no" domain="[('uat_onboarding', '=', 'no')]"/>

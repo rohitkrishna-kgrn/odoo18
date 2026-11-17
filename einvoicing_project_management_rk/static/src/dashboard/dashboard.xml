@@ -78,6 +78,194 @@
                         </button>
                     </div>
 
+                    <!-- ── Billing & payments (each SE once) ─────────────────────── -->
+                    <section class="o_epm_card o_epm_billing">
+                        <header class="o_epm_card_head">
+                            <div>
+                                <h2>Billing &amp; payments</h2>
+                                <p>Across the <t t-esc="data.billing.se_count"/> SEs behind these TRNs · each SE counted once · posted invoices only</p>
+                            </div>
+                        </header>
+                        <div t-if="!data.billing.se_count" class="o_epm_empty">No SEs yet.</div>
+                        <t t-else="">
+                            <div class="o_epm_quota_tiles">
+                                <div class="o_epm_qtile">
+                                    <span class="o_epm_kpi_label">Overall value</span>
+                                    <span class="o_epm_kpi_value o_epm_money" t-esc="data.billing.fmt.total"/>
+                                    <span class="o_epm_kpi_sub">sale order totals</span>
+                                </div>
+                                <div class="o_epm_qtile">
+                                    <span class="o_epm_kpi_label">Posted invoices</span>
+                                    <span class="o_epm_kpi_value o_epm_money" t-esc="data.billing.fmt.posted"/>
+                                    <span class="o_epm_kpi_sub"><t t-esc="data.billing.pct.posted"/>% of the value</span>
+                                </div>
+                                <div class="o_epm_qtile">
+                                    <span class="o_epm_kpi_label">Paid</span>
+                                    <span class="o_epm_kpi_value o_epm_money" t-esc="data.billing.fmt.paid"/>
+                                    <span class="o_epm_kpi_sub"><t t-esc="data.billing.pct.paid"/>% of the value</span>
+                                </div>
+                                <div t-attf-class="o_epm_qtile {{ data.billing.raw.pending &gt; 0.005 ? 'o_epm_qtile_pending' : '' }}">
+                                    <span class="o_epm_kpi_label">Pending</span>
+                                    <span class="o_epm_kpi_value o_epm_money" t-esc="data.billing.fmt.pending"/>
+                                    <span class="o_epm_kpi_sub">due on posted invoices</span>
+                                </div>
+                                <div class="o_epm_qtile">
+                                    <span class="o_epm_kpi_label">Not yet invoiced</span>
+                                    <span class="o_epm_kpi_value o_epm_money" t-esc="data.billing.fmt.to_invoice"/>
+                                    <span class="o_epm_kpi_sub">value minus posted</span>
+                                </div>
+                            </div>
+                            <div class="o_epm_billbar" role="img" aria-label="Paid, pending and not yet invoiced against the overall value">
+                                <span t-if="data.billing.pct.paid" class="o_epm_billseg o_epm_billseg_paid" t-att-style="widthPct(data.billing.pct.paid)" title="Paid"/>
+                                <span t-if="data.billing.pct.pending" class="o_epm_billseg o_epm_billseg_pending" t-att-style="widthPct(data.billing.pct.pending)" title="Pending"/>
+                            </div>
+                            <ul class="o_epm_legend o_epm_legend_inline o_epm_billlegend">
+                                <li><span class="o_epm_swatch o_epm_sw_listed"/><span class="o_epm_legend_name">Paid</span> <span class="o_epm_legend_value" t-esc="data.billing.fmt.paid"/></li>
+                                <li><span class="o_epm_swatch o_epm_sw_pending"/><span class="o_epm_legend_name">Pending</span> <span class="o_epm_legend_value" t-esc="data.billing.fmt.pending"/></li>
+                                <li><span class="o_epm_swatch o_epm_sw_rest"/><span class="o_epm_legend_name">Not yet invoiced</span> <span class="o_epm_legend_value" t-esc="data.billing.fmt.to_invoice"/></li>
+                            </ul>
+                            <h3 class="o_epm_subhead mt-3">SEs with the most pending</h3>
+                            <div class="o_epm_table_wrap">
+                                <table class="o_epm_table">
+                                    <thead>
+                                        <tr><th>SE</th><th>Customer</th><th class="text-end">Value</th><th class="text-end">Posted</th><th class="text-end">Paid</th><th class="text-end">Pending</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="data.billing.top" t-as="b" t-key="b.id" class="o_epm_row" t-on-click="() => this.openSaleOrder(b.id)">
+                                            <td class="fw-semibold" t-esc="b.se"/>
+                                            <td class="o_epm_trunc" t-esc="b.customer" t-att-title="b.customer"/>
+                                            <td class="text-end" t-esc="b.total"/>
+                                            <td class="text-end" t-esc="b.posted"/>
+                                            <td class="text-end" t-esc="b.paid"/>
+                                            <td t-attf-class="text-end {{ b.has_pending ? 'fw-bold' : '' }}" t-esc="b.pending"/>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </t>
+                    </section>
+
+                    <!-- ── Invoice quota (UAT / LIVE, summed over the TRNs) ─────
+                         A bar turns red only past 100% of its own limit; the
+                         overage (per TRN, summed) is shown beside it. -->
+                    <section class="o_epm_card o_epm_quota">
+                        <header class="o_epm_card_head">
+                            <div>
+                                <h2>Invoice quota · <t t-esc="quotaEnvLabel"/></h2>
+                                <p>
+                                    <t t-esc="quota.found"/> of <t t-esc="quota.total"/> TRNs found on the platform
+                                    <t t-if="quota.na"> · <t t-esc="quota.na"/> without a Peppol ID (NA)</t>
+                                    <t t-if="quota.not_found"> · <t t-esc="quota.not_found"/> not found</t>
+                                    <t t-if="quota.pending"> · <t t-esc="quota.pending"/> not checked yet</t>
+                                    <t t-if="quota.failed"> · <t t-esc="quota.failed"/> failed</t>
+                                    <t t-if="quota.checked"> · checked <t t-esc="quota.checked"/></t>
+                                </p>
+                            </div>
+                            <div class="o_epm_quota_tools">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Environment">
+                                    <button t-attf-class="btn {{ state.quotaEnv === 'live' ? 'btn-primary' : 'btn-light' }}" t-on-click="() => this.setQuotaEnv('live')">LIVE</button>
+                                    <button t-attf-class="btn {{ state.quotaEnv === 'uat' ? 'btn-primary' : 'btn-light' }}" t-on-click="() => this.setQuotaEnv('uat')">UAT</button>
+                                </div>
+                                <button class="o_epm_toggle" t-on-click="() => this.refreshQuotas(true)" t-att-disabled="state.quotaRefreshing">
+                                    <i t-attf-class="fa fa-refresh me-1 {{ state.quotaRefreshing ? 'fa-spin' : '' }}"/>Refresh
+                                </button>
+                            </div>
+                        </header>
+
+                        <div t-if="!quota.found" class="o_epm_empty">
+                            No <t t-esc="quotaEnvLabel"/> figures yet<t t-if="quota.total"> - none of the TRNs is registered on the <t t-esc="quotaEnvLabel"/> platform</t>.
+                        </div>
+                        <t t-else="">
+                            <div class="o_epm_quota_tiles">
+                                <div class="o_epm_qtile">
+                                    <span class="o_epm_kpi_label">Overall used</span>
+                                    <span class="o_epm_kpi_value" t-esc="fmt(quota.overall.used)"/>
+                                    <span class="o_epm_kpi_sub">invoices this period</span>
+                                </div>
+                                <div class="o_epm_qtile">
+                                    <span class="o_epm_kpi_label">Overall limit</span>
+                                    <span class="o_epm_kpi_value" t-if="quota.overall.limit" t-esc="fmt(quota.overall.limit)"/>
+                                    <span class="o_epm_kpi_value o_epm_qtile_na" t-else="">Not set</span>
+                                    <span class="o_epm_kpi_sub" t-if="quota.overall.limit">issued + received</span>
+                                    <span class="o_epm_kpi_sub" t-else="">a TRN has no limit on one side</span>
+                                </div>
+                                <div class="o_epm_qtile">
+                                    <span class="o_epm_kpi_label">Remaining</span>
+                                    <span class="o_epm_kpi_value" t-if="quota.overall.remaining !== null" t-esc="fmt(quota.overall.remaining)"/>
+                                    <span class="o_epm_kpi_value o_epm_qtile_na" t-else="">-</span>
+                                    <span class="o_epm_kpi_sub">within the limits</span>
+                                </div>
+                                <div t-attf-class="o_epm_qtile {{ quota.overall.over ? 'o_epm_qtile_alert' : '' }}">
+                                    <span class="o_epm_kpi_label">Overage</span>
+                                    <span class="o_epm_kpi_value" t-esc="fmt(quota.overall.over)"/>
+                                    <span class="o_epm_kpi_sub" t-if="quota.over_count">
+                                        <i class="fa fa-exclamation-circle o_epm_ic_critical me-1"/><t t-esc="quota.over_count"/> TRNs over their limit
+                                    </span>
+                                    <span class="o_epm_kpi_sub" t-else="">
+                                        <i class="fa fa-check-circle o_epm_ic_good me-1"/>no TRN over its limit
+                                    </span>
+                                </div>
+                                <div class="o_epm_qtile">
+                                    <span class="o_epm_kpi_label">Usage</span>
+                                    <t t-if="quota.overall.pct !== null">
+                                        <span class="o_epm_kpi_value"><t t-esc="quota.overall.pct"/>%</span>
+                                        <span class="o_epm_meter_track o_epm_qtile_meter">
+                                            <span t-attf-class="o_epm_meter_fill {{ quota.overall.pct &gt;= 100 ? 'o_epm_fill_over' : '' }}" t-att-style="meterStyle(quota.overall.pct)"/>
+                                        </span>
+                                    </t>
+                                    <t t-else="">
+                                        <span class="o_epm_kpi_value o_epm_qtile_na">-</span>
+                                        <span class="o_epm_kpi_sub">no overall limit</span>
+                                    </t>
+                                </div>
+                            </div>
+
+                            <div class="o_epm_grid o_epm_quota_detail">
+                                <div>
+                                    <h3 class="o_epm_subhead">Issued vs received</h3>
+                                    <ul class="o_epm_meters">
+                                        <t t-foreach="[['Issued (AR)', quota.ar], ['Received (AP)', quota.ap], ['Overall', quota.overall]]" t-as="side" t-key="side[0]">
+                                            <li class="o_epm_meter o_epm_meter_static">
+                                                <span class="o_epm_meter_name" t-esc="side[0]"/>
+                                                <span class="o_epm_meter_track">
+                                                    <span t-attf-class="o_epm_meter_fill {{ side[1].pct &gt;= 100 ? 'o_epm_fill_over' : '' }}" t-att-style="meterStyle(side[1].pct)"/>
+                                                </span>
+                                                <span class="o_epm_meter_value o_epm_meter_value_wide">
+                                                    <t t-esc="fmt(side[1].used)"/>
+                                                    <small> / <t t-if="side[1].limit" t-esc="fmt(side[1].limit)"/><t t-else="">not set</t></small>
+                                                    <small t-if="side[1].over" class="o_epm_over_note"><i class="fa fa-exclamation-circle me-1"/><t t-esc="fmt(side[1].over)"/> over</small>
+                                                </span>
+                                            </li>
+                                        </t>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h3 class="o_epm_subhead">TRNs by usage</h3>
+                                    <div class="o_epm_table_wrap">
+                                        <table class="o_epm_table">
+                                            <thead>
+                                                <tr><th>S.No</th><th>Emaratax Legal Name</th><th>SE</th><th class="text-end">Used / Limit</th><th class="text-end">Usage</th><th class="text-end">Overage</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr t-foreach="quota.top" t-as="t" t-key="t.id" class="o_epm_row" t-on-click="() => this.openProject(t.id)">
+                                                    <td t-esc="t.s_no"/>
+                                                    <td class="o_epm_trunc fw-semibold" t-esc="t.name" t-att-title="t.name"/>
+                                                    <td t-esc="t.se"/>
+                                                    <td class="text-end"><t t-esc="fmt(t.used)"/> / <t t-if="t.limit" t-esc="fmt(t.limit)"/><t t-else="">no limit</t></td>
+                                                    <td class="text-end"><t t-if="t.pct !== null"><t t-esc="t.pct"/>%</t><t t-else="">-</t></td>
+                                                    <td class="text-end">
+                                                        <span t-if="t.over" class="o_epm_status o_epm_status_critical"><i class="fa fa-exclamation-circle me-1"/><t t-esc="fmt(t.over)"/></span>
+                                                        <t t-else="">0</t>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </section>
+
                     <!-- ── Progress + Gap Assessment ─────────────────────────── -->
                     <div class="o_epm_grid">
                         <section class="o_epm_card">

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Re-check every row's UAT and LIVE quota whenever the module is
+         installed or upgraded (functions in a non-noupdate file run on each
+         load). Errors are logged, never raised, so the API cannot block an
+         upgrade. -->
+    <function model="einvoicing.phase1.project" name="_refresh_quotas_on_module_load"/>
+    <function model="einvoicing.unidentified" name="_refresh_quotas_on_module_load"/>
+</odoo>

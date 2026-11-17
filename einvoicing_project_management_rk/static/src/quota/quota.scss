@@ -261,3 +261,57 @@ $epmq-hairline: #e1e0d9;
 .o_epm_sod_trns {
     th, td { font-size: 12px; padding: 6px 6px !important; }
 }
+
+// ── Payment section ──────────────────────────────────────────────────────
+// Paid = blue (slot 1), pending = orange (slot 2), not yet invoiced = track.
+$epmq-orange: #eb6834;
+.o_epm_pay_tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.o_epm_pay_tile {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 1px solid $epmq-hairline;
+    border-radius: 8px;
+
+    span { font-size: 11.5px; font-weight: 600; color: $epmq-ink-2; }
+    strong { font-size: 18px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    small { font-size: 11.5px; color: $epmq-muted; }
+}
+.o_epm_pay_tile_alert { border-top: 3px solid $epmq-orange; padding-top: 8px; }
+.o_epm_pay_bar {
+    display: flex;
+    gap: 2px;
+    height: 12px;
+    border-radius: 6px;
+    background: $epmq-track;
+    overflow: hidden;
+}
+.o_epm_pay_seg { display: block; height: 100%; }
+.o_epm_pay_seg_paid { background: $epmq-blue; }
+.o_epm_pay_seg_pending { background: $epmq-orange; }
+.o_epm_pay_legend {
+    list-style: none;
+    margin: 8px 0 10px;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    font-size: 12px;
+    color: $epmq-ink-2;
+}
+.o_epm_pay_sw {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    margin-right: 5px;
+    vertical-align: -1px;
+}
+.o_epm_pay_sw_rest { background: $epmq-track; border: 1px solid $epmq-hairline; }
+.o_epm_pay_invoices { margin-top: 4px; }
