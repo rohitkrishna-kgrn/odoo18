@@ -9,9 +9,13 @@
             <field name="code">BASIC</field>
             <field name="category_id" ref="om_hr_payroll.BASIC"/>
             <field name="condition_select">python</field>
-            <field name="condition_python">result = bool(contract.basic_salary)</field>
+            <!-- India: Basic Salary from Salary After LOP (hr.payslip._india_pf_values):
+                 the contract's Basic Salary when Salary After LOP is 25,000 or more,
+                 else 70% of Salary After LOP (this payslip only).
+                 Elsewhere: the contract's Basic Salary. -->
+            <field name="condition_python">result = bool(india_pf.basic) if india_pf.applies else bool(contract.basic_salary)</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">result = contract.basic_salary</field>
+            <field name="amount_python_compute">result = india_pf.basic if india_pf.applies else contract.basic_salary</field>
         </record>
 
         <record id="hr_rule_taxable" model="hr.salary.rule">
@@ -31,9 +35,12 @@
             <field name="code">ALLOWANCE</field>
             <field name="category_id" ref="om_hr_payroll.ALW"/>
             <field name="condition_select">python</field>
-            <field name="condition_python">result = bool(contract.other_allowance)</field>
+            <!-- India: the balance of the wage after the calculated Basic Salary and the
+                 HRA / Special / Conveyance / Medical that fit (hr.payslip._india_pf_values),
+                 so Gross = wage. HRA, DA, Travel and Medical read india_pf the same way. -->
+            <field name="condition_python">result = bool(india_pf.allowance) if india_pf.applies else bool(contract.other_allowance)</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">result = contract.other_allowance</field>
+            <field name="amount_python_compute">result = india_pf.allowance if india_pf.applies else contract.other_allowance</field>
         </record>
 
         <record id="hr_rule_deduction" model="hr.salary.rule">
@@ -128,9 +135,10 @@
             <field name="code">EPF</field>
             <field name="category_id" ref="om_hr_payroll.DED"/>
             <field name="condition_select">python</field>
-            <field name="condition_python">result = employee.country_for_leave == 'india' and bool(contract.epf_amount)</field>
+            <!-- EPF = calculated Basic Salary x EPF % (default 12, Payroll Settings). -->
+            <field name="condition_python">result = bool(india_pf.applies and india_pf.epf)</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">result = -contract.epf_amount</field>
+            <field name="amount_python_compute">result = -india_pf.epf</field>
         </record>
 
         <record id="hr_rule_esi" model="hr.salary.rule">
@@ -173,9 +181,9 @@
             <field name="code">HRA</field>
             <field name="category_id" ref="om_hr_payroll.ALW"/>
             <field name="condition_select">python</field>
-            <field name="condition_python">result = bool(contract.hra)</field>
+            <field name="condition_python">result = bool(india_pf.hra) if india_pf.applies else bool(contract.hra)</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">result = contract.hra</field>
+            <field name="amount_python_compute">result = india_pf.hra if india_pf.applies else contract.hra</field>
             <field name="amount_percentage">30</field>
         </record>
 
@@ -185,9 +193,9 @@
             <field name="code">DA</field>
             <field name="category_id" ref="om_hr_payroll.ALW"/>
             <field name="condition_select">python</field>
-            <field name="condition_python">result = bool(contract.da)</field>
+            <field name="condition_python">result = bool(india_pf.da) if india_pf.applies else bool(contract.da)</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">result = contract.da</field>
+            <field name="amount_python_compute">result = india_pf.da if india_pf.applies else contract.da</field>
         </record>
 
         <record id="hr_rule_travel" model="hr.salary.rule">
@@ -196,9 +204,9 @@
             <field name="code">Travel</field>
             <field name="category_id" ref="om_hr_payroll.ALW"/>
             <field name="condition_select">python</field>
-            <field name="condition_python">result = bool(contract.travel_allowance)</field>
+            <field name="condition_python">result = bool(india_pf.travel) if india_pf.applies else bool(contract.travel_allowance)</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">result = contract.travel_allowance</field>
+            <field name="amount_python_compute">result = india_pf.travel if india_pf.applies else contract.travel_allowance</field>
         </record>
 
         <record id="hr_rule_meal" model="hr.salary.rule">
@@ -218,9 +226,9 @@
             <field name="code">Medical</field>
             <field name="category_id" ref="om_hr_payroll.ALW"/>
             <field name="condition_select">python</field>
-            <field name="condition_python">result = bool(contract.medical_allowance)</field>
+            <field name="condition_python">result = bool(india_pf.medical) if india_pf.applies else bool(contract.medical_allowance)</field>
             <field name="amount_select">code</field>
-            <field name="amount_python_compute">result = contract.medical_allowance</field>
+            <field name="amount_python_compute">result = india_pf.medical if india_pf.applies else contract.medical_allowance</field>
         </record>
 
         <record id="hr_rule_net" model="hr.salary.rule">

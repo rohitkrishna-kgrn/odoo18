@@ -1,0 +1,25 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_payroll_country_user,payroll.country user,model_payroll_country,base.group_user,1,0,0,0
+access_payroll_country_admin,payroll.country admin,model_payroll_country,om_hr_payroll.group_hr_payroll_manager,1,1,1,1
+access_batch_user,payroll.country.batch user,model_payroll_country_batch,base.group_user,1,0,0,0
+access_batch_officer,payroll.country.batch officer,model_payroll_country_batch,om_hr_payroll.group_hr_payroll_user,1,1,1,1
+access_batch_admin,payroll.country.batch admin,model_payroll_country_batch,om_hr_payroll.group_hr_payroll_manager,1,1,1,1
+access_line_user,payroll.country.line user,model_payroll_country_line,base.group_user,1,0,0,0
+access_line_officer,payroll.country.line officer,model_payroll_country_line,om_hr_payroll.group_hr_payroll_user,1,1,1,0
+access_line_admin,payroll.country.line admin,model_payroll_country_line,om_hr_payroll.group_hr_payroll_manager,1,1,1,1
+access_line_leave_user,payroll.country.line.leave user,model_payroll_country_line_leave,base.group_user,1,0,0,0
+access_line_leave_officer,payroll.country.line.leave officer,model_payroll_country_line_leave,om_hr_payroll.group_hr_payroll_user,1,1,1,1
+access_line_leave_admin,payroll.country.line.leave admin,model_payroll_country_line_leave,om_hr_payroll.group_hr_payroll_manager,1,1,1,1
+access_change_log_user,payroll.country.change.log user,model_payroll_country_change_log,base.group_user,1,0,0,0
+access_change_log_admin,payroll.country.change.log admin,model_payroll_country_change_log,om_hr_payroll.group_hr_payroll_manager,1,0,0,0
+access_excluded_user,payroll.country.excluded user,model_payroll_country_excluded,base.group_user,1,0,0,0
+access_excluded_admin,payroll.country.excluded admin,model_payroll_country_excluded,om_hr_payroll.group_hr_payroll_manager,1,1,1,1
+access_notify_log_user,payroll.country.notify.log user,model_payroll_country_notify_log,base.group_user,1,0,0,0
+access_send_log_user,payroll.payslip.send.log user,model_payroll_payslip_send_log,base.group_user,1,0,0,0
+access_reject_wizard_user,payroll.country.reject.wizard user,model_payroll_country_reject_wizard,base.group_user,1,1,1,0
+access_report_wizard_user,payroll.country.report.wizard user,model_payroll_country_report_wizard,base.group_user,1,1,1,0
+access_hr_payslip_self_service,hr.payslip self-service (rule: own approved),om_hr_payroll.model_hr_payslip,base.group_user,1,0,0,0
+access_res_bank_hr_officer,res.bank HR officer (create from employee Bank),base.model_res_bank,hr.group_hr_user,1,1,1,0
+access_res_bank_payroll_officer,res.bank payroll officer (create from payroll Bank),base.model_res_bank,om_hr_payroll.group_hr_payroll_user,1,1,1,0
+access_send_wizard_user,payroll.country.send.wizard user,model_payroll_country_send_wizard,base.group_user,1,1,1,0
+access_send_wizard_line_user,payroll.country.send.wizard.line user,model_payroll_country_send_wizard_line,base.group_user,1,1,1,1

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Gear (Actions) menu of the employee payroll form / list: Payroll's PaySlip PDF -->
+    <record id="action_server_download_payslip" model="ir.actions.server">
+        <field name="name">Download Payslip</field>
+        <field name="model_id" ref="model_payroll_country_line"/>
+        <field name="binding_model_id" ref="model_payroll_country_line"/>
+        <field name="binding_view_types">form,list</field>
+        <field name="groups_id" eval="[(4, ref('om_hr_payroll.group_hr_payroll_user'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records.action_download_payslip()</field>
+    </record>
+</odoo>

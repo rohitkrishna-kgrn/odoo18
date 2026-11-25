@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_payroll_country_batch_list" model="ir.ui.view">
+        <field name="name">payroll.country.batch.list</field>
+        <field name="model">payroll.country.batch</field>
+        <field name="arch" type="xml">
+            <list string="Payroll Batches" decoration-muted="state == 'cancel'" decoration-danger="state == 'rejected'"
+                  decoration-success="state == 'approved'" decoration-info="state == 'submitted'">
+                <field name="name"/>
+                <field name="country_id"/>
+                <field name="month"/>
+                <field name="year"/>
+                <field name="period_label" optional="show"/>
+                <field name="company_names"/>
+                <field name="company_id" optional="show"/>
+                <field name="employee_count"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="total_gross" optional="show"/>
+                <field name="total_deductions" optional="hide"/>
+                <field name="total_net"/>
+                <field name="error_count" optional="show"/>
+                <field name="submitted_by" optional="show"/>
+                <field name="approved_by" optional="show"/>
+                <field name="state" widget="badge" decoration-success="state == 'approved'" decoration-info="state == 'submitted'"
+                       decoration-danger="state == 'rejected'" decoration-warning="state in ('calculated', 'resubmit')"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_payroll_country_batch_search" model="ir.ui.view">
+        <field name="name">payroll.country.batch.search</field>
+        <field name="model">payroll.country.batch</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="company_names"/>
+                <field name="year"/>
+                <filter name="to_approve" string="Waiting for Approval" domain="[('state', '=', 'submitted')]"/>
+                <filter name="open" string="In Progress" domain="[('state', 'in', ('draft', 'calculated', 'rejected', 'resubmit'))]"/>
+                <filter name="approved" string="Approved" domain="[('state', '=', 'approved')]"/>
+                <filter name="rejected" string="Rejected" domain="[('state', '=', 'rejected')]"/>
+                <filter name="resubmit" string="Resubmission Requested" domain="[('state', '=', 'resubmit')]"/>
+                <separator/>
+                <filter name="active_batches" string="Not Cancelled" domain="[('state', '!=', 'cancel')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_country" string="Country" context="{'group_by': 'country_id'}"/>
+                    <filter name="group_year" string="Year" context="{'group_by': 'year'}"/>
+                    <filter name="group_month" string="Month" context="{'group_by': 'month'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_payroll_country_batch_form" model="ir.ui.view">
+        <field name="name">payroll.country.batch.form</field>
+        <field name="model">payroll.country.batch</field>
+        <field name="arch" type="xml">
+            <form string="Payroll Batch" class="o_payroll_no_mail_chatter">
+                <header>
+                    <button name="action_fetch_employees" type="object" string="Fetch &amp; Calculate"
+                            class="btn-primary" invisible="not is_officer or state not in ('draft', 'rejected', 'resubmit') or line_ids"/>
+                    <button name="action_fetch_employees" type="object" string="Fetch &amp; Calculate"
+                            invisible="not is_officer or state not in ('draft', 'calculated', 'rejected', 'resubmit') or not line_ids"
+                            confirm="Fetch and calculate again? New eligible employees are added, ineligible ones removed, attendance / leave re-read and the payroll recalculated. Manual changes are kept."/>
+                    <button name="action_calculate" type="object" string="Calculate Payroll" class="btn-primary"
+                            invisible="not is_officer or state != 'draft' or not line_ids"/>
+                    <button name="action_recalculate" type="object" string="Recalculate"
+                            invisible="not is_officer or state not in ('calculated', 'rejected', 'resubmit')"/>
+                    <button name="action_submit" type="object" string="Submit for Approval" class="btn-primary"
+                            invisible="not is_officer or state not in ('calculated', 'rejected', 'resubmit')"
+                            confirm="Submit this payroll to the Payroll Admins for approval? A sent-back payroll is recalculated first. Payroll values are locked after submission."/>
+                    <button name="action_approve" type="object" string="Approve" class="btn-success"
+                            invisible="not can_approve"
+                            confirm="Approve this payroll? The payslips are finalised and the Payroll Officers and Managers notified."/>
+                    <button name="action_open_reject_wizard" type="object" string="Reject" class="btn-danger"
+                            invisible="not can_approve"/>
+                    <button name="action_open_resubmit_wizard" type="object" string="Resubmission" class="btn-warning"
+                            invisible="not can_approve"/>
+                    <button name="action_send_selected" type="object" string="Send Selected" class="btn-primary"
+                            invisible="not is_officer or state != 'approved'"/>
+                    <button name="action_send_all" type="object" string="Send All"
+                            invisible="not is_officer or state != 'approved'"
+                            confirm="Email the approved payslip to EVERY employee of this batch who has not received it yet?"/>
+                    <button name="action_generate_report" type="object" string="Generate Report"
+                            invisible="not id or state == 'cancel' or not line_ids"/>
+                    <button name="action_cancel" type="object" string="Cancel Batch"
+                            invisible="not is_officer or state not in ('draft', 'calculated', 'rejected', 'resubmit') or not id"
+                            confirm="Cancel this payroll batch? Its draft payslips are deleted and the employees can be payrolled again."/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,calculated,submitted,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_unsent" type="object" class="oe_stat_button" icon="fa-envelope-o"
+                                invisible="state != 'approved'">
+                            <field name="email_pending_count" widget="statinfo" string="Not Sent"/>
+                        </button>
+                        <button name="action_view_unsent" type="object" class="oe_stat_button" icon="fa-check"
+                                invisible="state != 'approved'">
+                            <field name="email_sent_count" widget="statinfo" string="Sent"/>
+                        </button>
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="state != 'resubmit'">
+                        <strong>Resubmission requested</strong> by <field name="resubmit_by" readonly="1" class="oe_inline" options="{'no_open': True}"/>:
+                        <field name="resubmit_reason" readonly="1"/>
+                        Make the corrections, then press Submit for Approval again (the payroll is recalculated first).
+                    </div>
+                    <div class="alert alert-danger" role="alert" invisible="state != 'rejected'">
+                        <strong>Rejected</strong> by <field name="rejected_by" readonly="1" class="oe_inline" options="{'no_open': True}"/>:
+                        <field name="rejection_reason" readonly="1"/>
+                        Make the corrections, then press Submit for Approval again (the payroll is recalculated first).
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="error_count == 0 or state in ('approved', 'cancel')">
+                        <field name="error_count" readonly="1" class="oe_inline"/> employee(s) have errors (red rows) - open them to see why. Submission is blocked until they are fixed.
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                        <h3 class="text-muted"><field name="period_label" readonly="1"/></h3>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="payroll_country_id" options="{'no_create': True, 'no_open': True}"
+                                   readonly="line_ids or state != 'draft'"/>
+                            <field name="month" readonly="line_ids or state != 'draft'"/>
+                            <field name="year" readonly="line_ids or state != 'draft'" options="{'format': false}"/>
+                            <field name="allowed_company_ids" invisible="1"/>
+                            <field name="company_ids" widget="many2many_tags"
+                                   options="{'no_create': True, 'no_open': True}"
+                                   domain="[('id', 'in', allowed_company_ids)]"
+                                   readonly="state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                            <field name="company_names" invisible="is_officer" readonly="1"/>
+                            <field name="user_company_ids" invisible="1"/>
+                            <field name="company_id" options="{'no_create': True, 'no_open': True}"
+                                   domain="[('id', 'in', user_company_ids)]"
+                                   readonly="state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                            <field name="is_officer" invisible="1"/>
+                            <field name="can_approve" invisible="1"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="employee_count"/>
+                            <field name="total_gross"/>
+                            <field name="total_deductions"/>
+                            <field name="total_net" class="fw-bold"/>
+                            <field name="warning_count" invisible="warning_count == 0"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Employees" name="employees">
+                            <field name="pf_esi_enabled" invisible="1"/>
+                            <field name="line_ids" readonly="state not in ('draft', 'calculated', 'rejected', 'resubmit')">
+                                <!-- read-only overview: clicking a row opens the full employee payroll
+                                     form (all tabs, editable figures) in a popup -->
+                                <list create="0" delete="0"
+                                      decoration-danger="validation_status == 'error'"
+                                      decoration-warning="validation_status == 'warning'">
+                                    <field name="employee_name" readonly="1"/>
+                                    <field name="employee_code" readonly="1" optional="show"/>
+                                    <field name="company_name" readonly="1" optional="show"/>
+                                    <field name="department_name" readonly="1" optional="hide"/>
+                                    <field name="job_name" readonly="1" optional="hide"/>
+                                    <field name="working_days" readonly="1" optional="show"/>
+                                    <field name="present_days" readonly="1" optional="show"/>
+                                    <field name="absent_days" readonly="1" optional="hide"/>
+                                    <field name="paid_leave_days" readonly="1" optional="show"/>
+                                    <field name="unpaid_leave_days" readonly="1" optional="hide"/>
+                                    <field name="lop_days" readonly="state == 'draft' or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" optional="show"/>
+                                    <field name="overtime_hours" readonly="1" optional="hide" widget="float_time"/>
+                                    <field name="basic" readonly="state == 'draft' or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" sum="Total"/>
+                                    <field name="hra" readonly="state == 'draft' or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" optional="show" sum="Total"/>
+                                    <field name="other_allowances" readonly="state == 'draft' or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" optional="show" sum="Total"/>
+                                    <field name="overtime_amount" readonly="state == 'draft' or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" optional="hide" sum="Total"/>
+                                    <field name="other_earnings" readonly="state == 'draft' or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" optional="hide" sum="Total"/>
+                                    <field name="gross" readonly="1" sum="Total"/>
+                                    <field name="pf_esi_applies" column_invisible="1"/>
+                                    <field name="epf" readonly="state == 'draft' or not pf_esi_applies or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" invisible="not pf_esi_applies" column_invisible="not parent.pf_esi_enabled" optional="show" sum="Total"/>
+                                    <field name="esi" readonly="state == 'draft' or not pf_esi_applies or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" invisible="not pf_esi_applies" column_invisible="not parent.pf_esi_enabled" optional="show" sum="Total"/>
+                                    <field name="pf_esi_entry" invisible="not pf_esi_applies" column_invisible="not parent.pf_esi_enabled" optional="show" string="PF/ESI"/>
+                                    <field name="lop_amount" readonly="1" optional="show" sum="Total"/>
+                                    <field name="other_deductions" readonly="state == 'draft' or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" optional="show" sum="Total"/>
+                                    <field name="wfh_deduction" readonly="1" optional="show" sum="Total" column_invisible="not parent.pf_esi_enabled"/>
+                                    <field name="total_deductions" readonly="1" sum="Total"/>
+                                    <field name="net" readonly="1" sum="Total" class="fw-bold"/>
+                                    <field name="bank_name" readonly="1" optional="hide"/>
+                                    <field name="bank_holder" readonly="1" optional="hide"/>
+                                    <field name="bank_account_masked" readonly="1" optional="hide"/>
+                                    <field name="bank_iban_masked" readonly="1" optional="hide"/>
+                                    <field name="bank_branch" readonly="1" optional="hide"/>
+                                    <field name="has_manual" readonly="1" optional="show" string="Manual"/>
+                                    <field name="state" readonly="1" widget="badge" optional="show"/>
+                                    <field name="validation_status" column_invisible="1"/>
+                                    <field name="batch_state" column_invisible="1"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="manual_keys" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Payslip Distribution" name="distribution" invisible="state != 'approved'">
+                            <div class="text-muted mb-2">Press <strong>Send Selected</strong> to pick the employees in a list,
+                                or <strong>Send All</strong>. Nothing is ever sent without one of the two.
+                                Unselected payslips stay in Payroll &gt; Unsent Payslips.</div>
+                            <field name="distribution_line_ids">
+                                <list editable="bottom" create="0" delete="0"
+                                      decoration-success="email_status == 'sent'" decoration-danger="email_status in ('failed', 'no_email')">
+                                    <field name="employee_name" readonly="1"/>
+                                    <field name="employee_code" readonly="1"/>
+                                    <field name="company_name" readonly="1"/>
+                                    <field name="payslip_ref" readonly="1"/>
+                                    <field name="work_email" readonly="1"/>
+                                    <field name="state" readonly="1" string="Payslip Status"/>
+                                    <field name="email_status" readonly="1" widget="badge"/>
+                                    <field name="email_sent_date" readonly="1"/>
+                                    <field name="email_error" readonly="1" optional="show"/>
+                                    <button name="action_resend_payslip" type="object" icon="fa-repeat" title="Resend"
+                                            invisible="email_status not in ('sent', 'queued')"
+                                            confirm="This payslip was already emailed. Send it again?"/>
+                                    <button name="action_open_line" type="object" icon="fa-external-link" title="Open"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Not Fetched" name="excluded" invisible="not excluded_ids">
+                            <field name="excluded_ids" readonly="1">
+                                <list>
+                                    <field name="employee_name"/>
+                                    <field name="company_name"/>
+                                    <field name="contract_ref"/>
+                                    <field name="reason"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Manual Changes" name="changes" invisible="not change_log_ids">
+                            <field name="change_log_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="employee_name"/>
+                                    <field name="field_label"/>
+                                    <field name="old_value"/>
+                                    <field name="new_value"/>
+                                    <field name="calculated_value"/>
+                                    <field name="synced_to"/>
+                                    <field name="user_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Approval" name="approval">
+                            <group>
+                                <group>
+                                    <field name="company_id" readonly="1" options="{'no_open': True}"/>
+                                    <field name="approver_user_ids" widget="many2many_tags" options="{'no_open': True}"/>
+                                    <field name="submitted_by" options="{'no_open': True}"/>
+                                    <field name="submitted_date"/>
+                                    <field name="submission_round"/>
+                                </group>
+                                <group>
+                                    <field name="approved_by" options="{'no_open': True}"/>
+                                    <field name="approved_date"/>
+                                    <field name="rejected_by" options="{'no_open': True}"/>
+                                    <field name="rejected_date"/>
+                                    <field name="rejection_reason"/>
+                                    <field name="resubmit_by" options="{'no_open': True}"/>
+                                    <field name="resubmit_date"/>
+                                    <field name="resubmit_reason"/>
+                                </group>
+                            </group>
+                            <separator string="Notification History"/>
+                            <field name="notify_log_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="kind"/>
+                                    <field name="round"/>
+                                    <field name="user_id"/>
+                                    <field name="email_to"/>
+                                    <field name="mail_state"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Email History" name="send_history" invisible="not send_log_ids">
+                            <field name="send_log_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="employee_name"/>
+                                    <field name="payslip_ref"/>
+                                    <field name="email_to"/>
+                                    <field name="attempt"/>
+                                    <field name="status"/>
+                                    <field name="sent_date"/>
+                                    <field name="failure_reason"/>
+                                    <field name="user_id"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_payroll_approvals" model="ir.actions.act_window">
+        <field name="name">Payroll Approvals</field>
+        <field name="res_model">payroll.country.batch</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_payroll_country_batch_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_payroll_country_batch_form')})]"/>
+        <field name="search_view_id" ref="view_payroll_country_batch_search"/>
+        <field name="domain">[('state', 'in', ('submitted', 'resubmit', 'approved', 'rejected'))]</field>
+        <field name="context">{'search_default_to_approve': 1, 'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No payroll waiting for your approval</p>
+        </field>
+    </record>
+
+    <record id="action_payroll_all_batches" model="ir.actions.act_window">
+        <field name="name">All Country Payroll</field>
+        <field name="res_model">payroll.country.batch</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_payroll_country_batch_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_payroll_country_batch_form')})]"/>
+        <field name="search_view_id" ref="view_payroll_country_batch_search"/>
+        <field name="context">{'search_default_active_batches': 1, 'create': False}</field>
+    </record>
+</odoo>

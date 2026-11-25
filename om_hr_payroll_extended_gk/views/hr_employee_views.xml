@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="hr_employee_form_payroll_bank" model="ir.ui.view">
+        <field name="name">hr.employee.form.country.payroll.bank</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="om_hr_payroll.payroll_hr_employee_view_form_country_fields"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='esi_no']" position="after">
+                <separator string="BANK DETAILS (PAYROLL)"/>
+                <field name="payroll_bank_holder" groups="hr.group_hr_user"/>
+                <field name="payroll_bank_country_ids" invisible="1" groups="hr.group_hr_user"/>
+                <field name="payroll_bank_country_id" invisible="1" groups="hr.group_hr_user"/>
+                <field name="payroll_bank_id" groups="hr.group_hr_user"
+                       context="{'default_country': payroll_bank_country_id}"/>
+                <field name="payroll_bank_name" groups="hr.group_hr_user" invisible="payroll_bank_id or not payroll_bank_name"/>
+                <field name="payroll_bank_branch" groups="hr.group_hr_user"/>
+                <field name="payroll_bank_ifsc" groups="hr.group_hr_user" invisible="country_for_leave == 'dubai'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="res_bank_form_ifsc_prefix" model="ir.ui.view">
+        <field name="name">res.bank.form.ifsc.prefix</field>
+        <field name="model">res.bank</field>
+        <field name="inherit_id" ref="base.view_res_bank_form"/>
+        <field name="arch" type="xml">
+            <field name="bic" position="after">
+                <field name="country_code" invisible="1"/>
+                <field name="ifsc_prefix" invisible="country_code != 'IN'"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Employees and Contracts menus list only employees whose user is ACTIVE (the active
+         users of Settings > Users). Display only: payroll, leave, attendance and every other
+         feature still see every active employee. A later "-u hr" / "-u hr_contract" restores
+         core's domain: upgrade this module again afterwards. -->
+    <record id="hr.open_view_employee_list_my" model="ir.actions.act_window">
+        <field name="domain">[('company_id', 'in', allowed_company_ids), ('user_id.active', '=', True)]</field>
+    </record>
+    <record id="hr_contract.action_hr_contract" model="ir.actions.act_window">
+        <field name="domain">[('employee_id', '!=', False), ('employee_id.user_id.active', '=', True)]</field>
+    </record>
+</odoo>

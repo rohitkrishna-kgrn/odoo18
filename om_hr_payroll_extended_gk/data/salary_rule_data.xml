@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Not attached to any salary structure: Compute Sheet never runs them.
+         They only label the manual Overtime Pay / Other Earnings a Payroll
+         Officer types on a country payroll line, so the payslip shows them. -->
+    <data noupdate="1">
+        <record id="rule_payroll_overtime" model="hr.salary.rule">
+            <field name="name">Overtime Pay</field>
+            <field name="code">PAYROLL_OT</field>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="sequence">13</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix">0.0</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="note">Manual overtime pay entered on a Country Payroll line (not computed by any structure).</field>
+        </record>
+        <record id="rule_payroll_other_earnings" model="hr.salary.rule">
+            <field name="name">Other Earnings</field>
+            <field name="code">PAYROLL_OTHER_EARN</field>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="sequence">14</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix">0.0</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="note">Manual other earnings entered on a Country Payroll line (not computed by any structure).</field>
+        </record>
+        <record id="rule_payroll_wfh" model="hr.salary.rule">
+            <field name="name">Work From Home Deduction</field>
+            <field name="code">PAYROLL_WFH</field>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="sequence">107</field>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix">0.0</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="note">India: Gross / 30 x 4% x 30 when Work From Home is ticked on the Country Payroll line (not computed by any structure).</field>
+        </record>
+    </data>
+</odoo>

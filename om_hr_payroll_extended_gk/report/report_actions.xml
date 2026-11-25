@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_payroll_register" model="report.paperformat">
+        <field name="name">Country Payroll Register (A4 landscape)</field>
+        <field name="format">A4</field>
+        <field name="orientation">Landscape</field>
+        <field name="margin_top">12</field>
+        <field name="margin_bottom">12</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">5</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="action_report_payroll_register" model="ir.actions.report">
+        <field name="name">Country Payroll Register</field>
+        <field name="model">payroll.country.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">om_hr_payroll_extended_gk.report_payroll_register</field>
+        <field name="report_file">om_hr_payroll_extended_gk.report_payroll_register</field>
+        <field name="print_report_name">'%s Payroll %s-%s' % (object.country_id.code, object.year, object.month)</field>
+        <field name="paperformat_id" ref="paperformat_payroll_register"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>

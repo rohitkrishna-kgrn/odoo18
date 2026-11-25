@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- India: main banks with their IFSC bank code (first 4 letters of every branch IFSC).
+         UAE: the 174 banks already in the Banks list are used; two current names added. -->
+    <data noupdate="1">
+        <record id="bank_in_sbi" model="res.bank">
+            <field name="name">State Bank of India</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">SBIN</field>
+        </record>
+        <record id="bank_in_hdfc" model="res.bank">
+            <field name="name">HDFC Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">HDFC</field>
+        </record>
+        <record id="bank_in_icici" model="res.bank">
+            <field name="name">ICICI Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">ICIC</field>
+        </record>
+        <record id="bank_in_axis" model="res.bank">
+            <field name="name">Axis Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">UTIB</field>
+        </record>
+        <record id="bank_in_kotak" model="res.bank">
+            <field name="name">Kotak Mahindra Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">KKBK</field>
+        </record>
+        <record id="bank_in_pnb" model="res.bank">
+            <field name="name">Punjab National Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">PUNB</field>
+        </record>
+        <record id="bank_in_bob" model="res.bank">
+            <field name="name">Bank of Baroda</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">BARB</field>
+        </record>
+        <record id="bank_in_canara" model="res.bank">
+            <field name="name">Canara Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">CNRB</field>
+        </record>
+        <record id="bank_in_union" model="res.bank">
+            <field name="name">Union Bank of India</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">UBIN</field>
+        </record>
+        <record id="bank_in_boi" model="res.bank">
+            <field name="name">Bank of India</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">BKID</field>
+        </record>
+        <record id="bank_in_indian" model="res.bank">
+            <field name="name">Indian Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">IDIB</field>
+        </record>
+        <record id="bank_in_cbi" model="res.bank">
+            <field name="name">Central Bank of India</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">CBIN</field>
+        </record>
+        <record id="bank_in_iob" model="res.bank">
+            <field name="name">Indian Overseas Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">IOBA</field>
+        </record>
+        <record id="bank_in_uco" model="res.bank">
+            <field name="name">UCO Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">UCBA</field>
+        </record>
+        <record id="bank_in_bom" model="res.bank">
+            <field name="name">Bank of Maharashtra</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">MAHB</field>
+        </record>
+        <record id="bank_in_psb" model="res.bank">
+            <field name="name">Punjab &amp; Sind Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">PSIB</field>
+        </record>
+        <record id="bank_in_indusind" model="res.bank">
+            <field name="name">IndusInd Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">INDB</field>
+        </record>
+        <record id="bank_in_yes" model="res.bank">
+            <field name="name">Yes Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">YESB</field>
+        </record>
+        <record id="bank_in_idfc" model="res.bank">
+            <field name="name">IDFC FIRST Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">IDFB</field>
+        </record>
+        <record id="bank_in_idbi" model="res.bank">
+            <field name="name">IDBI Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">IBKL</field>
+        </record>
+        <record id="bank_in_federal" model="res.bank">
+            <field name="name">Federal Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">FDRL</field>
+        </record>
+        <record id="bank_in_sib" model="res.bank">
+            <field name="name">South Indian Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">SIBL</field>
+        </record>
+        <record id="bank_in_kvb" model="res.bank">
+            <field name="name">Karur Vysya Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">KVBL</field>
+        </record>
+        <record id="bank_in_cub" model="res.bank">
+            <field name="name">City Union Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">CIUB</field>
+        </record>
+        <record id="bank_in_tmb" model="res.bank">
+            <field name="name">Tamilnad Mercantile Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">TMBL</field>
+        </record>
+        <record id="bank_in_karnataka" model="res.bank">
+            <field name="name">Karnataka Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">KARB</field>
+        </record>
+        <record id="bank_in_bandhan" model="res.bank">
+            <field name="name">Bandhan Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">BDBL</field>
+        </record>
+        <record id="bank_in_rbl" model="res.bank">
+            <field name="name">RBL Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">RATN</field>
+        </record>
+        <record id="bank_in_dcb" model="res.bank">
+            <field name="name">DCB Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">DCBL</field>
+        </record>
+        <record id="bank_in_csb" model="res.bank">
+            <field name="name">CSB Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">CSBK</field>
+        </record>
+        <record id="bank_in_dhanlaxmi" model="res.bank">
+            <field name="name">Dhanlaxmi Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">DLXB</field>
+        </record>
+        <record id="bank_in_jk" model="res.bank">
+            <field name="name">Jammu &amp; Kashmir Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">JAKA</field>
+        </record>
+        <record id="bank_in_dbs" model="res.bank">
+            <field name="name">DBS Bank India</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">DBSS</field>
+        </record>
+        <record id="bank_in_scb" model="res.bank">
+            <field name="name">Standard Chartered Bank (India)</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">SCBL</field>
+        </record>
+        <record id="bank_in_hsbc" model="res.bank">
+            <field name="name">HSBC India</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">HSBC</field>
+        </record>
+        <record id="bank_in_au" model="res.bank">
+            <field name="name">AU Small Finance Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">AUBL</field>
+        </record>
+        <record id="bank_in_equitas" model="res.bank">
+            <field name="name">Equitas Small Finance Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">ESFB</field>
+        </record>
+        <record id="bank_in_ujjivan" model="res.bank">
+            <field name="name">Ujjivan Small Finance Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">UJVN</field>
+        </record>
+        <record id="bank_in_ippb" model="res.bank">
+            <field name="name">India Post Payments Bank</field>
+            <field name="country" ref="base.in"/>
+            <field name="ifsc_prefix">IPOS</field>
+        </record>
+        <record id="bank_ae_enbd" model="res.bank">
+            <field name="name">Emirates NBD</field>
+            <field name="country" ref="base.ae"/>
+        </record>
+        <record id="bank_ae_fab" model="res.bank">
+            <field name="name">First Abu Dhabi Bank (FAB)</field>
+            <field name="country" ref="base.ae"/>
+        </record>
+    </data>
+</odoo>

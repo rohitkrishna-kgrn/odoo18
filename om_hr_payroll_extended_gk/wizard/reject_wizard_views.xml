@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_payroll_country_reject_wizard" model="ir.ui.view">
+        <field name="name">payroll.country.reject.wizard.form</field>
+        <field name="model">payroll.country.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Payroll Decision">
+                <field name="mode" invisible="1"/>
+                <div class="alert alert-info" role="alert" invisible="mode != 'resubmit'">
+                    The payroll goes back to the user who prepared it. The reason is saved in the chatter and
+                    emailed to them only, so they can check the batch and submit it again.
+                </div>
+                <group>
+                    <field name="batch_id" options="{'no_open': True}"/>
+                    <field name="reason" invisible="mode != 'reject'" string="Rejection Reason"
+                           placeholder="What must the Payroll Officer correct?"/>
+                    <field name="reason" invisible="mode != 'resubmit'" string="Resubmission Reason"
+                           placeholder="What should be checked before submitting again?"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Reject" class="btn-danger"
+                            invisible="mode != 'reject'"/>
+                    <button name="action_confirm" type="object" string="Send for Resubmission" class="btn-warning"
+                            invisible="mode != 'resubmit'"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The two Leave Management locations (res.users "Country For Leave Model").
+         Creating a row creates its Payroll menu; add a row for a new country. -->
+    <data noupdate="1">
+        <record id="payroll_country_ae" model="payroll.country">
+            <field name="name">Dubai Payroll</field>
+            <field name="country_id" ref="base.ae"/>
+            <field name="leave_location">dubai</field>
+            <field name="sequence">11</field>
+        </record>
+        <record id="payroll_country_in" model="payroll.country">
+            <field name="name">India Payroll</field>
+            <field name="country_id" ref="base.in"/>
+            <field name="leave_location">india</field>
+            <field name="pf_esi_mode">formula</field>
+            <field name="sequence">12</field>
+        </record>
+    </data>
+</odoo>

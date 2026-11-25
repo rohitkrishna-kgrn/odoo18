@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_payroll_country_list" model="ir.ui.view">
+        <field name="name">payroll.country.list</field>
+        <field name="model">payroll.country</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="country_id"/>
+                <field name="leave_location"/>
+                <field name="pf_esi_mode"/>
+                <field name="company_ids" widget="many2many_tags"/>
+                <field name="officer_ids" widget="many2many_tags"/>
+                <field name="active" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_payroll_country_form" model="ir.ui.view">
+        <field name="name">payroll.country.form</field>
+        <field name="model">payroll.country</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="country_id" options="{'no_create': True}"/>
+                            <field name="leave_location"/>
+                            <field name="reference_code"/>
+                            <field name="sequence"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="menu_id" readonly="1"/>
+                            <field name="company_ids" widget="many2many_tags"/>
+                            <field name="officer_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <group string="PF / ESI (India employees only)" invisible="leave_location != 'india'">
+                        <group>
+                            <field name="pf_esi_mode" widget="radio"/>
+                        </group>
+                        <group invisible="pf_esi_mode != 'formula'">
+                            <field name="pf_wage_ratio"/>
+                            <field name="pf_wage_cap"/>
+                            <field name="pf_employee_rate"/>
+                            <field name="pf_employer_rate"/>
+                            <field name="esi_wage_threshold"/>
+                            <field name="esi_employee_rate"/>
+                            <field name="esi_employer_rate"/>
+                        </group>
+                    </group>
+                    <group string="Work From Home (India employees only)" invisible="leave_location != 'india'">
+                        <group>
+                            <field name="wfh_rate"/>
+                        </group>
+                    </group>
+                    <div class="text-muted">Saving a new country creates its Payroll menu. Companies = companies whose
+                        address is in this country. Officers = users with the Payroll Officer right and this country
+                        in Allowed Payroll Countries.</div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_payroll_country_config" model="ir.actions.act_window">
+        <field name="name">Payroll Countries</field>
+        <field name="res_model">payroll.country</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'active_test': False}</field>
+    </record>
+</odoo>

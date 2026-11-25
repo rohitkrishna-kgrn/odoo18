@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Dubai Payroll / India Payroll menus are created from the Payroll Countries rows
+         (payroll.country._sync_menu), sequence 11 / 12 = right after Employee Payslips. -->
+    <menuitem id="menu_payroll_approvals" name="Payroll Approvals" parent="om_hr_payroll.menu_hr_payroll_root"
+              action="action_payroll_approvals" sequence="13" groups="-base.group_user,om_hr_payroll_extended_gk.group_payroll_admin"/>
+    <menuitem id="menu_payroll_unsent" name="Unsent Payslips" parent="om_hr_payroll.menu_hr_payroll_root"
+              action="action_payroll_unsent_payslips" sequence="14"
+              groups="om_hr_payroll.group_hr_payroll_user"/>
+    <menuitem id="menu_payroll_reports" name="Payroll Reports" parent="om_hr_payroll.menu_hr_payroll_root"
+              action="action_payroll_country_report_wizard" sequence="16"
+              groups="om_hr_payroll.group_hr_payroll_user"/>
+    <!-- Payslip: its own app for every employee - own approved payslips only -->
+    <menuitem id="menu_payslip_app_root" name="Payslip" sequence="95" groups="base.group_user"
+              web_icon="om_hr_payroll_extended_gk,static/description/payslip_app.png"/>
+    <menuitem id="menu_my_payslips" name="My Payslips" parent="menu_payslip_app_root"
+              action="action_my_payslips" sequence="1" groups="base.group_user"/>
+
+    <menuitem id="menu_payroll_country_config_root" name="Country Payroll" parent="om_hr_payroll.menu_hr_payroll_configuration"
+              sequence="60" groups="om_hr_payroll.group_hr_payroll_manager"/>
+    <menuitem id="menu_payroll_country_config" name="Payroll Countries" parent="menu_payroll_country_config_root"
+              action="action_payroll_country_config" sequence="1"/>
+    <menuitem id="menu_payroll_officers" name="Payroll Officers" parent="menu_payroll_country_config_root"
+              action="action_payroll_officers" sequence="2"/>
+    <menuitem id="menu_payroll_all_batches" name="All Country Payroll" parent="menu_payroll_country_config_root"
+              action="action_payroll_all_batches" sequence="3"/>
+
+    <!-- generated Dubai / India Payroll menus: re-synced on every upgrade -->
+    <function model="payroll.country" name="_sync_all_menus"/>
+</odoo>

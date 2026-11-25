@@ -1,0 +1,10 @@
+// Payroll batch / employee payroll forms: chatter without "Send message" or attachments
+// (Log note stays). Scoped to the forms' own class so no other chatter is touched.
+.o_payroll_no_mail_chatter {
+    .o-mail-Chatter-sendMessage,
+    .o-mail-Chatter-attachFiles,
+    .o-mail-Chatter-fileUploader,
+    .o-mail-Composer-attachFiles {
+        display: none !important;
+    }
+}

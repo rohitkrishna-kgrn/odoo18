@@ -10,6 +10,43 @@
             <xpath expr="//form" position="inside">
                 <div class="app_settings_block" data-string="Payroll" string="Payroll" data-key="om_hr_payroll"
                      groups="om_hr_payroll.group_hr_payroll_manager">
+                    <h2>India: Basic Salary &amp; Employee Provident Fund</h2>
+                    <div class="row mt16 o_settings_container" id="om_hr_payroll_india_pf">
+                        <div class="col-lg-6 col-12 o_setting_box">
+                            <div class="o_setting_right_pane">
+                                <span class="o_form_label">Basic Salary</span>
+                                <div class="text-muted">
+                                    Salary After LOP = Wage - Loss of Pay. At or above the threshold, Basic Salary =
+                                    the contract's Basic Salary; below it, Basic Salary = the % of Salary After LOP
+                                    (that payslip only, the contract is not changed).
+                                </div>
+                                <div class="content-group mt8">
+                                    <div class="row">
+                                        <label for="india_basic_cap" string="Threshold" class="col-lg-5 o_light_label"/>
+                                        <field name="india_basic_cap"/>
+                                    </div>
+                                    <div class="row">
+                                        <label for="india_basic_percent" string="% below the threshold" class="col-lg-5 o_light_label"/>
+                                        <field name="india_basic_percent"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-12 o_setting_box">
+                            <div class="o_setting_right_pane">
+                                <span class="o_form_label">Employee Provident Fund</span>
+                                <div class="text-muted">
+                                    EPF = Basic Salary x this %. Applied on payslips at Compute Sheet.
+                                </div>
+                                <div class="content-group mt8">
+                                    <div class="row">
+                                        <label for="india_epf_percent" string="EPF %" class="col-lg-5 o_light_label"/>
+                                        <field name="india_epf_percent"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <h2>Accounting</h2>
                     <div class="row mt16 o_settings_container" id="om_hr_payroll_account">
                         <div class="col-lg-6 col-12 o_setting_box">

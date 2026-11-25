@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ===== full detail popup ===== -->
+    <record id="view_payroll_country_line_form" model="ir.ui.view">
+        <field name="name">payroll.country.line.form</field>
+        <field name="model">payroll.country.line</field>
+        <field name="arch" type="xml">
+            <form string="Employee Payroll" create="0" delete="0" class="o_payroll_no_mail_chatter">
+                <header>
+                    <button name="action_recalculate_line" type="object" string="Recalculate" class="btn-primary"
+                            invisible="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"
+                            groups="om_hr_payroll.group_hr_payroll_user"/>
+                    <button name="action_reset_manual" type="object" string="Back to Calculated Values"
+                            invisible="not has_manual or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"
+                            confirm="Remove every manual change on this employee and use the Payroll calculation again?"
+                            groups="om_hr_payroll.group_hr_payroll_user"/>
+                    <button name="action_send_payslips" type="object" string="Send Payslip" class="btn-primary"
+                            invisible="batch_state != 'approved' or email_status in ('sent', 'queued')"
+                            groups="om_hr_payroll.group_hr_payroll_user"/>
+                    <button name="action_resend_payslip" type="object" string="Resend Payslip"
+                            invisible="batch_state != 'approved' or email_status not in ('sent', 'queued')"
+                            confirm="This payslip was already emailed. Send it again?"
+                            groups="om_hr_payroll.group_hr_payroll_user"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,calculated,submitted,approved"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-warning mb-2" role="alert" invisible="validation_status == 'ok'">
+                        <field name="validation_message" readonly="1"/>
+                    </div>
+                    <div class="oe_title">
+                        <h2><field name="employee_name" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/></h2>
+                        <div class="text-muted">
+                            <field name="batch_id" readonly="1" options="{'no_open': True}"/> ·
+                            <field name="company_name" readonly="1" class="oe_inline"/>
+                        </div>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="gross" readonly="1"/>
+                            <field name="total_deductions" readonly="1"/>
+                            <field name="net" readonly="1" class="fw-bold"/>
+                        </group>
+                        <group>
+                            <field name="payslip_ref" readonly="1"/>
+                            <field name="calculated_on" readonly="1"/>
+                            <field name="has_manual" readonly="1"/>
+                            <field name="batch_state" invisible="1"/>
+                            <field name="validation_status" invisible="1"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="pf_india" invisible="1"/>
+                            <field name="pf_esi_applies" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Employee Details" name="employee">
+                            <group>
+                                <group>
+                                    <field name="employee_id" readonly="1" options="{'no_open': True}"/>
+                                    <field name="employee_code" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="department_name" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="job_name" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="company_id" readonly="1" options="{'no_open': True}"/>
+                                </group>
+                                <group>
+                                    <field name="country_id" readonly="1" options="{'no_open': True}"/>
+                                    <field name="leave_country" readonly="1"/>
+                                    <field name="joining_date" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="employee_status" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="work_location" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="work_email" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                </group>
+                            </group>
+                            <div class="text-muted">These values are the employee's own: a value typed here is saved on the employee too (Department / Work Location: type the exact name of an existing one), and a change made on the employee shows here. Employee Status applies to this payroll only.</div>
+                        </page>
+                        <page string="Contract Details" name="contract">
+                            <group>
+                                <group>
+                                    <field name="contract_ref" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="contract_start" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="contract_end" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="contract_state" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="window_from" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="window_to" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                </group>
+                                <group>
+                                    <field name="structure_name" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="schedule_name" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                </group>
+                            </group>
+                            <group string="Salary Components (from the contract)">
+                                <group string="Earnings">
+                                    <field name="contract_wage" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="contract_basic" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="contract_hra" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="contract_da" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="contract_travel" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="contract_medical" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="contract_other_allowance" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                </group>
+                                <group string="Deductions">
+                                    <field name="contract_esi" readonly="1" invisible="not pf_esi_applies"/>
+                                    <field name="contract_pt" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="contract_other_deduction" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="contract_epf" readonly="1" invisible="not pf_esi_applies"/>
+                                </group>
+                            </group>
+                            <div class="text-muted">These are the contract values the Payroll salary rules read. A value typed here is saved on the employee's contract too (and every open payroll of this contract follows it), then the payslip is recalculated; a change made on the contract shows here the same way. Payable From / To apply to this payroll only. Structure and Working Schedule: type the exact name of an existing one. EPF and ESI amounts here are not deducted as such: with the Salary Administration formula (India) a non-zero EPF / ESI on the contract only means PF / ESI applies; the amounts are calculated, or typed on the Salary Components tab. India: Basic and the allowances paid follow the India Basic rule, so they can differ from the contract.</div>
+                        </page>
+                        <page string="Bank Details" name="bank">
+                            <group>
+                                <group>
+                                    <field name="bank_id" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" options="{'no_open': True}"
+                                           context="{'default_country': country_id}"/>
+                                    <field name="bank_name" readonly="1" invisible="bank_id or not bank_name"/>
+                                    <field name="bank_holder" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="bank_branch" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                </group>
+                                <group>
+                                    <field name="bank_account_masked" readonly="1"/>
+                                    <field name="bank_iban_masked" readonly="1"/>
+                                    <field name="bank_account" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="bank_iban" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="bank_ifsc" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="bank_route" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                </group>
+                            </group>
+                            <div class="text-muted">Read from the employee (HR Settings &gt; Payroll Info and Bank Details). A value typed here is saved on the employee too (bank details are not validated); a change made on the employee shows here the same way.</div>
+                        </page>
+                        <page string="Attendance" name="attendance">
+                            <group>
+                                <group>
+                                    <field name="total_days" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="working_days" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="present_days" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="absent_days" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="half_days" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="out_of_contract_days" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                </group>
+                                <group>
+                                    <field name="weekly_off_days" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="public_holidays" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="late_arrivals" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="late_deduct_days" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="worked_hours" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" widget="float_time"/>
+                                    <field name="work_from_home" invisible="not pf_esi_applies" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="overtime_hours" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')" widget="float_time"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Leave" name="leave">
+                            <group>
+                                <group>
+                                    <field name="paid_leave_days" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="unpaid_leave_days" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                </group>
+                                <group>
+                                    <field name="pending_leave_count" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                </group>
+                            </group>
+                            <field name="leave_detail_ids" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')">
+                                <list editable="bottom">
+                                    <field name="leave_type"/>
+                                    <field name="date_from"/>
+                                    <field name="date_to"/>
+                                    <field name="is_half_day"/>
+                                    <field name="days_in_period"/>
+                                    <field name="treatment"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                            <div class="text-muted">Only approved leave counts. Paid / unpaid follows the leave type exactly as the Payroll worked days do (Loss of Pay type = unpaid).</div>
+                        </page>
+                        <page string="Salary Components" name="salary">
+                            <group>
+                                <group string="Earnings">
+                                    <field name="lop_days" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="basic" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="hra" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="other_allowances" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="overtime_amount" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="other_earnings" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="gross" readonly="1"/>
+                                </group>
+                                <group string="Deductions">
+                                    <field name="pf_esi_mode" invisible="1"/>
+                                    <field name="pf_esi_entry" widget="radio" options="{'horizontal': true}" invisible="not pf_esi_applies" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="epf" invisible="not pf_esi_applies" readonly="pf_esi_entry == 'formula' or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="esi" invisible="not pf_esi_applies" readonly="pf_esi_entry == 'formula' or batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="lop_amount" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="other_deductions" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="wfh_deduction" invisible="not work_from_home and not wfh_deduction"/>
+                                    <field name="total_other_deductions" invisible="not work_from_home and not wfh_deduction"/>
+                                    <field name="total_deductions" readonly="1"/>
+                                    <field name="net" readonly="1"/>
+                                </group>
+                            </group>
+                            <group string="Calculated by the Payroll rules (before manual changes)">
+                                <group>
+                                    <field name="calc_basic" readonly="1"/>
+                                    <field name="calc_hra" readonly="1"/>
+                                    <field name="calc_other_allowances" readonly="1"/>
+                                </group>
+                                <group>
+                                    <field name="calc_other_deductions" readonly="1"/>
+                                    <field name="calc_lop_amount" readonly="1"/>
+                                    <field name="calc_epf" readonly="1" string="Formula EPF" invisible="not pf_esi_applies"/>
+                                    <field name="calc_esi" readonly="1" string="Formula ESI" invisible="not pf_esi_applies"/>
+                                </group>
+                            </group>
+                            <group string="PF / ESI (Salary Administration formula)" invisible="not pf_esi_applies">
+                                <group>
+                                    <field name="pf_wage"/>
+                                    <field name="pf_employer"/>
+                                </group>
+                                <group>
+                                    <field name="esi_wage"/>
+                                    <field name="esi_employer"/>
+                                </group>
+                            </group>
+                            <div class="text-muted" invisible="pf_esi_applies">PF and ESI apply to India employees only (Leave Location = India): not deducted for this employee.</div>
+                            <div class="text-muted" invisible="not pf_esi_applies">PF / ESI <strong>Formula</strong>: calculated, read-only. <strong>Manual</strong>: type Employee EPF / ESI (switching keeps the current amounts). Back to Calculated Values returns to the country default.</div>
+                            <field name="note" placeholder="Remarks..." readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                            <separator string="Manual Changes (audit trail)"/>
+                            <field name="change_log_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="user_id"/>
+                                    <field name="field_label"/>
+                                    <field name="old_value"/>
+                                    <field name="new_value"/>
+                                    <field name="calculated_value"/>
+                                    <field name="synced_to"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Payslip Information" name="payslip">
+                            <group>
+                                <group string="This Payslip">
+                                    <field name="payslip_ref" readonly="1"/>
+                                    <field name="payslip_id" readonly="1" groups="om_hr_payroll.group_hr_payroll_manager"/>
+                                    <field name="email_status" readonly="1"/>
+                                    <field name="email_sent_date" readonly="1"/>
+                                    <field name="email_error" readonly="1" invisible="not email_error"/>
+                                </group>
+                                <group string="Previous Payslip">
+                                    <field name="prev_payslip_ref" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="prev_month" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="prev_year" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="prev_basic" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="prev_gross" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="prev_net" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                    <field name="prev_state" readonly="batch_state not in ('draft', 'calculated', 'rejected', 'resubmit')"/>
+                                </group>
+                            </group>
+                            <separator string="Sending History"/>
+                            <field name="send_log_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="attempt"/>
+                                    <field name="user_id"/>
+                                    <field name="email_to"/>
+                                    <field name="status"/>
+                                    <field name="sent_date"/>
+                                    <field name="failure_reason"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ===== Unsent payslips ===== -->
+    <record id="view_payroll_country_line_send_list" model="ir.ui.view">
+        <field name="name">payroll.country.line.send.list</field>
+        <field name="model">payroll.country.line</field>
+        <field name="arch" type="xml">
+            <list string="Payslips to Send" create="0" delete="0" edit="0"
+                  decoration-success="email_status == 'sent'" decoration-danger="email_status in ('failed', 'no_email')"
+                  decoration-info="email_status == 'queued'">
+                <header>
+                    <button name="action_send_payslips" type="object" string="Send Selected Payslips" class="btn-primary"/>
+                    <button name="action_mark_resend" type="object" string="Mark Awaiting Resend"/>
+                </header>
+                <field name="batch_id" options="{'no_open': True}"/>
+                <field name="employee_name"/>
+                <field name="employee_code"/>
+                <field name="company_name"/>
+                <field name="month"/>
+                <field name="year"/>
+                <field name="payslip_ref"/>
+                <field name="work_email"/>
+                <field name="state" optional="show"/>
+                <field name="email_status" widget="badge"/>
+                <field name="email_sent_date" optional="show"/>
+                <field name="email_error" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="net" sum="Total" optional="hide"/>
+                <button name="action_open_line" type="object" icon="fa-external-link" title="Open"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_payroll_country_line_search" model="ir.ui.view">
+        <field name="name">payroll.country.line.search</field>
+        <field name="model">payroll.country.line</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_name"/>
+                <field name="employee_code"/>
+                <field name="batch_id"/>
+                <field name="company_id"/>
+                <filter name="not_sent" string="Not Sent" domain="[('email_status', '!=', 'sent')]"/>
+                <separator/>
+                <filter name="pending" string="Pending" domain="[('email_status', '=', 'pending')]"/>
+                <filter name="queued" string="Queued" domain="[('email_status', '=', 'queued')]"/>
+                <filter name="sent" string="Sent" domain="[('email_status', '=', 'sent')]"/>
+                <filter name="failed" string="Failed" domain="[('email_status', '=', 'failed')]"/>
+                <filter name="no_email" string="No Employee Email" domain="[('email_status', '=', 'no_email')]"/>
+                <filter name="resend" string="Awaiting Resend" domain="[('email_status', '=', 'resend')]"/>
+                <separator/>
+                <filter name="errors" string="Check Errors" domain="[('validation_status', '=', 'error')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_batch" string="Payroll Batch" context="{'group_by': 'batch_id'}"/>
+                    <filter name="group_company" string="Company" context="{'group_by': 'company_id'}"/>
+                    <filter name="group_email" string="Email Status" context="{'group_by': 'email_status'}"/>
+                    <filter name="group_country" string="Country" context="{'group_by': 'country_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_payroll_unsent_payslips" model="ir.actions.act_window">
+        <field name="name">Unsent Payslips</field>
+        <field name="res_model">payroll.country.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_payroll_country_line_send_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_payroll_country_line_form')})]"/>
+        <field name="search_view_id" ref="view_payroll_country_line_search"/>
+        <field name="domain">[('batch_state', '=', 'approved')]</field>
+        <field name="context">{'search_default_not_sent': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Every approved payslip has been emailed</p>
+            <p>Payslips of approved payroll batches appear here until they are sent.</p>
+        </field>
+    </record>
+</odoo>

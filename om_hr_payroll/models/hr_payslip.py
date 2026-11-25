@@ -67,6 +67,100 @@ class HrPayslip(models.Model):
     lop_days = fields.Float(compute='_compute_lop_paid_days', string='LOP Days')
     paid_days = fields.Float(compute='_compute_lop_paid_days', string='Paid Days')
 
+    # ---- India: Basic Salary & Employee Provident Fund (set by Compute Sheet) ----
+    # Salary After LOP = Wage - Loss of Pay = (Wage / Total Days) x Payable Days.
+    # Basic Salary: Salary After LOP at or above the threshold (25,000) -> the
+    # contract's Basic Salary, unchanged (empty on the contract = 0); below it ->
+    # 70% of Salary After LOP, for this payslip only. EPF = Basic x 12%.
+    # The contract itself is never written.
+    # The BASIC, ALLOWANCE and EPF salary rules read these through `india_pf`.
+    pf_india = fields.Boolean(string='India Basic & EPF', readonly=True, copy=False)
+    pf_salary = fields.Float(string='Salary', digits=(16, 2), readonly=True, copy=False,
+                             help="The contract wage.")
+    pf_lop_amount = fields.Float(string='LOP Deduction', digits=(16, 2), readonly=True, copy=False,
+                                 help="The Loss of Pay rule's amount on this payslip.")
+    pf_salary_after_lop = fields.Float(string='Salary After LOP', digits=(16, 2), readonly=True, copy=False)
+    pf_contract_basic = fields.Float(string='Contract Basic Salary', digits=(16, 2), readonly=True, copy=False,
+                                     help="Basic Salary on the employee's contract (Salary Information).")
+    pf_basic_source = fields.Selection([
+        ('contract', 'Contract Basic Salary'),
+        ('percent', '% of Salary After LOP'),
+    ], string='Basic Salary Based On', readonly=True, copy=False,
+        help="Salary After LOP at or above the threshold: the contract's Basic Salary. "
+             "Below it: the Basic % of Salary After LOP, for this payslip only.")
+    pf_basic = fields.Float(string='Basic Salary', digits=(16, 2), readonly=True, copy=False)
+    pf_epf_rate = fields.Float(string='Employee Provident Fund (%)', digits=(16, 2), readonly=True, copy=False)
+    pf_epf_amount = fields.Float(string='Employee Provident Fund', digits=(16, 2), readonly=True, copy=False)
+
+    PF_PARAMS = {
+        'om_hr_payroll.india_basic_cap': 25000.0,
+        'om_hr_payroll.india_basic_percent': 70.0,
+        'om_hr_payroll.india_epf_percent': 12.0,
+    }
+
+    @api.model
+    def _india_pf_settings(self):
+        get = self.env['ir.config_parameter'].sudo().get_param
+        res = {}
+        for key, default in self.PF_PARAMS.items():
+            try:
+                res[key.split('.')[-1]] = float(get(key, default))
+            except (TypeError, ValueError):
+                res[key.split('.')[-1]] = default
+        return res
+
+    @api.model
+    def _india_pf_breakdown(self, salary, lop_amount, contract_basic, settings=None):
+        """The one place Basic Salary and EPF are calculated (India).
+        salary: the contract wage; lop_amount: Loss of Pay (positive);
+        contract_basic: the contract's Basic Salary (used as-is, never prorated)."""
+        settings = settings or self._india_pf_settings()
+        after_lop = max(round(salary - abs(lop_amount), 2), 0.0)
+        contract_basic = round(contract_basic or 0.0, 2)
+        if after_lop >= settings['india_basic_cap']:
+            basic, source = contract_basic, 'contract'
+        else:
+            basic = round(after_lop * settings['india_basic_percent'] / 100.0, 2)
+            source = 'percent'
+        rate = settings['india_epf_percent']
+        return {
+            'salary': round(salary, 2),
+            'lop_amount': round(abs(lop_amount), 2),
+            'salary_after_lop': after_lop,
+            'contract_basic': contract_basic,
+            'basic_source': source,
+            'basic': basic,
+            'epf_rate': rate,
+            'epf': round(basic * rate / 100.0, 2),
+        }
+
+    def _india_pf_values(self, contract, employee, localdict, rules):
+        """Basic / EPF figures for one contract of this payslip. LOP comes from
+        the structure's own Loss of Pay rule, evaluated on the same worked days,
+        so the payslip's LOP line and Salary After LOP always agree."""
+        if employee.country_for_leave != 'india':
+            return {'applies': False}
+        lop = 0.0
+        lop_rule = rules.filtered(lambda r: r.code == 'LOP')[:1]
+        if lop_rule:
+            ld = dict(localdict, result=None, result_qty=1.0, result_rate=100)
+            if lop_rule._satisfy_condition(ld):
+                amount, qty, rate = lop_rule._compute_rule(ld)
+                lop = contract.company_id.currency_id.round(amount * qty * rate / 100.0)
+        pf = self._india_pf_breakdown(contract.wage, lop, contract.basic_salary)
+        # Earnings always add up to the wage (Gross = wage, Net = Salary After LOP
+        # - deductions): after the calculated Basic Salary, the contract's HRA,
+        # Special, Conveyance and Medical are paid as far as the wage allows, in
+        # that order, and Other Allowance takes the rest.
+        remaining = max(round(pf['salary'] - pf['basic'], 2), 0.0)
+        for key, field in (('hra', 'hra'), ('da', 'da'), ('travel', 'travel_allowance'),
+                           ('medical', 'medical_allowance')):
+            pf[key] = min(contract[field] or 0.0, remaining)
+            remaining = round(remaining - pf[key], 2)
+        pf['allowance'] = remaining
+        pf['applies'] = True
+        return pf
+
     @api.depends('worked_days_line_ids.number_of_days')
     def _compute_lop_paid_days(self):
         for slip in self:
@@ -100,7 +194,7 @@ class HrPayslip(models.Model):
         return self.write({'state': 'draft'})
 
     def action_payslip_done(self):
-        """Mark payslip as done and send PDF via email without resetting line items."""
+        """Mark payslip as done and email the employee that it is available (no PDF attached)."""
         Mail = self.env['mail.mail']
         Attachment = self.env['ir.attachment']
         ReportRef = 'om_hr_payroll.report_payslip'  # Update with your actual report XML ID
@@ -114,22 +208,8 @@ class HrPayslip(models.Model):
             if not email:
                 continue
 
-            # Generate payslip PDF
-            pdf_content, _ = self.env['ir.actions.report']._render_qweb_pdf(
-                report_ref=ReportRef,
-                res_ids=[payslip.id]
-            )
-            pdf_name = f"Payslip_{payslip.number or payslip.name}.pdf"
-
-            # Create attachment
-            attachment = Attachment.create({
-                'name': pdf_name,
-                'type': 'binary',
-                'datas': base64.b64encode(pdf_content),
-                'res_model': 'hr.payslip',
-                'res_id': payslip.id,
-                'mimetype': 'application/pdf',
-            })
+            # No payslip PDF attached and no salary figure in the email (2026-11-25):
+            # the employee opens Payslip > My Payslips in Odoo.
 
             # Email body
             body_html = f"""
@@ -137,7 +217,7 @@ class HrPayslip(models.Model):
                 <p>Your payslip for the period <strong>{payslip.date_from}</strong>
                 to <strong>{payslip.date_to}</strong> is now available.</p>
                 <p><strong>Reference:</strong> {payslip.number}</p>
-                <p>Please find the attached PDF document for your records.</p>
+                <p>For your privacy it is not attached to this email: open Payslip &gt; My Payslips in Odoo to view or download it.</p>
                 <br/>
                 <p>Regards,<br/>HR Department</p>
             """
@@ -148,7 +228,6 @@ class HrPayslip(models.Model):
                 'body_html': body_html,
                 'email_to': email,
                 'email_from': payslip.company_id.email or 'no-reply@yourcompany.com',
-                'attachment_ids': [(4, attachment.id)],
                 'auto_delete': True,
             })
             mail.send()
@@ -275,15 +354,19 @@ class HrPayslip(models.Model):
             if not user:
                 continue
 
-            # 1. Paid Leaves (excludes permission leaves which have paid=False)
-            paid_leaves = LeaveRequest.search([
+            # 1. Approved leave (Leave module). Paid Leave = every approved leave type
+            # except Loss of Pay and Permission, whatever the request's Paid tick says.
+            approved = LeaveRequest.search([
                 ('user_id', '=', user.id),
                 ('state', '=', 'approved'),
-                ('paid', '=', True),
                 ('start_date', '<=', date_to),
-                ('end_date', '>=', date_from),
+                '|', ('end_date', '>=', date_from),
+                '&', ('end_date', '=', False), ('start_date', '>=', date_from),
             ])
-            total_leave_days = 0.0
+            lop_type = self.env.ref('leave_management_rk.leave_type_lop', raise_if_not_found=False)
+            lop_leaves = approved.filtered(lambda l: lop_type and l.leave_type_id == lop_type)
+            paid_leaves = approved.filtered(
+                lambda l: not l.leave_type_id.is_permission and l not in lop_leaves)
             half_day_leave_dates = set()
             # Dubai 'Sick Leave - Full Pay' / 'Sick Leave - Half Pay' (picked by the employee,
             # see leave.type.sick_pay_tier) are always Paid Leave for payroll, whatever the approver
@@ -292,27 +375,31 @@ class HrPayslip(models.Model):
             sick_types = self.env['leave.type'].search([('sick_pay_tier', '!=', False)])
             if sick_types and employee.country_for_leave == 'dubai':
                 paid_leaves = paid_leaves.filtered(lambda l: l.leave_type_id not in sick_types)
-                sick_split = LeaveRequest.get_dubai_sick_pay_split(user, date_from_dt, date_to_dt)
                 # Sick days appear as their own Full Pay / Half Pay lines, not in Paid Leave.
                 for sick in LeaveRequest.search([
                         ('user_id', '=', user.id), ('state', '=', 'approved'),
                         ('leave_type_id', 'in', sick_types.ids), ('is_half_day', '=', True),
                         ('start_date', '>=', date_from), ('start_date', '<=', date_to)]):
                     half_day_leave_dates.add(sick.start_date)
+
+            def leave_days(leaves):
+                """{date: days} inside this period, at most 1 a day (half day 0.5)."""
+                per_day = {}
+                for leave in leaves:
+                    first = max(leave.start_date, date_from_dt)
+                    last = min(leave.end_date or leave.start_date, date_to_dt)
+                    amount = 0.5 if leave.is_half_day else 1.0
+                    d = first
+                    while d <= last:
+                        per_day[d] = min(per_day.get(d, 0.0) + amount, 1.0)
+                        d += timedelta(days=1)
+                return per_day
+
+            paid_per_day = leave_days(paid_leaves)
+            lop_per_day = leave_days(lop_leaves)
             for leave in paid_leaves:
-                total_leave_days += leave.days_requested
                 if leave.is_half_day and leave.start_date:
                     half_day_leave_dates.add(leave.start_date)
-
-            if total_leave_days:
-                worked_days.append({
-                    'name': 'Paid Leave',
-                    'sequence': 10,
-                    'code': 'LEAVE',
-                    'number_of_days': total_leave_days,
-                    'number_of_hours': total_leave_days * 8,
-                    'contract_id': contract.id,
-                })
 
             # 2. Public Holidays
             public_holidays = PublicHoliday.search([
@@ -338,15 +425,26 @@ class HrPayslip(models.Model):
                 ('check_in', '<=', datetime.combine(date_to_dt, datetime.max.time()).replace(tzinfo=UTC)),
             ])
             present_days_set = {att.check_in.astimezone(UTC).date() for att in attendance_records if att.check_in}
+            # Paid Leave per day: a day is paid once. Sundays and public holidays are
+            # already paid through their own lines and an LOP leave day stays LOP.
+            # An approved leave day counts as Paid Leave even when there is a
+            # check-in that day; attendance only covers what the leave did not.
+            leave_per_day = {}
+            for d, amount in paid_per_day.items():
+                if d in sundays_set or d in public_holiday_dates:
+                    continue
+                amount = max(min(amount, 1.0 - lop_per_day.get(d, 0.0)), 0.0)
+                if amount:
+                    leave_per_day[d] = amount
+            present_per_day = {
+                d: max(min(0.5 if d in half_day_leave_dates else 1.0, 1.0 - leave_per_day.get(d, 0.0)), 0.0)
+                for d in present_days_set}
 
             if not present_days_set:
                 number_of_days = 0.0
                 number_of_hours = 0.0
             else:
-                number_of_days = sum(
-                    0.5 if d in half_day_leave_dates else 1.0
-                    for d in present_days_set
-                )
+                number_of_days = sum(present_per_day.values())
                 number_of_hours = number_of_days * 8
 
             worked_days.append({
@@ -357,6 +455,18 @@ class HrPayslip(models.Model):
                 'number_of_hours': number_of_hours,
                 'contract_id': contract.id,
             })
+
+            total_leave_days = sum(leave_per_day.values())
+
+            if total_leave_days:
+                worked_days.append({
+                    'name': 'Paid Leave',
+                    'sequence': 10,
+                    'code': 'LEAVE',
+                    'number_of_days': total_leave_days,
+                    'number_of_hours': total_leave_days * 8,
+                    'contract_id': contract.id,
+                })
 
             # 3b. Late Login Deduction (0.5 day per late check-in beyond the
             # grace period, Asia/Dubai time). Shares hr.attendance's
@@ -561,9 +671,21 @@ class HrPayslip(models.Model):
         sorted_rule_ids = [id for id, sequence in sorted(rule_ids, key=lambda x:x[1])]
         sorted_rules = self.env['hr.salary.rule'].browse(sorted_rule_ids)
 
+        pf_vals = {'pf_india': False, 'pf_salary': 0.0, 'pf_lop_amount': 0.0, 'pf_salary_after_lop': 0.0,
+                   'pf_contract_basic': 0.0, 'pf_basic_source': False,
+                   'pf_basic': 0.0, 'pf_epf_rate': 0.0, 'pf_epf_amount': 0.0}
         for contract in contracts:
             employee = contract.employee_id
             localdict = dict(baselocaldict, employee=employee, contract=contract)
+            # India Basic Salary / EPF (see _india_pf_values), read by the rules as `india_pf`
+            pf = payslip._india_pf_values(contract, employee, localdict, sorted_rules)
+            localdict['india_pf'] = BrowsableObject(employee.id, pf, self.env)
+            if pf.get('applies'):
+                pf_vals = {'pf_india': True, 'pf_salary': pf['salary'], 'pf_lop_amount': pf['lop_amount'],
+                           'pf_salary_after_lop': pf['salary_after_lop'],
+                           'pf_contract_basic': pf['contract_basic'], 'pf_basic_source': pf['basic_source'],
+                           'pf_basic': pf['basic'],
+                           'pf_epf_rate': pf['epf_rate'], 'pf_epf_amount': pf['epf']}
             for rule in sorted_rules:
                 key = rule.code + '-' + str(contract.id)
                 localdict['result'] = None
@@ -609,6 +731,9 @@ class HrPayslip(models.Model):
                 else:
                     #blacklist this rule and its children
                     blacklist += [id for id, seq in rule._recursive_search_of_rules()]
+
+        if payslip:
+            payslip.write(pf_vals)
 
         # Every rule above is still computed (so totals and Net Pay are unaffected), but
         # lines whose total is 0 are not stored - Salary Computation only lists lines with
@@ -896,7 +1021,7 @@ class HrPayslipRun(models.Model):
         return self.write({'state': 'close'})
 
     def done_payslip_run(self):
-        """Mark payslips as done and email them with PDF attached to each employee."""
+        """Mark payslips as done and email each employee that the payslip is available (no PDF attached)."""
         Mail = self.env['mail.mail']
         Attachment = self.env['ir.attachment']
         ReportRef = 'om_hr_payroll.report_payslip'  # The XML ID of your payslip PDF report
@@ -910,22 +1035,8 @@ class HrPayslipRun(models.Model):
             if not email:
                 continue  # Skip if no email
 
-            # ✅ Render the payslip PDF correctly using ir.actions.report
-            pdf_content, _ = self.env['ir.actions.report']._render_qweb_pdf(
-                report_ref=ReportRef,
-                res_ids=[payslip.id]
-            )
-            pdf_name = f"Payslip_{payslip.number or payslip.name}.pdf"
-
-            # Create the attachment
-            attachment = Attachment.create({
-                'name': pdf_name,
-                'type': 'binary',
-                'datas': base64.b64encode(pdf_content),
-                'res_model': 'hr.payslip',
-                'res_id': payslip.id,
-                'mimetype': 'application/pdf',
-            })
+            # No payslip PDF attached and no salary figure in the email (2026-11-25):
+            # the employee opens Payslip > My Payslips in Odoo.
 
             # Email body
             body_html = f"""
@@ -933,7 +1044,7 @@ class HrPayslipRun(models.Model):
                 <p>Your payslip for the period <strong>{payslip.date_from.strftime('%Y-%m-%d')}</strong>
                 to <strong>{payslip.date_to.strftime('%Y-%m-%d')}</strong> is now available.</p>
                 <p><strong>Reference:</strong> {payslip.number}</p>
-                <p>Please find the attached PDF document for your records.</p>
+                <p>For your privacy it is not attached to this email: open Payslip &gt; My Payslips in Odoo to view or download it.</p>
                 <br/>
                 <p>Regards,<br/>
                 HR Department</p>
@@ -945,7 +1056,6 @@ class HrPayslipRun(models.Model):
                 'body_html': body_html,
                 'email_to': email,
                 'email_from': payslip.company_id.email or 'no-reply@yourcompany.com',
-                'attachment_ids': [(4, attachment.id)],
                 'auto_delete': True,
             })
 
@@ -1061,185 +1171,9 @@ class HrPayslipRun(models.Model):
         }
 
     def _compute_worked_days_for_contracts(self, contract, date_from, date_to):
-        LeaveRequest = self.env['leave.request']
-        PublicHoliday = self.env['public.holiday']
-        Attendance = self.env['hr.attendance']
-
-        worked_days = []
-
-        date_from_dt = fields.Date.to_date(date_from)
-        date_to_dt = fields.Date.to_date(date_to)
-
-        # Total days in period (full period, no exclusion)
-        total_days_set = {date_from_dt + timedelta(days=i) for i in range((date_to_dt - date_from_dt).days + 1)}
-
-        # Count Sundays
-        sundays_set = {d for d in total_days_set if d.weekday() == SUNDAY}
-
-        employee = contract.employee_id
-        user = employee.user_id
-        if not user:
-            return worked_days
-
-        # 1. Paid Leaves (excludes permission leaves which have paid=False)
-        paid_leaves = LeaveRequest.search([
-            ('user_id', '=', user.id),
-            ('state', '=', 'approved'),
-            ('paid', '=', True),
-            ('start_date', '<=', date_to),
-            ('end_date', '>=', date_from),
-        ])
-        total_leave_days = 0.0
-        half_day_leave_dates = set()
-        # Dubai 'Sick Leave - Full Pay' / 'Sick Leave - Half Pay' (picked by the employee,
-        # see leave.type.sick_pay_tier) are always Paid Leave for payroll, whatever the approver
-        # ticked; the unpaid half of a Half Pay day is charged inside Loss of Pay (see the LOP
-        # rule). So for Dubai those days come from the tier split instead of the Paid flag.
-        sick_types = self.env['leave.type'].search([('sick_pay_tier', '!=', False)])
-        if sick_types and employee.country_for_leave == 'dubai':
-            paid_leaves = paid_leaves.filtered(lambda l: l.leave_type_id not in sick_types)
-            sick_split = LeaveRequest.get_dubai_sick_pay_split(user, date_from_dt, date_to_dt)
-            # Sick days appear as their own Full Pay / Half Pay lines, not in Paid Leave.
-            for sick in LeaveRequest.search([
-                    ('user_id', '=', user.id), ('state', '=', 'approved'),
-                    ('leave_type_id', 'in', sick_types.ids), ('is_half_day', '=', True),
-                    ('start_date', '>=', date_from), ('start_date', '<=', date_to)]):
-                half_day_leave_dates.add(sick.start_date)
-        for leave in paid_leaves:
-            total_leave_days += leave.days_requested
-            if leave.is_half_day and leave.start_date:
-                half_day_leave_dates.add(leave.start_date)
-
-        if total_leave_days:
-            worked_days.append({
-                'name': 'Paid Leave',
-                'sequence': 10,
-                'code': 'LEAVE',
-                'number_of_days': total_leave_days,
-                'number_of_hours': total_leave_days * 8,
-                'contract_id': contract.id,
-            })
-
-        # 2. Public Holidays
-        public_holidays = PublicHoliday.search([
-            ('date', '>=', date_from),
-            ('date', '<=', date_to),
-        ])
-        public_holiday_dates = {fields.Date.to_date(ph.date) for ph in public_holidays}
-
-        if public_holiday_dates:
-            worked_days.append({
-                'name': 'Public Holiday',
-                'sequence': 20,
-                'code': 'PH',
-                'number_of_days': len(public_holiday_dates),
-                'number_of_hours': len(public_holiday_dates) * 8,
-                'contract_id': contract.id,
-            })
-
-        # 3. Attendance — days with a paid half-day leave count as 0.5
-        attendance_records = Attendance.search([
-            ('employee_id', '=', employee.id),
-            ('check_in', '>=', datetime.combine(date_from_dt, datetime.min.time()).replace(tzinfo=UTC)),
-            ('check_in', '<=', datetime.combine(date_to_dt, datetime.max.time()).replace(tzinfo=UTC)),
-        ])
-        present_days_set = {att.check_in.astimezone(UTC).date() for att in attendance_records if att.check_in}
-
-        if not present_days_set:
-            number_of_days = 0.0
-            number_of_hours = 0.0
-        else:
-            number_of_days = sum(
-                0.5 if d in half_day_leave_dates else 1.0
-                for d in present_days_set
-            )
-            number_of_hours = number_of_days * 8
-
-        worked_days.append({
-            'name': 'Present (Attendance)',
-            'sequence': 30,
-            'code': 'PRESENT',
-            'number_of_days': number_of_days,
-            'number_of_hours': number_of_hours,
-            'contract_id': contract.id,
-        })
-
-        # 3b. Late Login Deduction (0.5 day per late check-in beyond the
-        # grace period, Asia/Dubai time). Shares hr.attendance's grace-day
-        # logic with the Attendance module so the first 4 late check-ins of
-        # each 26th->25th period are excused there too.
-        _DUBAI_TZ = timezone('Asia/Dubai')
-        late_login_count = 0
-        for att in attendance_records:
-            if not att.check_in:
-                continue
-            check_in_dubai = att.check_in.replace(tzinfo=UTC).astimezone(_DUBAI_TZ)
-            if not Attendance._is_late_checkin(employee, check_in_dubai):
-                continue
-            _ordinal, is_deducted = Attendance.get_late_login_grace_status(employee, check_in_dubai)
-            if is_deducted:
-                late_login_count += 1
-
-        if late_login_count:
-            late_deduct_days = late_login_count * 0.5
-            worked_days.append({
-                'name': 'Late Login Deduction',
-                'sequence': 35,
-                'code': 'LATE_DEDUCT',
-                'number_of_days': late_deduct_days,
-                'number_of_hours': late_deduct_days * 8,
-                'contract_id': contract.id,
-            })
-
-        # 3c. Dubai Sick Leave Half Pay days — see get_worked_day_lines for
-        # the real payslip computation path; mirrored here so this batch
-        # export shows the same figures.
-        if employee.country_for_leave == 'dubai':
-            sick_split = LeaveRequest.get_dubai_sick_pay_split(user, date_from_dt, date_to_dt)
-            full_pay_days = sick_split.get('full_pay_days', 0.0)
-            half_pay_days = sick_split.get('half_pay_days', 0.0)
-            # Shown individually: Full Pay needs no deduction (already inside Paid
-            # Leave), so this line is informational; Half Pay feeds the LOP rule.
-            if full_pay_days:
-                worked_days.append({
-                    'name': 'Sick Leave Full Pay',
-                    'sequence': 36,
-                    'code': 'SICK_FULL_PAY_DAYS',
-                    'number_of_days': full_pay_days,
-                    'number_of_hours': full_pay_days * 8,
-                    'contract_id': contract.id,
-                })
-            if half_pay_days:
-                worked_days.append({
-                    'name': 'Sick Leave Half Pay',
-                    'sequence': 37,
-                    'code': 'SICK_HALF_PAY_DAYS',
-                    'number_of_days': half_pay_days,
-                    'number_of_hours': half_pay_days * 8,
-                    'contract_id': contract.id,
-                })
-
-        # 4. Sundays in Period
-        worked_days.append({
-            'name': 'Sundays',
-            'sequence': 40,
-            'code': 'SUNDAY',
-            'number_of_days': len(sundays_set),
-            'number_of_hours': len(sundays_set) * 8,
-            'contract_id': contract.id,
-        })
-
-        # 5. Total (WORK100)
-        worked_days.append({
-            'name': 'Total Days in Period',
-            'sequence': 99,
-            'code': 'WORK100',
-            'number_of_days': len(total_days_set),
-            'number_of_hours': len(total_days_set) * 8,
-            'contract_id': contract.id,
-        })
-
-        return worked_days
+        """Same worked days as the payslip itself (get_worked_day_lines), so the
+        batch export can never count leave differently from the payslips."""
+        return self.get_worked_day_lines(contract, date_from, date_to)
 
     def export_payslip_to_excel_kgrn_ca_llc(self):
         # Create a new Excel workbook and add a worksheet

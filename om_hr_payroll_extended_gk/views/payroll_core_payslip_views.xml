@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Payroll > Employee Payslips: a country payroll's payslips appear once the payroll is
+         approved (Done, numbered, in their Payslip Batch); its drafts stay inside the batch. -->
+    <record id="om_hr_payroll.action_view_hr_payslip_form" model="ir.actions.act_window">
+        <field name="domain">['|', ('country_line_id', '=', False), ('country_batch_state', '=', 'approved')]</field>
+    </record>
+</odoo>

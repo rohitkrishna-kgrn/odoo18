@@ -184,6 +184,27 @@
                             <field name="name" readonly="state != 'draft'"/>
                             <field name="credit_note" readonly="state != 'draft'"/>
                         </group>
+                        <field name="pf_india" invisible="1"/>
+                        <div class="alert alert-warning" role="alert" colspan="2"
+                             invisible="not pf_india or pf_basic_source != 'contract' or pf_contract_basic">
+                            The contract has no Basic Salary, so Basic Salary and Employee Provident Fund are 0
+                            on this payslip. Fill Basic Salary on the contract and click Compute Sheet again.
+                        </div>
+                        <group string="Basic Salary &amp; Employee Provident Fund (India)" invisible="not pf_india"
+                               name="india_pf">
+                            <group>
+                                <field name="pf_salary"/>
+                                <field name="pf_lop_amount"/>
+                                <field name="pf_salary_after_lop"/>
+                            </group>
+                            <group>
+                                <field name="pf_contract_basic"/>
+                                <field name="pf_basic_source"/>
+                                <field name="pf_basic"/>
+                                <field name="pf_epf_rate"/>
+                                <field name="pf_epf_amount"/>
+                            </group>
+                        </group>
                         <notebook>
                             <page string="Worked Days &amp; Inputs">
                                 <separator string="Worked Days"/>

@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Payroll register (PDF). wkhtmltopdf 0.12: tables only (no flex / grid), DejaVu fonts,
+         every border set explicitly so no global table style can box the layout tables. -->
+    <template id="report_payroll_register">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-set="groups" t-value="o._report_groups()"/>
+                <t t-set="summary" t-value="o._register_summary()"/>
+                <t t-set="batch" t-value="o.batch_id"/>
+
+                <div class="footer o_pcr_footer">
+                    <table style="width:100%;border-collapse:collapse;border:0;border-top:1px solid #d5d9de;font-family:'DejaVu Sans';font-size:7.5px;color:#7a828c;">
+                        <tr style="border-style:none;border-width:0;">
+                            <td style="border:0;padding:4px 0 0 0;text-align:left;width:40%;">KGRN Chartered Accountants · Confidential</td>
+                            <td style="border:0;padding:4px 0 0 0;text-align:center;width:20%;"><t t-out="o._title()"/></td>
+                            <td style="border:0;padding:4px 0 0 0;text-align:right;width:40%;">Page <span class="page"/> of <span class="topage"/></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="article o_pcr">
+                    <style>
+                        .o_pcr { font-family:'DejaVu Sans'; font-size:8px; color:#2b2f33; }
+                        /* Bootstrap gives tr / thead / tbody / td / th border-style:solid with width 0, and
+                           wkhtmltopdf's Qt paints that as a hairline box: reset the style to none everywhere */
+                        .o_pcr table, .o_pcr thead, .o_pcr tbody, .o_pcr tfoot, .o_pcr tr, .o_pcr td, .o_pcr th {
+                            border-style:none; border-width:0; }
+                        .o_pcr table { border-collapse:collapse; }
+
+                        /* header */
+                        .o_pcr .hd { width:100%; margin-bottom:8px; }
+                        .o_pcr .hd td { vertical-align:top; padding:0; }
+                        .o_pcr .ttl { font-size:17px; font-weight:bold; color:#2f3b46; letter-spacing:0.3px; }
+                        .o_pcr .sub { font-size:10.5px; color:#F25D23; margin:2px 0 7px 0; font-weight:bold; }
+                        .o_pcr .meta td { padding:1px 14px 1px 0; font-size:8px; }
+                        .o_pcr .meta td.k { color:#7a828c; text-transform:uppercase; font-size:7px; letter-spacing:0.4px; }
+                        .o_pcr .meta td.v { color:#2b2f33; font-weight:bold; }
+                        .o_pcr .logo { width:150px; height:auto; }
+                        .o_pcr .rule { height:0; border-top:2px solid #F25D23; margin:4px 0 8px 0; }
+
+                        /* summary strip */
+                        .o_pcr .sm { width:100%; margin-bottom:10px; }
+                        .o_pcr .sm td { width:20%; padding:6px 10px; background:#f5f6f8; border-left:3px solid #F25D23; }
+                        .o_pcr .sm td.gap { width:1%; padding:0; background:none; border:0; }
+                        .o_pcr .sm .k { font-size:7px; color:#7a828c; text-transform:uppercase; letter-spacing:0.4px; }
+                        .o_pcr .sm .v { font-size:12px; font-weight:bold; color:#2f3b46; margin-top:2px; }
+                        .o_pcr .sm .v.neg { color:#c0392b; }
+
+                        /* company section */
+                        .o_pcr .blk { page-break-inside:avoid; }
+                        .o_pcr .sec { margin:12px 0 4px 0; padding:2px 0 2px 7px; border-left:3px solid #F25D23; }
+                        .o_pcr .sec .n { font-size:10px; font-weight:bold; color:#2f3b46; }
+                        .o_pcr .sec .c { font-size:8px; color:#7a828c; margin-left:6px; }
+
+                        /* register table */
+                        .o_pcr .rg { width:100%; margin-bottom:4px; }
+                        .o_pcr .rg thead { display:table-header-group; }
+                        .o_pcr .rg tr { page-break-inside:avoid; }
+                        .o_pcr .rg th { background:#2f3b46; color:#fff; font-weight:bold; font-size:7.3px;
+                                        padding:4px 4px; text-align:right; vertical-align:bottom; line-height:1.15; }
+                        .o_pcr .rg th.l { text-align:left; }
+                        .o_pcr .rg tr.grp th { background:#e9ecef; color:#2f3b46; font-size:7px; text-transform:uppercase;
+                                               letter-spacing:0.5px; text-align:center; padding:3px 4px;
+                                               border-bottom:2px solid #F25D23; }
+                        .o_pcr .rg tr.grp th.blank { background:#fff; border-bottom:0; }
+                        .o_pcr .rg td { padding:3.5px 4px; border-bottom:1px solid #e3e6ea; text-align:right; white-space:nowrap; }
+                        .o_pcr .rg td.l { text-align:left; white-space:normal; }
+                        .o_pcr .rg td.idx { color:#9aa1a9; text-align:center; width:14px; }
+                        .o_pcr .rg td.emp { font-weight:bold; color:#2f3b46; }
+                        .o_pcr .rg td.dim, .o_pcr .rg td.z { color:#a3a9b0; }
+                        .o_pcr .rg td.b { font-weight:bold; }
+                        .o_pcr .rg .gs { border-left:1px solid #c9ced4; }
+                        .o_pcr .rg th.gs { border-left:1px solid #46525e; }
+                        .o_pcr .rg tr.grp th.gs { border-left:1px solid #fff; }
+                        .o_pcr .rg tbody tr.alt td { background:#fafbfc; }
+                        .o_pcr .rg td.net { background:#fdf1ec; font-weight:bold; color:#2f3b46; }
+                        .o_pcr .rg tbody tr.alt td.net { background:#fbe9e1; }
+                        .o_pcr .rg td.neg { color:#c0392b; }
+                        .o_pcr .rg th.net { background:#F25D23; }
+                        .o_pcr .rg td.st { text-align:left; color:#5d6670; font-size:7.3px; }
+                        .o_pcr .rg tr.tot td { font-weight:bold; background:#eef0f3; border-top:1.5px solid #2f3b46;
+                                               border-bottom:1.5px solid #2f3b46; color:#2f3b46; }
+                        .o_pcr .rg tr.tot td.net { background:#f9dccf; }
+
+                        /* sign-off */
+                        .o_pcr .so { width:100%; margin-top:22px; page-break-inside:avoid; }
+                        .o_pcr .so td { width:33%; padding:0 18px 0 0; vertical-align:bottom; }
+                        .o_pcr .so .who { font-size:8.5px; font-weight:bold; color:#2f3b46; height:14px; }
+                        .o_pcr .so .line { border-top:1px solid #2f3b46; margin-top:22px; padding-top:3px; font-size:7px;
+                                           color:#7a828c; text-transform:uppercase; letter-spacing:0.4px; }
+                        .o_pcr .note { margin-top:12px; color:#8a9199; font-size:7px; }
+                    </style>
+
+                    <!-- ===== header: title + meta left, KGRN logo top-right ===== -->
+                    <table class="hd">
+                        <tr>
+                            <td>
+                                <div class="ttl">Payroll Register</div>
+                                <div class="sub"><t t-out="o._title()"/></div>
+                                <table class="meta">
+                                    <tr>
+                                        <td class="k">Period</td>
+                                        <td class="v"><t t-out="batch.period_label or ('%s %s' % (dict(o._fields['month'].selection).get(o.month), o.year))"/></td>
+                                        <td class="k">Payroll Batch</td>
+                                        <td class="v"><t t-out="batch.name or 'All batches of the period'"/></td>
+                                        <td class="k">Status</td>
+                                        <td class="v"><t t-out="batch and dict(batch._fields['state'].selection)[batch.state] or (o.include_draft and 'Including unapproved' or 'Approved only')"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="k">Approving Company</td>
+                                        <td class="v"><t t-out="batch.company_id.name or '-'"/></td>
+                                        <td class="k">Generated</td>
+                                        <td class="v"><t t-out="context_timestamp(datetime.datetime.now()).strftime('%d %b %Y, %H:%M')"/></td>
+                                        <td class="k">By</td>
+                                        <td class="v"><t t-out="user.name"/></td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <td style="width:160px;text-align:right;">
+                                <img class="logo" t-att-src="o._kgrn_logo_data_uri()" alt="KGRN"/>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="rule"/>
+
+                    <!-- ===== summary strip ===== -->
+                    <table class="sm">
+                        <tr>
+                            <td><div class="k">Employees</div><div class="v"><t t-out="summary['employees']"/></div></td>
+                            <td class="gap"/>
+                            <td><div class="k">Companies</div><div class="v"><t t-out="summary['companies']"/></div></td>
+                            <td class="gap"/>
+                            <td><div class="k">Gross Salary (<t t-out="summary['currency']"/>)</div><div class="v"><t t-out="o._fmt_num(summary['gross'])"/></div></td>
+                            <td class="gap"/>
+                            <td><div class="k">Total Deductions (<t t-out="summary['currency']"/>)</div><div class="v"><t t-out="o._fmt_num(summary['deductions'])"/></div></td>
+                            <td class="gap"/>
+                            <td><div class="k">Net Salary (<t t-out="summary['currency']"/>)</div>
+                                <div t-attf-class="v {{'neg' if summary['net'] &lt; 0 else ''}}"><t t-out="o._fmt_num(summary['net'])"/></div></td>
+                        </tr>
+                    </table>
+
+                    <!-- ===== one table per company ===== -->
+                    <t t-foreach="groups.items()" t-as="grp">
+                        <t t-set="lines" t-value="grp[1]"/>
+                        <t t-set="cols" t-value="o._register_columns(any(lines.mapped('pf_esi_applies')), any(lines.mapped('wfh_deduction')))"/>
+                        <t t-set="cur" t-value="lines[:1].currency_id.name or ''"/>
+                        <!-- heading + table kept together (a company is never split from its heading) -->
+                        <div class="blk">
+                        <div class="sec">
+                            <span class="n"><t t-out="grp[0]"/></span>
+                            <span class="c"><t t-out="len(lines)"/> employee<t t-if="len(lines) != 1">s</t> · <t t-out="cur"/></span>
+                        </div>
+                        <table class="rg">
+                            <thead>
+                                <tr class="grp">
+                                    <th class="blank" colspan="4"/>
+                                    <th class="gs" t-att-colspan="len([c for c in cols if c[0] == 'att'])">Attendance (days)</th>
+                                    <th class="gs" t-att-colspan="len([c for c in cols if c[0] == 'earn'])">Earnings</th>
+                                    <th class="gs" t-att-colspan="len([c for c in cols if c[0] == 'ded'])">Deductions</th>
+                                    <th class="blank gs" colspan="2"/>
+                                </tr>
+                                <tr>
+                                    <th style="text-align:center;">#</th>
+                                    <th class="l">Employee</th>
+                                    <th class="l">ID</th>
+                                    <th class="l">Department</th>
+                                    <t t-foreach="cols" t-as="c">
+                                        <th t-att-class="'gs' if c_index == 0 or cols[c_index - 1][0] != c[0] else ''"><t t-out="c[2]"/></th>
+                                    </t>
+                                    <th class="gs net">Net Salary</th>
+                                    <th class="l">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="lines" t-as="l" t-att-class="'alt' if l_index % 2 else ''">
+                                    <td class="idx"><t t-out="l_index + 1"/></td>
+                                    <td class="l emp"><t t-out="l.employee_name"/></td>
+                                    <td class="l dim"><t t-out="l.employee_code or ''"/></td>
+                                    <td class="l"><t t-out="l.department_name or ''"/></td>
+                                    <t t-foreach="cols" t-as="c">
+                                        <t t-set="v" t-value="o._register_value(l, c[1])"/>
+                                        <td t-att-class="' '.join(filter(None, ['gs' if c_index == 0 or cols[c_index - 1][0] != c[0] else '', 'z' if not round(v, c[3]) else '', 'b' if c[4] else '']))"><t t-out="o._fmt_num(v, c[3])"/></td>
+                                    </t>
+                                    <td t-attf-class="gs net {{'neg' if l.net &lt; 0 else ''}}"><t t-out="o._fmt_num(l.net)"/></td>
+                                    <td class="st"><t t-out="dict(l._fields['state'].selection)[l.state]"/></td>
+                                </tr>
+                                <tr class="tot">
+                                    <td colspan="4" class="l">Total · <t t-out="len(lines)"/> employee<t t-if="len(lines) != 1">s</t></td>
+                                    <t t-foreach="cols" t-as="c">
+                                        <t t-set="v" t-value="o._register_value(lines, c[1]) if c[0] != 'att' else 0.0"/>
+                                        <td t-att-class="'gs' if c_index == 0 or cols[c_index - 1][0] != c[0] else ''"><t t-out="o._fmt_num(v, c[3]) if c[0] != 'att' else ''"/></td>
+                                    </t>
+                                    <t t-set="net_total" t-value="sum(lines.mapped('net'))"/>
+                                    <td t-attf-class="gs net {{'neg' if net_total &lt; 0 else ''}}"><t t-out="o._fmt_num(net_total)"/></td>
+                                    <td/>
+                                </tr>
+                            </tbody>
+                        </table>
+                        </div>
+                    </t>
+
+                    <!-- ===== sign-off ===== -->
+                    <table class="so">
+                        <tr>
+                            <td>
+                                <div class="who"><t t-out="batch.submitted_by.name or ''"/></div>
+                                <div class="line">Prepared by<t t-if="batch.submitted_date"> · <t t-out="context_timestamp(batch.submitted_date).strftime('%d %b %Y')"/></t></div>
+                            </td>
+                            <td>
+                                <div class="who"/>
+                                <div class="line">Reviewed by</div>
+                            </td>
+                            <td>
+                                <div class="who"><t t-out="batch.approved_by.name or ''"/></div>
+                                <div class="line">Approved by<t t-if="batch.approved_date"> · <t t-out="context_timestamp(batch.approved_date).strftime('%d %b %Y')"/></t></div>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="note">Figures are the saved payroll calculation (Payroll salary rules and recorded manual changes). Amounts in <t t-out="summary['currency']"/>; "–" = nil. Bank details are not printed.</div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>
